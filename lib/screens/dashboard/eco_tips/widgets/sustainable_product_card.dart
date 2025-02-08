@@ -77,13 +77,13 @@ class SustainableProductsSection extends StatelessWidget {
           itemCount: products.length,
           itemBuilder: (context, index) {
             final product = products[index];
-            return Container(
+            return Card(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: theme.cardColor,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min, // Add this
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
@@ -106,20 +106,19 @@ class SustainableProductsSection extends StatelessWidget {
                           tr(context, product.nameKey),
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: theme.textTheme.bodyLarge?.color,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          tr(context, product.descriptionKey),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyLarge?.color,
-                            fontSize: 14,
+                        SizedBox(
+                          height: 60, // Fixed height for description
+                          child: Text(
+                            tr(context, product.descriptionKey),
+                            style: theme.textTheme.bodyMedium,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 16),
                         Container(
@@ -131,20 +130,22 @@ class SustainableProductsSection extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
-                                Icons.local_offer,
-                                color: Colors.green,
-                                size: 20,
-                              ),
+                              const Icon(Icons.local_offer,
+                                  color: Colors.green, size: 20),
                               const SizedBox(width: 8),
-                              Text(
-                                tr(context, 'sustainable_products_discount')
-                                    .replaceAll('{discount}',
-                                        '${product.discountPercentage}')
-                                    .replaceAll('{code}', product.discountCode),
-                                style: const TextStyle(
-                                  color: Colors.orange,
-                                  fontWeight: FontWeight.bold,
+                              Flexible(
+                                // Add this
+                                child: Text(
+                                  tr(context, 'sustainable_products_discount')
+                                      .replaceAll('{discount}',
+                                          '${product.discountPercentage}')
+                                      .replaceAll(
+                                          '{code}', product.discountCode),
+                                  style: const TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -156,8 +157,7 @@ class SustainableProductsSection extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: () => _launchUrl(product.websiteUrl),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: theme
-                                  .primaryColor, // Use primary color from theme
+                              backgroundColor: theme.primaryColor,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
@@ -165,10 +165,9 @@ class SustainableProductsSection extends StatelessWidget {
                             ),
                             child: Text(
                               tr(context, 'sustainable_products_shop_now'),
-                              style: theme.textTheme.bodyLarge?.copyWith(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyLarge
-                                    ?.color, // Use button text color from theme
+                                color: theme.colorScheme.onPrimary,
                               ),
                             ),
                           ),

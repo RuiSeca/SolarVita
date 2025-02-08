@@ -40,7 +40,6 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
       imagePath: 'assets/images/eco_tips/transport/transport.jpg',
     ),
   ];
-
   final List<CarbonActivity> _carbonActivities = [
     CarbonActivity(
       nameKey: 'activity_carpooling',
@@ -115,7 +114,7 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
                   final tip = _tips[index];
-                  if (_selectedCategory == 'All' ||
+                  if (_selectedCategory == 'category_all' ||
                       tip.category == _selectedCategory) {
                     return TipCard(tip: tip);
                   }
@@ -143,11 +142,9 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Eco-Friendly Products Deals',
+                    tr(context, 'eco_friendly_deals'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: theme.primaryColor,
-                      fontSize: 24,
+                    style: theme.textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),

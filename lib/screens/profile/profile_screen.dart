@@ -164,7 +164,7 @@ class ProfileScreen extends StatelessWidget {
                   Text(
                     'Valid until Dec 2024',
                     style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 204),
+                      color: AppColors.white.withValues(alpha: 51),
                       fontSize: 14,
                     ),
                   ),
@@ -231,10 +231,10 @@ class ProfileScreen extends StatelessWidget {
     required String label,
     required bool isUnlocked,
   }) {
-    final Color iconColor = isUnlocked ? AppColors.primary : Colors.grey;
+    final Color iconColor = isUnlocked ? AppColors.gold : Colors.grey;
     final Color backgroundColor = isUnlocked
-        ? AppColors.primary.withValues(alpha: 51)
-        : AppTheme.cardColor(context);
+        ? AppTheme.cardColor(context)
+        : AppColors.primary.withValues(alpha: 21);
     final Color textColor = isUnlocked
         ? AppTheme.textColor(context)
         : AppTheme.textColor(context).withValues(alpha: 153);

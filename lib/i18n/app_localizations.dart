@@ -7,7 +7,15 @@ class AppLocalizations {
   final Locale locale;
   final Map<String, String> _localizedStrings = {};
 
-  static const List<String> translationFiles = ['nav', 'dashboard', 'eco_tips'];
+  static const List<String> translationFiles = [
+    'nav',
+    'dashboard',
+    'eco_tips',
+    'welcome',
+    'auth',
+    'search',
+    'health',
+  ];
 
   AppLocalizations(this.locale);
 

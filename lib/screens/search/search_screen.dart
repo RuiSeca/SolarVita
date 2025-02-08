@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class SearchScreen extends StatelessWidget {
   const SearchScreen({super.key});
@@ -14,7 +15,7 @@ class SearchScreen extends StatelessWidget {
           children: [
             _buildAppBar(context),
             _buildTitle(context),
-            _buildWorkoutList(),
+            _buildWorkoutList(context),
           ],
         ),
       ),
@@ -41,7 +42,7 @@ class SearchScreen extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'SolarVita',
+                tr(context, 'app_name'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 20,
@@ -65,7 +66,7 @@ class SearchScreen extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: Text(
-        'Fitness routines',
+        tr(context, 'fitness_routines'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontSize: 24,
@@ -75,72 +76,87 @@ class SearchScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkoutList() {
-    return Expanded(
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: const [
-          WorkoutCategoryCard(
-            title: 'Strength training',
-            mainImage: 'assets/images/search/strength_training/strength.jpg',
-            smallImages: [
-              'assets/images/search/strength_training/strength-1.jpg',
-              'assets/images/search/strength_training/strength-2.jpg',
-            ],
-            count: '29+ challenges',
-          ),
-          SizedBox(height: 24),
-          WorkoutCategoryCard(
-            title: 'Abs & Cardio',
-            mainImage: 'assets/images/search/abs_cardio/abs-1.jpg',
-            smallImages: [
-              'assets/images/search/abs_cardio/abs-2.jpg',
-              'assets/images/search/abs_cardio/cardio.jpg',
-            ],
-            count: '20+ challenges',
-          ),
-          SizedBox(height: 24),
-          WorkoutCategoryCard(
-            title: 'Outdoor Activities',
-            mainImage: 'assets/images/search/outdoor_activities/running.jpg',
-            smallImages: [
-              'assets/images/search/outdoor_activities/running-1.jpg',
-              'assets/images/search/outdoor_activities/running-2.jpg',
-            ],
-            count: '32+ workouts',
-          ),
-          SizedBox(height: 24),
-          WorkoutCategoryCard(
-            title: 'Yoga sessions',
-            mainImage: 'assets/images/search/yoga_sessions/yoga.jpg',
-            smallImages: [
-              'assets/images/search/yoga_sessions/yoga-1.jpg',
-              'assets/images/search/yoga_sessions/yoga-2.jpg',
-            ],
-            count: '27+ activities',
-          ),
-          SizedBox(height: 24),
-          WorkoutCategoryCard(
-            title: 'Calisthenics',
-            mainImage: 'assets/images/search/calisthenics/calisthenics.jpg',
-            smallImages: [
-              'assets/images/search/calisthenics/calisthenics-1.jpg',
-              'assets/images/search/calisthenics/calisthenics-2.jpg',
-            ],
-            count: '50+ activities',
-          ),
-          SizedBox(height: 24),
-          WorkoutCategoryCard(
-            title: 'Meditation',
-            mainImage: 'assets/images/search/meditation/meditation-2.jpg',
-            smallImages: [
-              'assets/images/search/meditation/meditation-1.jpg',
-              'assets/images/search/meditation/meditation.jpg',
-            ],
-            count: '13+ challenges',
-          ),
-          SizedBox(height: 24),
+  Widget _buildWorkoutList(BuildContext context) {
+    final List<Map<String, dynamic>> workoutCategories = [
+      {
+        'titleKey': 'workout_strength',
+        'mainImage': 'assets/images/search/strength_training/strength.jpg',
+        'smallImages': <String>[
+          'assets/images/search/strength_training/strength-1.jpg',
+          'assets/images/search/strength_training/strength-2.jpg',
         ],
+        'count': '29+',
+        'type': 'challenges'
+      },
+      {
+        'titleKey': 'workout_abs',
+        'mainImage': 'assets/images/search/abs_cardio/abs-1.jpg',
+        'smallImages': <String>[
+          'assets/images/search/abs_cardio/abs-2.jpg',
+          'assets/images/search/abs_cardio/cardio.jpg',
+        ],
+        'count': '20+',
+        'type': 'challenges'
+      },
+      {
+        'titleKey': 'workout_outdoor',
+        'mainImage': 'assets/images/search/outdoor_activities/running.jpg',
+        'smallImages': <String>[
+          'assets/images/search/outdoor_activities/running-1.jpg',
+          'assets/images/search/outdoor_activities/running-2.jpg',
+        ],
+        'count': '32+',
+        'type': 'workouts'
+      },
+      {
+        'titleKey': 'workout_yoga',
+        'mainImage': 'assets/images/search/yoga_sessions/yoga.jpg',
+        'smallImages': <String>[
+          'assets/images/search/yoga_sessions/yoga-1.jpg',
+          'assets/images/search/yoga_sessions/yoga-2.jpg',
+        ],
+        'count': '27+',
+        'type': 'activities'
+      },
+      {
+        'titleKey': 'workout_calisthenics',
+        'mainImage': 'assets/images/search/calisthenics/calisthenics.jpg',
+        'smallImages': <String>[
+          'assets/images/search/calisthenics/calisthenics-1.jpg',
+          'assets/images/search/calisthenics/calisthenics-2.jpg',
+        ],
+        'count': '50+',
+        'type': 'activities'
+      },
+      {
+        'titleKey': 'workout_meditation',
+        'mainImage': 'assets/images/search/meditation/meditation-2.jpg',
+        'smallImages': <String>[
+          'assets/images/search/meditation/meditation-1.jpg',
+          'assets/images/search/meditation/meditation.jpg',
+        ],
+        'count': '13+',
+        'type': 'challenges'
+      },
+    ];
+
+    return Expanded(
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: workoutCategories.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 24),
+        itemBuilder: (context, index) {
+          final category = workoutCategories[index];
+          return WorkoutCategoryCard(
+            title: tr(context, category['titleKey'] as String),
+            mainImage: category['mainImage'] as String,
+            smallImages: (category['smallImages'] as List).cast<String>(),
+            count: tr(
+              context,
+              '${category['type'] as String}_count',
+            ).replaceAll('{count}', category['count'] as String),
+          );
+        },
       ),
     );
   }
@@ -223,7 +239,7 @@ class WorkoutCategoryCard extends StatelessWidget {
                         height: 70,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(12),
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [
                               Colors.black54,
                               Colors.black26,
