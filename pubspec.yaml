@@ -42,23 +42,33 @@ flutter:
     - assets/i18n/en.json
     - assets/i18n/pt.json
     - assets/images/welcome_illustration.png
-    - assets/images/hiit.jpg
-    - assets/images/abs.jpg
-    - assets/images/yoga.jpg
-    - assets/images/yoga-1.jpg
-    - assets/images/yoga-2.jpg
-    - assets/images/running.jpg
-    - assets/images/running-1.jpg
-    - assets/images/running-2.jpg
-    - assets/images/strength.jpg
-    - assets/images/strength-1.jpg
-    - assets/images/strength-2.jpg
-    - assets/images/recycle.jpg
-    - assets/images/energy.jpg
-    - assets/images/water.jpg
-    - assets/images/eco_clothes.jpg
-    - assets/images/bamboo_bottle.jpg
-    - assets/images/yoga_mat.jpg
+    - assets/images/dashboard/hiit.jpg
+    - assets/images/dashboard/abs.jpg
+    - assets/images/search/yoga_sessions/yoga.jpg
+    - assets/images/search/yoga_sessions/yoga-1.jpg
+    - assets/images/search/yoga_sessions/yoga-2.jpg
+    - assets/images/search/outdoor_activities/running.jpg
+    - assets/images/search/outdoor_activities/running-1.jpg
+    - assets/images/search/outdoor_activities/running-2.jpg
+    - assets/images/search/strength_training/strength.jpg
+    - assets/images/search/strength_training/strength-1.jpg
+    - assets/images/search/strength_training/strength-2.jpg
+    - assets/images/search/calisthenics/calisthenics.jpg
+    - assets/images/search/calisthenics/calisthenics-1.jpg
+    - assets/images/search/calisthenics/calisthenics-2.jpg
+    - assets/images/search/meditation/meditation.jpg
+    - assets/images/search/meditation/meditation-1.jpg
+    - assets/images/search/meditation/meditation-2.jpg
+    - assets/images/search/abs_cardio/abs-1.jpg
+    - assets/images/search/abs_cardio/abs-2.jpg
+    - assets/images/search/abs_cardio/cardio.jpg
+    - assets/images/eco_tips/waste_management/recycle.jpg
+    - assets/images/eco_tips/energy/energy.jpg
+    - assets/images/eco_tips/water/water.jpg
+    - assets/images/eco_tips/transport/transport.jpg
+    - assets/images/eco_tips/sustainable_products/eco_clothes.jpg
+    - assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg
+    - assets/images/eco_tips/sustainable_products/yoga_mat.jpg
     - assets/images/fitness1.jpg
     - assets/images/fitness2.jpg
     - assets/images/fitness3.jpg

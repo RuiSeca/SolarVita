@@ -109,7 +109,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               image: DecorationImage(
-                image: AssetImage('assets/images/AI_avatar.jpg'),
+                image: AssetImage('assets/images/ai_assistant/AI_avatar.jpg'),
                 fit: BoxFit.cover,
               ),
             ),

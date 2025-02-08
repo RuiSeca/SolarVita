@@ -50,7 +50,7 @@ class HealthScreen extends StatelessWidget {
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.primary, width: 2),
               image: const DecorationImage(
-                image: AssetImage('assets/images/profile.jpg'),
+                image: AssetImage('assets/images/health/profile/profile.jpg'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -170,7 +170,7 @@ class HealthScreen extends StatelessWidget {
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
         image: const DecorationImage(
-          image: AssetImage('assets/images/meal.jpg'),
+          image: AssetImage('assets/images/health/meals/meal.jpg'),
           fit: BoxFit.cover,
         ),
       ),
