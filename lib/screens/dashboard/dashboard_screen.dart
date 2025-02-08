@@ -179,12 +179,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Popular Workouts Section
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      tr(context, 'explore_popular_workouts'),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        tr(context, 'explore_popular_workouts'),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
@@ -198,6 +200,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 16),
                 _buildWorkoutCard(
                   title: tr(context, 'beginners_hiit'),
@@ -210,12 +213,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 // Quick Exercise Section
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      tr(context, 'quick_exercise_routines'),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: Text(
+                        tr(context, 'quick_exercise_routines'),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
@@ -421,20 +426,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
+                  title, // This is receiving already translated text
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  author,
+                  author, // This is receiving already translated text
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.white70,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
