@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
-import 'package:solar_vitas/utils/translation_helper.dart'; // Add this import
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});

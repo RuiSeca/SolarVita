@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'models/eco_tip.dart';
+import '../../../../models/eco_tip.dart';
 import 'widgets/tip_card.dart';
 import 'widgets/sustainable_product_card.dart';
 import 'widgets/carbon_tracker.dart';
+import '../../../../models/carbon_activity.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class EcoTipsScreen extends StatefulWidget {
   const EcoTipsScreen({super.key});
@@ -14,59 +16,53 @@ class EcoTipsScreen extends StatefulWidget {
 class _EcoTipsScreenState extends State<EcoTipsScreen> {
   final List<EcoTip> _tips = [
     EcoTip(
-      title: 'Reduce, Reuse, Recycle',
-      description:
-          'Learn how to effectively manage waste by reducing consumption, reusing products, and recycling materials.',
-      category: 'Waste Management',
+      titleKey: 'tip_recycle_title',
+      descriptionKey: 'tip_recycle_description',
+      category: 'category_waste',
       imagePath: 'assets/images/eco_tips/waste_management/recycle.jpg',
     ),
     EcoTip(
-      title: 'Save Energy',
-      description:
-          'Discover simple habits to cut down on energy usage, such as turning off lights when not in use and using energy-efficient appliances.',
-      category: 'Energy',
+      titleKey: 'tip_energy_title',
+      descriptionKey: 'tip_energy_description',
+      category: 'category_energy',
       imagePath: 'assets/images/eco_tips/energy/energy.jpg',
     ),
     EcoTip(
-      title: 'Water Conservation',
-      description:
-          'Implement water-saving techniques like fixing leaks and using low-flow showerheads to conserve this precious resource.',
-      category: 'Water',
+      titleKey: 'tip_water_title',
+      descriptionKey: 'tip_water_description',
+      category: 'category_water',
       imagePath: 'assets/images/eco_tips/water/water.jpg',
     ),
     EcoTip(
-      title: 'Pedals for the Planet',
-      description:
-          'Use conventional bikes, and for those that want to benefit from technology, pedal-powered scooters, electric scooters, and electric bikes to reduce carbon footprint.',
-      category: 'Transport',
+      titleKey: 'tip_transport_title',
+      descriptionKey: 'tip_transport_description',
+      category: 'category_transport',
       imagePath: 'assets/images/eco_tips/transport/transport.jpg',
     ),
-    // Add more tips as needed
   ];
 
-  // Sample carbon tracker data
   final List<CarbonActivity> _carbonActivities = [
     CarbonActivity(
-      name: 'Carpooling',
+      nameKey: 'activity_carpooling',
       co2Saved: 2.5,
       icon: Icons.directions_car,
       date: DateTime(2025, 1, 20),
     ),
     CarbonActivity(
-      name: 'Public Transit',
+      nameKey: 'activity_transit',
       co2Saved: 1.8,
       icon: Icons.directions_bus,
       date: DateTime(2025, 1, 22),
     ),
     CarbonActivity(
-      name: 'Biking',
+      nameKey: 'activity_biking',
       co2Saved: 0.5,
       icon: Icons.directions_bike,
       date: DateTime(2025, 1, 23),
     ),
   ];
 
-  String _selectedCategory = 'All';
+  String _selectedCategory = 'category_all';
 
   double get _totalSaved {
     return _carbonActivities.fold(
@@ -78,16 +74,9 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme
-          .scaffoldBackgroundColor, // Adjust background color based on theme
-      appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        title: Text('Eco Tips', style: TextStyle(color: theme.primaryColor)),
-        elevation: theme.appBarTheme.elevation,
-      ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: CustomScrollView(
         slivers: [
-          // Header and category chips section
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -95,9 +84,9 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sustainable Living Tips',
+                    tr(context, 'sustainable_living_tips'),
                     style: TextStyle(
-                      color: theme.primaryColor, // Use primary color from theme
+                      color: theme.primaryColor,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -107,11 +96,11 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
                     scrollDirection: Axis.horizontal,
                     child: Row(
                       children: [
-                        _buildCategoryChip('All'),
-                        _buildCategoryChip('Waste Management'),
-                        _buildCategoryChip('Energy'),
-                        _buildCategoryChip('Water'),
-                        _buildCategoryChip('Transport'),
+                        _buildCategoryChip('category_all'),
+                        _buildCategoryChip('category_waste'),
+                        _buildCategoryChip('category_energy'),
+                        _buildCategoryChip('category_water'),
+                        _buildCategoryChip('category_transport'),
                       ],
                     ),
                   ),
@@ -119,7 +108,6 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
               ),
             ),
           ),
-
           // Eco tips list section
           SliverPadding(
             padding: const EdgeInsets.all(16),

@@ -43,6 +43,8 @@ flutter:
     - assets/i18n/en/dashboard.json
     - assets/i18n/pt/nav.json
     - assets/i18n/pt/dashboard.json
+    - assets/i18n/en/eco_tips.json
+    - assets/i18n/pt/eco_tips.json
     - assets/images/welcome_illustration.png
     - assets/images/dashboard/hiit.jpg
     - assets/images/dashboard/abs.jpg
