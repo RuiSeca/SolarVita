@@ -39,8 +39,10 @@ flutter:
     - assets/images/
     # Uncomment and add specific images as needed
     - lib/i18n/
-    - assets/i18n/en.json
-    - assets/i18n/pt.json
+    - assets/i18n/en/nav.json
+    - assets/i18n/en/dashboard.json
+    - assets/i18n/pt/nav.json
+    - assets/i18n/pt/dashboard.json
     - assets/images/welcome_illustration.png
     - assets/images/dashboard/hiit.jpg
     - assets/images/dashboard/abs.jpg
@@ -69,6 +71,9 @@ flutter:
     - assets/images/eco_tips/sustainable_products/eco_clothes.jpg
     - assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg
     - assets/images/eco_tips/sustainable_products/yoga_mat.jpg
+    - assets/images/health/health_profile/profile.jpg
+    - assets/images/health/meals/meal.jpg
+    - assets/images/solar_ai/AI_avatar.jpg
     - assets/images/fitness1.jpg
     - assets/images/fitness2.jpg
     - assets/images/fitness3.jpg

@@ -241,7 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExerciseCard(
                         title: tr(context, 'efficient_abs'),
                         author: tr(context, 'regular_trainer'),
-                        imagePath: 'assets/images/search/abs_cardio/abs.jpg',
+                        imagePath: 'assets/images/dashboard/abs.jpg',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -249,7 +249,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExerciseCard(
                         title: tr(context, 'strength_training'),
                         author: tr(context, 'fitness_coach'),
-                        imagePath: 'assets/images/dashboard/strength.jpg',
+                        imagePath:
+                            'assets/images/search/strength_training/strength.jpg',
                       ),
                     ),
                   ],
