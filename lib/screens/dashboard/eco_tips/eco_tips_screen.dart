@@ -18,28 +18,28 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
       description:
           'Learn how to effectively manage waste by reducing consumption, reusing products, and recycling materials.',
       category: 'Waste Management',
-      imagePath: 'assets/images/recycle.jpg',
+      imagePath: 'assets/images/eco_tips/waste_management/recycle.jpg',
     ),
     EcoTip(
       title: 'Save Energy',
       description:
           'Discover simple habits to cut down on energy usage, such as turning off lights when not in use and using energy-efficient appliances.',
       category: 'Energy',
-      imagePath: 'assets/images/energy.jpg',
+      imagePath: 'assets/images/eco_tips/energy/energy.jpg',
     ),
     EcoTip(
       title: 'Water Conservation',
       description:
           'Implement water-saving techniques like fixing leaks and using low-flow showerheads to conserve this precious resource.',
       category: 'Water',
-      imagePath: 'assets/images/water.jpg',
+      imagePath: 'assets/images/eco_tips/water/water.jpg',
     ),
     EcoTip(
       title: 'Pedals for the Planet',
       description:
           'Use conventional bikes, and for those that want to benefit from technology, pedal-powered scooters, electric scooters, and electric bikes to reduce carbon footprint.',
       category: 'Transport',
-      imagePath: 'assets/images/transport.jpg',
+      imagePath: 'assets/images/eco_tips/transport/transport.jpg',
     ),
     // Add more tips as needed
   ];

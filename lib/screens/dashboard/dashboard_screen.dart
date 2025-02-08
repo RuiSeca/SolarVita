@@ -207,7 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   author: tr(context, 'active_user'),
                   isPremium: true,
                   color: Colors.green,
-                  imagePath: 'assets/images/hiit.jpg',
+                  imagePath: 'assets/images/dashboard/hiit.jpg',
                 ),
                 const SizedBox(height: 24),
 
@@ -241,7 +241,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExerciseCard(
                         title: tr(context, 'efficient_abs'),
                         author: tr(context, 'regular_trainer'),
-                        imagePath: 'assets/images/abs.jpg',
+                        imagePath: 'assets/images/search/abs_cardio/abs.jpg',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -249,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExerciseCard(
                         title: tr(context, 'strength_training'),
                         author: tr(context, 'fitness_coach'),
-                        imagePath: 'assets/images/strength.jpg',
+                        imagePath: 'assets/images/dashboard/strength.jpg',
                       ),
                     ),
                   ],

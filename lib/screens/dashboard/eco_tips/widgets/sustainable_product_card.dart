@@ -25,7 +25,8 @@ class SustainableProductsSection extends StatelessWidget {
       name: 'Eco Bamboo Water Bottle',
       description:
           'Stay hydrated sustainably with our premium bamboo water bottle. Perfect for your workouts and daily use.',
-      imagePath: 'assets/images/bamboo_bottle.jpg',
+      imagePath:
+          'assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg',
       websiteUrl: 'https://eco-bottle-partner.com',
       discountCode: 'SOLARVITA15',
       discountPercentage: 15,
@@ -34,7 +35,7 @@ class SustainableProductsSection extends StatelessWidget {
       name: 'Sustainable Activewear',
       description:
           'Eco-friendly workout clothes made from recycled materials. Look good while protecting the planet.',
-      imagePath: 'assets/images/eco_clothes.jpg',
+      imagePath: 'assets/images/eco_tips/sustainable_products/eco_clothes.jpg',
       websiteUrl: 'https://eco-clothes-partner.com',
       discountCode: 'SOLARVITA20',
       discountPercentage: 20,
@@ -43,7 +44,7 @@ class SustainableProductsSection extends StatelessWidget {
       name: 'Cork Yoga Mat',
       description:
           'Premium cork yoga mat that\'s naturally antimicrobial and provides excellent grip. Perfect for your practice.',
-      imagePath: 'assets/images/yoga_mat.jpg',
+      imagePath: 'assets/images/eco_tips/sustainable_products/yoga_mat.jpg',
       websiteUrl: 'https://eco-yoga-partner.com',
       discountCode: 'SOLARVITA15',
       discountPercentage: 15,
