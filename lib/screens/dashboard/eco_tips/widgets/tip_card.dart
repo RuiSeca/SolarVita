@@ -84,14 +84,14 @@ class TipCard extends StatelessWidget {
                         // Implement share functionality
                       },
                       icon: const Icon(Icons.share),
-                      label: Text(tr(context, 'share_tip')),
+                      label: Text(tr(context, 'action_share')),
                     ),
                     TextButton.icon(
                       onPressed: () {
                         // Implement save functionality
                       },
                       icon: const Icon(Icons.bookmark_border),
-                      label: Text(tr(context, 'save_tip')),
+                      label: Text(tr(context, 'action_save')),
                     ),
                   ],
                 ),

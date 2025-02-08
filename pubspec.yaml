@@ -45,6 +45,16 @@ flutter:
     - assets/i18n/pt/dashboard.json
     - assets/i18n/en/eco_tips.json
     - assets/i18n/pt/eco_tips.json
+    - assets/i18n/en/welcome.json
+    - assets/i18n/pt/welcome.json
+    - assets/i18n/en/auth.json
+    - assets/i18n/pt/auth.json
+    - assets/i18n/en/search.json
+    - assets/i18n/pt/search.json
+    - assets/i18n/en/health.json
+    - assets/i18n/pt/health.json
+    - assets/images/google_logo.jpg
+    - assets/images/facebook_logo.jpg
     - assets/images/welcome_illustration.png
     - assets/images/dashboard/hiit.jpg
     - assets/images/dashboard/abs.jpg

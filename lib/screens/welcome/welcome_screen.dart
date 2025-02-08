@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../login/login_screen.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -18,46 +19,47 @@ class WelcomeScreenState extends State<WelcomeScreen> {
     'assets/images/fitness3.jpg',
   ];
 
-  final List<String> titles = [
-    "Sustainable Fitness",
-    "Empower Your Body",
-    "Mind & Strength",
+  final List<String> titleKeys = [
+    'slide1_title',
+    'slide2_title',
+    'slide3_title',
   ];
 
-  final List<String> descriptions = [
-    "Train with an eco-friendly mindset, using sustainable resources.",
-    "Achieve your fitness goals while reducing your carbon footprint.",
-    "Balance strength, endurance, and mindfulness in your journey.",
+  final List<String> descriptionKeys = [
+    'slide1_desc',
+    'slide2_desc',
+    'slide3_desc',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Custom Rich Text Welcome Message
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text.rich(
                 TextSpan(
                   children: [
-                    const TextSpan(
-                      text: 'Welcome to ',
+                    TextSpan(
+                      text: tr(context, 'welcome_message'),
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: theme.textTheme.bodyLarge?.color,
                       ),
                     ),
-                    const TextSpan(
-                      text: 'Solar Vitas',
+                    TextSpan(
+                      text: ' ${tr(context, 'app_name')}',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green, // Changed to blue
+                        color: theme.primaryColor,
                       ),
                     ),
                   ],
@@ -66,12 +68,10 @@ class WelcomeScreenState extends State<WelcomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-
-            // Carousel Slider (centered and enlarged)
             Center(
               child: CarouselSlider(
                 options: CarouselOptions(
-                  height: 350, // Increased height for a larger carousel
+                  height: 350,
                   autoPlay: true,
                   autoPlayInterval: const Duration(seconds: 4),
                   enlargeCenterPage: true,
@@ -93,10 +93,7 @@ class WelcomeScreenState extends State<WelcomeScreen> {
                 }).toList(),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Dot indicators
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(images.length, (index) {
@@ -107,72 +104,62 @@ class WelcomeScreenState extends State<WelcomeScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: _currentIndex == index
-                        ? Colors.white
-                        : Colors.white.withAlpha(71),
+                        ? theme.primaryColor
+                        : theme.primaryColor.withAlpha(77),
                   ),
                 );
               }),
             ),
-
             const SizedBox(height: 24),
-
-            // Title Changing with Images
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
               child: Text(
-                titles[_currentIndex],
-                key: ValueKey<String>(titles[_currentIndex]),
-                style: const TextStyle(
+                tr(context, titleKeys[_currentIndex]),
+                key: ValueKey<String>(titleKeys[_currentIndex]),
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: theme.textTheme.bodyLarge?.color,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // Description Changing with Images
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 500),
               child: Text(
-                descriptions[_currentIndex],
-                key: ValueKey<String>(descriptions[_currentIndex]),
-                style: const TextStyle(
+                tr(context, descriptionKeys[_currentIndex]),
+                key: ValueKey<String>(descriptionKeys[_currentIndex]),
+                style: TextStyle(
                   fontSize: 16,
-                  color: Colors.white70,
+                  color: theme.textTheme.bodyMedium?.color,
                 ),
                 textAlign: TextAlign.center,
               ),
             ),
-
             const Spacer(),
-
-            // "Get Moving" Button
             ElevatedButton(
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginScreen()),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
+                backgroundColor: theme.primaryColor,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Get Moving',
+              child: Text(
+                tr(context, 'get_moving'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: theme.colorScheme.onPrimary,
                 ),
               ),
             ),
-
             const SizedBox(height: 32),
           ],
         ),

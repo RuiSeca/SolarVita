@@ -1,25 +1,25 @@
-// lib/screens/login/login_screen.dart
 import 'package:flutter/material.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: theme.iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Sign up/Login',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
+        title: Text(
+          tr(context, 'sign_up_login'),
+          style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -30,82 +30,72 @@ class LoginScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Select your country',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+              Text(
+                tr(context, 'select_country'),
+                style: theme.textTheme.titleMedium,
               ),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade800),
+                  border: Border.all(color: theme.dividerColor),
                   borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey.shade900,
+                  color: theme.cardColor,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'United Kingdom',
-                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    Text(
+                      tr(context, 'united_kingdom'),
+                      style: theme.textTheme.bodyLarge,
                     ),
-                    Icon(Icons.arrow_drop_down, color: Colors.grey.shade400),
+                    Icon(Icons.arrow_drop_down, color: theme.iconTheme.color),
                   ],
                 ),
               ),
               const SizedBox(height: 32),
 
-              // Social Login Buttons
+              // Social Login Buttons (keeping white for Google, blue for Facebook)
               OutlinedButton.icon(
                 onPressed: () {},
-                icon: SizedBox(
+                icon: const SizedBox(
                   width: 24,
                   height: 24,
-                  child: Image.network(
-                    'http://pngimg.com/uploads/google/google_PNG19635.png',
-                    fit: BoxFit.cover,
-                  ),
+                  child:
+                      Image(image: AssetImage('assets/images/google_logo.jpg')),
                 ),
-                label: const Text(
-                  'Continue with Google',
-                  style: TextStyle(color: Colors.black, fontSize: 16),
+                label: Text(
+                  tr(context, 'continue_google'),
+                  style: const TextStyle(color: Colors.black),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
-                  side: BorderSide(color: Colors.white),
+                  backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: Colors.white,
                 ),
               ),
               const SizedBox(height: 16),
 
               OutlinedButton.icon(
                 onPressed: () {},
-                icon: SizedBox(
+                icon: const SizedBox(
                   width: 24,
                   height: 24,
-                  child: Image.network(
-                    'https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Facebook_Logo_%282019%29.png/768px-Facebook_Logo_%282019%29.png',
-                    fit: BoxFit.cover,
-                  ),
+                  child: Image(
+                      image: AssetImage('assets/images/facebook_logo.jpg')),
                 ),
-                label: const Text(
-                  'Continue with Facebook',
-                  style: TextStyle(color: Colors.black, fontSize: 16),
+                label: Text(
+                  tr(context, 'continue_facebook'),
+                  style: const TextStyle(color: Colors.white),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.all(16),
-                  side: BorderSide(color: Colors.grey.shade800),
+                  backgroundColor: Colors.blue,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  backgroundColor: Colors.blueAccent.shade400,
                 ),
               ),
               const SizedBox(height: 16),
@@ -113,39 +103,38 @@ class LoginScreen extends StatelessWidget {
               // Divider
               Row(
                 children: [
-                  Expanded(child: Divider(color: Colors.grey.shade800)),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
+                  Expanded(child: Divider(color: theme.dividerColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'or',
-                      style: TextStyle(color: Colors.grey),
+                      tr(context, 'or'),
+                      style: theme.textTheme.bodyMedium,
                     ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey.shade800)),
+                  Expanded(child: Divider(color: theme.dividerColor)),
                 ],
               ),
               const SizedBox(height: 32),
 
               // Email Input
               TextFormField(
-                style: const TextStyle(color: Colors.white),
+                style: theme.textTheme.bodyLarge,
                 decoration: InputDecoration(
-                  labelText: 'Email address',
-                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                  labelText: tr(context, 'email_address'),
+                  labelStyle: theme.textTheme.bodyMedium,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade800),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade800),
+                    borderSide: BorderSide(color: theme.dividerColor),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Colors.green),
+                    borderSide: BorderSide(color: theme.primaryColor),
                   ),
                   filled: true,
-                  fillColor: Colors.grey.shade900,
+                  fillColor: theme.cardColor,
                 ),
               ),
               const SizedBox(height: 24),
@@ -155,18 +144,17 @@ class LoginScreen extends StatelessWidget {
                 onPressed: () =>
                     Navigator.pushReplacementNamed(context, '/main'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
+                  backgroundColor: theme.primaryColor,
                   padding: const EdgeInsets.all(16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Continue with Email',
-                  style: TextStyle(
-                    fontSize: 16,
+                child: Text(
+                  tr(context, 'continue_email'),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
                   ),
                 ),
               ),
@@ -174,11 +162,9 @@ class LoginScreen extends StatelessWidget {
 
               // Terms Text
               Text(
-                'By continuing, you agree to our Terms of Service and Privacy Policy.',
+                tr(context, 'terms_conditions'),
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade400,
+                style: theme.textTheme.bodySmall?.copyWith(
                   height: 1.5,
                 ),
               ),

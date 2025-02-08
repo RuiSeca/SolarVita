@@ -13,11 +13,16 @@ class AppColors {
   static const bubbleDark = Color(0xFF1E1E1E);
   static const cardLight = Color(0xFFF5F5F5);
   static const cardDark = Color(0xFF1E1E1E);
+  static const gold = Color(0xFFFFD700); // Gold color added
 }
 
 class AppTheme {
   static bool isDarkMode(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  static Color isAchievementsUnlocked(BuildContext context) {
+    return isDarkMode(context) ? AppColors.gold : AppColors.gold;
   }
 
   static Color textColor(BuildContext context) {

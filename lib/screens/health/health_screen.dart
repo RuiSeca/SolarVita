@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
@@ -16,7 +17,7 @@ class HealthScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Fitness Profile',
+                  tr(context, 'fitness_profile'),
                   style: TextStyle(
                     color: AppTheme.textColor(context),
                     fontSize: 24,
@@ -58,7 +59,7 @@ class HealthScreen extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'SolarVita Fitness',
+            tr(context, 'solarvita_fitness'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 20,
@@ -66,7 +67,7 @@ class HealthScreen extends StatelessWidget {
             ),
           ),
           Text(
-            'Eco-friendly workouts',
+            tr(context, 'eco_friendly_workouts'),
             style: TextStyle(
               color: AppTheme.textColor(context).withValues(alpha: 153),
               fontSize: 14,
@@ -87,13 +88,13 @@ class HealthScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          StatItem(title: 'Explore', subtitle: 'My Fitness', context: context),
+          StatItem(title: 'explore', subtitle: 'my_fitness', context: context),
           VerticalDivider(
               color: AppTheme.textColor(context).withValues(alpha: 51)),
-          StatItem(title: '2', subtitle: 'Inspiring Users', context: context),
+          StatItem(title: '2', subtitle: 'inspiring_users', context: context),
           VerticalDivider(
               color: AppTheme.textColor(context).withValues(alpha: 51)),
-          StatItem(title: 'Achieve', subtitle: 'Challenges', context: context),
+          StatItem(title: 'achieve', subtitle: 'challenges', context: context),
         ],
       ),
     );
@@ -104,7 +105,7 @@ class HealthScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Friendly Meals',
+          tr(context, 'friendly_meals'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 20,
@@ -122,7 +123,7 @@ class HealthScreen extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Track Progress',
+          tr(context, 'track_progress'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 20,
@@ -133,26 +134,26 @@ class HealthScreen extends StatelessWidget {
         _buildTrackingItem(
           context,
           icon: Icons.fitness_center,
-          title: 'Completed Workouts',
-          buttonText: 'explore',
+          title: 'completed_workouts',
+          buttonText: 'button_explore',
         ),
         _buildTrackingItem(
           context,
           icon: Icons.bedtime,
-          title: 'Sleep Pattern',
-          buttonText: 'Record time',
+          title: 'sleep_pattern',
+          buttonText: 'button_record_time',
         ),
         _buildTrackingItem(
           context,
           icon: Icons.favorite,
-          title: 'Heart Rate',
-          buttonText: 'Results',
+          title: 'heart_rate',
+          buttonText: 'button_results',
         ),
         _buildTrackingItem(
           context,
           icon: Icons.eco,
-          title: 'Eco-conscious Achievements',
-          buttonText: 'Enter',
+          title: 'eco_conscious_achievements',
+          buttonText: 'button_enter',
         ),
         _buildWaterIntakeItem(
           context,

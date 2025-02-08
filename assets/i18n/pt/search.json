@@ -1,0 +1,13 @@
+{
+    "app_name": "SolarVita",
+    "fitness_routines": "Rotinas de Fitness",
+    "workout_strength": "Treino de Força",
+    "workout_abs": "Abs & Cardio",
+    "workout_outdoor": "Atividades ao ar livre",
+    "workout_yoga": "Sessões de Yoga",
+    "workout_calisthenics": "Calistenia",
+    "workout_meditation": "Meditação",
+    "challenges_count": "{count} desafios",
+    "workouts_count": "{count} treinos",
+    "activities_count": "{count} atividades"
+}

@@ -28,11 +28,12 @@
   "sustainable_products_subtitle": "Apoie a vida sustentável com nossos produtos parceiros",
   "sustainable_products_shop_now": "Comprar Agora",
   "sustainable_products_see_more": "Ver Mais Produtos →",
-  "sustainable_products_discount": "{discount}% DE DESCONTO com o código {code}",
+  "sustainable_products_discount": "{discount}% OFF código: {code}",
   "product_bottle_name": "Garrafa de Água de Bambu Ecológica",
-  "product_bottle_description": "Mantenha-se hidratado de forma sustentável com nossa garrafa de água de bambu premium. Perfeita para seus treinos e uso diário.",
+  "product_bottle_description": "Mantenha-se hidratado de forma sustentável com nossa garrafa de água de bambu premium.",
   "product_activewear_name": "Roupas Esportivas Sustentáveis",
   "product_activewear_description": "Roupas de treino ecológicas feitas com materiais reciclados. Fique bem enquanto protege o planeta.",
   "product_yoga_name": "Tapete de Yoga de Cortiça",
-  "product_yoga_description": "Tapete de yoga de cortiça premium naturalmente antimicrobiano e com excelente aderência. Perfeito para sua prática."
+  "product_yoga_description": "Tapete de yoga de cortiça premium naturalmente antimicrobiano e com excelente aderência.",
+  "eco_friendly_deals": "Ofertas de Produtos Ecológicos"
 }
