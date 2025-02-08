@@ -1,131 +1,145 @@
+// widgets/carbon_tracker.dart
 import 'package:flutter/material.dart';
-
-class CarbonActivity {
-  final String name;
-  final double co2Saved;
-  final IconData icon;
-  final DateTime date;
-
-  CarbonActivity({
-    required this.name,
-    required this.co2Saved,
-    required this.icon,
-    required this.date,
-  });
-}
+import '../../../../models/carbon_activity.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class CarbonTracker extends StatelessWidget {
   final List<CarbonActivity> activities;
   final double totalSaved;
 
   const CarbonTracker({
-    super.key,
     required this.activities,
     required this.totalSaved,
+    super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final backgroundColor = theme.cardColor; // Use the theme's card color
-    final textColor = theme.textTheme.bodyLarge?.color;
-    final accentColor =
-        theme.colorScheme.secondary; // Use accent color for emphasis
 
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr(context, 'carbon_tracker_title'),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    context,
+                    tr(context, 'total_co2_saved'),
+                    '${totalSaved.toStringAsFixed(1)} kg',
+                    Icons.eco,
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildStatCard(
+                    context,
+                    tr(context, 'activities_count'),
+                    '${activities.length}',
+                    Icons.list_alt,
+                    Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              tr(context, 'recent_activities'),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: activities.length,
+              itemBuilder: (context, index) {
+                final activity = activities[index];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withAlpha(25),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      activity.icon,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  title: Text(
+                    tr(context, activity.nameKey),
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  subtitle: Text(
+                    _formatDate(activity.date),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  trailing: Text(
+                    '${activity.co2Saved.toStringAsFixed(1)} kg CO₂',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+    BuildContext context,
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: backgroundColor, // Apply theme's background color
-        borderRadius: BorderRadius.circular(16),
+        color: color.withAlpha(25),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Carbon Footprint',
-                style: TextStyle(
-                  color: textColor, // Use theme's text color
-                  fontSize: 18,
+          Icon(icon, color: color),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: color,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: accentColor.withAlpha(51),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '${totalSaved.toStringAsFixed(1)} kg CO₂',
-                  style: TextStyle(
-                    color: accentColor, // Use accent color for emphasis
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: activities.length,
-            itemBuilder: (context, index) {
-              final activity = activities[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: accentColor.withAlpha(51),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(activity.icon, color: accentColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.name,
-                            style: TextStyle(
-                              color: textColor, // Use theme's text color
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '${activity.date.day}/${activity.date.month}/${activity.date.year}',
-                            style: TextStyle(
-                              color: theme.hintColor, // Use theme's hint color
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '-${activity.co2Saved.toStringAsFixed(1)} kg',
-                      style: TextStyle(
-                        color: accentColor, // Use accent color for emphasis
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
           ),
         ],
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

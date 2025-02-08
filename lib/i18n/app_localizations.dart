@@ -7,10 +7,7 @@ class AppLocalizations {
   final Locale locale;
   final Map<String, String> _localizedStrings = {};
 
-  static const List<String> translationFiles = [
-    'nav',
-    'dashboard', // Changed from 'dashboard' to 'fitness'
-  ];
+  static const List<String> translationFiles = ['nav', 'dashboard', 'eco_tips'];
 
   AppLocalizations(this.locale);
 

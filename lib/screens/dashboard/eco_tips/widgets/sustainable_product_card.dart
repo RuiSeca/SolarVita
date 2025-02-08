@@ -1,30 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-class SustainableProduct {
-  final String name;
-  final String description;
-  final String imagePath;
-  final String websiteUrl;
-  final String discountCode;
-  final int discountPercentage;
-
-  SustainableProduct({
-    required this.name,
-    required this.description,
-    required this.imagePath,
-    required this.websiteUrl,
-    required this.discountCode,
-    required this.discountPercentage,
-  });
-}
+import '../../../../models/sustainable_products.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class SustainableProductsSection extends StatelessWidget {
   final List<SustainableProduct> products = [
     SustainableProduct(
-      name: 'Eco Bamboo Water Bottle',
-      description:
-          'Stay hydrated sustainably with our premium bamboo water bottle. Perfect for your workouts and daily use.',
+      nameKey: 'product_bottle_name',
+      descriptionKey: 'product_bottle_description',
       imagePath:
           'assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg',
       websiteUrl: 'https://eco-bottle-partner.com',
@@ -32,18 +15,16 @@ class SustainableProductsSection extends StatelessWidget {
       discountPercentage: 15,
     ),
     SustainableProduct(
-      name: 'Sustainable Activewear',
-      description:
-          'Eco-friendly workout clothes made from recycled materials. Look good while protecting the planet.',
+      nameKey: 'product_activewear_name',
+      descriptionKey: 'product_activewear_description',
       imagePath: 'assets/images/eco_tips/sustainable_products/eco_clothes.jpg',
       websiteUrl: 'https://eco-clothes-partner.com',
       discountCode: 'SOLARVITA20',
       discountPercentage: 20,
     ),
     SustainableProduct(
-      name: 'Cork Yoga Mat',
-      description:
-          'Premium cork yoga mat that\'s naturally antimicrobial and provides excellent grip. Perfect for your practice.',
+      nameKey: 'product_yoga_name',
+      descriptionKey: 'product_yoga_description',
       imagePath: 'assets/images/eco_tips/sustainable_products/yoga_mat.jpg',
       websiteUrl: 'https://eco-yoga-partner.com',
       discountCode: 'SOLARVITA15',
@@ -72,7 +53,7 @@ class SustainableProductsSection extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Sustainable Products',
+                tr(context, 'sustainable_products_title'),
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: theme.primaryColor, // Use primary color from theme
@@ -80,7 +61,7 @@ class SustainableProductsSection extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Support sustainable living with our partner products',
+                tr(context, 'sustainable_products_subtitle'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.textTheme.bodyLarge
                       ?.color, // Use body text color from theme
@@ -99,7 +80,7 @@ class SustainableProductsSection extends StatelessWidget {
             return Container(
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: theme.cardColor, // Use card color from theme
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -122,21 +103,23 @@ class SustainableProductsSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          product.name,
+                          tr(context, product.nameKey),
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: theme.textTheme.bodyLarge
-                                ?.color, // Use body text color from theme
+                            color: theme.textTheme.bodyLarge?.color,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          product.description,
+                          tr(context, product.descriptionKey),
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.textTheme.bodyLarge
-                                ?.color, // Use body text color from theme
+                            color: theme.textTheme.bodyLarge?.color,
                             fontSize: 14,
                           ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 16),
                         Container(
@@ -155,7 +138,10 @@ class SustainableProductsSection extends StatelessWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '${product.discountPercentage}% OFF with code ${product.discountCode}',
+                                tr(context, 'sustainable_products_discount')
+                                    .replaceAll('{discount}',
+                                        '${product.discountPercentage}')
+                                    .replaceAll('{code}', product.discountCode),
                                 style: const TextStyle(
                                   color: Colors.orange,
                                   fontWeight: FontWeight.bold,
@@ -178,7 +164,7 @@ class SustainableProductsSection extends StatelessWidget {
                               ),
                             ),
                             child: Text(
-                              'Shop Now',
+                              tr(context, 'sustainable_products_shop_now'),
                               style: theme.textTheme.bodyLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: theme.textTheme.bodyLarge
@@ -200,7 +186,7 @@ class SustainableProductsSection extends StatelessWidget {
           child: TextButton(
             onPressed: () => _launchUrl('https://eco-marketplace.com'),
             child: Text(
-              'See More Products →',
+              tr(context, 'sustainable_products_see_more'),
               style: theme.textTheme.bodyLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: theme.primaryColor, // Use primary color from theme
