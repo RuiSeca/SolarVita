@@ -37,55 +37,50 @@ flutter:
 
   assets:
     - assets/images/
-    # Uncomment and add specific images as needed
+    # Uncomment and to add specific images as needed
+
+    # Translations
+    # ==========
     - lib/i18n/
-    - assets/i18n/en/nav.json
-    - assets/i18n/en/dashboard.json
-    - assets/i18n/pt/nav.json
-    - assets/i18n/pt/dashboard.json
-    - assets/i18n/en/eco_tips.json
-    - assets/i18n/pt/eco_tips.json
-    - assets/i18n/en/welcome.json
-    - assets/i18n/pt/welcome.json
-    - assets/i18n/en/auth.json
-    - assets/i18n/pt/auth.json
-    - assets/i18n/en/search.json
-    - assets/i18n/pt/search.json
-    - assets/i18n/en/health.json
-    - assets/i18n/pt/health.json
+    - assets/i18n/en/
+    - assets/i18n/pt/
+    - assets/i18n/fr/
+    - assets/i18n/fr/dashboard.json
+
+    # ==========
+    # Feature Images
+
+    # Dashboard and Auth Images
     - assets/images/google_logo.jpg
     - assets/images/facebook_logo.jpg
     - assets/images/welcome_illustration.png
     - assets/images/dashboard/hiit.jpg
     - assets/images/dashboard/abs.jpg
-    - assets/images/search/yoga_sessions/yoga.jpg
-    - assets/images/search/yoga_sessions/yoga-1.jpg
-    - assets/images/search/yoga_sessions/yoga-2.jpg
-    - assets/images/search/outdoor_activities/running.jpg
-    - assets/images/search/outdoor_activities/running-1.jpg
-    - assets/images/search/outdoor_activities/running-2.jpg
-    - assets/images/search/strength_training/strength.jpg
-    - assets/images/search/strength_training/strength-1.jpg
-    - assets/images/search/strength_training/strength-2.jpg
-    - assets/images/search/calisthenics/calisthenics.jpg
-    - assets/images/search/calisthenics/calisthenics-1.jpg
-    - assets/images/search/calisthenics/calisthenics-2.jpg
-    - assets/images/search/meditation/meditation.jpg
-    - assets/images/search/meditation/meditation-1.jpg
-    - assets/images/search/meditation/meditation-2.jpg
-    - assets/images/search/abs_cardio/abs-1.jpg
-    - assets/images/search/abs_cardio/abs-2.jpg
-    - assets/images/search/abs_cardio/cardio.jpg
-    - assets/images/eco_tips/waste_management/recycle.jpg
-    - assets/images/eco_tips/energy/energy.jpg
-    - assets/images/eco_tips/water/water.jpg
-    - assets/images/eco_tips/transport/transport.jpg
-    - assets/images/eco_tips/sustainable_products/eco_clothes.jpg
-    - assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg
-    - assets/images/eco_tips/sustainable_products/yoga_mat.jpg
-    - assets/images/health/health_profile/profile.jpg
-    - assets/images/health/meals/meal.jpg
-    - assets/images/solar_ai/AI_avatar.jpg
+
+    # ==========
+    # Search Section
+    - assets/images/search/yoga_sessions/
+    - assets/images/search/outdoor_activities/
+    - assets/images/search/strength_training/
+    - assets/images/search/calisthenics/
+    - assets/images/search/meditation/
+    - assets/images/search/abs_cardio/
+
+    # Eco Tips Section
+    - assets/images/eco_tips/waste_management/
+    - assets/images/eco_tips/energy/
+    - assets/images/eco_tips/water/
+    - assets/images/eco_tips/transport/
+    - assets/images/eco_tips/sustainable_products/
+
+    # Health Section
+    - assets/images/health/health_profile/
+    - assets/images/health/meals/
+
+    # AI Section
+    - assets/images/solar_ai/
+
+    # Intro Section
     - assets/images/fitness1.jpg
     - assets/images/fitness2.jpg
     - assets/images/fitness3.jpg

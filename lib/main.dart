@@ -46,7 +46,7 @@ class SolarVitaApp extends StatelessWidget {
           supportedLocales: languageProvider.supportedLanguages
               .map((lang) => Locale(lang.code))
               .toList(),
-          localizationsDelegates: [
+          localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

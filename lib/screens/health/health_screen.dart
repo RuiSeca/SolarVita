@@ -180,18 +180,18 @@ class HealthScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          const Text(
-            'Meal Planning',
-            style: TextStyle(
+          Text(
+            tr(context, 'meal_planning'),
+            style: const TextStyle(
               color: AppColors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Discover sustainable meal options tailored to your fitness goals',
-            style: TextStyle(
+          Text(
+            tr(context, 'meal_planning_description'),
+            style: const TextStyle(
               color: AppColors.white,
               fontSize: 14,
             ),
@@ -207,9 +207,9 @@ class HealthScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: const Text(
-                'Explore Meals',
-                style: TextStyle(
+              child: Text(
+                tr(context, 'explore_meals'),
+                style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: AppColors.white,
@@ -241,7 +241,7 @@ class HealthScreen extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              title,
+              tr(context, title),
               style: TextStyle(
                 color: AppTheme.textColor(context),
                 fontSize: 16,
@@ -262,7 +262,7 @@ class HealthScreen extends StatelessWidget {
                 ),
               ),
               child: Text(
-                buttonText,
+                tr(context, buttonText),
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -363,7 +363,7 @@ class StatItem extends StatelessWidget {
     return Column(
       children: [
         Text(
-          title,
+          tr(context, title),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 18,
@@ -371,7 +371,7 @@ class StatItem extends StatelessWidget {
           ),
         ),
         Text(
-          subtitle,
+          tr(context, subtitle),
           style: TextStyle(
             color: AppTheme.textColor(context).withValues(alpha: 153),
             fontSize: 12,
