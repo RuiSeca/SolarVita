@@ -427,7 +427,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title, // This is receiving already translated text
+                  title,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -438,7 +438,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  author, // This is receiving already translated text
+                  author,
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.white70,

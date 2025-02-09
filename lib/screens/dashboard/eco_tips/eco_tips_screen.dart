@@ -166,7 +166,7 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
         selected: isSelected,
-        label: Text(category,
+        label: Text(tr(context, category),
             style: TextStyle(
                 color: isSelected ? Colors.white : theme.primaryColor)),
         onSelected: (selected) {

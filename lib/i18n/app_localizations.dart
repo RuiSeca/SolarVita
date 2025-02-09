@@ -36,31 +36,31 @@ class AppLocalizations {
       }
       return true;
     } catch (e) {
-      debugPrint('Error loading language files: $e');
+      debugPrint('❌ Error loading language files: $e');
       return false;
     }
   }
 
   Future<Map<String, String>> _loadJsonFile(String fileName) async {
     try {
-      final jsonString = await rootBundle.loadString(
-          'assets/i18n/${locale.languageCode}/$fileName.json'); // Updated path
+      final jsonString = await rootBundle
+          .loadString('assets/i18n/${locale.languageCode}/$fileName.json');
+
       Map<String, dynamic> jsonMap = json.decode(jsonString);
 
-      return jsonMap.map((key, value) {
-        return MapEntry(key, value.toString());
-      });
+      return jsonMap.map((key, value) => MapEntry(key, value.toString()));
     } catch (e) {
-      debugPrint('Error loading $fileName.json: $e');
-      return {};
+      debugPrint('⚠️ Warning: Missing translation file: $fileName.json');
+      return {}; // Return an empty map instead of crashing
     }
   }
 
   String translate(String key) {
     final String? value = _localizedStrings[key];
     if (value == null) {
-      debugPrint('Missing translation for key: $key in ${locale.languageCode}');
-      return key;
+      debugPrint(
+          '⚠️ Missing translation for key: $key in ${locale.languageCode}');
+      return key; // Return the key itself if no translation is found
     }
     return value;
   }
@@ -96,7 +96,8 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
 
   @override
   bool isSupported(Locale locale) {
-    return ['en', 'pt'].contains(locale.languageCode);
+    return ['en', 'pt', 'fr', 'it', 'de', 'es']
+        .contains(locale.languageCode); // ✅ French added
   }
 
   @override
