@@ -11,6 +11,7 @@ import 'settings/preferences/sustainability_goals_screen.dart';
 import 'settings/app/language_screen.dart';
 import 'settings/app/theme_screen.dart';
 import 'settings/app/help_support_screen.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 import 'package:solar_vitas/screens/login/login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -66,7 +67,7 @@ class ProfileScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'John Doe',
+                  tr(context, 'john_doe'),
                   style: TextStyle(
                     color: AppTheme.textColor(context),
                     fontSize: 24,
@@ -74,7 +75,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'Eco Enthusiast',
+                  tr(context, 'eco_enthusiast'),
                   style: TextStyle(
                     color: AppTheme.textColor(context).withValues(alpha: 153),
                     fontSize: 16,
@@ -152,8 +153,8 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Premium Eco Member',
+                  Text(
+                    tr(context, 'premium_eco_member'),
                     style: TextStyle(
                       color: AppColors.white,
                       fontSize: 20,
@@ -162,7 +163,7 @@ class ProfileScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Valid until Dec 2024',
+                    tr(context, 'valid_until'),
                     style: TextStyle(
                       color: AppColors.white.withValues(alpha: 51),
                       fontSize: 14,
@@ -177,7 +178,7 @@ class ProfileScreen extends StatelessWidget {
                 foregroundColor: AppColors.white,
                 textStyle: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              child: const Text('Manage'),
+              child: Text(tr(context, 'manage')),
             ),
           ],
         ),
@@ -188,7 +189,7 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAchievementsSection(BuildContext context) {
     return _buildSection(
       context,
-      title: 'Achievements',
+      title: 'achievements',
       child: SizedBox(
         height: 100,
         child: ListView(
@@ -198,25 +199,25 @@ class ProfileScreen extends StatelessWidget {
             _buildAchievement(
               context,
               icon: Icons.directions_run,
-              label: '10K Steps',
+              label: 'achievement_10k',
               isUnlocked: true,
             ),
             _buildAchievement(
               context,
               icon: Icons.eco,
-              label: 'Tree Planter',
+              label: 'achievement_tree',
               isUnlocked: true,
             ),
             _buildAchievement(
               context,
               icon: Icons.fitness_center,
-              label: 'Gym Guru',
+              label: 'achievement_gym',
               isUnlocked: true,
             ),
             _buildAchievement(
               context,
               icon: Icons.local_dining,
-              label: 'Veggie Week',
+              label: 'achievement_veggie',
               isUnlocked: false,
             ),
           ],
@@ -255,7 +256,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            label,
+            tr(context, label),
             style: TextStyle(
               color: textColor,
               fontSize: 12,
@@ -278,7 +279,7 @@ class ProfileScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            title,
+            tr(context, title),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 18,
@@ -316,7 +317,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                item.title,
+                tr(context, item.title),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 16,
@@ -325,7 +326,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             if (item.value != null)
               Text(
-                item.value!,
+                tr(context, item.value!),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withValues(alpha: 153),
                   fontSize: 14,
@@ -345,21 +346,21 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAccountSettings(BuildContext context) {
     return _buildSettingsSection(
       context,
-      title: 'Account',
+      title: 'account',
       items: [
         SettingsItem(
           icon: Icons.person,
-          title: 'Personal Information',
+          title: 'personal_information',
           onTapScreen: (context) => const PersonalInfoScreen(),
         ),
         SettingsItem(
           icon: Icons.notifications,
-          title: 'Notifications',
+          title: 'notifications',
           onTapScreen: (context) => const NotificationsScreen(),
         ),
         SettingsItem(
           icon: Icons.privacy_tip,
-          title: 'Privacy',
+          title: 'privacy',
           onTapScreen: (context) => const PrivacyScreen(),
         ),
       ],
@@ -369,21 +370,21 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildPreferencesSettings(BuildContext context) {
     return _buildSettingsSection(
       context,
-      title: 'Preferences',
+      title: 'preferences',
       items: [
         SettingsItem(
           icon: Icons.fitness_center,
-          title: 'Workout Preferences',
+          title: 'workout_preferences',
           onTapScreen: (context) => const WorkoutPreferencesScreen(),
         ),
         SettingsItem(
           icon: Icons.restaurant_menu,
-          title: 'Dietary Preferences',
+          title: 'dietary_preferences',
           onTapScreen: (context) => const DietaryPreferencesScreen(),
         ),
         SettingsItem(
           icon: Icons.eco,
-          title: 'Sustainability Goals',
+          title: 'sustainability_goals',
           onTapScreen: (context) => const SustainabilityGoalsScreen(),
         ),
       ],
@@ -393,23 +394,23 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildAppSettings(BuildContext context) {
     return _buildSettingsSection(
       context,
-      title: 'App',
+      title: 'app',
       items: [
         SettingsItem(
           icon: Icons.language,
-          title: 'Language',
-          value: 'English',
+          title: 'language',
+          value: 'language_value',
           onTapScreen: (context) => const LanguageScreen(),
         ),
         SettingsItem(
           icon: Icons.dark_mode,
-          title: 'Theme',
-          value: AppTheme.isDarkMode(context) ? 'Dark' : 'Light',
+          title: 'theme',
+          value: AppTheme.isDarkMode(context) ? 'theme_dark' : 'theme_light',
           onTapScreen: (context) => const ThemeScreen(),
         ),
         SettingsItem(
           icon: Icons.help,
-          title: 'Help & Support',
+          title: 'help_support',
           onTapScreen: (context) => const HelpSupportScreen(),
         ),
       ],
@@ -423,7 +424,7 @@ class ProfileScreen extends StatelessWidget {
         onPressed: () {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
           );
         },
         style: ElevatedButton.styleFrom(
@@ -433,9 +434,9 @@ class ProfileScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
-          'Sign Out',
-          style: TextStyle(
+        child: Text(
+          tr(context, 'sign_out'),
+          style: const TextStyle(
             color: AppColors.white,
             fontSize: 16,
           ),

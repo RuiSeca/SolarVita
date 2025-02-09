@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/ai_service.dart';
 import '../../models/user_context.dart';
 import '../../theme/app_theme.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -119,7 +120,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Solar',
+                tr(context, 'assistant_name'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 20,
@@ -127,7 +128,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 ),
               ),
               Text(
-                'Your Eco-Fitness Assistant',
+                tr(context, 'assistant_subtitle'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withValues(alpha: 153),
                   fontSize: 14,
@@ -141,30 +142,37 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   Widget _buildQuickActions() {
+    final quickActions = [
+      {
+        'icon': Icons.directions_run,
+        'label': 'quick_action_workout',
+      },
+      {
+        'icon': Icons.eco,
+        'label': 'quick_action_eco',
+      },
+      {
+        'icon': Icons.restaurant_menu,
+        'label': 'quick_action_meal',
+      },
+      {
+        'icon': Icons.calendar_today,
+        'label': 'quick_action_schedule',
+      },
+    ];
+
     return Container(
       height: 100,
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _buildQuickAction(
-            icon: Icons.directions_run,
-            label: 'Workout Plan',
-          ),
-          _buildQuickAction(
-            icon: Icons.eco,
-            label: 'Eco Tips',
-          ),
-          _buildQuickAction(
-            icon: Icons.restaurant_menu,
-            label: 'Meal Ideas',
-          ),
-          _buildQuickAction(
-            icon: Icons.calendar_today,
-            label: 'Schedule',
-          ),
-        ],
+        children: quickActions
+            .map((action) => _buildQuickAction(
+                  icon: action['icon'] as IconData,
+                  label: action['label'] as String,
+                ))
+            .toList(),
       ),
     );
   }
@@ -193,7 +201,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              label,
+              tr(context, label),
               style: TextStyle(
                 color: AppTheme.textColor(context),
                 fontSize: 12,
@@ -237,7 +245,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               controller: _messageController,
               style: TextStyle(color: AppTheme.textColor(context)),
               decoration: InputDecoration(
-                hintText: 'Ask Solar anything...',
+                hintText: tr(context, 'input_placeholder'),
                 hintStyle: TextStyle(
                   color: AppTheme.textColor(context).withValues(alpha: 128),
                 ),
@@ -342,7 +350,7 @@ class TypingIndicator extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            'Typing...',
+            tr(context, 'typing_indicator'),
             style: TextStyle(
               color: AppTheme.textColor(context),
             ),

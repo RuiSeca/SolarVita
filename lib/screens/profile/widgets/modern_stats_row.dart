@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class ModernStatsRow extends StatelessWidget {
   const ModernStatsRow({super.key});
@@ -14,7 +15,7 @@ class ModernStatsRow extends StatelessWidget {
               context,
               icon: Icons.local_fire_department,
               value: '2,450',
-              label: 'Calories',
+              label: 'calories',
               baseColor: Colors.deepOrange,
             ),
           ),
@@ -24,7 +25,7 @@ class ModernStatsRow extends StatelessWidget {
               context,
               icon: Icons.eco,
               value: '75kg',
-              label: 'CO₂ Saved',
+              label: 'co2_saved',
               baseColor: Colors.green,
             ),
           ),
@@ -34,7 +35,7 @@ class ModernStatsRow extends StatelessWidget {
               context,
               icon: Icons.timer,
               value: '14.2h',
-              label: 'Active Time',
+              label: 'active_time',
               baseColor: Colors.blue,
             ),
           ),
@@ -85,7 +86,7 @@ class ModernStatsRow extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            label,
+            tr(context, label),
             style: const TextStyle(
               fontSize: 12,
               color: Colors.white70,
