@@ -40,9 +40,7 @@ class SolarVitaApp extends StatelessWidget {
           themeMode: themeProvider.themeMode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
-
-          // Add these localization settings
-          locale: Locale(languageProvider.currentCode),
+          locale: languageProvider.locale,
           supportedLocales: languageProvider.supportedLanguages
               .map((lang) => Locale(lang.code))
               .toList(),
@@ -52,7 +50,6 @@ class SolarVitaApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-
           home: const WelcomeScreen(),
           routes: {
             '/main': (context) => const MainWrapper(),
@@ -95,7 +92,6 @@ class _MainWrapperState extends State<MainWrapper> {
         selectedItemColor: theme.primaryColor,
         unselectedItemColor: theme.hintColor,
         items: [
-          // Removed const from here
           BottomNavigationBarItem(
             icon: const Icon(Icons.home),
             label: tr(context, 'nav_home'),

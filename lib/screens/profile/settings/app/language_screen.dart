@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/language_provider.dart';
+import 'package:solar_vitas/utils/translation_helper.dart';
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
@@ -14,8 +15,8 @@ class LanguageScreen extends StatelessWidget {
           backgroundColor: Colors.black,
           appBar: AppBar(
             backgroundColor: Colors.black,
-            title: const Text(
-              'Language',
+            title: Text(
+              tr(context, 'language'),
               style: TextStyle(color: Colors.white),
             ),
             leading: IconButton(
@@ -34,7 +35,7 @@ class LanguageScreen extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final language = languageProvider.supportedLanguages[index];
                     final isSelected =
-                        language.code == languageProvider.currentCode;
+                        language.code == languageProvider.locale.languageCode;
 
                     return ListTile(
                       onTap: () {
@@ -45,7 +46,7 @@ class LanguageScreen extends StatelessWidget {
                         style: const TextStyle(fontSize: 24),
                       ),
                       title: Text(
-                        language.name,
+                        translateCountry(context, language.code),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
