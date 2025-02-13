@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import 'meal_plan_screen.dart';
+import 'meals/meal_plan_screen.dart';
 
 class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
