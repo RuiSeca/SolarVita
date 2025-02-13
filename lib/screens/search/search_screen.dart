@@ -91,7 +91,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/strength_training/strength-2.jpg',
         ],
         'count': '29+',
-        'type': 'challenges'
+        'type': 'challenges',
+        'workoutName': 'Dumbbell Bench Press',
+        'workoutSmall': 'Leg Press'
       },
       {
         'titleKey': 'workout_abs',
@@ -101,7 +103,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/abs_cardio/cardio.jpg',
         ],
         'count': '20+',
-        'type': 'challenges'
+        'type': 'challenges',
+        'workoutName': 'Ab-Wheel Rollout',
+        'workoutSmall': 'Rowing'
       },
       {
         'titleKey': 'workout_outdoor',
@@ -111,7 +115,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/outdoor_activities/running-2.jpg',
         ],
         'count': '32+',
-        'type': 'workouts'
+        'type': 'workouts',
+        'workoutName': 'Hiking',
+        'workoutSmall': 'Sprinting'
       },
       {
         'titleKey': 'workout_yoga',
@@ -121,7 +127,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/yoga_sessions/yoga-2.jpg',
         ],
         'count': '27+',
-        'type': 'activities'
+        'type': 'activities',
+        'workoutName': 'Sun Salutation',
+        'workoutSmall': 'Streching'
       },
       {
         'titleKey': 'workout_calisthenics',
@@ -131,7 +139,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/calisthenics/calisthenics-2.jpg',
         ],
         'count': '50+',
-        'type': 'activities'
+        'type': 'activities',
+        'workoutName': 'Pull-ups',
+        'workoutSmall': 'Crunch'
       },
       {
         'titleKey': 'workout_meditation',
@@ -141,7 +151,9 @@ class SearchScreen extends StatelessWidget {
           'assets/images/search/meditation/meditation.jpg',
         ],
         'count': '13+',
-        'type': 'challenges'
+        'type': 'challenges',
+        'workoutName': 'Mindful Breathing',
+        'workoutSmall': 'Deep breathing'
       },
     ];
 
@@ -154,13 +166,15 @@ class SearchScreen extends StatelessWidget {
           final category = workoutCategories[index];
           return WorkoutCategoryCard(
             title: tr(context, category['titleKey'] as String),
-            titleKey: category['titleKey'] as String, // Add this line
+            titleKey: category['titleKey'] as String,
             mainImage: category['mainImage'] as String,
             smallImages: (category['smallImages'] as List).cast<String>(),
             count: tr(
               context,
               '${category['type'] as String}_count',
             ).replaceAll('{count}', category['count'] as String),
+            workoutName: category['workoutName'] as String,
+            workoutSmall: category['workoutSmall'] as String,
           );
         },
       ),
@@ -170,19 +184,24 @@ class SearchScreen extends StatelessWidget {
 
 class WorkoutCategoryCard extends StatelessWidget {
   final String title;
-  final String titleKey; // Add this field
+  final String titleKey;
   final String mainImage;
   final List<String> smallImages;
   final String count;
+  final String workoutName;
+  final String workoutSmall;
+
   final List<String> workoutSteps;
 
   const WorkoutCategoryCard({
     super.key,
     required this.title,
-    required this.titleKey, // Add this parameter
+    required this.titleKey,
     required this.mainImage,
     required this.smallImages,
     required this.count,
+    required this.workoutName,
+    required this.workoutSmall,
     this.workoutSteps = const [
       'warm_up',
       'cardio_session',
@@ -252,6 +271,7 @@ class WorkoutCategoryCard extends StatelessWidget {
         const SizedBox(height: 12),
         Row(
           children: [
+            // Main Image with transparent workout name tag
             Expanded(
               flex: 2,
               child: GestureDetector(
@@ -262,41 +282,92 @@ class WorkoutCategoryCard extends StatelessWidget {
                 ),
                 child: Hero(
                   tag: '${title}_specificExercise',
-                  child: Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: AssetImage(mainImage),
-                        fit: BoxFit.cover,
+                  child: Stack(
+                    children: [
+                      Container(
+                        height: 160,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image: DecorationImage(
+                            image: AssetImage(mainImage),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withAlpha(153),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            workoutName,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
+            // Small Images Column
             Expanded(
               child: Column(
                 children: [
+                  // First small image with transparent workout name tag
                   GestureDetector(
                     onTap: () => _navigateToDetail(
                       context,
                       detail_types.WorkoutDetailType.alternateExercise,
                       smallImages[0],
                     ),
-                    child: Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: DecorationImage(
-                          image: AssetImage(smallImages[0]),
-                          fit: BoxFit.cover,
+                    child: Stack(
+                      children: [
+                        Container(
+                          height: 80,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            image: DecorationImage(
+                              image: AssetImage(smallImages[0]),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
-                      ),
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(153),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              workoutSmall,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 8),
+                  // Second small image with count overlay
                   GestureDetector(
                     onTap: () => _navigateToDetail(
                       context,

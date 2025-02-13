@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import 'meal_plan_screen.dart';
 
 class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
@@ -200,7 +201,14 @@ class HealthScreen extends StatelessWidget {
           SizedBox(
             height: 36,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MealPlanScreen(),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
