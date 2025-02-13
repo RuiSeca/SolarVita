@@ -16,7 +16,8 @@ class AppLocalizations {
     'search',
     'health',
     'ai_assistant',
-    'profile'
+    'profile',
+    'workout_detail'
   ];
 
   AppLocalizations(this.locale);
