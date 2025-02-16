@@ -13,6 +13,7 @@ class AppColors {
   static const bubbleDark = Color(0xFF1E1E1E);
   static const cardLight = Color(0xFFF5F5F5);
   static const cardDark = Color(0xFF1E1E1E);
+  static const grey = Color(0x8E222121); // Cinza claro com opacidade 40%
   static const gold = Color(0xFFFFD700); // Gold color added
 }
 
@@ -53,7 +54,7 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.black,
       colorScheme: ColorScheme.dark(
         primary: AppColors.primary,
-        surface: Colors.black,
+        surface: AppColors.grey,
         onSurface: AppColors.white,
         onPrimary: AppColors.white,
       ),
