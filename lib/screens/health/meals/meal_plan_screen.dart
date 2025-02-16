@@ -232,45 +232,58 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
 // Toggle meal favorite status
   Future<void> _toggleFavorite(String? mealId) async {
-    if (mealId == null) return;
+    if (mealId == null || mealId.isEmpty) return;
+
+    final id = mealId.toString();
 
     setState(() {
-      final id = mealId.toString();
       if (_favoriteMeals.contains(id)) {
         _favoriteMeals.remove(id);
       } else {
         _favoriteMeals.add(id);
       }
 
-      // Update the isFavorite status in all meal instances
-      _weeklyMealData.forEach((day, mealTimes) {
-        mealTimes.forEach((mealTime, meals) {
-          for (var meal in meals) {
-            if (meal['id']?.toString() == id) {
-              meal['isFavorite'] = _favoriteMeals.contains(id);
-            }
-          }
-        });
-      });
-
-      // Update current day's meals
-      _mealData.forEach((mealTime, meals) {
+      // Update the isFavorite status in all instances
+      void updateMealFavoriteStatus(List<Map<String, dynamic>> meals) {
         for (var meal in meals) {
           if (meal['id']?.toString() == id) {
             meal['isFavorite'] = _favoriteMeals.contains(id);
           }
         }
+      }
+
+      // Update weekly data
+      _weeklyMealData.forEach((day, mealTimes) {
+        mealTimes.forEach((_, meals) {
+          updateMealFavoriteStatus(meals);
+        });
+      });
+
+      // Update current day's meals
+      _mealData.forEach((_, meals) {
+        updateMealFavoriteStatus(meals);
       });
     });
 
     await _saveMealData();
-    HapticFeedback.lightImpact();
   }
 
   // Add these methods to the _MealPlanScreenState class
 
   Future<void> _handleShowMealDetail(Map<String, dynamic> meal) async {
     if (!mounted) return;
+
+    // Ensure calories is always a non-null String.
+    final caloriesValue = meal['calories']?.toString() ?? '0 kcal';
+
+    final nutritionFactsValue = meal['nutritionFacts'] != null
+        ? Map<String, dynamic>.from(meal['nutritionFacts'])
+        : {
+            'calories': '0',
+            'protein': '0g',
+            'carbs': '0g',
+            'fat': '0g',
+          };
 
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -279,13 +292,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           mealId: meal['id'],
           mealTitle: meal['titleKey'],
           imagePath: meal['imagePath'],
-          calories: meal['calories'],
-          nutritionFacts: Map<String, dynamic>.from(meal['nutritionFacts']),
-          ingredients: List<String>.from(meal['ingredients']),
-          measures: List<String>.from(meal['measures']),
-          instructions: List<String>.from(meal['instructions']),
-          area: meal['area'],
-          category: meal['category'],
+          calories: caloriesValue,
+          nutritionFacts: nutritionFactsValue,
+          ingredients: List<String>.from(meal['ingredients'] ?? []),
+          measures: List<String>.from(meal['measures'] ?? []),
+          instructions: List<String>.from(meal['instructions'] ?? []),
+          area: meal['area'] ?? '',
+          category: meal['category'] ?? '',
           isVegan: meal['isVegan'] ?? false,
           isFavorite: _favoriteMeals.contains(meal['id']),
           onFavoriteToggle: _toggleFavorite,
