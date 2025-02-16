@@ -6,13 +6,13 @@ import 'meal_detail_screen.dart';
 class FavoriteMealsScreen extends StatefulWidget {
   final Set<String> favoriteMeals;
   final List<Map<String, dynamic>> meals;
-  final Function(String) onFavoriteToggle; // Add this
+  final Function(String) onFavoriteToggle;
 
   const FavoriteMealsScreen({
     super.key,
     required this.favoriteMeals,
     required this.meals,
-    required this.onFavoriteToggle, // Add this
+    required this.onFavoriteToggle,
   });
 
   @override
@@ -30,8 +30,11 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Updated filtering logic with proper null checking
     final filteredMeals = widget.meals
-        .where((meal) => widget.favoriteMeals.contains(meal['id']))
+        .where((meal) =>
+            meal['id'] != null &&
+            widget.favoriteMeals.contains(meal['id'].toString()))
         .toList();
 
     return Scaffold(
@@ -92,15 +95,20 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                 mainAxisSpacing: 16,
               ),
               itemCount: filteredMeals.length,
-              itemBuilder: (context, index) => _buildMealCard(
-                context,
-                filteredMeals[index],
-              ),
+              itemBuilder: (context, index) =>
+                  _buildMealCard(context, filteredMeals[index]),
             ),
     );
   }
 
   Widget _buildMealCard(BuildContext context, Map<String, dynamic> meal) {
+    // Extract values with null checks and defaults
+    final mealId = meal['id']?.toString() ?? '';
+    final imagePath = meal['imagePath']?.toString() ?? '';
+    final title = meal['titleKey']?.toString() ?? 'Unnamed Meal';
+    final calories = meal['calories']?.toString() ?? '0 kcal';
+    final area = meal['area']?.toString() ?? '';
+
     return GestureDetector(
       onTap: () => _handleMealTap(context, meal),
       child: Container(
@@ -125,21 +133,28 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                     top: Radius.circular(20),
                   ),
                   child: Hero(
-                    tag: meal['id'],
-                    child: Image.network(
-                      meal['imagePath'],
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 140,
-                          width: double.infinity,
-                          color: AppTheme.cardColor(context),
-                          child: const Icon(Icons.broken_image, size: 40),
-                        );
-                      },
-                    ),
+                    tag: mealId,
+                    child: imagePath.isNotEmpty
+                        ? Image.network(
+                            imagePath,
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 140,
+                                width: double.infinity,
+                                color: AppTheme.cardColor(context),
+                                child: const Icon(Icons.broken_image, size: 40),
+                              );
+                            },
+                          )
+                        : Container(
+                            height: 140,
+                            width: double.infinity,
+                            color: AppTheme.cardColor(context),
+                            child: const Icon(Icons.broken_image, size: 40),
+                          ),
                   ),
                 ),
                 if (meal['isVegan'] == true)
@@ -184,7 +199,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    meal['titleKey'],
+                    title,
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontSize: 16,
@@ -217,7 +232,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                               const SizedBox(width: 2),
                               Flexible(
                                 child: Text(
-                                  meal['calories'],
+                                  calories,
                                   style: TextStyle(
                                     color: AppColors.primary,
                                     fontSize: 10,
@@ -230,7 +245,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                           ),
                         ),
                       ),
-                      if (meal['area'] != null) ...[
+                      if (area.isNotEmpty) ...[
                         const SizedBox(width: 4),
                         Expanded(
                           child: Container(
@@ -257,7 +272,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                                 const SizedBox(width: 2),
                                 Flexible(
                                   child: Text(
-                                    meal['area'],
+                                    area,
                                     style: TextStyle(
                                       color: AppTheme.textColor(context),
                                       fontSize: 10,
@@ -286,23 +301,41 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
     final mealId = meal['id']?.toString() ?? '';
     if (mealId.isEmpty) return;
 
+    // Format meal data safely with null checks and defaults.
+    final formattedMeal = {
+      'id': mealId,
+      'titleKey': meal['titleKey']?.toString() ?? 'Unnamed Meal',
+      'imagePath': meal['imagePath']?.toString() ?? '',
+      'calories': meal['calories']?.toString() ?? '0 kcal',
+      'nutritionFacts': {
+        'calories': meal['nutritionFacts']?['calories']?.toString() ?? '0',
+        'protein': meal['nutritionFacts']?['protein']?.toString() ?? '0g',
+        'carbs': meal['nutritionFacts']?['carbs']?.toString() ?? '0g',
+        'fat': meal['nutritionFacts']?['fat']?.toString() ?? '0g',
+      },
+      'ingredients': List<String>.from(meal['ingredients'] ?? []),
+      'measures': List<String>.from(meal['measures'] ?? []),
+      'instructions': List<String>.from(meal['instructions'] ?? []),
+      'area': meal['area']?.toString() ?? '',
+      'category': meal['category']?.toString() ?? '',
+      'isVegan': meal['isVegan'] ?? false,
+    };
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MealDetailScreen(
           mealId: mealId,
-          mealTitle: meal['titleKey']?.toString() ?? 'Unnamed Meal',
-          imagePath: meal['imagePath']?.toString() ?? '',
-          calories: meal['calories']?.toString() ?? '0 kcal',
-          nutritionFacts: Map<String, String>.from(meal['nutritionFacts'] ??
-              {'calories': '0', 'protein': '0g', 'carbs': '0g', 'fat': '0g'}),
-          ingredients: List<String>.from(meal['ingredients'] ?? []),
-          measures: List<String>.from(meal['measures'] ?? []),
-          instructions: List<String>.from(meal['instructions'] ?? []),
-          area: meal['area']?.toString(),
-          category: meal['category']?.toString(),
-          isVegan: meal['isVegan'] ?? false,
-          youtubeUrl: meal['youtubeUrl']?.toString(),
+          mealTitle: formattedMeal['titleKey'] ?? '',
+          imagePath: formattedMeal['imagePath'] ?? '',
+          calories: formattedMeal['calories'] ?? '0 kcal',
+          nutritionFacts: formattedMeal['nutritionFacts'],
+          ingredients: formattedMeal['ingredients'],
+          measures: formattedMeal['measures'],
+          instructions: formattedMeal['instructions'],
+          area: formattedMeal['area'],
+          category: formattedMeal['category'],
+          isVegan: formattedMeal['isVegan'],
           isFavorite: true,
           onFavoriteToggle: widget.onFavoriteToggle,
         ),
