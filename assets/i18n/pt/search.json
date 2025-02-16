@@ -9,5 +9,17 @@
     "workout_meditation": "Meditação",
     "challenges_count": "{count} desafios",
     "workouts_count": "{count} treinos",
-    "activities_count": "{count} atividades"
+    "activities_count": "{count} atividades",
+    "Dumbbell Bench Press": "Supino com Halteres",
+    "Leg Press": "Leg Press",
+    "Ab-Wheel Rollout": "Rolo Abdominal",
+    "Rowing": "Remo",
+    "Hiking": "Caminhada",
+    "Sprinting": "Sprint",
+    "Sun Salutation": "Saudação ao Sol",
+    "Streching": "Alongamento",
+    "Pull-ups": "Barra Fixa",
+    "Crunch": "Abdominal Crunch",
+    "Mindful Breathing": "Respiração Consciente",
+    "Deep breathing": "Respiração Profunda"
 }

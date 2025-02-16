@@ -9,5 +9,17 @@
     "workout_meditation": "Meditation",
     "challenges_count": "{count} challenges",
     "workouts_count": "{count} workouts",
-    "activities_count": "{count} activities"
+    "activities_count": "{count} activities",
+    "Dumbbell Bench Press": "Dumbbell Bench Press",
+    "Leg Press": "Leg Press",
+    "Ab-Wheel Rollout": "Ab-Wheel Rollout",
+    "Rowing": "Rowing",
+    "Hiking": "Hiking",
+    "Sprinting": "Sprinting",
+    "Sun Salutation": "Sun Salutation",
+    "Streching": "Stretching",
+    "Pull-ups": "Pull-ups",
+    "Crunch": "Crunch",
+    "Mindful Breathing": "Mindful Breathing",
+    "Deep breathing": "Deep breathing"
 }
