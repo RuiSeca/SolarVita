@@ -69,16 +69,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     });
   }
 
-  void _handleQuickAction(String action) {
-    String response = _aiService.generateQuickResponse(action);
-    setState(() {
-      _messages.insert(
-        0,
-        ChatMessage(text: response, isUser: false),
-      );
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -87,7 +77,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         child: Column(
           children: [
             _buildHeader(),
-            _buildQuickActions(),
+            if (_messages.isEmpty) _buildActionButtons(),
             _buildChatArea(),
             _buildMessageInput(),
           ],
@@ -130,7 +120,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               Text(
                 tr(context, 'assistant_subtitle'),
                 style: TextStyle(
-                  color: AppTheme.textColor(context).withValues(alpha: 153),
+                  color: AppTheme.textColor(context).withAlpha(153),
                   fontSize: 14,
                 ),
               ),
@@ -141,73 +131,88 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  Widget _buildQuickActions() {
-    final quickActions = [
+  Widget _buildActionButtons() {
+    final List<Map<String, dynamic>> actions = [
       {
         'icon': Icons.directions_run,
-        'label': 'quick_action_workout',
+        'label': tr(context, 'quick_action_workout'),
+        'color': const Color(0xFF2196F3), // Material Blue
       },
       {
         'icon': Icons.eco,
-        'label': 'quick_action_eco',
+        'label': tr(context, 'quick_action_eco'),
+        'color': AppColors.primary,
       },
       {
         'icon': Icons.restaurant_menu,
-        'label': 'quick_action_meal',
+        'label': tr(context, 'quick_action_meal'),
+        'color': const Color(0xFFFF9800), // Material Orange
       },
       {
         'icon': Icons.calendar_today,
-        'label': 'quick_action_schedule',
+        'label': tr(context, 'quick_action_schedule'),
+        'color': AppColors.gold,
       },
     ];
 
     return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: quickActions
-            .map((action) => _buildQuickAction(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: GridView.count(
+        shrinkWrap: true,
+        crossAxisCount: 2,
+        mainAxisSpacing: 16,
+        crossAxisSpacing: 16,
+        childAspectRatio: 2.5,
+        children: actions
+            .map((action) => _buildActionButton(
                   icon: action['icon'] as IconData,
                   label: action['label'] as String,
+                  color: action['color'] as Color,
                 ))
             .toList(),
       ),
     );
   }
 
-  Widget _buildQuickAction({
+  Widget _buildActionButton({
     required IconData icon,
     required String label,
+    required Color color,
   }) {
-    return GestureDetector(
-      onTap: () => _handleQuickAction(label),
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        child: Column(
-          children: [
-            Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: AppColors.iconBackground,
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Icon(
-                icon,
-                color: AppColors.primary,
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.textColor(context).withAlpha(26),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _handleQuickAction(label),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: color,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              tr(context, label),
-              style: TextStyle(
-                color: AppTheme.textColor(context),
-                fontSize: 12,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -237,9 +242,62 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
+        border: Border(
+          top: BorderSide(color: AppTheme.textColor(context).withAlpha(26)),
+        ),
       ),
       child: Row(
         children: [
+          Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppTheme.textColor(context).withAlpha(51),
+              ),
+            ),
+            child: PopupMenuButton<String>(
+              offset: const Offset(0, -160),
+              position: PopupMenuPosition.over,
+              icon: Icon(
+                Icons.add,
+                color: AppTheme.textColor(context),
+              ),
+              padding: EdgeInsets.zero,
+              onSelected: _handleAttachmentSelection,
+              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                PopupMenuItem<String>(
+                  value: 'photos',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.photo_library),
+                      const SizedBox(width: 8),
+                      Text(tr(context, 'attach_photos')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'camera',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.camera_alt),
+                      const SizedBox(width: 8),
+                      Text(tr(context, 'attach_camera')),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'files',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.attach_file),
+                      const SizedBox(width: 8),
+                      Text(tr(context, 'attach_files')),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: _messageController,
@@ -247,7 +305,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
               decoration: InputDecoration(
                 hintText: tr(context, 'input_placeholder'),
                 hintStyle: TextStyle(
-                  color: AppTheme.textColor(context).withValues(alpha: 128),
+                  color: AppTheme.textColor(context).withAlpha(128),
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -265,6 +323,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           ),
           const SizedBox(width: 8),
           FloatingActionButton(
+            mini: true,
             onPressed: () => _handleSubmitted(_messageController.text),
             backgroundColor: AppColors.primary,
             child: const Icon(Icons.send, color: AppColors.white),
@@ -272,6 +331,42 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         ],
       ),
     );
+  }
+
+  void _handleQuickAction(String action) {
+    String response = _aiService.generateQuickResponse(action);
+    setState(() {
+      _messages.insert(
+        0,
+        ChatMessage(text: response, isUser: false),
+      );
+    });
+  }
+
+  void _handleAttachmentSelection(String value) {
+    switch (value) {
+      case 'photos':
+        _handlePhotos();
+        break;
+      case 'camera':
+        _handleCamera();
+        break;
+      case 'files':
+        _handleFiles();
+        break;
+    }
+  }
+
+  void _handlePhotos() {
+    // Implement photo gallery selection
+  }
+
+  void _handleCamera() {
+    // Will be implemented for food recognition feature
+  }
+
+  void _handleFiles() {
+    // Implement file attachment handling
   }
 }
 
