@@ -239,7 +239,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   Widget _buildMessageInput() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(
+        top: 16,
+        bottom: 16,
+        right: 16,
+        left: 8,
+      ),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
         border: Border(
@@ -248,56 +253,63 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppTheme.textColor(context).withAlpha(51),
+          Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppTheme.textColor(context).withAlpha(51),
+                ),
               ),
-            ),
-            child: PopupMenuButton<String>(
-              offset: const Offset(0, -160),
-              position: PopupMenuPosition.over,
-              icon: Icon(
-                Icons.add,
-                color: AppTheme.textColor(context),
+              child: PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                offset: const Offset(0, -160),
+                position: PopupMenuPosition.over,
+                icon: Icon(
+                  Icons.add,
+                  color: AppTheme.textColor(context),
+                  size: 20,
+                ),
+                onSelected: _handleAttachmentSelection,
+                itemBuilder: (context) => <PopupMenuEntry<String>>[
+                  PopupMenuItem<String>(
+                    value: 'photos',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.photo_library),
+                        const SizedBox(width: 8),
+                        Text(tr(context, 'attach_photos')),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'camera',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.camera_alt),
+                        const SizedBox(width: 8),
+                        Text(tr(context, 'attach_camera')),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem<String>(
+                    value: 'files',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.attach_file),
+                        const SizedBox(width: 8),
+                        Text(tr(context, 'attach_files')),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              padding: EdgeInsets.zero,
-              onSelected: _handleAttachmentSelection,
-              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                PopupMenuItem<String>(
-                  value: 'photos',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.photo_library),
-                      const SizedBox(width: 8),
-                      Text(tr(context, 'attach_photos')),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'camera',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.camera_alt),
-                      const SizedBox(width: 8),
-                      Text(tr(context, 'attach_camera')),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'files',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.attach_file),
-                      const SizedBox(width: 8),
-                      Text(tr(context, 'attach_files')),
-                    ],
-                  ),
-                ),
-              ],
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: _messageController,

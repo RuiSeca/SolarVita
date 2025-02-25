@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/language.dart';
 
-class LanguageProvider extends ChangeNotifier {
+class LanguageProvider with ChangeNotifier {
   static const String _languageKey = 'selected_language';
+  bool _isNotifying = false;
 
   final List<Language> supportedLanguages = [
     const Language(name: 'English', code: 'en', flag: '🇺🇸'),
@@ -29,40 +30,48 @@ class LanguageProvider extends ChangeNotifier {
       );
 
   LanguageProvider() {
-    loadLanguage();
+    // No immediate load call
   }
 
   Future<void> loadLanguage() async {
     _isLoading = true;
-    notifyListeners();
-
     try {
       final prefs = await SharedPreferences.getInstance();
       String languageCode = prefs.getString(_languageKey) ?? 'en';
       _locale = Locale(languageCode);
     } catch (e) {
-      debugPrint('Error loading language: $e');
       _locale = const Locale('en');
     }
-
     _isLoading = false;
-    notifyListeners();
+    // No logging or notification here
   }
 
   Future<void> setLanguage(String code) async {
     if (_locale.languageCode != code) {
       _isLoading = true;
-      notifyListeners();
-
-      // Save the new language code
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageKey, code);
-
-      // Update the locale
       _locale = Locale(code);
-
       _isLoading = false;
+      _notifySafely();
+    }
+  }
+
+  void notifyAfterLoad() {
+    _notifySafely();
+  }
+
+  void _notifySafely() {
+    if (_isNotifying) {
+      return;
+    }
+    _isNotifying = true;
+    try {
       notifyListeners();
+    } catch (e) {
+      // Log only critical errors if needed
+    } finally {
+      _isNotifying = false;
     }
   }
 }
