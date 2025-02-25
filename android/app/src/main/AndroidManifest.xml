@@ -1,13 +1,17 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"> 
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.solarvita.app">
+
     <!-- Declare required permissions -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
 
-
     <application
         android:label="SolarVita"
         android:icon="@mipmap/ic_launcher">
+        
+        <!-- Main Activity for Flutter -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -17,15 +21,19 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+            
             <!-- Theme applied during Flutter initialization -->
             <meta-data
-              android:name="io.flutter.embedding.android.NormalTheme"
-              android:resource="@style/NormalTheme"/>
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
+                
+            <!-- Intent filter for launching the app -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
         <!-- Flutter embedding meta-data -->
         <meta-data
             android:name="flutterEmbedding"
@@ -43,4 +51,5 @@
             <data android:scheme="https" />
         </intent>
     </queries>
+
 </manifest>

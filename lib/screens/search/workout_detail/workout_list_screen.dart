@@ -1,30 +1,48 @@
-// lib/screens/search/workout_detail/workout_list_screen.dart
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/exercise_image.dart';
 import 'workout_detail_screen.dart';
 import 'models/workout_item.dart';
+import 'package:logging/logging.dart';
+
+final log = Logger('WorkoutListScreen');
 
 class WorkoutListScreen extends StatelessWidget {
   final String categoryTitle;
   final String categoryImage;
-  final List<WorkoutItem> workouts;
+  final String targetMuscle;
+  final List<WorkoutItem> exercises;
 
   const WorkoutListScreen({
     super.key,
     required this.categoryTitle,
     required this.categoryImage,
-    required this.workouts,
+    required this.targetMuscle,
+    required this.exercises,
   });
 
   @override
   Widget build(BuildContext context) {
+    log.info('Building WorkoutListScreen with ${exercises.length} exercises');
     return Scaffold(
-      backgroundColor: AppTheme.surfaceColor(context),
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(context),
-          _buildWorkoutList(context),
+          SliverPadding(
+            padding: const EdgeInsets.all(16),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) =>
+                    _buildWorkoutCard(context, exercises[index]),
+                childCount: exercises.length,
+              ),
+            ),
+          ),
+          // Add empty space at the bottom for better UX
+          const SliverToBoxAdapter(
+            child: SizedBox(height: 20),
+          ),
         ],
       ),
     );
@@ -78,76 +96,67 @@ class WorkoutListScreen extends StatelessWidget {
         ),
         onPressed: () => Navigator.pop(context),
       ),
+      actions: [
+        IconButton(
+          icon: Icon(
+            Icons.info_outline,
+            color: AppTheme.textColor(context),
+          ),
+          onPressed: () => _showInfoDialog(context),
+        ),
+      ],
     );
   }
 
-  Widget _buildWorkoutList(BuildContext context) {
-    if (workouts.isEmpty) {
-      return SliverFillRemaining(
-        child: Center(
-          child: Text(
-            tr(context, 'no_workouts_available'),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 16,
-            ),
+  void _showInfoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr(context, 'about_exercises')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr(context, 'target_muscle_info')
+                .replaceAll('{target}', targetMuscle)),
+            const SizedBox(height: 12),
+            Text(tr(context, 'exercises_count_info')
+                .replaceAll('{count}', exercises.length.toString())),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(tr(context, 'close')),
           ),
-        ),
-      );
-    }
-
-    return SliverPadding(
-      padding: const EdgeInsets.all(16),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final workout = workouts[index];
-            return _buildWorkoutCard(context, workout);
-          },
-          childCount: workouts.length,
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildWorkoutCard(BuildContext context, WorkoutItem workout) {
+    log.info('Rendering card for: ${workout.title}, image: ${workout.image}');
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => WorkoutDetailScreen(
-                categoryTitle: workout.title,
-                imagePath: workout.image,
-                duration: workout.duration,
-                difficulty: workout.difficulty,
-                steps: workout.steps,
-                description: workout.description,
-                rating: workout.rating,
-                caloriesBurn: workout.caloriesBurn,
-              ),
-            ),
-          );
-        },
-        child: Container(
-          height: 120,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: AppTheme.cardColor(context),
-          ),
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => _navigateToDetail(context, workout),
+        borderRadius: BorderRadius.circular(16),
+        child: Card(
+          elevation: 2,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               ClipRRect(
-                borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(16),
-                ),
-                child: Image.asset(
-                  workout.image,
-                  width: 120,
-                  height: 120,
-                  fit: BoxFit.cover,
+                borderRadius:
+                    const BorderRadius.horizontal(left: Radius.circular(16)),
+                child: ExerciseImage(
+                  imageUrl: workout.image,
+                  width: 100,
+                  height: 100,
+                  borderRadius:
+                      const BorderRadius.horizontal(left: Radius.circular(16)),
                 ),
               ),
               Expanded(
@@ -156,21 +165,24 @@ class WorkoutListScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        tr(context, workout.title),
+                        workout.title,
                         style: TextStyle(
                           color: AppTheme.textColor(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Icon(
                             Icons.timer,
-                            size: 16,
+                            size: 14,
                             color: AppTheme.textColor(context).withAlpha(179),
                           ),
                           const SizedBox(width: 4),
@@ -178,31 +190,62 @@ class WorkoutListScreen extends StatelessWidget {
                             workout.duration,
                             style: TextStyle(
                               color: AppTheme.textColor(context).withAlpha(179),
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Icon(
                             Icons.fitness_center,
-                            size: 16,
+                            size: 14,
                             color: AppTheme.textColor(context).withAlpha(179),
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            tr(context, workout.difficulty.toLowerCase()),
+                            workout.difficulty,
                             style: TextStyle(
                               color: AppTheme.textColor(context).withAlpha(179),
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
                         ],
                       ),
+                      if (workout.equipment.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Equipment: ${workout.equipment.take(2).join(", ")}${workout.equipment.length > 2 ? ", ..." : ""}',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withAlpha(179),
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToDetail(BuildContext context, WorkoutItem workout) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WorkoutDetailScreen(
+          categoryTitle: workout.title,
+          imagePath: workout.image,
+          duration: workout.duration,
+          difficulty: workout.difficulty,
+          steps: workout.steps,
+          description: workout.description,
+          rating: workout.rating,
+          caloriesBurn: workout.caloriesBurn,
         ),
       ),
     );

@@ -1,8 +1,11 @@
-// lib/screens/search/workout_detail/workout_detail_screen.dart
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/exercise_image.dart';
 import 'models/workout_step.dart';
+import 'package:logging/logging.dart';
+
+final log = Logger('WorkoutDetailScreen');
 
 class WorkoutDetailScreen extends StatefulWidget {
   final String categoryTitle;
@@ -34,6 +37,15 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   final Map<String, bool> _expandedSteps = {};
 
   @override
+  void initState() {
+    super.initState();
+    log.info('Loading WorkoutDetailScreen with imagePath: ${widget.imagePath}');
+    for (var step in widget.steps) {
+      log.info('Step GIF: ${step.gifUrl}');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -57,8 +69,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Image.asset(
-              widget.imagePath,
+            // Replace Image.network with ExerciseImage
+            ExerciseImage(
+              imageUrl: widget.imagePath,
+              width: double.infinity,
+              height: double.infinity,
               fit: BoxFit.cover,
             ),
             Container(
@@ -119,7 +134,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          tr(context, widget.categoryTitle),
+          widget
+              .categoryTitle, // Removed tr() since it might expect a key, not direct text
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 28,
@@ -129,7 +145,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            Icon(
+            const Icon(
               Icons.star,
               color: Colors.amber,
               size: 20,
@@ -268,7 +284,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tr(context, step.title),
+                        step.title, // Removed tr() function
                         style: TextStyle(
                           color: AppTheme.textColor(context),
                           fontSize: 16,
@@ -311,6 +327,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
+                if (step.gifUrl.isNotEmpty)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 200,
+                    child: ExerciseImage(
+                      imageUrl: step.gifUrl,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                const SizedBox(height: 12),
                 ...step.instructions.map((instruction) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Row(
@@ -337,7 +365,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                           ),
                         ],
                       ),
-                    ))
+                    )),
               ],
             ),
           ),
