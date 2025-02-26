@@ -1,0 +1,18 @@
+{
+    "edit_log": "Editar registro",
+    "log_exercise": "Registrar exercício",
+    "exercise": "Exercício",
+    "enter_exercise_name": "Digite o nome do exercício",
+    "please_enter_exercise_name": "Por favor, digite um nome para o exercício",
+    "date": "Data",
+    "time": "Hora",
+    "sets": "Séries",
+    "add_set": "Adicionar série",
+    "set": "Série",
+    "weight_kg": "Peso (kg)",
+    "reps": "Repetições",
+    "notes": "Notas",
+    "enter_notes": "Digite notas",
+    "update_log": "Atualizar registro",
+    "save_log": "Salvar registro"
+}

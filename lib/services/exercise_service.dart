@@ -210,11 +210,13 @@ class ExerciseService {
       final instructions = exercise['instructions'] is List
           ? List<String>.from(exercise['instructions'])
           : <String>[];
+      final bodyPart = exercise['bodyPart'] ?? '';
+      final target = exercise['target'] ?? '';
 
       // Create a good description from instructions if available
       String description = exercise['description'] ?? '';
       if (description.isEmpty && instructions.isNotEmpty) {
-        description = description =
+        description =
             'This exercise targets the ${exercise['target'] ?? 'muscles'} using $equipment. ';
         if (instructions.length > 1) {
           description += instructions.take(2).join(' ');
@@ -222,14 +224,22 @@ class ExerciseService {
           description += instructions.first;
         }
       } else if (description.isEmpty) {
-        description = description =
+        description =
             'A ${exercise['target'] ?? 'muscle'} exercise that uses $equipment.';
       }
 
-      final duration = exercise['duration'] ?? '45 seconds';
+      // DYNAMIC DURATION: Based on exercise type and equipment
+      final duration = _calculateDuration(name, bodyPart, equipment);
+
+      // DYNAMIC DIFFICULTY: Analyze exercise complexity
+      final difficulty =
+          _calculateDifficulty(name, equipment, bodyPart, target);
+
+      // DYNAMIC CALORIES: Estimate based on exercise intensity
+      final caloriesBurn =
+          _calculateCalories(name, bodyPart, target, equipment);
+
       final rating = (exercise['rating'] ?? 4.5).toDouble();
-      final target = exercise['target'] ?? 'multiple muscles';
-      final bodyPart = exercise['bodyPart'] ?? 'body';
 
       final steps = [
         WorkoutStep(
@@ -246,12 +256,12 @@ class ExerciseService {
         title: _capitalizeEachWord(name),
         image: gifUrl,
         duration: duration,
-        difficulty: _determineDifficulty(exercise),
+        difficulty: difficulty,
         description: description,
         rating: rating,
         steps: steps,
         equipment: [equipment],
-        caloriesBurn: _estimateCalories(bodyPart, target),
+        caloriesBurn: caloriesBurn,
         tips: _generateTips(name, target, equipment),
       );
     } catch (e) {
@@ -260,49 +270,133 @@ class ExerciseService {
     }
   }
 
+  String _calculateDuration(String name, String bodyPart, String equipment) {
+    // HIIT or cardio exercises typically have shorter durations
+    if (name.toLowerCase().contains('cardio') ||
+        name.toLowerCase().contains('hiit') ||
+        bodyPart.toLowerCase() == 'cardio') {
+      return '30 seconds';
+    }
+
+    // Compound exercises with heavy equipment need more time
+    if ((equipment.contains('barbell') || equipment.contains('machine')) &&
+        (name.toLowerCase().contains('squat') ||
+            name.toLowerCase().contains('dead') ||
+            name.toLowerCase().contains('press'))) {
+      return '60-90 seconds';
+    }
+
+    // Core exercises often have shorter hold times
+    if (bodyPart.toLowerCase() == 'waist' ||
+        name.toLowerCase().contains('plank') ||
+        name.toLowerCase().contains('crunch')) {
+      return '30-45 seconds';
+    }
+
+    // Default duration for most exercises
+    return '45 seconds';
+  }
+
+  String _calculateDifficulty(
+      String name, String equipment, String bodyPart, String target) {
+    int difficultyScore = 0;
+
+    // Equipment-based difficulty
+    if (equipment.contains('barbell') || equipment.contains('olympic')) {
+      difficultyScore += 3;
+    } else if (equipment.contains('dumbbell') ||
+        equipment.contains('kettlebell')) {
+      difficultyScore += 2;
+    } else if (equipment.contains('band') || equipment.contains('cable')) {
+      difficultyScore += 1;
+    }
+
+    // Exercise complexity based on name
+    final nameLower = name.toLowerCase();
+    if (nameLower.contains('advanced') || nameLower.contains('complex')) {
+      difficultyScore += 2;
+    }
+    if (nameLower.contains('beginner') || nameLower.contains('simple')) {
+      difficultyScore -= 1;
+    }
+
+    // Compound movements are generally harder
+    if (nameLower.contains('deadlift') ||
+        nameLower.contains('squat') ||
+        nameLower.contains('press') ||
+        nameLower.contains('clean') ||
+        nameLower.contains('snatch')) {
+      difficultyScore += 2;
+    }
+
+    // Large muscle groups or compound movements are more challenging
+    if (target == 'glutes' ||
+        target == 'quads' ||
+        target == 'lats' ||
+        target == 'pectorals') {
+      difficultyScore += 1;
+    }
+
+    // Convert score to difficulty level
+    if (difficultyScore <= 0) {
+      return 'Beginner';
+    } else if (difficultyScore <= 2) {
+      return 'Easy';
+    } else if (difficultyScore <= 4) {
+      return 'Medium';
+    } else {
+      return 'Hard';
+    }
+  }
+
+  String _calculateCalories(
+      String name, String bodyPart, String target, String equipment) {
+    int baseCalories = 0;
+
+    // Cardio exercises burn more calories
+    if (bodyPart.toLowerCase() == 'cardio' ||
+        target == 'cardiovascular system') {
+      baseCalories = 12; // Per minute
+    }
+    // Large muscle groups burn more calories
+    else if (bodyPart == 'upper legs' ||
+        bodyPart == 'back' ||
+        target == 'glutes' ||
+        target == 'quads') {
+      baseCalories = 10;
+    }
+    // Medium muscle groups
+    else if (bodyPart == 'chest' || target == 'pectorals' || target == 'lats') {
+      baseCalories = 8;
+    }
+    // Smaller muscle groups
+    else {
+      baseCalories = 5;
+    }
+
+    // Equipment factor
+    double equipmentFactor = 1.0;
+    if (equipment.contains('barbell') || equipment.contains('machine')) {
+      equipmentFactor = 1.3;
+    } else if (equipment.contains('dumbbell') ||
+        equipment.contains('kettlebell')) {
+      equipmentFactor = 1.2;
+    }
+
+    // Calculate range (per minute burn rate)
+    int minCalories = (baseCalories * equipmentFactor * 0.8).round();
+    int maxCalories = (baseCalories * equipmentFactor * 1.2).round();
+
+    // For a typical 5-minute exercise set
+    return '${(minCalories * 5)}-${(maxCalories * 5)}';
+  }
+
   String _capitalizeEachWord(String text) {
     if (text.isEmpty) return '';
     return text.split(' ').map((word) {
       if (word.isEmpty) return '';
       return word[0].toUpperCase() + word.substring(1).toLowerCase();
     }).join(' ');
-  }
-
-  String _determineDifficulty(Map<String, dynamic> exercise) {
-    // Determine difficulty based on equipment or body part
-    final equipment = exercise['equipment']?.toString().toLowerCase() ?? '';
-    final bodyPart = exercise['bodyPart']?.toString().toLowerCase() ?? '';
-
-    if (equipment.contains('barbell') ||
-        equipment.contains('cable') ||
-        equipment.contains('machine')) {
-      return 'Hard';
-    } else if (equipment.contains('dumbbell') ||
-        equipment.contains('kettlebell') ||
-        bodyPart.contains('back') ||
-        bodyPart.contains('legs')) {
-      return 'Medium';
-    } else {
-      return 'Easy';
-    }
-  }
-
-  String _estimateCalories(String bodyPart, String target) {
-    // Provide a rough estimate based on body part and target muscle
-    if (bodyPart.contains('cardio')) {
-      return '300-400';
-    } else if (bodyPart.contains('back') ||
-        bodyPart.contains('legs') ||
-        target.contains('glutes') ||
-        target.contains('quads')) {
-      return '200-300';
-    } else if (bodyPart.contains('chest') ||
-        target.contains('pectorals') ||
-        target.contains('lats')) {
-      return '150-250';
-    } else {
-      return '100-200';
-    }
   }
 
   List<String> _generateTips(String name, String target, String equipment) {

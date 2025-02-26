@@ -1,0 +1,18 @@
+{
+    "edit_log": "Modifier le journal",
+    "log_exercise": "Enregistrer l'exercice",
+    "exercise": "Exercice",
+    "enter_exercise_name": "Entrez le nom de l'exercice",
+    "please_enter_exercise_name": "Veuillez entrer un nom d'exercice",
+    "date": "Date",
+    "time": "Heure",
+    "sets": "Séries",
+    "add_set": "Ajouter une série",
+    "set": "Série",
+    "weight_kg": "Poids (kg)",
+    "reps": "Répétitions",
+    "notes": "Notes",
+    "enter_notes": "Entrez des notes",
+    "update_log": "Mettre à jour le journal",
+    "save_log": "Enregistrer le journal"
+}

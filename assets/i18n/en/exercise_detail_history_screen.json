@@ -1,0 +1,20 @@
+{
+    "sets": "Sets",
+    "set": "Set",
+    "weight": "Weight",
+    "reps": "Reps",
+    "distance": "Distance",
+    "time": "Time",
+    "notes": "Notes",
+    "stats": "Stats",
+    "total_volume": "Total Volume",
+    "max_weight": "Max Weight",
+    "sets_completed": "Sets Completed",
+    "total_reps": "Total Reps",
+    "delete_log": "Delete Log",
+    "delete_log_confirmation": "Are you sure you want to delete this log?",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "log_deleted": "Log deleted",
+    "error_deleting_log": "Error deleting log"
+}

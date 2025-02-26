@@ -1,0 +1,20 @@
+{
+    "sets": "Sätze",
+    "set": "Satz",
+    "weight": "Gewicht",
+    "reps": "Wiederholungen",
+    "distance": "Distanz",
+    "time": "Zeit",
+    "notes": "Notizen",
+    "stats": "Statistiken",
+    "total_volume": "Gesamtvolumen",
+    "max_weight": "Maximales Gewicht",
+    "sets_completed": "Abgeschlossene Sätze",
+    "total_reps": "Gesamte Wiederholungen",
+    "delete_log": "Log löschen",
+    "delete_log_confirmation": "Möchten Sie dieses Log wirklich löschen?",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "log_deleted": "Log gelöscht",
+    "error_deleting_log": "Fehler beim Löschen des Logs"
+}

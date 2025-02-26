@@ -16,26 +16,26 @@ import 'theme/app_theme.dart';
 import 'utils/translation_helper.dart';
 import 'i18n/app_localizations.dart';
 
-final log = Logger('main');
+final logger = Logger('SolarVita');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  Logger.root.level = Level.SEVERE; // Reduce logging verbosity during init
+  // Set up logging
+  Logger.root.level = Level.ALL; // Change to Level.SEVERE in production
   Logger.root.onRecord.listen((record) {
-    log.severe('${record.level.name}: ${record.time}: ${record.message}');
+    debugPrint(
+        '[${record.level.name}] ${record.time}: ${record.loggerName}: ${record.message}');
   });
 
   await dotenv.load(fileName: ".env");
 
   final themeProvider = ThemeProvider();
   final languageProvider = LanguageProvider();
-  final exerciseProvider = ExerciseProvider();
 
-  // Load data without notifying or excessive logging
   await Future.wait([
-    themeProvider.loadTheme(), // Line 37
-    languageProvider.loadLanguage(), // Line 38
+    themeProvider.loadTheme(),
+    languageProvider.loadLanguage(),
   ]);
 
   runApp(
@@ -43,16 +43,14 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),
-        ChangeNotifierProvider.value(value: exerciseProvider),
       ],
       child: const SolarVitaApp(),
     ),
   );
 
-  // Notify after first frame
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    themeProvider.notifyAfterLoad(); // Line 55
-    languageProvider.notifyAfterLoad(); // Line 56
+    themeProvider.notifyAfterLoad();
+    languageProvider.notifyAfterLoad();
   });
 }
 
@@ -63,8 +61,6 @@ class SolarVitaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, _) {
-        // Re-enable verbose logging after init if needed
-        Logger.root.level = Level.ALL;
         return MaterialApp(
           title: 'SolarVita',
           debugShowCheckedModeBanner: false,
@@ -100,19 +96,40 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const SearchScreen(),
-    const HealthScreen(),
-    const AIAssistantScreen(),
-    const ProfileScreen(),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    Widget currentScreen;
+    switch (_currentIndex) {
+      case 0:
+        currentScreen = const DashboardScreen();
+        break;
+      case 1:
+        currentScreen = ChangeNotifierProvider(
+          create: (_) {
+            logger.info("Creating new ExerciseProvider for SearchScreen");
+            return ExerciseProvider();
+          },
+          child: const SearchScreen(),
+        );
+        break;
+      case 2:
+        currentScreen = const HealthScreen();
+        break;
+      case 3:
+        currentScreen = const AIAssistantScreen();
+        break;
+      case 4:
+        currentScreen = const ProfileScreen();
+        break;
+      default:
+        currentScreen = const DashboardScreen();
+    }
+
     return Scaffold(
-      body: _screens[_currentIndex],
+      body: currentScreen,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),

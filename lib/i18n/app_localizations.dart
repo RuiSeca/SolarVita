@@ -21,7 +21,10 @@ class AppLocalizations {
     'workout_list_details',
     'meal_page',
     'meal_details',
-    'meal_search'
+    'meal_search',
+    'exercise_history',
+    'exercise_detail_history_screen',
+    'log_exercise_screen'
   ];
 
   AppLocalizations(this.locale);
