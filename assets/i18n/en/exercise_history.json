@@ -4,9 +4,17 @@
     "exercise_history": "Exercise History",
     "recent_workouts": "Recent Workouts",
     "view_all": "View All",
+    "error_loading_data": "Error loading data",
+    "no_workouts_yet": "No workouts yet",
+    "log_your_first_workout": "Log your first workout",
+    "log_workout": "Log Workout",
     "personal_records": "Personal Records",
+    "no_records_yet": "No records yet",
+    "keep_training_to_achieve": "Keep training to achieve new records",
     "activity_overview": "Activity Overview",
+    "no_activity_data": "No activity data",
     "this_week": "This Week",
     "this_month": "This Month",
-    "total_workouts": "Total Workouts"
+    "total_workouts": "Total Workouts",
+    "exercises": "Exercises"
 }

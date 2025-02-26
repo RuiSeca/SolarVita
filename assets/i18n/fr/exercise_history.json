@@ -1,12 +1,20 @@
 {
-    "your_progress": "Vos progrès",
-    "track_your_fitness_journey": "Suivez votre voyage de fitness",
-    "exercise_history": "Histoire de l'exercice",
-    "recent_workouts": "Séances d'entraînement récentes",
-    "view_all": "Afficher tous",
-    "personal_records": "Dossiers personnels",
+    "your_progress": "Votre progression",
+    "track_your_fitness_journey": "Suivez votre parcours fitness",
+    "exercise_history": "Historique des exercices",
+    "recent_workouts": "Entraînements récents",
+    "view_all": "Voir tout",
+    "error_loading_data": "Erreur lors du chargement des données",
+    "no_workouts_yet": "Aucun entraînement pour le moment",
+    "log_your_first_workout": "Enregistrez votre premier entraînement",
+    "log_workout": "Enregistrer un entraînement",
+    "personal_records": "Records personnels",
+    "no_records_yet": "Aucun record pour le moment",
+    "keep_training_to_achieve": "Continuez à vous entraîner pour atteindre de nouveaux records",
     "activity_overview": "Aperçu de l'activité",
+    "no_activity_data": "Pas de données d'activité",
     "this_week": "Cette semaine",
     "this_month": "Ce mois-ci",
-    "total_workouts": "Total d'entraînement"
+    "total_workouts": "Total des entraînements",
+    "exercises": "Exercices"
 }

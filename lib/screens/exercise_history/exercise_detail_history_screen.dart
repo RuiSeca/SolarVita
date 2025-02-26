@@ -6,10 +6,10 @@ import '../../services/exercise_tracking_service.dart';
 import '../../utils/translation_helper.dart';
 import 'log_exercise_screen.dart';
 
-class ExerciseDetailScreen extends StatelessWidget {
+class ExerciseDetailHistoryScreen extends StatelessWidget {
   final ExerciseLog log;
 
-  const ExerciseDetailScreen({
+  const ExerciseDetailHistoryScreen({
     super.key,
     required this.log,
   });

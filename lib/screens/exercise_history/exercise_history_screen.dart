@@ -6,7 +6,7 @@ import '../../models/personal_record.dart';
 import '../../services/exercise_tracking_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import 'exercise_detail_screen.dart';
+import 'exercise_detail_history_screen.dart';
 import 'log_exercise_screen.dart';
 
 class ExerciseHistoryScreen extends StatefulWidget {
@@ -256,7 +256,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
         final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => ExerciseDetailScreen(log: log),
+            builder: (context) => ExerciseDetailHistoryScreen(log: log),
           ),
         );
 
@@ -342,7 +342,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ExerciseDetailScreen(log: log),
+        builder: (context) => ExerciseDetailHistoryScreen(log: log),
       ),
     );
   }
