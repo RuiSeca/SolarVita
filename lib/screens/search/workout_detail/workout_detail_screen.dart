@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/exercise_image.dart';
+import '../../../services/exercise_tracking_service.dart'; // Import tracking service
+import '../../exercise_history/log_exercise_screen.dart'; // Import log screen
+import '../../exercise_history/exercise_history_screen.dart';
 import 'models/workout_step.dart';
 import 'package:logging/logging.dart';
 
@@ -35,6 +38,7 @@ class WorkoutDetailScreen extends StatefulWidget {
 
 class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   final Map<String, bool> _expandedSteps = {};
+  final ExerciseTrackingService _trackingService = ExerciseTrackingService();
 
   @override
   void initState() {
@@ -69,7 +73,6 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            // Replace Image.network with ExerciseImage
             ExerciseImage(
               imageUrl: widget.imagePath,
               width: double.infinity,
@@ -105,6 +108,24 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
         onPressed: () => Navigator.pop(context),
       ),
+      // Add action button for exercise history
+      actions: [
+        IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor(context).withAlpha(204),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.history,
+              color: AppTheme.textColor(context),
+            ),
+          ),
+          onPressed: () => _navigateToExerciseHistory(),
+          tooltip: tr(context, 'view_exercise_history'),
+        ),
+      ],
     );
   }
 
@@ -122,7 +143,48 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           const SizedBox(height: 24),
           _buildWorkoutOverview(context),
           const SizedBox(height: 24),
-          _buildStartButton(context),
+
+          // New row with two buttons
+          Row(
+            children: [
+              // Log Exercise Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => _logExercise(),
+                  icon: const Icon(Icons.add_chart),
+                  label: Text(tr(context, 'log_exercise')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.black87,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Start Workout Button
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Handle workout start
+                  },
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(tr(context, 'start_now')),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
         ],
       ),
@@ -134,8 +196,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          widget
-              .categoryTitle, // Removed tr() since it might expect a key, not direct text
+          widget.categoryTitle,
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 28,
@@ -158,6 +219,49 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
+            ),
+
+            // Add Performance Badge if there are existing logs
+            FutureBuilder(
+              future: _getExerciseHistory(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.done &&
+                    snapshot.hasData &&
+                    (snapshot.data as List).isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withAlpha(26),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.trending_up,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr(context,
+                                'tracked'), // or 'You\'re tracking this'
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
@@ -284,7 +388,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        step.title, // Removed tr() function
+                        step.title,
                         style: TextStyle(
                           color: AppTheme.textColor(context),
                           fontSize: 16,
@@ -373,29 +477,60 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     );
   }
 
-  Widget _buildStartButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          // Handle workout start
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          tr(context, 'start_now'),
-          style: const TextStyle(
-            color: AppColors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+  // New method to log this exercise
+  void _logExercise() async {
+    // Generate an exercise ID (in a real app, you'd have actual IDs)
+    final exerciseId = _generateExerciseId(widget.categoryTitle);
+
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => LogExerciseScreen(
+          exerciseId: exerciseId,
+          initialExerciseName: widget.categoryTitle,
         ),
       ),
     );
+    if (result == true) {
+      // Refresh UI after logging
+      setState(() {});
+
+      // Show a confirmation
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'exercise_logged_successfully')),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  // Navigate to exercise history for this exercise
+  void _navigateToExerciseHistory() {
+    final exerciseId = _generateExerciseId(widget.categoryTitle);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ExerciseHistoryScreen(
+          exerciseId: exerciseId,
+          initialTitle: widget.categoryTitle,
+        ),
+      ),
+    );
+  }
+
+  // Generate a consistent ID from the exercise name
+  String _generateExerciseId(String name) {
+    // In a real app, you would use real IDs from your database
+    // This is just a simple way to generate a consistent ID for demo purposes
+    return name.toLowerCase().replaceAll(' ', '_');
+  }
+
+  // Get exercise history to check if user has logs for this exercise
+  Future<List> _getExerciseHistory() async {
+    final exerciseId = _generateExerciseId(widget.categoryTitle);
+    return await _trackingService.getLogsForExercise(exerciseId);
   }
 }

@@ -1,0 +1,20 @@
+{
+    "sets": "Series",
+    "set": "Serie",
+    "weight": "Peso",
+    "reps": "Repeticiones",
+    "distance": "Distancia",
+    "time": "Tiempo",
+    "notes": "Notas",
+    "stats": "Estadísticas",
+    "total_volume": "Volumen total",
+    "max_weight": "Peso máximo",
+    "sets_completed": "Series completadas",
+    "total_reps": "Repeticiones totales",
+    "delete_log": "Eliminar registro",
+    "delete_log_confirmation": "¿Estás seguro de que deseas eliminar este registro?",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "log_deleted": "Registro eliminado",
+    "error_deleting_log": "Error al eliminar el registro"
+}

@@ -1,4 +1,6 @@
 {
     "workout_overview": "Workout Overview",
-    "start_now": "Start Now"
+    "start_now": "Start Now",
+    "log_exercise": "Save Exercise",
+    "exercise_logged_successfully": "Exercise Logged Successfully"
 }

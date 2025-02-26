@@ -1,0 +1,18 @@
+{
+    "edit_log": "Log bearbeiten",
+    "log_exercise": "Übung protokollieren",
+    "exercise": "Übung",
+    "enter_exercise_name": "Übungsname eingeben",
+    "please_enter_exercise_name": "Bitte geben Sie einen Übungsnamen ein",
+    "date": "Datum",
+    "time": "Zeit",
+    "sets": "Sätze",
+    "add_set": "Satz hinzufügen",
+    "set": "Satz",
+    "weight_kg": "Gewicht (kg)",
+    "reps": "Wiederholungen",
+    "notes": "Notizen",
+    "enter_notes": "Notizen eingeben",
+    "update_log": "Log aktualisieren",
+    "save_log": "Log speichern"
+}

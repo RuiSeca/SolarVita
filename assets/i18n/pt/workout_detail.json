@@ -1,4 +1,6 @@
 {
     "workout_overview": "Visão geral do treino",
-    "start_now": "Comece agora"
+    "start_now": "Comece agora",
+    "log_exercise": "Guardar Exercício",
+    "exercise_logged_successfully": "Exercício Guardado Com Successo"
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
+import 'exercise_history_tab.dart'; // Import the ExerciseHistoryTab
 
 class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
@@ -135,7 +136,7 @@ class HealthScreen extends StatelessWidget {
         _buildTrackingItem(
           context,
           icon: Icons.fitness_center,
-          title: 'completed_workouts',
+          title: 'workouts_log',
           buttonText: 'button_explore',
         ),
         _buildTrackingItem(
@@ -261,7 +262,18 @@ class HealthScreen extends StatelessWidget {
           SizedBox(
             height: 36,
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                // Navigate to ExerciseHistoryTab when workouts_log button is clicked
+                if (title == 'workouts_log') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ExerciseHistoryTab(),
+                    ),
+                  );
+                }
+                // Add other navigation options here as needed
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -1,0 +1,20 @@
+{
+    "sets": "Séries",
+    "set": "Série",
+    "weight": "Poids",
+    "reps": "Répétitions",
+    "distance": "Distance",
+    "time": "Temps",
+    "notes": "Notes",
+    "stats": "Statistiques",
+    "total_volume": "Volume total",
+    "max_weight": "Poids maximum",
+    "sets_completed": "Séries terminées",
+    "total_reps": "Répétitions totales",
+    "delete_log": "Supprimer le journal",
+    "delete_log_confirmation": "Êtes-vous sûr de vouloir supprimer ce journal ?",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "log_deleted": "Journal supprimé",
+    "error_deleting_log": "Erreur lors de la suppression du journal"
+}

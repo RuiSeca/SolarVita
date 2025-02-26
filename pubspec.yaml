@@ -12,6 +12,9 @@ dependencies:
   cached_network_image: ^3.3.0 # Use the appropriate version for your project
   flutter_localizations:
     sdk: flutter
+  intl: 0.19.0
+  fl_chart: ^0.63.0
+  uuid: ^3.0.7
   flutter_dotenv: ^5.1.0
   cupertino_icons: ^1.0.8
   http: ^1.1.0

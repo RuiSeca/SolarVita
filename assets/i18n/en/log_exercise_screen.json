@@ -1,0 +1,18 @@
+{
+    "edit_log": "Edit Log",
+    "log_exercise": "Log Exercise",
+    "exercise": "Exercise",
+    "enter_exercise_name": "Enter exercise name",
+    "please_enter_exercise_name": "Please enter an exercise name",
+    "date": "Date",
+    "time": "Time",
+    "sets": "Sets",
+    "add_set": "Add Set",
+    "set": "Set",
+    "weight_kg": "Weight (kg)",
+    "reps": "Reps",
+    "notes": "Notes",
+    "enter_notes": "Enter notes",
+    "update_log": "Update Log",
+    "save_log": "Save Log"
+}
