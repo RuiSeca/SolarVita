@@ -74,6 +74,18 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        elevation: 0,
+        title: Text(
+          tr(context, 'sustainable_living_tips'),
+          style: TextStyle(
+            color: theme.primaryColor,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -82,14 +94,6 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    tr(context, 'sustainable_living_tips'),
-                    style: TextStyle(
-                      color: theme.primaryColor,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                   const SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
