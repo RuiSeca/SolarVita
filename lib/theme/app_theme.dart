@@ -15,6 +15,7 @@ class AppColors {
   static const cardDark = Color(0xFF1E1E1E);
   static const grey = Color(0x8E222121); // Cinza claro com opacidade 40%
   static const gold = Color(0xFFFFD700); // Gold color added
+  static const cream = Color(0xFFFFFDD0);
 }
 
 class AppTheme {

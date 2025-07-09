@@ -8,7 +8,7 @@
 -DANDROID_NDK=C:\Users\Rui Seca\AppData\Local\Android\sdk\ndk\28.0.13004108
 -DCMAKE_ANDROID_NDK=C:\Users\Rui Seca\AppData\Local\Android\sdk\ndk\28.0.13004108
 -DCMAKE_TOOLCHAIN_FILE=C:\Users\Rui Seca\AppData\Local\Android\sdk\ndk\28.0.13004108\build\cmake\android.toolchain.cmake
--DCMAKE_MAKE_PROGRAM=C:\Users\Rui Seca\AppData\Local\Android\sdk\cmake\3.22.1\bin\ninja.exe
+-DCMAKE_MAKE_PROGRAM=C:\Users\Rui Seca\AppData\Local\Android\Sdk\cmake\3.22.1\bin\ninja.exe
 -DCMAKE_LIBRARY_OUTPUT_DIRECTORY=C:\Users\Rui Seca\SolarVita\solar_vitas\build\app\intermediates\cxx\Debug\18lq501j\obj\x86_64
 -DCMAKE_RUNTIME_OUTPUT_DIRECTORY=C:\Users\Rui Seca\SolarVita\solar_vitas\build\app\intermediates\cxx\Debug\18lq501j\obj\x86_64
 -DCMAKE_BUILD_TYPE=Debug

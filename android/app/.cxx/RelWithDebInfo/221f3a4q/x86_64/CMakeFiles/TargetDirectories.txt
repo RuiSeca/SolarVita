@@ -1,0 +1,2 @@
+C:/Users/Rui Seca/SolarVita/solar_vitas/android/app/.cxx/RelWithDebInfo/221f3a4q/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/Rui Seca/SolarVita/solar_vitas/android/app/.cxx/RelWithDebInfo/221f3a4q/x86_64/CMakeFiles/rebuild_cache.dir

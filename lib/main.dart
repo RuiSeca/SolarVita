@@ -1,8 +1,15 @@
+// lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+// Import Firebase options
+import 'firebase_options.dart';
+
+// Import your existing screens and providers
 import 'screens/welcome/welcome_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/search/search_screen.dart';
@@ -12,6 +19,7 @@ import 'screens/profile/profile_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/exercise_provider.dart';
+import 'providers/auth_provider.dart'; // Add this import
 import 'theme/app_theme.dart';
 import 'utils/translation_helper.dart';
 import 'i18n/app_localizations.dart';
@@ -20,6 +28,11 @@ final logger = Logger('SolarVita');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
   // Set up logging
   Logger.root.level = Level.ALL; // Change to Level.SEVERE in production
@@ -32,6 +45,7 @@ void main() async {
 
   final themeProvider = ThemeProvider();
   final languageProvider = LanguageProvider();
+  final authProvider = AuthProvider(); // Add this
 
   await Future.wait([
     themeProvider.loadTheme(),
@@ -43,6 +57,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),
+        ChangeNotifierProvider.value(value: authProvider), // Add this
       ],
       child: const SolarVitaApp(),
     ),
@@ -59,8 +74,8 @@ class SolarVitaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<ThemeProvider, LanguageProvider>(
-      builder: (context, themeProvider, languageProvider, _) {
+    return Consumer3<ThemeProvider, LanguageProvider, AuthProvider>(
+      builder: (context, themeProvider, languageProvider, authProvider, _) {
         return MaterialApp(
           title: 'SolarVita',
           debugShowCheckedModeBanner: false,
@@ -77,7 +92,10 @@ class SolarVitaApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: const WelcomeScreen(),
+          // Use AuthProvider to determine initial route
+          home: authProvider.isAuthenticated
+              ? const MainWrapper()
+              : const WelcomeScreen(),
           routes: {
             '/main': (context) => const MainWrapper(),
           },

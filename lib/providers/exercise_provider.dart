@@ -16,6 +16,17 @@ class ExerciseProvider with ChangeNotifier {
   final log = Logger('ExerciseProvider');
   bool _isNotifying = false;
 
+  // Cache to store previously loaded data
+  final Map<String, List<WorkoutItem>> _cache = {};
+  // Track most recently used targets
+  final List<String> _recentTargets = [];
+
+  // Maximum number of targets to keep in cache
+  static const int _maxCacheSize = 5;
+
+  // Keep track of ongoing loading request
+  Completer<void>? _loadingCompleter;
+
   LoadingState get loadingState => _loadingState;
   bool get isLoading => _loadingState == LoadingState.loading;
   bool get hasError => _loadingState == LoadingState.error;
@@ -27,28 +38,54 @@ class ExerciseProvider with ChangeNotifier {
   String? get currentTarget => _currentTarget;
 
   Future<void> loadExercisesByTarget(String target) async {
+    // Normalize the target
+    final normalizedTarget = target.trim().toLowerCase();
+
     // Prevent duplicate loading of the same target
     if (isLoading) {
       log.warning('Skipping loadExercisesByTarget: Already loading');
       return;
     }
 
-    // Skip if we're already loaded for this target
-    if (_currentTarget == target && hasData) {
-      log.info('Already loaded data for target: $target');
+    // Check if we have this target in cache
+    if (_cache.containsKey(normalizedTarget)) {
+      log.info('Using cached data for target: $normalizedTarget');
+      _currentTarget = normalizedTarget;
+      _exercises = _cache[normalizedTarget];
+      _loadingState = LoadingState.success;
+      _updateRecentTargets(normalizedTarget);
+      _notifySafely();
       return;
     }
 
-    log.info('Starting loadExercisesByTarget: $target');
+    // Skip if we're already loaded for this target
+    if (_currentTarget == normalizedTarget && hasData) {
+      log.info('Already loaded data for target: $normalizedTarget');
+      return;
+    }
+
+    log.info('Starting loadExercisesByTarget: $normalizedTarget');
     _setLoading();
-    _currentTarget = target;
+    _currentTarget = normalizedTarget;
+
+    // Create a new completer to track this load operation
+    _loadingCompleter = Completer<void>();
 
     try {
-      log.fine('Fetching exercises for target: $target');
-      final exercises = await _exerciseService.getExercisesByTarget(target);
+      log.fine('Fetching exercises for target: $normalizedTarget');
+      final exercises =
+          await _exerciseService.getExercisesByTarget(normalizedTarget);
+
+      // Check if loading was cancelled
+      if (_loadingState != LoadingState.loading ||
+          _loadingCompleter?.isCompleted == true) {
+        log.info(
+            'Loading operation was cancelled or completed - discarding results');
+        return;
+      }
 
       // Check if target changed during async operation
-      if (_currentTarget != target) {
+      if (_currentTarget != normalizedTarget) {
         log.info('Target changed during loading - discarding results');
         return;
       }
@@ -61,7 +98,17 @@ class ExerciseProvider with ChangeNotifier {
 
       _exercises = exercises;
       _loadingState = LoadingState.success;
+
+      // Update cache with new data
+      _cache[normalizedTarget] = exercises;
+      _updateRecentTargets(normalizedTarget);
+
       log.info('Exercises loaded: ${exercises.length}');
+
+      // Complete the loading operation
+      if (!_loadingCompleter!.isCompleted) {
+        _loadingCompleter!.complete();
+      }
     } catch (e) {
       // Handle different types of exceptions with friendly messages
       if (e is ApiException) {
@@ -86,9 +133,39 @@ class ExerciseProvider with ChangeNotifier {
         );
       }
       log.severe('Error loading exercises: $e');
+
+      // Complete the completer with an error
+      if (_loadingCompleter != null && !_loadingCompleter!.isCompleted) {
+        _loadingCompleter!.completeError(e);
+      }
     } finally {
       _notifySafely();
     }
+  }
+
+  // Update the list of recently used targets
+  void _updateRecentTargets(String target) {
+    // Remove target if it already exists
+    _recentTargets.remove(target);
+    // Add target to start of list
+    _recentTargets.insert(0, target);
+    // Trim list if needed
+    if (_recentTargets.length > _maxCacheSize) {
+      _recentTargets.removeLast();
+    }
+  }
+
+  // Manage the cache size by removing least recently used targets
+  void manageCache() {
+    if (_cache.length <= _maxCacheSize) return;
+
+    // Create a set of targets to keep
+    final targetsToKeep = Set<String>.from(_recentTargets);
+
+    // Remove targets not in the recent list
+    _cache.removeWhere((key, _) => !targetsToKeep.contains(key));
+
+    log.info('Cache cleaned: ${_cache.length} items remaining');
   }
 
   void _setLoading() {
@@ -117,6 +194,21 @@ class ExerciseProvider with ChangeNotifier {
   void retryCurrentTarget() {
     if (_currentTarget != null) {
       loadExercisesByTarget(_currentTarget!);
+    }
+  }
+
+  // New method to cancel an ongoing loading operation
+  void cancelLoading() {
+    if (_loadingState == LoadingState.loading) {
+      log.info('Cancelling loading operation');
+      _loadingState = LoadingState.idle;
+
+      // Complete the completer to signal cancellation
+      if (_loadingCompleter != null && !_loadingCompleter!.isCompleted) {
+        _loadingCompleter!.complete();
+      }
+
+      _notifySafely();
     }
   }
 
