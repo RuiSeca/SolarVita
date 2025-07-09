@@ -26,16 +26,15 @@ dependencies:
   url_launcher: ^6.2.5
   carousel_slider: ^5.0.0
   flutter_riverpod: ^2.4.0
-  flutter_localization: ^0.3.1 # Check if you really need this in addition to flutter_localizations.
   video_player: ^2.8.1
   logger: ^1.1.0
   logging: ^1.2.0
   retry: ^3.1.2
 
   # Firebase dependencies
-  firebase_core: ^2.24.2
-  firebase_auth: ^4.15.3
-  google_sign_in: ^6.1.6
+  firebase_core: ^3.15.1
+  firebase_auth: ^5.6.2
+  google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.0.3
 
 dev_dependencies:
