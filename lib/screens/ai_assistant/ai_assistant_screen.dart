@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import '../../services/ai_service.dart';
-import '../../services/fat_secret_service.dart';
+import '../../services/nutritionix_service.dart';
 import '../../models/user_context.dart';
 import '../../models/food_analysis.dart';
 import '../../theme/app_theme.dart';
@@ -28,7 +28,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   bool _isAnalyzingFood = false;
   bool _userHasInteracted = false; // Track user interaction
   late final AIService _aiService;
-  late final FatSecretService _fatSecretService;
+  late final NutritionixService _nutritionixService;
 
   @override
   void initState() {
@@ -43,7 +43,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         suggestedWorkoutTime: '8:00 AM',
       ),
     );
-    _fatSecretService = FatSecretService();
+    _nutritionixService = NutritionixService();
 
     // Add initial greeting message
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -209,7 +209,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     try {
       // Call the FatSecret API through your service - strict API-only implementation
       final FoodAnalysis foodAnalysis =
-          await _fatSecretService.analyzeFoodImage(image);
+          await _nutritionixService.analyzeFoodImage(image);
 
       if (mounted) {
         setState(() {
