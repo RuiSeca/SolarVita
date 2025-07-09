@@ -27,7 +27,9 @@
     "gallery_error": "Couldn't access gallery. Please try again.",
     "no_food_detected": "No food detected. Please try again with a clearer image.",
     "api_key_invalid": "API key not valid. Please check your configuration.",
-    "fatsecret_auth_error": "Failed to get FatSecret access token. Authentication error.",
+    "nutritionix_auth_error": "Nutritionix authentication failed",
+    "no_nutrition_data": "No nutrition data available",
+    "nutritionix_api_error": "Nutritionix API error",
     "no_nutritional_data": "No nutritional data found for this food.",
     "food_analysis_error": "Sorry, I couldn't analyze that food"
 }
