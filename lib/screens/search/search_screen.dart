@@ -22,6 +22,9 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   bool _isSearching = false;
   String _searchQuery = '';
+  bool _isLoadingExercises = false;
+  String _loadingTarget = '';
+
   // Flag to prevent automatic navigation during first build
   bool _isFirstBuild = true;
 
@@ -136,9 +139,6 @@ class _SearchScreenState extends State<SearchScreen> {
       String image,
       String titleKey,
       String title) async {
-    // Debug logging
-    logger.info("_navigateToDetail called for $titleKey (type: $type)");
-
     // Block navigation during the initial build
     if (_isFirstBuild) {
       logger.info("Blocking automatic navigation attempt during initial build");
@@ -148,48 +148,65 @@ class _SearchScreenState extends State<SearchScreen> {
     // Ensure the context is still mounted
     if (!context.mounted) return;
 
-    final provider = Provider.of<ExerciseProvider>(context, listen: false);
     final targetMuscle = _getTargetMuscle(titleKey);
+    final provider = Provider.of<ExerciseProvider>(context, listen: false);
+
+    // Check if we already have data for this target
+    if (provider.currentTarget == targetMuscle && provider.hasData) {
+      logger.info("Already loaded data for $targetMuscle, navigating directly");
+
+      // Navigate based on workout type without reloading
+      switch (type) {
+        case detail_types.WorkoutDetailType.categoryList:
+          _navigateToCategoryList(
+              context, title, image, targetMuscle, provider.exercises!);
+          break;
+        case detail_types.WorkoutDetailType.specificExercise:
+        case detail_types.WorkoutDetailType.alternateExercise:
+          _navigateToSpecificExercise(context, provider.exercises!);
+          break;
+      }
+      return;
+    }
+
+    // Set loading state
+    setState(() {
+      _isLoadingExercises = true;
+      _loadingTarget = targetMuscle;
+    });
 
     logger.info("Loading exercises for target muscle: $targetMuscle");
 
-    // Show loading dialog with cancellation option
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => PopScope(
-        canPop: false, // Prevent back button closing
-        child: AlertDialog(
-          content: Row(
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Text(tr(context, 'loading_exercises')),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                logger.info("User cancelled loading operation");
-                Navigator.of(dialogContext).pop();
-              },
-              child: Text(tr(context, 'cancel')),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Add a timeout
+    bool timeoutOccurred = false;
+    Timer? timeoutTimer = Timer(const Duration(seconds: 10), () {
+      timeoutOccurred = true;
+      if (mounted) {
+        setState(() {
+          _isLoadingExercises = false;
+          _loadingTarget = '';
+        });
+        _showErrorSnackBar(context, 'Loading timed out. Please try again.');
+      }
+    });
 
     try {
       await provider.loadExercisesByTarget(targetMuscle);
 
+      // Cancel timeout timer
+      timeoutTimer.cancel();
+
+      // If timeout already occurred, don't proceed
+      if (timeoutOccurred) return;
+
       // Check if context is still valid
       if (!context.mounted) return;
 
-      // Dismiss the loading dialog
-      _dismissLoadingDialog(context);
+      // Clear loading state
+      setState(() {
+        _isLoadingExercises = false;
+        _loadingTarget = '';
+      });
 
       if (provider.hasError) {
         logger.severe("Provider returned error: ${provider.errorMessage}");
@@ -210,6 +227,7 @@ class _SearchScreenState extends State<SearchScreen> {
       } else {
         logger.info(
             "Successfully loaded ${provider.exercises?.length} exercises");
+
         // Navigate based on workout type
         switch (type) {
           case detail_types.WorkoutDetailType.categoryList:
@@ -223,17 +241,17 @@ class _SearchScreenState extends State<SearchScreen> {
         }
       }
     } catch (e) {
+      // Cancel timeout timer
+      timeoutTimer.cancel();
+
       logger.severe("Exception during exercise loading: $e");
-      if (context.mounted) {
-        _dismissLoadingDialog(context);
+      if (context.mounted && !timeoutOccurred) {
+        setState(() {
+          _isLoadingExercises = false;
+          _loadingTarget = '';
+        });
         _showErrorSnackBar(context, 'Unexpected error: $e');
       }
-    }
-  }
-
-  void _dismissLoadingDialog(BuildContext context) {
-    if (context.mounted && Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
     }
   }
 
@@ -367,70 +385,104 @@ class _SearchScreenState extends State<SearchScreen> {
           children: [
             _buildAppBar(context),
             if (_isSearching) _buildSearchBar() else _buildTitle(context),
-            Expanded(
-              child: Consumer<ExerciseProvider>(
-                builder: (context, provider, _) {
-                  if (provider.isLoading) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
 
-                  if (provider.errorMessage != null) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            provider.errorMessage!,
-                            style: TextStyle(
+            // Show loading indicator when loading exercises
+            if (_isLoadingExercises)
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Loading exercises for $_loadingTarget...',
+                        style: TextStyle(color: AppTheme.textColor(context)),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isLoadingExercises = false;
+                            _loadingTarget = '';
+                          });
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: Consumer<ExerciseProvider>(
+                  builder: (context, provider, _) {
+                    if (provider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (provider.errorMessage != null) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              provider.errorMessage!,
+                              style: TextStyle(
                                 color: AppTheme.textColor(context),
-                                fontSize: 16),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: () {
-                              provider.clearExercises();
-                            },
-                            child: const Text('Retry'),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final categories = filteredCategories;
-                  if (categories.isEmpty) {
-                    return Center(
-                      child: Text(
-                        tr(context, 'no_workouts_found'),
-                        style: TextStyle(
-                            color: AppTheme.textColor(context), fontSize: 16),
-                      ),
-                    );
-                  }
-
-                  return ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: categories.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 24),
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      return WorkoutCategoryCard(
-                        title: tr(context, category['titleKey']),
-                        titleKey: category['titleKey'],
-                        mainImage: category['mainImage'],
-                        smallImages: List<String>.from(category['smallImages']),
-                        count: tr(context, '${category['type']}_count')
-                            .replaceAll('{count}', category['count']),
-                        workoutName: category['workoutName'],
-                        workoutSmall: category['workoutSmall'],
-                        isFirstBuild: _isFirstBuild,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                provider.clearExercises();
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
                       );
-                    },
-                  );
-                },
+                    }
+
+                    final categories = filteredCategories;
+                    if (categories.isEmpty) {
+                      return Center(
+                        child: Text(
+                          tr(context, 'no_workouts_found'),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 16,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: categories.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 24),
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        return WorkoutCategoryCard(
+                          title: tr(context, category['titleKey']),
+                          titleKey: category['titleKey'],
+                          mainImage: category['mainImage'],
+                          smallImages:
+                              List<String>.from(category['smallImages']),
+                          count: tr(context, '${category['type']}_count')
+                              .replaceAll('{count}', category['count']),
+                          workoutName: category['workoutName'],
+                          workoutSmall: category['workoutSmall'],
+                          isFirstBuild: _isFirstBuild,
+                          isLoading: _isLoadingExercises,
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -525,6 +577,7 @@ class WorkoutCategoryCard extends StatelessWidget {
   final String workoutName;
   final String workoutSmall;
   final bool isFirstBuild;
+  final bool isLoading; // New parameter
 
   const WorkoutCategoryCard({
     super.key,
@@ -536,6 +589,7 @@ class WorkoutCategoryCard extends StatelessWidget {
     required this.workoutName,
     required this.workoutSmall,
     required this.isFirstBuild,
+    this.isLoading = false, // Default to false
   });
 
   @override
@@ -559,21 +613,23 @@ class WorkoutCategoryCard extends StatelessWidget {
             Expanded(
               flex: 2,
               child: GestureDetector(
-                onTap: () {
-                  logger.info(
-                      "Main card tapped: $titleKey for specific exercise");
-                  if (!isFirstBuild && searchScreenState != null) {
-                    searchScreenState._navigateToDetail(
-                      context,
-                      detail_types.WorkoutDetailType.specificExercise,
-                      mainImage,
-                      titleKey,
-                      title,
-                    );
-                  } else {
-                    logger.info("Ignoring tap during first build");
-                  }
-                },
+                onTap: (isLoading || isFirstBuild)
+                    ? null // Disable when loading
+                    : () {
+                        logger.info(
+                            "Main card tapped: $titleKey for specific exercise");
+                        if (!isFirstBuild && searchScreenState != null) {
+                          searchScreenState._navigateToDetail(
+                            context,
+                            detail_types.WorkoutDetailType.specificExercise,
+                            mainImage,
+                            titleKey,
+                            title,
+                          );
+                        } else {
+                          logger.info("Ignoring tap during first build");
+                        }
+                      },
                 child: Stack(
                   children: [
                     Container(
@@ -583,6 +639,15 @@ class WorkoutCategoryCard extends StatelessWidget {
                         image: DecorationImage(
                           image: AssetImage(mainImage),
                           fit: BoxFit.cover,
+                          colorFilter: isLoading
+                              ? ColorFilter.mode(
+                                  Colors.black.withAlpha(153),
+                                  BlendMode.darken,
+                                )
+                              : ColorFilter.mode(
+                                  Colors.black.withAlpha(77),
+                                  BlendMode.darken,
+                                ),
                         ),
                       ),
                     ),
@@ -606,6 +671,12 @@ class WorkoutCategoryCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isLoading)
+                      Positioned.fill(
+                        child: Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -615,21 +686,24 @@ class WorkoutCategoryCard extends StatelessWidget {
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: () {
-                      logger.info(
-                          "Small card tapped: $titleKey for alternate exercise");
-                      if (!isFirstBuild && searchScreenState != null) {
-                        searchScreenState._navigateToDetail(
-                          context,
-                          detail_types.WorkoutDetailType.alternateExercise,
-                          smallImages[0],
-                          titleKey,
-                          title,
-                        );
-                      } else {
-                        logger.info("Ignoring tap during first build");
-                      }
-                    },
+                    onTap: (isLoading || isFirstBuild)
+                        ? null // Disable when loading
+                        : () {
+                            logger.info(
+                                "Small card tapped: $titleKey for alternate exercise");
+                            if (!isFirstBuild && searchScreenState != null) {
+                              searchScreenState._navigateToDetail(
+                                context,
+                                detail_types
+                                    .WorkoutDetailType.alternateExercise,
+                                smallImages[0],
+                                titleKey,
+                                title,
+                              );
+                            } else {
+                              logger.info("Ignoring tap during first build");
+                            }
+                          },
                     child: Stack(
                       children: [
                         Container(
@@ -639,6 +713,15 @@ class WorkoutCategoryCard extends StatelessWidget {
                             image: DecorationImage(
                               image: AssetImage(smallImages[0]),
                               fit: BoxFit.cover,
+                              colorFilter: isLoading
+                                  ? ColorFilter.mode(
+                                      Colors.black.withAlpha(153),
+                                      BlendMode.darken,
+                                    )
+                                  : ColorFilter.mode(
+                                      Colors.black.withAlpha(77),
+                                      BlendMode.darken,
+                                    ),
                             ),
                           ),
                         ),
@@ -662,26 +745,40 @@ class WorkoutCategoryCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (isLoading)
+                          Positioned.fill(
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 8),
                   GestureDetector(
-                    onTap: () {
-                      logger.info(
-                          "Category card tapped: $titleKey for category list");
-                      if (!isFirstBuild && searchScreenState != null) {
-                        searchScreenState._navigateToDetail(
-                          context,
-                          detail_types.WorkoutDetailType.categoryList,
-                          smallImages[1],
-                          titleKey,
-                          title,
-                        );
-                      } else {
-                        logger.info("Ignoring tap during first build");
-                      }
-                    },
+                    onTap: (isLoading || isFirstBuild)
+                        ? null // Disable when loading
+                        : () {
+                            logger.info(
+                                "Category card tapped: $titleKey for category list");
+                            if (!isFirstBuild && searchScreenState != null) {
+                              searchScreenState._navigateToDetail(
+                                context,
+                                detail_types.WorkoutDetailType.categoryList,
+                                smallImages[1],
+                                titleKey,
+                                title,
+                              );
+                            } else {
+                              logger.info("Ignoring tap during first build");
+                            }
+                          },
                     child: Stack(
                       children: [
                         Container(
@@ -691,6 +788,12 @@ class WorkoutCategoryCard extends StatelessWidget {
                             image: DecorationImage(
                               image: AssetImage(smallImages[1]),
                               fit: BoxFit.cover,
+                              colorFilter: isLoading
+                                  ? ColorFilter.mode(
+                                      Colors.black.withAlpha(153),
+                                      BlendMode.darken,
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
@@ -720,6 +823,18 @@ class WorkoutCategoryCard extends StatelessWidget {
                             ),
                           ),
                         ),
+                        if (isLoading)
+                          Positioned.fill(
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

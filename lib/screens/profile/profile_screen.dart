@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'widgets/modern_stats_row.dart';
 import '../../models/settings_item.dart';
 import '../../theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 import 'settings/account/personal_info_screen.dart';
 import 'settings/account/notifications_screen.dart';
 import 'settings/account/privacy_screen.dart';
@@ -12,11 +14,15 @@ import 'settings/app/language_screen.dart';
 import 'settings/app/theme_screen.dart';
 import 'settings/app/help_support_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import 'package:solar_vitas/screens/login/login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -420,27 +426,77 @@ class ProfileScreen extends StatelessWidget {
   Widget _buildSignOutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          return ElevatedButton(
+            onPressed: authProvider.isLoading
+                ? null
+                : () async {
+                    // Store navigator reference before async operation
+                    final navigator = Navigator.of(context);
+
+                    // Show confirmation dialog
+                    final shouldSignOut = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(tr(context, 'sign_out')),
+                        content: Text(tr(context, 'sign_out_confirmation')),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: Text(tr(context, 'cancel')),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            child: Text(
+                              tr(context, 'sign_out'),
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    // Use stored navigator reference instead of context
+                    if (shouldSignOut == true) {
+                      if (!mounted) return;
+
+                      await authProvider.signOut();
+
+                      if (!mounted) return;
+
+                      // Use stored navigator instead of context
+                      navigator.pushNamedAndRemoveUntil(
+                        '/',
+                        (route) => false,
+                      );
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.red,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: authProvider.isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    tr(context, 'sign_out'),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 16,
+                    ),
+                  ),
           );
         },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.red,
-          minimumSize: const Size(double.infinity, 50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Text(
-          tr(context, 'sign_out'),
-          style: const TextStyle(
-            color: AppColors.white,
-            fontSize: 16,
-          ),
-        ),
       ),
     );
   }

@@ -168,6 +168,8 @@ class HealthScreen extends StatelessWidget {
 
   Widget _buildMealPlanningCard(BuildContext context) {
     return Container(
+      width: double
+          .infinity, // Makes the card expand to the full width of its parent
       height: 180,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

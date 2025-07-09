@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
+import 'package:retry/retry.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import 'meal_detail_screen.dart';
@@ -8,7 +12,6 @@ import 'package:logger/logger.dart';
 
 var logger = Logger();
 
-// ...
 class MealSearchScreen extends StatefulWidget {
   final int selectedDayIndex;
   final String currentMealTime;
@@ -51,7 +54,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
   }
 
   Future<void> _loadMoreMeals() async {
-    // For the "All" category, we don't need to load more since we already have all meals
     if (_selectedCategory == 'All' || _isLoadingMore) return;
 
     setState(() {
@@ -59,19 +61,17 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
-      // Load more meals for specific category
       final response = await http.get(
         Uri.parse(
             'https://www.themealdb.com/api/json/v1/1/filter.php?c=$_selectedCategory'),
-      );
+        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['meals'] != null) {
           List<Map<String, dynamic>> newMeals = [];
           final allMeals = List.from(data['meals']);
-
-          // Skip meals we already have
           final existingMealIds = _meals.map((m) => m['id']).toSet();
           final newMealsToFetch = allMeals
               .where((meal) => !existingMealIds.contains(meal['idMeal']))
@@ -82,7 +82,11 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
             final detailResponse = await http.get(
               Uri.parse(
                   'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
-            );
+              headers: {
+                'Accept': 'application/json',
+                'Connection': 'keep-alive'
+              },
+            ).timeout(const Duration(seconds: 30));
 
             if (detailResponse.statusCode == 200) {
               final detailData = json.decode(detailResponse.body);
@@ -100,6 +104,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
             });
           }
         }
+      } else {
+        logger.d('Failed to load more meals: ${response.statusCode}');
       }
     } catch (e) {
       logger.d('Error loading more meals: $e');
@@ -121,17 +127,64 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
-      // Load categories first
+      final prefs = await SharedPreferences.getInstance();
+      final cachedCategories = prefs.getString('meal_categories');
+
+      // Try loading categories from cache
+      if (cachedCategories != null) {
+        try {
+          final data = json.decode(cachedCategories);
+          if (data['categories'] != null) {
+            setState(() {
+              _categories = [
+                {
+                  'strCategory': 'All',
+                  'strCategoryThumb': '',
+                  'strCategoryDescription': ''
+                }
+              ];
+              for (var category in data['categories']) {
+                _categories.add({
+                  'strCategory': category['strCategory']?.toString() ?? '',
+                  'strCategoryThumb':
+                      category['strCategoryThumb']?.toString() ?? '',
+                  'strCategoryDescription':
+                      category['strCategoryDescription']?.toString() ?? '',
+                });
+              }
+            });
+            await _loadMeals();
+            return;
+          }
+        } catch (e) {
+          logger.d('Error parsing cached categories: $e');
+        }
+      }
+
+      // Fetch categories from API
       try {
-        final categoryResponse = await http.get(
-          Uri.parse('https://www.themealdb.com/api/json/v1/1/categories.php'),
-          headers: {'Accept': 'application/json'},
+        const retryOptions = RetryOptions(
+          maxAttempts: 3,
+          delayFactor: Duration(milliseconds: 500),
         );
+        final categoryResponse = await retryOptions.retry(
+          () => http.get(
+            Uri.parse('https://www.themealdb.com/api/json/v1/1/categories.php'),
+            headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
+          ).timeout(const Duration(seconds: 30)),
+          retryIf: (e) => e is SocketException || e is TimeoutException,
+        );
+
+        logger.d('Category request sent');
+        logger.d('Response status: ${categoryResponse.statusCode}');
+        logger
+            .d('Response body: ${categoryResponse.body.substring(0, 100)}...');
 
         if (!mounted) return;
 
         if (categoryResponse.statusCode == 200) {
           final data = json.decode(categoryResponse.body);
+          await prefs.setString('meal_categories', json.encode(data));
           if (data['categories'] == null) {
             throw Exception('No categories data found');
           }
@@ -144,7 +197,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                 'strCategoryDescription': ''
               }
             ];
-
             for (var category in data['categories']) {
               _categories.add({
                 'strCategory': category['strCategory']?.toString() ?? '',
@@ -164,57 +216,12 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         throw Exception('Failed to load categories: $e');
       }
 
-      // Load all meals by first letter
-      try {
-        List<Map<String, dynamic>> allMeals = [];
-        List<String> letters =
-            List.generate(26, (index) => String.fromCharCode(65 + index));
-
-        // Create futures for each letter
-        List<Future<http.Response>> letterFutures = letters
-            .map((letter) => http.get(
-                  Uri.parse(
-                      'https://www.themealdb.com/api/json/v1/1/search.php?f=$letter'),
-                  headers: {'Accept': 'application/json'},
-                ))
-            .toList();
-
-        // Execute all requests in parallel
-        final responses = await Future.wait(letterFutures);
-
-        // Process responses
-        for (var response in responses) {
-          if (response.statusCode == 200) {
-            final data = json.decode(response.body);
-            if (data['meals'] != null) {
-              for (var meal in data['meals']) {
-                final formattedMeal = _formatMealData(meal);
-                if (!allMeals.any((existingMeal) =>
-                    existingMeal['id'] == formattedMeal['id'])) {
-                  allMeals.add(formattedMeal);
-                }
-              }
-            }
-          }
-        }
-
-        // Shuffle the meals for randomness
-        allMeals.shuffle();
-
-        if (!mounted) return;
-
-        setState(() {
-          _meals = allMeals;
-        });
-      } catch (e) {
-        logger.d('Meals error: $e');
-        throw Exception('Failed to load meals: $e');
-      }
+      // Load meals
+      await _loadMeals();
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
-        _error = e.toString();
+        _error = 'Network error. Please check your connection and try again.';
         _categories = [
           {
             'strCategory': 'All',
@@ -228,6 +235,48 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _loadMeals() async {
+    try {
+      List<Map<String, dynamic>> allMeals = [];
+      final response = await http.get(
+        Uri.parse('https://www.themealdb.com/api/json/v1/1/filter.php?c=Beef'),
+        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['meals'] != null) {
+          for (var meal in data['meals'].take(20)) {
+            final detailResponse = await http.get(
+              Uri.parse(
+                  'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
+              headers: {
+                'Accept': 'application/json',
+                'Connection': 'keep-alive'
+              },
+            ).timeout(const Duration(seconds: 30));
+            if (detailResponse.statusCode == 200) {
+              final detailData = json.decode(detailResponse.body);
+              if (detailData['meals'] != null &&
+                  detailData['meals'].isNotEmpty) {
+                allMeals.add(_formatMealData(detailData['meals'][0]));
+              }
+            }
+          }
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _meals = allMeals..shuffle();
+      });
+    } catch (e) {
+      logger.d('Meals error: $e');
+      throw Exception('Failed to load meals: $e');
     }
   }
 
@@ -248,7 +297,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       final response = await http.get(
         Uri.parse(
             'https://www.themealdb.com/api/json/v1/1/search.php?s=$query'),
-      );
+        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
+      ).timeout(const Duration(seconds: 30));
 
       if (!mounted) return;
 
@@ -269,7 +319,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to search meals. Please try again.';
+          _error = 'Failed to search meals. Please check your connection.';
           _isLoading = false;
         });
       }
@@ -294,7 +344,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       final response = await http.get(
         Uri.parse(
             'https://www.themealdb.com/api/json/v1/1/filter.php?c=$category'),
-      );
+        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
+      ).timeout(const Duration(seconds: 30));
 
       if (!mounted) return;
 
@@ -303,16 +354,17 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         if (data['meals'] != null) {
           List<Map<String, dynamic>> categoryMeals = [];
           final allMeals = List.from(data['meals']);
-
-          // Get all meals from the category (or first 12 if there are many)
           final mealsToFetch = allMeals.take(12).toList();
 
-          // Fetch full details for each meal
           for (var meal in mealsToFetch) {
             final detailResponse = await http.get(
               Uri.parse(
                   'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
-            );
+              headers: {
+                'Accept': 'application/json',
+                'Connection': 'keep-alive'
+              },
+            ).timeout(const Duration(seconds: 30));
 
             if (detailResponse.statusCode == 200) {
               final detailData = json.decode(detailResponse.body);
@@ -337,7 +389,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load category meals. Please try again.';
+          _error =
+              'Failed to load category meals. Please check your connection.';
           _isLoading = false;
         });
       }
@@ -346,12 +399,10 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
 
   Map<String, dynamic> _formatMealData(Map<String, dynamic> meal) {
     try {
-      // Basic validation
       if (meal['idMeal'] == null || meal['strMeal'] == null) {
         throw Exception('Invalid meal data structure');
       }
 
-      // Extract ingredients and measures
       List<String> ingredients = [];
       List<String> measures = [];
 
@@ -365,7 +416,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         }
       }
 
-      // Parse instructions safely
       List<String> instructions = [];
       if (meal['strInstructions'] != null) {
         instructions = meal['strInstructions']
@@ -376,7 +426,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
             .toList();
       }
 
-      // Calculate nutrition (simplified)
       final calories = ingredients.length * 100;
 
       return {
@@ -414,7 +463,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       };
     } catch (e) {
       logger.d('Error formatting meal data: $e');
-      // Return a minimal valid meal structure
       return {
         'id': meal['idMeal']?.toString() ?? 'unknown',
         'titleKey': meal['strMeal']?.toString() ?? 'Unknown Meal',
@@ -447,7 +495,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       }
       _meals = _meals.map((meal) {
         if (meal['id'] == mealId) {
-          return {...meal, 'isFavorite': !_favoriteMeals.contains(mealId)};
+          return {...meal, 'isFavorite': _favoriteMeals.contains(mealId)};
         }
         return meal;
       }).toList();
@@ -703,7 +751,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
   Widget _buildMealCard(Map<String, dynamic> meal) {
     return GestureDetector(
       onTap: () async {
-        // First, properly format the meal data
         final formattedMeal = {
           'id': meal['id'],
           'titleKey': meal['titleKey'],
@@ -743,21 +790,18 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
               youtubeUrl: meal['youtubeUrl'],
               isFavorite: formattedMeal['isFavorite'],
               onFavoriteToggle: (id) => _toggleFavorite(id),
-              selectedDayIndex:
-                  widget.selectedDayIndex, // Pass the selected day
-              currentMealTime:
-                  widget.currentMealTime, // Pass the current meal time
+              selectedDayIndex: widget.selectedDayIndex,
+              currentMealTime: widget.currentMealTime,
             ),
           ),
         );
 
         if (!mounted) return;
 
-        // If we have a result, pass the formatted meal data back
         if (result != null) {
           final mealPlanResult = {
             ...result,
-            'meal': formattedMeal, // Use our properly formatted meal data
+            'meal': formattedMeal,
           };
           Navigator.of(context).pop(mealPlanResult);
         }
@@ -770,12 +814,10 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image and badges section
             Expanded(
               flex: 3,
               child: Stack(
                 children: [
-                  // Main meal image
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(20),
@@ -806,7 +848,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                       },
                     ),
                   ),
-                  // Vegan badge
                   if (meal['isVegan'])
                     Positioned(
                       top: 8,
@@ -841,7 +882,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                         ),
                       ),
                     ),
-                  // Favorite button
                   Positioned(
                     top: 8,
                     right: 8,
@@ -867,7 +907,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                 ],
               ),
             ),
-            // Meal information section
             Expanded(
               flex: 2,
               child: Padding(
@@ -875,7 +914,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Meal title
                     Text(
                       meal['titleKey'],
                       style: TextStyle(
@@ -887,10 +925,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const Spacer(),
-                    // Calories and area information
                     Row(
                       children: [
-                        // Calories display
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -925,7 +961,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                             ),
                           ),
                         ),
-                        // Area information (if available)
                         if (meal['area'] != null) ...[
                           const SizedBox(width: 4),
                           Expanded(

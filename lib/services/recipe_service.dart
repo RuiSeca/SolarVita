@@ -49,12 +49,17 @@ class MealDBService {
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async {
-    final response = await http.get(Uri.parse('$baseUrl/categories.php'));
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      return List<Map<String, dynamic>>.from(data['categories']);
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/categories.php'));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return List<Map<String, dynamic>>.from(data['categories']);
+      }
+      throw Exception(
+          'Failed to load categories: Status ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Failed to load categories: $e');
     }
-    throw Exception('Failed to load categories');
   }
 
   Map<String, dynamic> _formatMealData(Map<String, dynamic> meal) {

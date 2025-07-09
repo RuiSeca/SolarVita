@@ -38,9 +38,10 @@ class FatSecretApiConfig {
 
   // Alternative OAuth body with redirect URI
   static String get altOauthBodyWithRedirect =>
-      '${oauthBody}&redirect_uri=https://example.com/callback';
+      '$oauthBody&redirect_uri=https://example.com/callback';
 
   // Strict validation that will return false if API credentials are missing
+
   static bool isConfigured() {
     if (apiKey.isEmpty) {
       _logger.e('FATSECRET_API_KEY is not set in .env file');
