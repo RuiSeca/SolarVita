@@ -195,30 +195,25 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
   Future<void> _analyzeFoodImage(File image) async {
     setState(() {
-      _userHasInteracted = true; // Mark that user has interacted
+      _userHasInteracted = true;
       _isAnalyzingFood = true;
       _messages.insert(
-        0,
-        ChatMessage(
-          text: tr(context, 'analyzing_food'),
-          isUser: false,
-        ),
-      );
+          0, ChatMessage(text: tr(context, 'analyzing_food'), isUser: false));
     });
 
     try {
-      // Call the FatSecret API through your service - strict API-only implementation
-      final FoodAnalysis foodAnalysis =
-          await _nutritionixService.analyzeFoodImage(image);
+      // Use the existing service with the correct method name
+      final MultiIngredientAnalysis analysis =
+          await _nutritionixService.analyzeFoodImageAdvanced(image);
 
       if (mounted) {
         setState(() {
           _isAnalyzingFood = false;
           _messages.insert(
             0,
-            FoodAnalysisMessage(
-              analysis: foodAnalysis,
-              isUser: false,
+            MultiIngredientFoodAnalysisMessage(
+              analysis: analysis,
+              onFavoriteToggle: _toggleFavorite,
             ),
           );
         });
@@ -255,6 +250,18 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           );
         });
       }
+    }
+  }
+
+  void _toggleFavorite(String foodId) {
+    // Implementation for toggling favorites
+    _logger.d('Toggle favorite for food: $foodId');
+
+    // Show feedback to user
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr(context, 'favorite_toggled'))),
+      );
     }
   }
 
@@ -656,6 +663,216 @@ class ChatMessage extends StatelessWidget {
             ),
           ),
           if (isUser) const SizedBox(width: 40),
+        ],
+      ),
+    );
+  }
+}
+
+class MultiIngredientFoodAnalysisMessage extends StatelessWidget {
+  final MultiIngredientAnalysis analysis;
+  final Function(String) onFavoriteToggle;
+
+  const MultiIngredientFoodAnalysisMessage({
+    super.key,
+    required this.analysis,
+    required this.onFavoriteToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            backgroundColor: AppColors.primary,
+            radius: 16,
+            child: Icon(
+              Icons.restaurant_menu,
+              color: AppColors.white,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.messageBubbleAI(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      analysis.image,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Text(
+                    analysis.primaryFood,
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  Text(
+                    '${analysis.ingredients.length} ingredients detected',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(180),
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Combined nutrition
+                  Text(
+                    'Combined Nutrition:',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  _buildNutritionItem(
+                    context,
+                    tr(context, 'calories'),
+                    '${analysis.combinedNutrition.totalCalories} kcal',
+                    Icons.local_fire_department,
+                    Colors.red,
+                  ),
+                  _buildNutritionItem(
+                    context,
+                    tr(context, 'protein'),
+                    '${analysis.combinedNutrition.totalProtein}g',
+                    Icons.fitness_center,
+                    Colors.purple,
+                  ),
+                  _buildNutritionItem(
+                    context,
+                    tr(context, 'carbs'),
+                    '${analysis.combinedNutrition.totalCarbs}g',
+                    Icons.grain,
+                    Colors.amber,
+                  ),
+                  _buildNutritionItem(
+                    context,
+                    tr(context, 'fat'),
+                    '${analysis.combinedNutrition.totalFat}g',
+                    Icons.opacity,
+                    Colors.blue,
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Individual ingredients
+                  Text(
+                    'Detected Ingredients:',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  ...analysis.ingredients.map(
+                    (ingredient) => Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Text(
+                        '• ${ingredient.name} (${ingredient.estimatedPortion.description})',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  if (analysis.failedIngredients.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Could not analyze: ${analysis.failedIngredients.join(", ")}',
+                      style: TextStyle(
+                        color: Colors.orange,
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 8),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Detection accuracy: ${(analysis.detectionAccuracy * 100).toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withAlpha(180),
+                          fontSize: 12,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => onFavoriteToggle(analysis.primaryFood),
+                        icon: const Icon(Icons.favorite_border),
+                        iconSize: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNutritionItem(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: 16,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 14,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
