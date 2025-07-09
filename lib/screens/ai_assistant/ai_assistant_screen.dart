@@ -68,11 +68,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     super.dispose();
   }
 
-  void _handleSubmitted(String text) {
+  void _handleSubmitted(String text) async {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      _userHasInteracted = true; // Mark that user has interacted
+      _userHasInteracted = true;
       _messages.insert(
         0,
         ChatMessage(
@@ -96,21 +96,39 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       return;
     }
 
-    // Send the text to the AI for a response
-    Future.delayed(const Duration(milliseconds: 800), () {
+    // Send the text to the AI for a response using the new async method
+    try {
+      final response = await _aiService.generateResponseAsync(text);
+
       if (mounted) {
         setState(() {
           _isTyping = false;
           _messages.insert(
             0,
             ChatMessage(
-              text: _aiService.generateResponse(text),
+              text: response,
               isUser: false,
             ),
           );
         });
       }
-    });
+    } catch (e) {
+      _logger.e('Error getting AI response: $e');
+
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.insert(
+            0,
+            ChatMessage(
+              text:
+                  'Sorry, I encountered an issue. Let me try a different approach: ${_aiService.generateResponse(text)}',
+              isUser: false,
+            ),
+          );
+        });
+      }
+    }
   }
 
   bool _containsExerciseHistoryKeywords(String text) {
@@ -547,16 +565,41 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     );
   }
 
-  void _handleQuickAction(String action) {
-    String response = _aiService.generateQuickResponse(action);
-
+  void _handleQuickAction(String action) async {
     setState(() {
-      _userHasInteracted = true; // Mark that user has interacted
-      _messages.insert(
-        0,
-        ChatMessage(text: response, isUser: false),
-      );
+      _userHasInteracted = true;
+      _isTyping = true;
     });
+
+    try {
+      // Try Gemini first for more personalized responses
+      final response = await _aiService
+          .generateResponseAsync('Give me a quick response about: $action');
+
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.insert(
+            0,
+            ChatMessage(text: response, isUser: false),
+          );
+        });
+      }
+    } catch (e) {
+      _logger.e('Error in quick action: $e');
+
+      // Fallback to the existing quick response system
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.insert(
+            0,
+            ChatMessage(
+                text: _aiService.generateQuickResponse(action), isUser: false),
+          );
+        });
+      }
+    }
   }
 
   void _handleAttachmentSelection(String value) {

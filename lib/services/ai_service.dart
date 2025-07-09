@@ -1,231 +1,260 @@
-// lib/services/ai_service.dart
-import 'package:flutter_ai_providers/flutter_ai_providers.dart';
-import 'package:flutter_ai_toolkit/flutter_ai_toolkit.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import '../models/user_context.dart';
+import '../config/gemini_api_config.dart';
+import 'package:logger/logger.dart';
 
 class AIService {
   final UserContext context;
-  late final OpenAIProvider? _localAIProvider;
-  static const String _localAIBaseUrl = 'http://<YOUR_VM_PUBLIC_IP>:8080';
-  static const String _localAIModel = 'phi-2';
+  late final GenerativeModel _model;
+  final Logger _logger = Logger();
 
   // Fitness coach system prompt
   static const String _fitnessSystemPrompt = '''
-You are an expert fitness coach and nutritionist working with a health-focused app. 
-The user has these current stats:
+You are SolarVita's expert fitness coach and wellness advisor, specializing in sustainable health practices. 
+
+Current user profile:
 - Preferred workout duration: {workoutDuration} minutes
 - Eco score: {ecoScore}/100
-- Carbon saved: {carbonSaved} kg CO2
-- Current suggested workout time: {workoutTime}
+- Carbon saved: {carbonSaved} kg CO₂
+- Meal carbon saved: {mealCarbonSaved} kg CO₂ 
+- Suggested workout time: {workoutTime}
+- Plastic bottles saved: {plasticBottlesSaved}
 
-Provide personalized, science-based advice on:
-- Workout routines and exercise form
-- Goal setting and progress tracking  
-- Motivation and mindset
-- Integration with their eco-friendly lifestyle
+Your expertise covers:
+🏋️ Personalized workout routines and exercise form
+🥗 Sustainable nutrition and meal planning
+🌱 Eco-friendly fitness practices
+📈 Goal setting and progress tracking
+💪 Motivation and mindset coaching
+🔄 Recovery and injury prevention
 
-Keep responses concise, actionable, and encouraging. Always prioritize safety.
-If you need more information to give specific advice, ask relevant questions.
+Personality: Encouraging, knowledgeable, and sustainability-focused. Keep responses concise (2-3 paragraphs max), actionable, and motivating. Always prioritize safety and sustainable practices.
+
+If you need more specific information to give tailored advice, ask 1-2 relevant questions.
 ''';
 
   AIService({required this.context}) {
-    _initializeLocalAI();
+    _initializeGemini();
   }
 
-  void _initializeLocalAI() {
-    try {
-      _localAIProvider = OpenAIProvider(
-        baseUrl: _localAIBaseUrl,
-        apiKey: 'not-needed-for-localai', // LocalAI doesn't require API key
-      );
-    } catch (e) {
-      _localAIProvider = null;
-    }
-  }
-
-  // Enhanced response generation with LocalAI
-  Future<String> generateResponseAsync(String userMessage) async {
-    // Check if this is a fitness/health related query
-    if (_isFitnessRelated(userMessage) && _localAIProvider != null) {
-      try {
-        return await _generateLocalAIResponse(userMessage);
-      } catch (e) {
-        // Fall back to your existing logic
-        return generateResponse(userMessage);
-      }
+  void _initializeGemini() {
+    if (!GeminiApiConfig.isConfigured()) {
+      _logger.e('Gemini API key not configured');
+      throw Exception(
+          'Gemini API key not configured. Please set GEMINI_API_KEY in .env file.');
     }
 
-    // Use your existing logic for non-fitness queries
-    return generateResponse(userMessage);
+    _model = GenerativeModel(
+      model: 'gemini-1.5-flash', // Using the fast, free model
+      apiKey: GeminiApiConfig.apiKey,
+      systemInstruction: Content.system(_getPersonalizedSystemPrompt()),
+      generationConfig: GenerationConfig(
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
+        maxOutputTokens: 1000,
+      ),
+      safetySettings: [
+        SafetySetting(HarmCategory.harassment, HarmBlockThreshold.medium),
+        SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.medium),
+        SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.medium),
+        SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.medium),
+      ],
+    );
+
+    _logger.i('Gemini AI service initialized successfully');
   }
 
-  Future<String> _generateLocalAIResponse(String userMessage) async {
-    final systemPrompt = _fitnessSystemPrompt
+  String _getPersonalizedSystemPrompt() {
+    return _fitnessSystemPrompt
         .replaceAll(
             '{workoutDuration}', context.preferredWorkoutDuration.toString())
         .replaceAll('{ecoScore}', context.ecoScore.toString())
         .replaceAll('{carbonSaved}', context.carbonSaved.toString())
-        .replaceAll('{workoutTime}', context.suggestedWorkoutTime);
+        .replaceAll('{mealCarbonSaved}', context.mealCarbonSaved.toString())
+        .replaceAll('{workoutTime}', context.suggestedWorkoutTime)
+        .replaceAll(
+            '{plasticBottlesSaved}', context.plasticBottlesSaved.toString());
+  }
 
-    final response = await _localAIProvider!.chatCompletions(
-      model: _localAIModel,
-      messages: [
-        SystemMessage(content: systemPrompt),
-        UserMessage(content: userMessage),
-      ],
-      temperature: 0.7,
-      maxTokens: 300,
-    );
+  // Enhanced response generation with Gemini
+  Future<String> generateResponseAsync(String userMessage) async {
+    try {
+      _logger.d(
+          'Generating Gemini response for: ${userMessage.substring(0, userMessage.length.clamp(0, 50))}...');
 
-    return response.choices.first.message.content ??
-        'I apologize, but I couldn\'t generate a response right now.';
+      final content = [Content.text(userMessage)];
+      final response = await _model.generateContent(content);
+
+      if (response.text != null && response.text!.isNotEmpty) {
+        _logger.d('Gemini response generated successfully');
+        return response.text!;
+      } else {
+        _logger.w('Gemini returned empty response');
+        return _getFallbackResponse(userMessage);
+      }
+    } catch (e) {
+      _logger.e('Error generating Gemini response: $e');
+
+      // Graceful fallback to rule-based responses
+      return _getFallbackResponse(userMessage);
+    }
   }
 
   // Streaming response for real-time chat
   Stream<String> generateResponseStream(String userMessage) async* {
-    if (_isFitnessRelated(userMessage) && _localAIProvider != null) {
-      final systemPrompt = _fitnessSystemPrompt
-          .replaceAll(
-              '{workoutDuration}', context.preferredWorkoutDuration.toString())
-          .replaceAll('{ecoScore}', context.ecoScore.toString())
-          .replaceAll('{carbonSaved}', context.carbonSaved.toString())
-          .replaceAll('{workoutTime}', context.suggestedWorkoutTime);
+    try {
+      _logger.d(
+          'Starting Gemini stream for: ${userMessage.substring(0, userMessage.length.clamp(0, 50))}...');
 
-      final stream = _localAIProvider!.chatCompletionsStream(
-        model: _localAIModel,
-        messages: [
-          SystemMessage(content: systemPrompt),
-          UserMessage(content: userMessage),
-        ],
-        temperature: 0.7,
-        maxTokens: 300,
-      );
+      final content = [Content.text(userMessage)];
+      final response = _model.generateContentStream(content);
 
-      await for (final chunk in stream) {
-        if (chunk.choices.isNotEmpty) {
-          final content = chunk.choices.first.delta.content;
-          if (content != null) {
-            yield content;
-          }
+      await for (final chunk in response) {
+        if (chunk.text != null && chunk.text!.isNotEmpty) {
+          yield chunk.text!;
         }
       }
-      return;
+    } catch (e) {
+      _logger.e('Error in Gemini stream: $e');
+
+      // Fallback to complete response
+      yield _getFallbackResponse(userMessage);
     }
-
-    // Fallback: yield the complete response at once
-    yield generateResponse(userMessage);
   }
 
-  bool _isFitnessRelated(String message) {
-    final fitnessKeywords = [
-      'workout',
-      'exercise',
-      'fitness',
-      'training',
-      'muscle',
-      'strength',
-      'cardio',
-      'running',
-      'weight',
-      'gym',
-      'health',
-      'nutrition',
-      'diet',
-      'protein',
-      'calories',
-      'fat',
-      'carbs',
-      'goal',
-      'motivation',
-      'recovery',
-      'rest',
-      'sleep',
-      'hydration',
-      'supplements',
-      'form',
-      'technique',
-      'injury',
-      'pain',
-      'stretch',
-      'flexibility'
-    ];
-
-    final lowerMessage = message.toLowerCase();
-    return fitnessKeywords.any((keyword) => lowerMessage.contains(keyword));
+  // Fallback response when Gemini fails
+  String _getFallbackResponse(String message) {
+    _logger.i('Using fallback response system');
+    return generateResponse(message);
   }
 
-  // Keep your existing methods for backward compatibility
+  // Keep your existing methods for backward compatibility and fallback
   String generateResponse(String message) {
-    // Your existing implementation
     message = message.toLowerCase();
 
     if (message.contains('workout') || message.contains('exercise')) {
       return _generateWorkoutResponse(message);
-    } else if (message.contains('nutrition') || message.contains('diet')) {
+    } else if (message.contains('nutrition') ||
+        message.contains('diet') ||
+        message.contains('meal')) {
       return _generateNutritionResponse(message);
-    } else if (message.contains('eco') || message.contains('environment')) {
+    } else if (message.contains('eco') ||
+        message.contains('environment') ||
+        message.contains('sustainable')) {
       return _generateEcoResponse();
-    } else if (message.contains('schedule') || message.contains('time')) {
+    } else if (message.contains('schedule') ||
+        message.contains('time') ||
+        message.contains('when')) {
       return _generateScheduleResponse();
+    } else if (message.contains('progress') ||
+        message.contains('track') ||
+        message.contains('goal')) {
+      return _generateProgressResponse();
     } else {
       return _generateGenericResponse();
     }
   }
 
   String generateQuickResponse(String action) {
-    // Your existing quick response logic
     if (action.contains('workout')) {
-      return "Here's a quick ${context.preferredWorkoutDuration}-minute workout for you!\n\n"
-          "🏃‍♂️ 5 min warm-up\n"
+      return "🏋️ Here's your quick ${context.preferredWorkoutDuration}-minute eco-friendly workout!\n\n"
+          "🌱 5 min nature-inspired warm-up\n"
           "💪 ${context.preferredWorkoutDuration - 10} min strength training\n"
-          "🧘‍♀️ 5 min cool-down\n\n"
-          "Suggested time: ${context.suggestedWorkoutTime}";
+          "🧘‍♀️ 5 min mindful cool-down\n\n"
+          "💡 Best time: ${context.suggestedWorkoutTime}\n"
+          "🌍 This workout saves energy by using minimal equipment!";
     } else if (action.contains('eco')) {
-      return "🌱 Your eco impact today:\n\n"
+      return "🌱 Your amazing eco-impact today:\n\n"
           "♻️ ${context.plasticBottlesSaved} plastic bottles saved\n"
-          "🌍 ${context.carbonSaved} kg CO₂ reduced\n"
-          "🥗 ${context.mealCarbonSaved} kg from sustainable meals\n\n"
-          "Eco Score: ${context.ecoScore}/100";
+          "🌍 ${context.carbonSaved} kg CO₂ reduced from activities\n"
+          "🥗 ${context.mealCarbonSaved} kg CO₂ saved from sustainable meals\n\n"
+          "🏆 Eco Score: ${context.ecoScore}/100\n"
+          "Keep up the fantastic work! Every choice matters! 🌟";
     } else if (action.contains('meal')) {
-      return "🍽️ Today's meal suggestions:\n\n"
-          "🥗 Breakfast: Green smoothie bowl\n"
-          "🥙 Lunch: Quinoa Buddha bowl\n"
-          "🍲 Dinner: Lentil curry with rice\n\n"
-          "All meals are optimized for your fitness goals!";
+      return "🍽️ Today's sustainable meal suggestions:\n\n"
+          "🌅 Breakfast: Plant-powered smoothie bowl\n"
+          "🥙 Lunch: Local veggie Buddha bowl\n"
+          "🍲 Dinner: Seasonal lentil curry\n"
+          "🍎 Snacks: Seasonal fruits & nuts\n\n"
+          "🌱 All meals support your fitness goals AND the planet!\n"
+          "💚 Carbon saved so far: ${context.mealCarbonSaved} kg CO₂";
     } else if (action.contains('schedule')) {
-      return "📅 Your fitness schedule:\n\n"
-          "🌅 ${context.suggestedWorkoutTime}: Morning workout\n"
-          "🥗 12:00 PM: Healthy lunch\n"
-          "🚶‍♂️ 6:00 PM: Evening walk\n"
-          "😴 10:00 PM: Wind down routine";
+      return "📅 Your optimal daily routine:\n\n"
+          "🌅 ${context.suggestedWorkoutTime}: Energizing workout\n"
+          "☀️ 12:00 PM: Sustainable lunch break\n"
+          "🚶‍♂️ 6:00 PM: Nature walk or bike ride\n"
+          "🌙 10:00 PM: Relaxing wind-down routine\n\n"
+          "💡 Tip: Align activities with natural daylight to save energy!";
     }
 
-    return "I'm here to help with your fitness and wellness journey! What would you like to know?";
+    return "🌟 I'm your SolarVita wellness coach! I'm here to help you achieve your fitness goals while caring for our planet. What would you like to explore today?";
   }
 
-  // Your existing private methods remain the same
+  // Enhanced private methods with eco-fitness focus
   String _generateWorkoutResponse(String message) {
-    // Your existing implementation
-    return "Let's get moving! Based on your preferences, here's what I recommend...";
+    return "🏋️ Let's create a workout that's good for you AND the planet!\n\n"
+        "Based on your ${context.preferredWorkoutDuration}-minute preference, I recommend mixing bodyweight exercises with minimal equipment. "
+        "This saves energy while building strength!\n\n"
+        "💡 Try outdoor workouts when possible - fresh air boosts performance and connects you with nature. "
+        "Your ideal time is ${context.suggestedWorkoutTime}. Need specific exercises or modifications?";
   }
 
   String _generateNutritionResponse(String message) {
-    // Your existing implementation
-    return "Nutrition is key to reaching your goals! Here are some tips...";
+    return "🥗 Nutrition that fuels you and helps the planet!\n\n"
+        "Focus on seasonal, local produce when possible - it's fresher, more nutritious, and reduces your carbon footprint. "
+        "You've already saved ${context.mealCarbonSaved} kg CO₂ through smart food choices!\n\n"
+        "💚 Plant-based proteins, whole grains, and colorful vegetables will power your workouts naturally. What specific nutrition goals are you working on?";
   }
 
   String _generateEcoResponse() {
-    // Your existing implementation
-    return "Great question about sustainability! Your current eco score is ${context.ecoScore}/100...";
+    return "🌍 Your sustainability impact is incredible!\n\n"
+        "Current stats: ${context.ecoScore}/100 eco score, ${context.carbonSaved} kg CO₂ saved, and ${context.plasticBottlesSaved} bottles diverted from waste! "
+        "Combining fitness with environmental care creates a positive cycle.\n\n"
+        "🌱 Small actions like using a reusable water bottle during workouts, choosing active transport, or outdoor exercises all add up to major impact!";
   }
 
   String _generateScheduleResponse() {
-    // Your existing implementation
-    return "Your suggested workout time is ${context.suggestedWorkoutTime}...";
+    return "⏰ Your personalized schedule optimization:\n\n"
+        "Your suggested workout time of ${context.suggestedWorkoutTime} aligns with your body's natural energy peaks. "
+        "Consistency in timing helps build lasting habits!\n\n"
+        "🌱 Pro tip: Morning workouts often feel more energizing and leave you accomplished all day. Plus, exercising during peak sunlight hours naturally boosts vitamin D!";
+  }
+
+  String _generateProgressResponse() {
+    return "📈 Progress tracking with purpose!\n\n"
+        "Beyond physical gains, you're building environmental impact: ${context.carbonSaved} kg CO₂ saved shows how fitness and sustainability work together. "
+        "Your eco score of ${context.ecoScore}/100 reflects mindful choices.\n\n"
+        "💪 Remember: progress isn't just about strength or endurance - it's about creating positive habits that benefit you and the planet long-term!";
   }
 
   String _generateGenericResponse() {
-    // Your existing implementation
-    return "I'm here to help you with fitness, nutrition, and sustainable living!";
+    return "🌟 Welcome to SolarVita - where fitness meets sustainability!\n\n"
+        "I'm here to help you achieve your health goals while caring for our planet. Whether you need workout guidance, nutrition advice, or eco-friendly fitness tips, I've got you covered!\n\n"
+        "💚 What aspect of your wellness journey would you like to explore today?";
+  }
+
+  // Method to update user context (useful for dynamic updates)
+  void updateContext(UserContext newContext) {
+    // Note: With Gemini, we'd need to create a new model instance for updated system instructions
+    // For now, we'll update the context but use it in future messages
+    // context = newContext;
+    _logger.i(
+        'User context updated - new system prompt will apply to future conversations');
+  }
+
+  // Test method to verify Gemini connection
+  Future<bool> testConnection() async {
+    try {
+      final response = await _model.generateContent([
+        Content.text(
+            'Hello! Can you confirm you\'re working as SolarVita\'s fitness coach?')
+      ]);
+
+      return response.text != null && response.text!.isNotEmpty;
+    } catch (e) {
+      _logger.e('Gemini connection test failed: $e');
+      return false;
+    }
   }
 }

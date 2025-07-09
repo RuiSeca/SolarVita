@@ -44,8 +44,7 @@ dependencies:
   flutter_facebook_auth: ^6.0.3
 
   #AI providers
-  flutter_ai_providers: ^0.1.0
-  flutter_ai_toolkit: ^0.6.7
+  google_generative_ai: ^0.4.6
 
 dev_dependencies:
   flutter_test:
