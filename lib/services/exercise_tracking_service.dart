@@ -2,15 +2,17 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-import '../models/exercise_log.dart';
-import '../../../models/personal_record.dart';
 import 'package:logging/logging.dart';
+import '../models/exercise_log.dart';
+import '../models/personal_record.dart';
+import 'notification_service.dart';
 
 class ExerciseTrackingService {
   static final ExerciseTrackingService _instance =
       ExerciseTrackingService._internal();
   final Logger _log = Logger('ExerciseTrackingService');
   final Uuid _uuid = Uuid();
+  final NotificationService _notificationService = NotificationService();
 
   factory ExerciseTrackingService() {
     return _instance;
@@ -35,13 +37,38 @@ class ExerciseTrackingService {
       final result = await prefs.setStringList(_logsKey, logs);
 
       // Check for personal records
-      await _checkForPersonalRecords(log);
+      final isNewRecord = await _checkForPersonalRecords(log);
+
+      // Send celebration notification if it's a new record
+      if (isNewRecord) {
+        await _notificationService.sendProgressCelebration(
+          achievement: 'New Personal Record!',
+          message: 'You hit a new PR in ${log.exerciseName}! 🎉',
+        );
+      } else {
+        // Send regular progress update
+        await _notificationService.sendProgressCelebration(
+          achievement: 'Workout Complete!',
+          message: 'Great job completing your ${log.exerciseName} workout!',
+        );
+      }
 
       return result;
     } catch (e) {
       _log.severe('Error saving exercise log: $e');
       return false;
     }
+  }
+
+  // Add method to schedule workout reminders
+  Future<void> scheduleWorkoutReminder(
+      DateTime scheduledTime, String workoutType) async {
+    await _notificationService.scheduleWorkoutReminder(
+      title: '💪 Workout Time!',
+      body: 'Time for your $workoutType workout. Let\'s get moving!',
+      scheduledTime: scheduledTime,
+      workoutType: workoutType,
+    );
   }
 
   // Generate a new unique ID for logs
@@ -140,8 +167,10 @@ class ExerciseTrackingService {
   }
 
   // Check if a log contains any personal records
-  Future<void> _checkForPersonalRecords(ExerciseLog log) async {
+  Future<bool> _checkForPersonalRecords(ExerciseLog log) async {
     try {
+      bool hasNewRecord = false;
+
       // Get existing records for this exercise
       final records = await getPersonalRecordsForExercise(log.exerciseId);
 
@@ -161,6 +190,7 @@ class ExerciseTrackingService {
           date: log.date,
           logId: log.id,
         ));
+        hasNewRecord = true;
       }
 
       // Check volume record
@@ -179,11 +209,13 @@ class ExerciseTrackingService {
           date: log.date,
           logId: log.id,
         ));
+        hasNewRecord = true;
       }
 
-      // Add other PR checks as needed (max reps, etc.)
+      return hasNewRecord;
     } catch (e) {
       _log.severe('Error checking for personal records: $e');
+      return false;
     }
   }
 

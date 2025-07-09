@@ -31,6 +31,12 @@ dependencies:
   logging: ^1.2.0
   retry: ^3.1.2
 
+  #Notifictions
+  firebase_messaging: ^15.0.4
+  flutter_local_notifications: ^17.1.2
+  permission_handler: ^11.3.1
+  timezone: ^0.9.2
+
   # Firebase dependencies
   firebase_core: ^3.15.1
   firebase_auth: ^5.6.2
