@@ -51,11 +51,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "311138668281-tkbc6rjkkuqmaeitkablefdsju6td5bl.apps.googleusercontent.com",
+          "client_id": "311138668281-eaepkngscf484ob7kblcl4k6r6rt6evv.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.solarvitadev.solarvita",
-            "certificate_hash": "4da0150cb035703337926a05ddb2f3f7ffe1ddcd"
+            "certificate_hash": "3c0e8d94183be4972b2c533c296449c8824a30f5"
+          }
+        },
+        {
+          "client_id": "311138668281-m7igq48reouu7e7g95jqqc39e9jmk5i7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.solarvitadev.solarvita",
+            "certificate_hash": "b504062f1090771897e169a5faf96ec7f18e0568"
           }
         },
         {
