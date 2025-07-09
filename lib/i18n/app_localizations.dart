@@ -24,7 +24,8 @@ class AppLocalizations {
     'meal_search',
     'exercise_history',
     'exercise_detail_history_screen',
-    'log_exercise_screen'
+    'log_exercise_screen',
+    'profile_notifications'
   ];
 
   AppLocalizations(this.locale);

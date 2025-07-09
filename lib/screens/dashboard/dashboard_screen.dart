@@ -47,70 +47,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with profile and eco tips
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundImage: imageFile != null
-                                    ? FileImage(imageFile!)
-                                    : null,
-                                backgroundColor:
-                                    AppTheme.textFieldBackground(context),
-                                child: imageFile == null
-                                    ? Icon(Icons.person,
-                                        color: theme.iconTheme.color)
-                                    : null,
-                              ),
-                              Positioned(
-                                right: -2,
-                                bottom: -2,
-                                child: Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                    color: theme.primaryColor,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: theme.scaffoldBackgroundColor,
-                                      width: 1.5,
+                    Expanded(
+                      // <-- Wrap this Row in Expanded
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: _pickImage,
+                            child: Stack(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundImage: imageFile != null
+                                      ? FileImage(imageFile!)
+                                      : null,
+                                  backgroundColor:
+                                      AppTheme.textFieldBackground(context),
+                                  child: imageFile == null
+                                      ? Icon(Icons.person,
+                                          color: theme.iconTheme.color)
+                                      : null,
+                                ),
+                                Positioned(
+                                  right: -2,
+                                  bottom: -2,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: BoxDecoration(
+                                      color: theme.primaryColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: theme.scaffoldBackgroundColor,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.add,
+                                      size: 10,
+                                      color: Colors.white,
                                     ),
                                   ),
-                                  child: const Icon(
-                                    Icons.add,
-                                    size: 10,
-                                    color: Colors.white,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            // <-- Wrap Column with Flexible
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tr(context, 'welcome'),
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    color: theme.hintColor,
                                   ),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  tr(context, 'fitness_enthusiast'),
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 19, // Reduce size as needed
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              tr(context, 'welcome'),
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                color: theme.hintColor,
-                              ),
-                            ),
-                            Text(
-                              tr(context, 'fitness_enthusiast'),
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.push(
@@ -119,15 +125,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             builder: (context) => const EcoTipsScreen()),
                       ),
                       style: TextButton.styleFrom(
-                        backgroundColor:
-                            theme.primaryColor.withAlpha(25), // Adapta ao tema
+                        backgroundColor: theme.primaryColor.withAlpha(25),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                            horizontal: 16, vertical: 8),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
+                            borderRadius: BorderRadius.circular(20)),
                       ),
                       child: Text(
                         tr(context, 'eco_tips'),
@@ -139,10 +141,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
 
-                // Search Bar
                 Container(
+                  margin:
+                      const EdgeInsets.symmetric(vertical: 16), // <-- add this
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
@@ -175,7 +177,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 24),
 
                 // Popular Workouts Section
                 Row(

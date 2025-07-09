@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 
 // Import Firebase options
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 
 // Import your existing screens and providers
 import 'screens/welcome/welcome_screen.dart';
@@ -34,6 +35,8 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
+  await NotificationService().initialize();
+
   // Set up logging
   Logger.root.level = Level.ALL; // Change to Level.SEVERE in production
   Logger.root.onRecord.listen((record) {
@@ -45,7 +48,7 @@ void main() async {
 
   final themeProvider = ThemeProvider();
   final languageProvider = LanguageProvider();
-  final authProvider = AuthProvider(); // Add this
+  final authProvider = AuthProvider();
 
   await Future.wait([
     themeProvider.loadTheme(),
@@ -57,7 +60,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),
-        ChangeNotifierProvider.value(value: authProvider), // Add this
+        ChangeNotifierProvider.value(value: authProvider),
       ],
       child: const SolarVitaApp(),
     ),
