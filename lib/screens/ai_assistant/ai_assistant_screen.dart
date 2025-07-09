@@ -132,35 +132,83 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   }
 
   bool _containsExerciseHistoryKeywords(String text) {
-    final keywords = [
-      'workout',
-      'exercise',
-      'history',
-      'progress',
-      'training',
-      'logs',
-      'weights',
-      'personal record',
-      'pr',
-      'sets',
-      'reps'
+    // Check for exercise-related words
+    final exerciseWords = [
+      'exercise history',
+      'workout history',
+      'training history',
+      'workout logs',
+      'exercise logs',
+      'my workouts',
+      'my exercises',
+      'training logs',
+      'fitness history',
+      'workout data',
+      'exercise data',
+      'workout records',
+      'exercise records',
     ];
-    return keywords.any((keyword) => text.contains(keyword));
+
+    // Check for navigation intent words
+    final intentWords = [
+      'open',
+      'show',
+      'view',
+      'go to',
+      'take me to',
+      'navigate to',
+      'display',
+      'bring up',
+      'access',
+      'see',
+      'check',
+      'look at',
+    ];
+
+    final hasExerciseWord = exerciseWords.any((word) => text.contains(word));
+    final hasIntentWord = intentWords.any((word) => text.contains(word));
+
+    return hasExerciseWord && hasIntentWord;
   }
 
   bool _containsMealKeywords(String text) {
-    final keywords = [
+    // Check for meal-related words
+    final mealWords = [
       'meal plan',
-      'diet',
-      'nutrition',
+      'meal planner',
+      'meals screen',
+      'my meals',
+      'meal planning',
       'food plan',
-      'eating schedule',
-      'recipes',
-      'healthy food',
-      'menu',
-      'meals'
+      'diet plan',
+      'nutrition plan',
+      'meal schedule',
+      'eating plan',
+      'my menu',
+      'meal tracker',
+      'food tracker',
     ];
-    return keywords.any((keyword) => text.contains(keyword));
+
+    // Check for navigation intent words
+    final intentWords = [
+      'open',
+      'show',
+      'view',
+      'go to',
+      'take me to',
+      'navigate to',
+      'display',
+      'bring up',
+      'access',
+      'see',
+      'check',
+      'look at',
+    ];
+
+    final hasMealWord = mealWords.any((word) => text.contains(word));
+    final hasIntentWord = intentWords.any((word) => text.contains(word));
+
+    return hasMealWord && hasIntentWord;
   }
 
   void _navigateToExerciseHistory(String query) {
@@ -169,7 +217,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       _messages.insert(
         0,
         ChatMessage(
-          text: tr(context, 'opening_exercise_history'),
+          text:
+              "I'll open your exercise history for you! 💪 You can track your progress, view past workouts, and see your personal records there.",
           isUser: false,
         ),
       );
@@ -193,7 +242,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       _messages.insert(
         0,
         ChatMessage(
-          text: tr(context, 'opening_meal_plan'),
+          text:
+              "Opening your meal plan now! 🍽️ You can view your planned meals, add new recipes, and track your nutrition there.",
           isUser: false,
         ),
       );
