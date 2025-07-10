@@ -1,0 +1,21 @@
+{
+    "notifications": "Notifications",
+    "fitness_notifications": "Fitness Notifications",
+    "health_reminders": "Health Reminders",
+    "eco_notifications": "Eco Notifications",
+    "workout_reminders": "Workout Reminders",
+    "workout_reminders_desc": "Get reminded when it's time to exercise",
+    "progress_updates": "Progress Updates",
+    "progress_updates_desc": "Celebrate your achievements and milestones",
+    "water_reminders": "Water Reminders",
+    "water_reminders_desc": "Stay hydrated throughout the day",
+    "meal_reminders": "Meal Reminders",
+    "meal_reminders_desc": "Don't forget your healthy meals",
+    "eco_tips": "Daily Eco Tips",
+    "eco_tips_desc": "Learn new ways to be more sustainable",
+    "test_notifications": "Test Notifications",
+    "test_achievement": "Test Achievement",
+    "test_message": "This is a test notification!",
+    "send_test_notification": "Send Test Notification",
+    "test_notification_sent": "Test notification sent!"
+}
