@@ -25,7 +25,11 @@ class AppLocalizations {
     'exercise_history',
     'exercise_detail_history_screen',
     'log_exercise_screen',
-    'profile_notifications'
+    'profile_notifications',
+    'profile_privacy',
+    'profile_sustainability',
+    'workout_preferences',
+    'dietary_preferences'
   ];
 
   AppLocalizations(this.locale);

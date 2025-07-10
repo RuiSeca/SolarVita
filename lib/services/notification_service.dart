@@ -1,6 +1,6 @@
-// lib/services/notification_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -29,13 +29,18 @@ class NotificationService {
 
   bool _isInitialized = false;
 
+  // Getter for initialization status
+  bool get isInitialized => _isInitialized;
+
   // Initialize the notification service
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // Initialize timezone
-      tz.initializeTimeZones();
+      _logger.info('Starting notification service initialization...');
+
+      // Initialize timezone first
+      await _ensureTimeZoneInitialized();
 
       // Initialize local notifications
       await _initializeLocalNotifications();
@@ -47,58 +52,112 @@ class NotificationService {
       _logger.info('Notification service initialized successfully');
     } catch (e) {
       _logger.severe('Failed to initialize notification service: $e');
+      rethrow;
+    }
+  }
+
+  // Ensure timezone is properly initialized
+  Future<void> _ensureTimeZoneInitialized() async {
+    try {
+      _logger.info('Initializing timezone...');
+      tz.initializeTimeZones();
+
+      // Try to set local timezone, fallback to UTC if it fails
+      try {
+        final String currentTimeZone = DateTime.now().timeZoneName;
+        _logger.info('System timezone: $currentTimeZone');
+
+        // For most cases, just use the local timezone
+        tz.setLocalLocation(tz.local);
+        _logger.info('Timezone set to local: ${tz.local.name}');
+      } catch (e) {
+        _logger.warning('Failed to set local timezone, using UTC: $e');
+        tz.setLocalLocation(tz.getLocation('UTC'));
+      }
+    } catch (e) {
+      _logger.severe('Failed to initialize timezone: $e');
+      rethrow;
     }
   }
 
   // Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
-    const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+    try {
+      _logger.info('Initializing local notifications...');
 
-    const initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
-    );
+      const androidSettings =
+          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const iosSettings = DarwinInitializationSettings(
+        requestAlertPermission: true,
+        requestBadgePermission: true,
+        requestSoundPermission: true,
+      );
 
-    await _localNotifications.initialize(
-      initSettings,
-      onDidReceiveNotificationResponse: _onNotificationTapped,
-    );
+      const initSettings = InitializationSettings(
+        android: androidSettings,
+        iOS: iosSettings,
+      );
+
+      final initialized = await _localNotifications.initialize(
+        initSettings,
+        onDidReceiveNotificationResponse: _onNotificationTapped,
+      );
+
+      if (initialized == true) {
+        _logger.info('Local notifications initialized successfully');
+      } else {
+        _logger.warning('Local notifications initialization returned false');
+      }
+    } catch (e) {
+      _logger.severe('Failed to initialize local notifications: $e');
+      rethrow;
+    }
   }
 
   // Initialize push notifications
   Future<void> _initializePushNotifications() async {
-    // Request permission
-    await _requestNotificationPermissions();
+    try {
+      _logger.info('Initializing push notifications...');
 
-    // Get FCM token
-    final token = await _firebaseMessaging.getToken();
-    _logger.info('FCM Token: $token');
+      // Request permission
+      final hasPermission = await _requestNotificationPermissions();
+      _logger.info('Notification permissions granted: $hasPermission');
 
-    // Configure message handlers
-    FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
-    FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
+      // Get FCM token
+      final token = await _firebaseMessaging.getToken();
+      _logger.info('FCM Token: ${token?.substring(0, 20)}...');
+
+      // Configure message handlers
+      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+      FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
+      FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
+
+      _logger.info('Push notifications initialized successfully');
+    } catch (e) {
+      _logger.severe('Failed to initialize push notifications: $e');
+      // Don't rethrow - push notifications are optional
+    }
   }
 
   // Request notification permissions
   Future<bool> _requestNotificationPermissions() async {
-    if (Platform.isIOS) {
-      final settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-        provisional: false,
-      );
-      return settings.authorizationStatus == AuthorizationStatus.authorized;
-    } else {
-      final status = await Permission.notification.request();
-      return status.isGranted;
+    try {
+      if (Platform.isIOS) {
+        final settings = await _firebaseMessaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+          provisional: false,
+        );
+        return settings.authorizationStatus == AuthorizationStatus.authorized;
+      } else {
+        // For Android, request permission
+        final status = await Permission.notification.request();
+        return status.isGranted;
+      }
+    } catch (e) {
+      _logger.severe('Failed to request notification permissions: $e');
+      return false;
     }
   }
 
@@ -106,16 +165,18 @@ class NotificationService {
   void _onNotificationTapped(NotificationResponse response) {
     _logger.info('Notification tapped: ${response.payload}');
     if (response.payload != null) {
-      final data = json.decode(response.payload!);
-      _handleNotificationNavigation(data);
+      try {
+        final data = json.decode(response.payload!);
+        _handleNotificationNavigation(data);
+      } catch (e) {
+        _logger.warning('Failed to parse notification payload: $e');
+      }
     }
   }
 
   // Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
     _logger.info('Foreground message: ${message.notification?.title}');
-
-    // Show as local notification
     _showLocalNotificationFromRemote(message);
   }
 
@@ -127,38 +188,42 @@ class NotificationService {
 
   // Show local notification from remote message
   Future<void> _showLocalNotificationFromRemote(RemoteMessage message) async {
-    const androidDetails = AndroidNotificationDetails(
-      'default_channel',
-      'Default Channel',
-      channelDescription: 'Default notification channel',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'default_channel',
+        'Default Channel',
+        channelDescription: 'Default notification channel',
+        importance: Importance.high,
+        priority: Priority.high,
+      );
 
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch.remainder(100000),
-      message.notification?.title ?? 'SolarVita',
-      message.notification?.body ?? '',
-      details,
-      payload: json.encode(message.data),
-    );
+      await _localNotifications.show(
+        DateTime.now().millisecondsSinceEpoch.remainder(100000),
+        message.notification?.title ?? 'SolarVita',
+        message.notification?.body ?? '',
+        details,
+        payload: json.encode(message.data),
+      );
+    } catch (e) {
+      _logger.severe('Failed to show local notification from remote: $e');
+    }
   }
 
   // Handle notification navigation
   void _handleNotificationNavigation(Map<String, dynamic> data) {
-    // Implement navigation logic based on notification type
     final type = data['type'] ?? '';
+    _logger.info('Handling navigation for notification type: $type');
 
     switch (type) {
       case 'workout_reminder':
@@ -170,13 +235,224 @@ class NotificationService {
       case 'eco_tip':
         // Navigate to eco tips screen
         break;
+      case 'water_reminder':
+        // Navigate to health/hydration screen
+        break;
       default:
         // Navigate to main screen
         break;
     }
   }
 
-  // Fitness-specific notification methods
+  // ====================
+  // DEBUG METHODS
+  // ====================
+
+  // Simple immediate notification for testing
+  Future<void> testSimpleNotification() async {
+    try {
+      _logger.info('Testing simple notification...');
+
+      const androidDetails = AndroidNotificationDetails(
+        'test_simple',
+        'Test Simple',
+        channelDescription: 'Simple test notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        _generateNotificationId(),
+        '✅ Simple Test Notification',
+        'This notification appeared immediately! ${DateTime.now().toString().substring(11, 19)}',
+        details,
+      );
+
+      _logger.info('Simple notification sent successfully');
+    } catch (e) {
+      _logger.severe('Failed to send simple notification: $e');
+      rethrow;
+    }
+  }
+
+  // Test scheduled notification with better error handling
+  Future<void> testScheduledNotification({
+    required String title,
+    required String body,
+    int delaySeconds = 5,
+    String? type,
+  }) async {
+    try {
+      _logger.info(
+          'Scheduling test notification with $delaySeconds second delay...');
+
+      if (!_isInitialized) {
+        throw Exception('Notification service not initialized');
+      }
+
+      const androidDetails = AndroidNotificationDetails(
+        'test_scheduled',
+        'Test Scheduled',
+        channelDescription: 'Test scheduled notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+        visibility: NotificationVisibility.public,
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.active,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      final scheduledTime = DateTime.now().add(Duration(seconds: delaySeconds));
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      final notificationId = _generateNotificationId();
+
+      _logger.info('Current time: ${DateTime.now()}');
+      _logger.info('Scheduled time: $scheduledTime');
+      _logger.info('TZ Scheduled time: $tzScheduledTime');
+      _logger.info('Notification ID: $notificationId');
+
+      final payload = json.encode({
+        'type': type ?? 'test_scheduled',
+        'scheduledTime': scheduledTime.toIso8601String(),
+      });
+
+      await _localNotifications.zonedSchedule(
+        notificationId,
+        title,
+        body,
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+
+      _logger.info('Test notification scheduled successfully');
+    } catch (e) {
+      _logger.severe('Failed to schedule test notification: $e');
+      rethrow;
+    }
+  }
+
+  // Alternative delayed notification using Timer
+  Future<void> testDelayedNotification({
+    required String title,
+    required String body,
+    int delaySeconds = 5,
+  }) async {
+    try {
+      _logger.info('Setting up delayed notification with Timer...');
+
+      Timer(Duration(seconds: delaySeconds), () async {
+        try {
+          const androidDetails = AndroidNotificationDetails(
+            'delayed_test',
+            'Delayed Test',
+            channelDescription: 'Delayed test notifications',
+            importance: Importance.high,
+            priority: Priority.high,
+            playSound: true,
+            enableVibration: true,
+          );
+
+          const iosDetails = DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          );
+
+          const details = NotificationDetails(
+            android: androidDetails,
+            iOS: iosDetails,
+          );
+
+          await _localNotifications.show(
+            _generateNotificationId(),
+            title,
+            body,
+            details,
+          );
+
+          _logger.info('Delayed notification sent successfully');
+        } catch (e) {
+          _logger.severe('Failed to send delayed notification: $e');
+        }
+      });
+
+      _logger.info('Delayed notification timer set for $delaySeconds seconds');
+    } catch (e) {
+      _logger.severe('Failed to set up delayed notification: $e');
+      rethrow;
+    }
+  }
+
+  // Get debug information
+  Future<Map<String, dynamic>> getDebugInfo() async {
+    try {
+      final token = await _firebaseMessaging.getToken();
+
+      bool hasPermissions = false;
+      try {
+        if (Platform.isAndroid) {
+          final status = await Permission.notification.status;
+          hasPermissions = status.isGranted;
+        } else {
+          final settings = await _firebaseMessaging.getNotificationSettings();
+          hasPermissions =
+              settings.authorizationStatus == AuthorizationStatus.authorized;
+        }
+      } catch (e) {
+        _logger.warning('Failed to check permissions: $e');
+      }
+
+      final pendingNotifications =
+          await _localNotifications.pendingNotificationRequests();
+
+      return {
+        'isInitialized': _isInitialized,
+        'hasPermissions': hasPermissions,
+        'fcmToken': token != null,
+        'fcmTokenLength': token?.length ?? 0,
+        'platform': Platform.operatingSystem,
+        'timezone': tz.local.name,
+        'currentTime': DateTime.now().toString(),
+        'pendingNotifications': pendingNotifications.length,
+      };
+    } catch (e) {
+      _logger.severe('Failed to get debug info: $e');
+      return {'error': e.toString()};
+    }
+  }
+
+  // ====================
+  // NOTIFICATION METHODS
+  // ====================
 
   // Schedule workout reminder
   Future<void> scheduleWorkoutReminder({
@@ -185,71 +461,93 @@ class NotificationService {
     required DateTime scheduledTime,
     String? workoutType,
   }) async {
-    if (!await _isNotificationTypeEnabled(_workoutRemindersKey)) return;
+    if (!await _isNotificationTypeEnabled(_workoutRemindersKey)) {
+      _logger.info('Workout reminders are disabled');
+      return;
+    }
 
-    const androidDetails = AndroidNotificationDetails(
-      'workout_reminders',
-      'Workout Reminders',
-      channelDescription: 'Reminders for scheduled workouts',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    );
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'workout_reminders',
+        'Workout Reminders',
+        channelDescription: 'Reminders for scheduled workouts',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+      );
 
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    const details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    final payload = json.encode({
-      'type': 'workout_reminder',
-      'workoutType': workoutType,
-    });
+      final payload = json.encode({
+        'type': 'workout_reminder',
+        'workoutType': workoutType,
+      });
 
-    await _localNotifications.zonedSchedule(
-      _generateNotificationId(),
-      title,
-      body,
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
 
-    _logger.info('Workout reminder scheduled for $scheduledTime');
+      await _localNotifications.zonedSchedule(
+        _generateNotificationId(),
+        title,
+        body,
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+
+      _logger.info('Workout reminder scheduled for $scheduledTime');
+    } catch (e) {
+      _logger.severe('Failed to schedule workout reminder: $e');
+      rethrow;
+    }
   }
 
   // Schedule water reminder
   Future<void> scheduleWaterReminder() async {
-    if (!await _isNotificationTypeEnabled(_waterRemindersKey)) return;
+    if (!await _isNotificationTypeEnabled(_waterRemindersKey)) {
+      _logger.info('Water reminders are disabled');
+      return;
+    }
 
-    // Schedule multiple water reminders throughout the day
-    final now = DateTime.now();
-    final reminderTimes = [10, 12, 15, 17, 19]; // Hours of the day
+    try {
+      // Schedule multiple water reminders throughout the day
+      final now = DateTime.now();
+      final reminderTimes = [10, 12, 15, 17, 19]; // Hours of the day
 
-    for (final hour in reminderTimes) {
-      final scheduledTime = DateTime(now.year, now.month, now.day, hour);
+      for (final hour in reminderTimes) {
+        final scheduledTime = DateTime(now.year, now.month, now.day, hour);
 
-      if (scheduledTime.isAfter(now)) {
-        await _scheduleRepeatingNotification(
-          id: _generateNotificationId(),
-          title: '💧 Stay Hydrated!',
-          body: 'Time for a glass of water. Your body will thank you!',
-          scheduledTime: scheduledTime,
-          repeatInterval: RepeatInterval.daily,
-          channelId: 'water_reminders',
-          channelName: 'Water Reminders',
-          notificationType: 'water_reminder',
-        );
+        if (scheduledTime.isAfter(now)) {
+          await _scheduleRepeatingNotification(
+            id: _generateNotificationId(),
+            title: '💧 Stay Hydrated!',
+            body: 'Time for a glass of water. Your body will thank you!',
+            scheduledTime: scheduledTime,
+            repeatInterval: RepeatInterval.daily,
+            channelId: 'water_reminders',
+            channelName: 'Water Reminders',
+            notificationType: 'water_reminder',
+          );
+        }
       }
+
+      _logger.info('Water reminders scheduled successfully');
+    } catch (e) {
+      _logger.severe('Failed to schedule water reminders: $e');
+      rethrow;
     }
   }
 
@@ -258,20 +556,31 @@ class NotificationService {
     required String tip,
     DateTime? scheduledTime,
   }) async {
-    if (!await _isNotificationTypeEnabled(_ecoTipsKey)) return;
+    if (!await _isNotificationTypeEnabled(_ecoTipsKey)) {
+      _logger.info('Eco tips are disabled');
+      return;
+    }
 
-    final time = scheduledTime ?? DateTime.now().add(const Duration(hours: 2));
+    try {
+      final time =
+          scheduledTime ?? DateTime.now().add(const Duration(hours: 2));
 
-    await _scheduleRepeatingNotification(
-      id: _generateNotificationId(),
-      title: '🌱 Eco Tip of the Day',
-      body: tip,
-      scheduledTime: time,
-      repeatInterval: RepeatInterval.daily,
-      channelId: 'eco_tips',
-      channelName: 'Eco Tips',
-      notificationType: 'eco_tip',
-    );
+      await _scheduleRepeatingNotification(
+        id: _generateNotificationId(),
+        title: '🌱 Eco Tip of the Day',
+        body: tip,
+        scheduledTime: time,
+        repeatInterval: RepeatInterval.daily,
+        channelId: 'eco_tips',
+        channelName: 'Eco Tips',
+        notificationType: 'eco_tip',
+      );
+
+      _logger.info('Eco tip scheduled for $time');
+    } catch (e) {
+      _logger.severe('Failed to schedule eco tip: $e');
+      rethrow;
+    }
   }
 
   // Send progress celebration
@@ -279,64 +588,148 @@ class NotificationService {
     required String achievement,
     required String message,
   }) async {
-    if (!await _isNotificationTypeEnabled(_progressUpdatesKey)) return;
+    if (!await _isNotificationTypeEnabled(_progressUpdatesKey)) {
+      _logger.info('Progress updates are disabled');
+      return;
+    }
 
-    final androidDetails = AndroidNotificationDetails(
-      'progress_updates',
-      'Progress Updates',
-      channelDescription: 'Celebrations and progress milestones',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-      color: Color(0xFF4CAF50), // Fixed const issue
-    );
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'progress_updates',
+        'Progress Updates',
+        channelDescription: 'Celebrations and progress milestones',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        color: Color(0xFF4CAF50),
+        playSound: true,
+        enableVibration: true,
+      );
 
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    final payload = json.encode({
-      'type': 'progress_update',
-      'achievement': achievement,
-    });
+      final payload = json.encode({
+        'type': 'progress_update',
+        'achievement': achievement,
+      });
 
-    await _localNotifications.show(
-      _generateNotificationId(),
-      '🎉 $achievement',
-      message,
-      details,
-      payload: payload,
-    );
+      await _localNotifications.show(
+        _generateNotificationId(),
+        '🎉 $achievement',
+        message,
+        details,
+        payload: payload,
+      );
+
+      _logger.info('Progress celebration sent: $achievement');
+    } catch (e) {
+      _logger.severe('Failed to send progress celebration: $e');
+      rethrow;
+    }
   }
 
   // Schedule meal reminder
+  // Update this method in NotificationService
   Future<void> scheduleMealReminder({
     required String mealType,
     required DateTime scheduledTime,
     String? customMessage,
   }) async {
-    if (!await _isNotificationTypeEnabled(_mealRemindersKey)) return;
+    if (!await _isNotificationTypeEnabled(_mealRemindersKey)) {
+      _logger.info('Meal reminders are disabled');
+      return;
+    }
 
-    final title = _getMealReminderTitle(mealType);
-    final body = customMessage ?? _getMealReminderBody(mealType);
+    try {
+      final title = _getMealReminderTitle(mealType);
+      final body = customMessage ?? _getMealReminderBody(mealType);
 
-    await _scheduleRepeatingNotification(
-      id: _generateNotificationId(),
-      title: title,
-      body: body,
-      scheduledTime: scheduledTime,
-      repeatInterval: RepeatInterval.daily,
-      channelId: 'meal_reminders',
-      channelName: 'Meal Reminders',
-      notificationType: 'meal_reminder',
-    );
+      // Cancel any existing meal reminders for this type first
+      await _cancelMealReminder(mealType);
+
+      const androidDetails = AndroidNotificationDetails(
+        'meal_reminders',
+        'Meal Reminders',
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      final payload = json.encode({
+        'type': 'meal_reminder',
+        'mealType': mealType,
+      });
+
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+
+      // Use a consistent ID for each meal type so we can cancel/update them
+      final notificationId = _getMealNotificationId(mealType);
+
+      await _localNotifications.zonedSchedule(
+        notificationId,
+        title,
+        body,
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+        matchDateTimeComponents:
+            DateTimeComponents.time, // This makes it repeat daily!
+      );
+
+      _logger.info('Meal reminder scheduled: $mealType for $scheduledTime');
+    } catch (e) {
+      _logger.severe('Failed to schedule meal reminder: $e');
+      rethrow;
+    }
+  }
+
+// Add these helper methods
+  int _getMealNotificationId(String mealType) {
+    switch (mealType.toLowerCase()) {
+      case 'breakfast':
+        return 1001;
+      case 'lunch':
+        return 1002;
+      case 'dinner':
+        return 1003;
+      case 'snacks':
+        return 1004;
+      default:
+        return 1000;
+    }
+  }
+
+  Future<void> _cancelMealReminder(String mealType) async {
+    try {
+      final id = _getMealNotificationId(mealType);
+      await _localNotifications.cancel(id);
+    } catch (e) {
+      _logger.warning('Failed to cancel meal reminder for $mealType: $e');
+    }
   }
 
   // Helper method for repeating notifications
@@ -350,48 +743,71 @@ class NotificationService {
     required String channelName,
     required String notificationType,
   }) async {
-    final androidDetails = AndroidNotificationDetails(
-      channelId,
-      channelName,
-      importance: Importance.high,
-      priority: Priority.high,
-    );
+    try {
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        channelName,
+        importance: Importance.high,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+      );
 
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
 
-    final details = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
+      final details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
 
-    final payload = json.encode({'type': notificationType});
+      final payload = json.encode({'type': notificationType});
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
 
-    await _localNotifications.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      payload: payload,
-    );
+      await _localNotifications.zonedSchedule(
+        id,
+        title,
+        body,
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+    } catch (e) {
+      _logger.severe('Failed to schedule repeating notification: $e');
+      rethrow;
+    }
   }
+
+  // ====================
+  // PREFERENCES & UTILITY
+  // ====================
 
   // Notification preferences
   Future<bool> _isNotificationTypeEnabled(String key) async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(key) ?? true; // Default to enabled
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(key) ?? true; // Default to enabled
+    } catch (e) {
+      _logger.warning('Failed to check notification preference for $key: $e');
+      return true;
+    }
   }
 
   Future<void> setNotificationPreference(String key, bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, enabled);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(key, enabled);
+      _logger.info('Notification preference set: $key = $enabled');
+    } catch (e) {
+      _logger.severe('Failed to set notification preference for $key: $e');
+      rethrow;
+    }
   }
 
   // Getters for notification preferences
@@ -437,21 +853,48 @@ class NotificationService {
   }
 
   int _generateNotificationId() {
-    return DateTime.now().millisecondsSinceEpoch.remainder(100000);
+    return DateTime.now().millisecondsSinceEpoch.remainder(2147483647);
+  }
+
+  // Get pending notifications (for debugging)
+  Future<List<PendingNotificationRequest>> getPendingNotifications() async {
+    try {
+      return await _localNotifications.pendingNotificationRequests();
+    } catch (e) {
+      _logger.severe('Failed to get pending notifications: $e');
+      return [];
+    }
   }
 
   // Cancel all notifications
   Future<void> cancelAllNotifications() async {
-    await _localNotifications.cancelAll();
+    try {
+      await _localNotifications.cancelAll();
+      _logger.info('All notifications cancelled');
+    } catch (e) {
+      _logger.severe('Failed to cancel all notifications: $e');
+      rethrow;
+    }
   }
 
   // Cancel specific notification
   Future<void> cancelNotification(int id) async {
-    await _localNotifications.cancel(id);
+    try {
+      await _localNotifications.cancel(id);
+      _logger.info('Notification $id cancelled');
+    } catch (e) {
+      _logger.severe('Failed to cancel notification $id: $e');
+      rethrow;
+    }
   }
 
   // Get FCM token for push notifications
   Future<String?> getToken() async {
-    return await _firebaseMessaging.getToken();
+    try {
+      return await _firebaseMessaging.getToken();
+    } catch (e) {
+      _logger.severe('Failed to get FCM token: $e');
+      return null;
+    }
   }
 }

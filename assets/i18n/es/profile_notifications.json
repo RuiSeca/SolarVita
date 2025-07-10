@@ -1,0 +1,19 @@
+{
+    "notifications": "Notifications",
+    "notification_preferences": "Notification Preferences",
+    "manage_notification_settings": "Choose which notifications you want to receive",
+    "notification_types": "Notification Types",
+    "workout_reminders": "Workout Reminders",
+    "workout_reminders_desc": "Get reminded about your scheduled workouts",
+    "water_reminders": "Water Reminders",
+    "water_reminders_desc": "Stay hydrated with regular water reminders",
+    "eco_tips": "Eco Tips",
+    "eco_tips_desc": "Daily tips for sustainable living",
+    "progress_updates": "Progress Updates",
+    "progress_updates_desc": "Celebrate your achievements and milestones",
+    "meal_reminders": "Meal Reminders",
+    "meal_reminders_desc": "Get reminded about your meals",
+    "advanced_settings": "Advanced Settings",
+    "debug_options": "Debug Options",
+    "system_status": "System Status"
+}
