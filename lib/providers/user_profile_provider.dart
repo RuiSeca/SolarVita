@@ -164,6 +164,28 @@ class UserProfileProvider with ChangeNotifier {
     }
   }
 
+  Future<void> updateDietaryPreferences(DietaryPreferences preferences) async {
+    if (_userProfile == null) return;
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final updatedProfile = await _userProfileService.updateDietaryPreferences(
+        _userProfile!.uid,
+        preferences,
+      );
+      _userProfile = updatedProfile;
+      _logger.info('Dietary preferences updated successfully');
+      notifyListeners();
+    } catch (e) {
+      _setError('Failed to update dietary preferences: $e');
+      _logger.severe('Error updating dietary preferences: $e');
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> completeOnboarding() async {
     if (_userProfile == null) return;
 
@@ -266,6 +288,7 @@ class UserProfileProvider with ChangeNotifier {
   WorkoutPreferences? get workoutPreferences => _userProfile?.workoutPreferences;
   SustainabilityPreferences? get sustainabilityPreferences => _userProfile?.sustainabilityPreferences;
   DiaryPreferences? get diaryPreferences => _userProfile?.diaryPreferences;
+  DietaryPreferences? get dietaryPreferences => _userProfile?.dietaryPreferences;
   
   String? get displayName => _userProfile?.displayName;
   String? get email => _userProfile?.email;

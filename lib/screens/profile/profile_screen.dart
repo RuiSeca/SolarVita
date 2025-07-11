@@ -5,6 +5,7 @@ import '../../models/settings_item.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_profile_provider.dart';
+import '../../providers/theme_provider.dart';
 import 'settings/account/personal_info_screen.dart';
 import 'settings/account/notifications_screen.dart';
 import 'settings/account/privacy_screen.dart';
@@ -12,7 +13,6 @@ import 'settings/preferences/workout_preferences_screen.dart';
 import 'settings/preferences/dietary_preferences_screen.dart';
 import 'settings/preferences/sustainability_goals_screen.dart';
 import 'settings/app/language_screen.dart';
-import 'settings/app/theme_screen.dart';
 import 'settings/app/help_support_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
@@ -441,28 +441,195 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAppSettings(BuildContext context) {
-    return _buildSettingsSection(
-      context,
-      title: 'app',
-      items: [
-        SettingsItem(
-          icon: Icons.language,
-          title: 'language',
-          value: 'language_value',
-          onTapScreen: (context) => const LanguageScreen(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr(context, 'app'),
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: AppTheme.cardColor(context),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              children: [
+                _buildLanguageItem(context),
+                _buildThemeItem(context),
+                _buildHelpSupportItem(context),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageItem(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LanguageScreen()),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.language, color: AppColors.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tr(context, 'language'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Text(
+              tr(context, 'language_value'),
+              style: TextStyle(
+                color: AppTheme.textColor(context).withValues(alpha: 153),
+                fontSize: 14,
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppTheme.textColor(context).withValues(alpha: 153),
+              size: 20,
+            ),
+          ],
         ),
-        SettingsItem(
-          icon: Icons.dark_mode,
-          title: 'theme',
-          value: AppTheme.isDarkMode(context) ? 'theme_dark' : 'theme_light',
-          onTapScreen: (context) => const ThemeScreen(),
+      ),
+    );
+  }
+
+  Widget _buildThemeItem(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(Icons.dark_mode, color: AppColors.primary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tr(context, 'theme'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.textFieldBackground(context),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildThemeButton(
+                      context,
+                      icon: Icons.light_mode,
+                      label: 'Light',
+                      isSelected: themeProvider.isLight,
+                      onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                    ),
+                    _buildThemeButton(
+                      context,
+                      icon: Icons.dark_mode,
+                      label: 'Dark',
+                      isSelected: themeProvider.isDark,
+                      onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildThemeButton(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
         ),
-        SettingsItem(
-          icon: Icons.help,
-          title: 'help_support',
-          onTapScreen: (context) => const HelpSupportScreen(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? Colors.white : AppTheme.textColor(context).withValues(alpha: 153),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppTheme.textColor(context).withValues(alpha: 153),
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildHelpSupportItem(BuildContext context) {
+    return InkWell(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Icon(Icons.help, color: AppColors.primary, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                tr(context, 'help_support'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppTheme.textColor(context).withValues(alpha: 153),
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
