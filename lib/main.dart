@@ -20,10 +20,13 @@ import 'screens/profile/profile_screen.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/exercise_provider.dart';
-import 'providers/auth_provider.dart'; // Add this import
+import 'providers/auth_provider.dart';
+import 'providers/user_profile_provider.dart';
 import 'theme/app_theme.dart';
 import 'utils/translation_helper.dart';
 import 'i18n/app_localizations.dart';
+import 'screens/onboarding/onboarding_screen.dart';
+import 'screens/common/app_loading_screen.dart';
 
 final logger = Logger('SolarVita');
 
@@ -49,6 +52,8 @@ void main() async {
   final themeProvider = ThemeProvider();
   final languageProvider = LanguageProvider();
   final authProvider = AuthProvider();
+  final userProfileProvider = UserProfileProvider();
+  final exerciseProvider = ExerciseProvider();
 
   await Future.wait([
     themeProvider.loadTheme(),
@@ -61,6 +66,8 @@ void main() async {
         ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider.value(value: languageProvider),
         ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider.value(value: userProfileProvider),
+        ChangeNotifierProvider.value(value: exerciseProvider),
       ],
       child: const SolarVitaApp(),
     ),
@@ -77,9 +84,13 @@ class SolarVitaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer3<ThemeProvider, LanguageProvider, AuthProvider>(
-      builder: (context, themeProvider, languageProvider, authProvider, _) {
+    return Consumer4<ThemeProvider, LanguageProvider, AuthProvider, UserProfileProvider>(
+      builder: (context, themeProvider, languageProvider, authProvider, userProfileProvider, _) {
+        // Create a unique key that changes when navigation state changes
+        final navigationKey = '${authProvider.isAuthenticated}_${userProfileProvider.isLoading}_${userProfileProvider.userProfile?.uid}_${userProfileProvider.userProfile?.isOnboardingComplete}';
+        
         return MaterialApp(
+          key: ValueKey(navigationKey),
           title: 'SolarVita',
           debugShowCheckedModeBanner: false,
           themeMode: themeProvider.themeMode,
@@ -95,16 +106,44 @@ class SolarVitaApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          // Use AuthProvider to determine initial route
-          home: authProvider.isAuthenticated
-              ? const MainWrapper()
-              : const WelcomeScreen(),
+          // Use home with proper navigation
+          home: _getInitialScreen(authProvider, userProfileProvider),
           routes: {
             '/main': (context) => const MainWrapper(),
+            '/onboarding': (context) => const OnboardingScreen(),
           },
         );
       },
     );
+  }
+
+  Widget _getInitialScreen(AuthProvider authProvider, UserProfileProvider userProfileProvider) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    logger.info('🔍 [$timestamp] Navigation Debug - Auth: ${authProvider.isAuthenticated}, Loading: ${userProfileProvider.isLoading}, Profile: ${userProfileProvider.userProfile?.uid}, Onboarding: ${userProfileProvider.userProfile?.isOnboardingComplete}');
+    
+    if (!authProvider.isAuthenticated) {
+      logger.info('➡️ [$timestamp] Showing WelcomeScreen (not authenticated)');
+      return const WelcomeScreen();
+    }
+    
+    if (userProfileProvider.isLoading) {
+      logger.info('➡️ [$timestamp] Showing AppLoadingScreen (profile loading)');
+      return const AppLoadingScreen(
+        message: 'Loading your profile...',
+      );
+    }
+    
+    // Check if user profile exists and onboarding is complete
+    final userProfile = userProfileProvider.userProfile;
+    final isOnboardingComplete = userProfile?.isOnboardingComplete ?? false;
+    
+    if (userProfile == null || !isOnboardingComplete) {
+      logger.info('➡️ [$timestamp] Showing OnboardingScreen (profile: ${userProfile?.uid}, onboarding: $isOnboardingComplete)');
+      return const OnboardingScreen();
+    }
+    
+    logger.info('➡️ [$timestamp] Showing MainWrapper (user setup complete)');
+    return const MainWrapper();
   }
 }
 
@@ -117,43 +156,51 @@ class MainWrapper extends StatefulWidget {
 
 class _MainWrapperState extends State<MainWrapper> {
   int _currentIndex = 0;
+  late final PageController _pageController;
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _screens = const [
+      DashboardScreen(),
+      SearchScreen(),
+      HealthScreen(),
+      AIAssistantScreen(),
+      ProfileScreen(),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    Widget currentScreen;
-    switch (_currentIndex) {
-      case 0:
-        currentScreen = const DashboardScreen();
-        break;
-      case 1:
-        currentScreen = ChangeNotifierProvider(
-          create: (_) {
-            logger.info("Creating new ExerciseProvider for SearchScreen");
-            return ExerciseProvider();
-          },
-          child: const SearchScreen(),
-        );
-        break;
-      case 2:
-        currentScreen = const HealthScreen();
-        break;
-      case 3:
-        currentScreen = const AIAssistantScreen();
-        break;
-      case 4:
-        currentScreen = const ProfileScreen();
-        break;
-      default:
-        currentScreen = const DashboardScreen();
-    }
-
     return Scaffold(
-      body: currentScreen,
+      body: PageView(
+        controller: _pageController,
+        children: _screens,
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
         type: BottomNavigationBarType.fixed,
         backgroundColor: theme.colorScheme.surface,
         selectedItemColor: theme.primaryColor,
