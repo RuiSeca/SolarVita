@@ -7,7 +7,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/user_profile_provider.dart';
 import '../../providers/theme_provider.dart';
 import 'settings/account/personal_info_screen.dart';
-import 'settings/account/notifications_screen.dart';
+import 'settings/account/modern_notifications_screen.dart';
 import 'settings/account/privacy_screen.dart';
 import 'settings/preferences/workout_preferences_screen.dart';
 import 'settings/preferences/dietary_preferences_screen.dart';
@@ -405,7 +405,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SettingsItem(
           icon: Icons.notifications,
           title: 'notifications',
-          onTapScreen: (context) => const NotificationsScreen(),
+          onTapScreen: (context) => const ModernNotificationsScreen(),
         ),
         SettingsItem(
           icon: Icons.privacy_tip,
