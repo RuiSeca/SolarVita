@@ -19,7 +19,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
   late TextEditingController _heightController;
   late TextEditingController _weightController;
   late TextEditingController _ageController;
-
+  
   String _activityLevel = 'Intermediate';
   String _weeklyActivity = '3-4 times';
   bool _isEditing = false;
@@ -51,7 +51,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
     return Consumer<UserProfileProvider>(
       builder: (context, userProfileProvider, _) {
         final userProfile = userProfileProvider.userProfile;
-
+        
         // Initialize controllers with user data when available
         if (userProfile != null && !_isEditing) {
           _nameController.text = userProfile.displayName;
@@ -65,9 +65,9 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           _activityLevel = additionalData['activityLevel'] ?? 'Intermediate';
           _weeklyActivity = additionalData['weeklyActivity'] ?? '3-4 times';
         }
-
+        
         return Scaffold(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          backgroundColor: AppTheme.surfaceColor(context),
           appBar: AppBar(
             backgroundColor: AppTheme.surfaceColor(context),
             title: Text(
@@ -206,13 +206,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   Future<void> _saveChanges() async {
     if (_formKey.currentState!.validate()) {
-      final userProfileProvider =
-          Provider.of<UserProfileProvider>(context, listen: false);
+      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
       final currentProfile = userProfileProvider.userProfile;
-
+      
       if (currentProfile != null) {
-        final updatedAdditionalData =
-            Map<String, dynamic>.from(currentProfile.additionalData);
+        final updatedAdditionalData = Map<String, dynamic>.from(currentProfile.additionalData);
         updatedAdditionalData.addAll({
           'phone': _phoneController.text,
           'height': _heightController.text,
@@ -221,18 +219,18 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           'activityLevel': _activityLevel,
           'weeklyActivity': _weeklyActivity,
         });
-
+        
         final updatedProfile = currentProfile.copyWith(
           displayName: _nameController.text,
           additionalData: updatedAdditionalData,
         );
-
+        
         await userProfileProvider.updateUserProfile(updatedProfile);
-
+        
         setState(() {
           _isEditing = false;
         });
-
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

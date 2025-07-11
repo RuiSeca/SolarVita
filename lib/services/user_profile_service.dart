@@ -95,6 +95,7 @@ class UserProfileService {
         workoutPreferences: WorkoutPreferences(),
         sustainabilityPreferences: SustainabilityPreferences(),
         diaryPreferences: DiaryPreferences(),
+        dietaryPreferences: DietaryPreferences(),
       );
 
       await _firestore
@@ -226,6 +227,34 @@ class UserProfileService {
     } catch (e) {
       _logger.severe('Error updating diary preferences: $e');
       throw Exception('Failed to update diary preferences');
+    }
+  }
+
+  Future<UserProfile> updateDietaryPreferences(
+    String uid,
+    DietaryPreferences preferences,
+  ) async {
+    try {
+      final profile = await getUserProfile(uid);
+      if (profile == null) {
+        throw Exception('User profile not found');
+      }
+
+      final updatedProfile = profile.copyWith(
+        dietaryPreferences: preferences,
+        lastUpdated: DateTime.now(),
+      );
+
+      await _firestore
+          .collection(_usersCollection)
+          .doc(uid)
+          .update(updatedProfile.toFirestore());
+
+      _logger.info('Dietary preferences updated for uid: $uid');
+      return updatedProfile;
+    } catch (e) {
+      _logger.severe('Error updating dietary preferences: $e');
+      throw Exception('Failed to update dietary preferences');
     }
   }
 

@@ -1,6 +1,7 @@
 // lib/screens/profile/settings/app/help_support_screen.dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../../theme/app_theme.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -93,10 +94,21 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: const Text('Help & Support'),
+        backgroundColor: AppTheme.surfaceColor(context),
+        elevation: 0,
+        title: Text(
+          'Help & Support',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Column(
         children: [
@@ -131,14 +143,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? Colors.green : Colors.grey[900],
+            color: isSelected ? AppColors.primary : AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : Colors.grey,
+              color: isSelected ? Colors.white : AppTheme.textColor(context).withValues(alpha: 153),
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -192,9 +204,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.grey[900],
+            color: AppTheme.cardColor(context),
             border: Border(
-              top: BorderSide(color: Colors.grey[800]!),
+              top: BorderSide(color: AppTheme.textColor(context).withValues(alpha: 26)),
             ),
           ),
           child: Row(
@@ -202,16 +214,16 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               Expanded(
                 child: TextField(
                   controller: _chatController,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: AppTheme.textColor(context)),
                   decoration: InputDecoration(
                     hintText: 'Type your message...',
-                    hintStyle: TextStyle(color: Colors.grey[600]),
+                    hintStyle: TextStyle(color: AppTheme.textColor(context).withValues(alpha: 153)),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
                     filled: true,
-                    fillColor: Colors.grey[800],
+                    fillColor: AppTheme.textFieldBackground(context),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
@@ -222,7 +234,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: AppColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -245,10 +257,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Send us a message',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.textColor(context),
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -277,7 +289,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ElevatedButton(
             onPressed: _sendEmail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.primary,
               minimumSize: const Size(double.infinity, 50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -293,12 +305,12 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          const Divider(color: Colors.grey),
+          Divider(color: AppTheme.textColor(context).withValues(alpha: 26)),
           const SizedBox(height: 24),
-          const Text(
+          Text(
             'Other ways to reach us',
             style: TextStyle(
-              color: Colors.white,
+              color: AppTheme.textColor(context),
               fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
@@ -333,8 +345,8 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppTheme.textColor(context),
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -342,14 +354,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: AppTheme.textColor(context)),
           keyboardType: keyboardType,
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
+            hintStyle: TextStyle(color: AppTheme.textColor(context).withValues(alpha: 153)),
             filled: true,
-            fillColor: Colors.grey[900],
+            fillColor: AppTheme.textFieldBackground(context),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
@@ -376,10 +388,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withAlpha(51),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: Colors.green),
+              child: Icon(icon, color: AppColors.primary),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -388,8 +400,8 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -397,14 +409,14 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.grey[400],
+                      color: AppTheme.textColor(context).withValues(alpha: 153),
                       fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios, color: Colors.grey[600], size: 16),
+            Icon(Icons.arrow_forward_ios, color: AppTheme.textColor(context).withValues(alpha: 153), size: 16),
           ],
         ),
       ),
@@ -460,7 +472,7 @@ class _FAQItemState extends State<_FAQItem> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.grey[900],
+        color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Theme(
@@ -468,15 +480,15 @@ class _FAQItemState extends State<_FAQItem> {
         child: ExpansionTile(
           title: Text(
             widget.faq.question,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: AppTheme.textColor(context),
               fontSize: 16,
               fontWeight: FontWeight.bold,
             ),
           ),
           trailing: Icon(
             _isExpanded ? Icons.remove : Icons.add,
-            color: Colors.green,
+            color: AppColors.primary,
           ),
           onExpansionChanged: (value) => setState(() => _isExpanded = value),
           children: [
@@ -485,7 +497,7 @@ class _FAQItemState extends State<_FAQItem> {
               child: Text(
                 widget.faq.answer,
                 style: TextStyle(
-                  color: Colors.grey[400],
+                  color: AppTheme.textColor(context).withValues(alpha: 153),
                   fontSize: 14,
                 ),
               ),
@@ -520,12 +532,12 @@ class _ChatMessage extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.green.withAlpha(51),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.support_agent,
-                color: Colors.green,
+                color: AppColors.primary,
                 size: 20,
               ),
             ),
@@ -535,7 +547,7 @@ class _ChatMessage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isBot ? Colors.grey[900] : Colors.green,
+                color: isBot ? AppTheme.cardColor(context) : AppColors.primary,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -553,12 +565,12 @@ class _ChatMessage extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: Colors.green.withAlpha(51),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.person,
-                color: Colors.green,
+                color: AppColors.primary,
                 size: 20,
               ),
             ),
