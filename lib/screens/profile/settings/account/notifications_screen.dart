@@ -6,6 +6,7 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:logging/logging.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../services/notification_service.dart';
+import 'enhanced_notifications_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -398,6 +399,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         children: [
           _buildAdvancedTile(
+            icon: Icons.settings,
+            title: 'Personalized Notifications',
+            subtitle: 'Configure detailed workout and meal reminders',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EnhancedNotificationsScreen(),
+              ),
+            ),
+          ),
+          _buildAdvancedTile(
             icon: Icons.cloud_queue,
             title: 'FCM Token',
             subtitle: _fcmToken != null
@@ -417,7 +429,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             subtitle: 'View all scheduled notifications',
             onTap: _listPendingNotifications,
           ),
-          // ADD THIS NEW TILE:
           _buildAdvancedTile(
             icon: Icons.refresh,
             title: 'Initialize All Notifications',

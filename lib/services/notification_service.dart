@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:logging/logging.dart';
+import '../models/notification_preferences.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -26,6 +27,7 @@ class NotificationService {
   static const String _progressUpdatesKey = 'progress_updates';
   static const String _waterRemindersKey = 'water_reminders';
   static const String _mealRemindersKey = 'meal_reminders';
+  static const String _enhancedNotificationPreferencesKey = 'enhanced_notification_preferences';
 
   bool _isInitialized = false;
 
@@ -907,6 +909,305 @@ class NotificationService {
     } catch (e) {
       _logger.severe('Failed to get FCM token: $e');
       return null;
+    }
+  }
+
+  // ====================
+  // ENHANCED NOTIFICATION PREFERENCES
+  // ====================
+
+  /// Save enhanced notification preferences
+  Future<void> saveNotificationPreferences(NotificationPreferences preferences) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = jsonEncode(preferences.toMap());
+      await prefs.setString(_enhancedNotificationPreferencesKey, jsonString);
+      _logger.info('Enhanced notification preferences saved');
+    } catch (e) {
+      _logger.severe('Failed to save enhanced notification preferences: $e');
+      rethrow;
+    }
+  }
+
+  /// Load enhanced notification preferences
+  Future<NotificationPreferences?> loadNotificationPreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_enhancedNotificationPreferencesKey);
+      if (jsonString != null) {
+        final Map<String, dynamic> map = jsonDecode(jsonString);
+        return NotificationPreferences.fromMap(map);
+      }
+      return null;
+    } catch (e) {
+      _logger.severe('Failed to load enhanced notification preferences: $e');
+      return null;
+    }
+  }
+
+  /// Schedule personalized workout notification
+  Future<void> schedulePersonalizedWorkoutReminder({
+    required WorkoutNotificationSettings settings,
+    required Map<String, bool> availableDays,
+    required List<String> workoutTypes,
+    required String preferredTime,
+  }) async {
+    if (!settings.enabled) return;
+
+    try {
+      // Cancel existing workout notifications
+      await _cancelNotificationsByType('workout');
+
+      for (final dayEntry in availableDays.entries) {
+        if (!dayEntry.value) continue; // Skip unavailable days
+
+        final day = dayEntry.key;
+        DateTime scheduledTime;
+
+        if (settings.timingType == NotificationTimingType.specificTime && settings.specificTime != null) {
+          // Use specific time
+          scheduledTime = _getNextOccurrenceOfTime(day, settings.specificTime!);
+        } else {
+          // Use random time within preferred period
+          scheduledTime = _getRandomTimeInPeriod(day, settings.timePeriod);
+        }
+
+        // Subtract advance minutes
+        scheduledTime = scheduledTime.subtract(Duration(minutes: settings.advanceMinutes));
+
+        // Generate notification ID
+        final notificationId = _generateNotificationId();
+
+        // Create notification
+        await _scheduleNotification(
+          id: notificationId,
+          title: '🏋️ Workout Reminder',
+          body: 'Time for your ${workoutTypes.isNotEmpty ? workoutTypes.first : "workout"} session!',
+          scheduledDate: scheduledTime,
+          payload: jsonEncode({
+            'type': 'workout',
+            'day': day,
+            'workoutType': workoutTypes.isNotEmpty ? workoutTypes.first : 'general',
+          }),
+        );
+
+        _logger.info('Scheduled workout notification for $day at ${scheduledTime.toString()}');
+      }
+    } catch (e) {
+      _logger.severe('Failed to schedule personalized workout reminders: $e');
+      rethrow;
+    }
+  }
+
+  /// Schedule personalized diary notifications
+  Future<void> schedulePersonalizedDiaryReminders({
+    required DiaryNotificationSettings settings,
+  }) async {
+    if (!settings.enabled) return;
+
+    try {
+      // Cancel existing diary notifications
+      await _cancelNotificationsByType('diary');
+
+      DateTime scheduledTime;
+
+      if (settings.timingType == NotificationTimingType.specificTime && settings.specificTime != null) {
+        // Use specific time
+        scheduledTime = _getNextOccurrenceOfTime('today', settings.specificTime!);
+      } else {
+        // Use random time within preferred period
+        scheduledTime = _getRandomTimeInPeriod('today', settings.timePeriod);
+      }
+
+      // Generate notification ID
+      final notificationId = _generateNotificationId();
+
+      // Create notification
+      await _scheduleNotification(
+        id: notificationId,
+        title: '📖 Diary Reminder',
+        body: 'Time to reflect on your day and update your diary!',
+        scheduledDate: scheduledTime,
+        payload: jsonEncode({
+          'type': 'diary',
+          'scheduledTime': scheduledTime.toIso8601String(),
+        }),
+      );
+
+      _logger.info('Scheduled diary notification at ${scheduledTime.toString()}');
+    } catch (e) {
+      _logger.severe('Failed to schedule personalized diary reminders: $e');
+      rethrow;
+    }
+  }
+
+  /// Schedule personalized meal notifications
+  Future<void> schedulePersonalizedMealReminders({
+    required MealNotificationSettings settings,
+    required Map<String, String> mealTimes, // mealType -> time string
+    Map<String, String>? customMealNames, // mealType -> custom name from meal plan
+  }) async {
+    if (!settings.enabled) return;
+
+    try {
+      // Cancel existing meal notifications
+      await _cancelNotificationsByType('meal');
+
+      for (final mealEntry in mealTimes.entries) {
+        final mealType = mealEntry.key;
+        final mealTimeStr = mealEntry.value;
+        final config = settings.mealConfigs[mealType];
+
+        if (config == null || !config.enabled) continue;
+
+        DateTime scheduledTime;
+
+        if (config.timingType == NotificationTimingType.specificTime && config.specificTime != null) {
+          // Use specific time
+          scheduledTime = _getNextOccurrenceOfTime('today', config.specificTime!);
+        } else {
+          // Use meal time from dietary preferences with some randomness
+          final mealTime = _parseTimeOfDay(mealTimeStr);
+          final randomMinutes = (DateTime.now().millisecond % 30) - 15; // ±15 minutes
+          scheduledTime = _getNextOccurrenceOfTime('today', mealTime).add(Duration(minutes: randomMinutes));
+        }
+
+        // Subtract advance minutes
+        scheduledTime = scheduledTime.subtract(Duration(minutes: config.advanceMinutes));
+
+        // Get meal name (custom from meal plan or default)
+        String mealName = config.customMealName ?? 
+                         customMealNames?[mealType] ?? 
+                         _getMealDisplayName(mealType);
+
+        // Generate notification ID
+        final notificationId = _generateNotificationId();
+
+        // Create notification
+        await _scheduleNotification(
+          id: notificationId,
+          title: _getMealReminderTitle(mealType),
+          body: '$mealName - Time for your $mealType!',
+          scheduledDate: scheduledTime,
+          payload: jsonEncode({
+            'type': 'meal',
+            'mealType': mealType,
+            'customName': mealName,
+          }),
+        );
+
+        _logger.info('Scheduled meal notification for $mealType at ${scheduledTime.toString()}');
+      }
+    } catch (e) {
+      _logger.severe('Failed to schedule personalized meal reminders: $e');
+      rethrow;
+    }
+  }
+
+  /// Cancel notifications by type
+  Future<void> _cancelNotificationsByType(String type) async {
+    try {
+      final pendingNotifications = await getPendingNotifications();
+      for (final notification in pendingNotifications) {
+        if (notification.payload != null && notification.payload!.contains('"type":"$type"')) {
+          await cancelNotification(notification.id);
+        }
+      }
+    } catch (e) {
+      _logger.warning('Failed to cancel notifications by type $type: $e');
+    }
+  }
+
+  /// Parse time string to TimeOfDay
+  TimeOfDay _parseTimeOfDay(String timeString) {
+    final parts = timeString.split(':');
+    return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+
+  /// Get next occurrence of specific time
+  DateTime _getNextOccurrenceOfTime(String day, TimeOfDay time) {
+    final now = DateTime.now();
+    DateTime scheduled = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+    
+    if (day != 'today') {
+      // Calculate next occurrence of specific day
+      final dayIndex = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].indexOf(day);
+      if (dayIndex != -1) {
+        final currentDayIndex = now.weekday - 1;
+        int daysToAdd = dayIndex - currentDayIndex;
+        if (daysToAdd <= 0) daysToAdd += 7;
+        scheduled = scheduled.add(Duration(days: daysToAdd));
+      }
+    } else if (scheduled.isBefore(now)) {
+      scheduled = scheduled.add(const Duration(days: 1));
+    }
+    
+    return scheduled;
+  }
+
+  /// Get random time within specified period
+  DateTime _getRandomTimeInPeriod(String day, String period) {
+    final periodData = TimePeriods.getPeriod(period);
+    if (periodData == null) return DateTime.now().add(const Duration(hours: 1));
+    
+    final startHour = periodData['start']!;
+    final endHour = periodData['end']!;
+    final randomHour = startHour + (DateTime.now().millisecond % (endHour - startHour));
+    final randomMinute = DateTime.now().microsecond % 60;
+    
+    return _getNextOccurrenceOfTime(day, TimeOfDay(hour: randomHour, minute: randomMinute));
+  }
+
+  /// Get display name for meal type
+  String _getMealDisplayName(String mealType) {
+    switch (mealType) {
+      case 'breakfast': return 'Breakfast';
+      case 'lunch': return 'Lunch';
+      case 'dinner': return 'Dinner';
+      case 'snacks': return 'Snack Time';
+      default: return mealType;
+    }
+  }
+
+  /// Schedule a notification at specific date/time
+  Future<void> _scheduleNotification({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime scheduledDate,
+    String? payload,
+  }) async {
+    try {
+      final scheduledTZ = tz.TZDateTime.from(scheduledDate, tz.local);
+      
+      await _localNotifications.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduledTZ,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'solar_vitas_reminders',
+            'SolarVita Reminders',
+            channelDescription: 'Personalized reminders for workouts and meals',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        payload: payload,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+    } catch (e) {
+      _logger.severe('Failed to schedule notification: $e');
+      rethrow;
     }
   }
 }
