@@ -4,6 +4,7 @@ import 'widgets/modern_stats_row.dart';
 import '../../models/settings_item.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/user_profile_provider.dart';
 import 'settings/account/personal_info_screen.dart';
 import 'settings/account/notifications_screen.dart';
 import 'settings/account/privacy_screen.dart';
@@ -49,53 +50,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 2),
-              color: AppTheme.cardColor(context),
-            ),
-            child: const Icon(
-              Icons.person,
-              size: 40,
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(context, 'john_doe'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+    return Consumer<UserProfileProvider>(
+      builder: (context, userProfileProvider, _) {
+        final userProfile = userProfileProvider.userProfile;
+        final displayName = userProfile?.displayName ?? 'User';
+        final email = userProfile?.email ?? '';
+        final photoURL = userProfile?.photoURL;
+        
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary, width: 2),
+                  color: AppTheme.cardColor(context),
                 ),
-                Text(
-                  tr(context, 'eco_enthusiast'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withValues(alpha: 153),
-                    fontSize: 16,
-                  ),
+                child: photoURL != null
+                    ? ClipOval(
+                        child: Image.network(
+                          photoURL,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.person,
+                              size: 40,
+                              color: AppColors.primary,
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: AppColors.primary,
+                      ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      displayName,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (email.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        email,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 153),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                    Text(
+                      tr(context, 'eco_enthusiast'),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withValues(alpha: 153),
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.edit, color: AppColors.primary),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PersonalInfoScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: AppColors.primary),
-            onPressed: () {},
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

@@ -455,6 +455,7 @@ class NotificationService {
   // ====================
 
   // Schedule workout reminder
+  // Update this method in NotificationService
   Future<void> scheduleWorkoutReminder({
     required String title,
     required String body,
@@ -495,9 +496,13 @@ class NotificationService {
       });
 
       final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      final notificationId = _generateNotificationId();
+
+      _logger.info(
+          'Scheduling workout reminder at $tzScheduledTime (ID: $notificationId)');
 
       await _localNotifications.zonedSchedule(
-        _generateNotificationId(),
+        notificationId,
         title,
         body,
         tzScheduledTime,
@@ -508,7 +513,8 @@ class NotificationService {
         payload: payload,
       );
 
-      _logger.info('Workout reminder scheduled for $scheduledTime');
+      _logger
+          .info('Workout reminder scheduled successfully for $scheduledTime');
     } catch (e) {
       _logger.severe('Failed to schedule workout reminder: $e');
       rethrow;
@@ -638,7 +644,6 @@ class NotificationService {
   }
 
   // Schedule meal reminder
-  // Update this method in NotificationService
   Future<void> scheduleMealReminder({
     required String mealType,
     required DateTime scheduledTime,
@@ -659,10 +664,12 @@ class NotificationService {
       const androidDetails = AndroidNotificationDetails(
         'meal_reminders',
         'Meal Reminders',
+        channelDescription: 'Daily meal reminder notifications',
         importance: Importance.high,
         priority: Priority.high,
         playSound: true,
         enableVibration: true,
+        icon: '@mipmap/ic_launcher',
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -686,6 +693,9 @@ class NotificationService {
       // Use a consistent ID for each meal type so we can cancel/update them
       final notificationId = _getMealNotificationId(mealType);
 
+      _logger.info(
+          'Scheduling meal reminder: $mealType at $tzScheduledTime (ID: $notificationId)');
+
       await _localNotifications.zonedSchedule(
         notificationId,
         title,
@@ -700,14 +710,15 @@ class NotificationService {
             DateTimeComponents.time, // This makes it repeat daily!
       );
 
-      _logger.info('Meal reminder scheduled: $mealType for $scheduledTime');
+      _logger.info(
+          'Meal reminder scheduled successfully: $mealType for $scheduledTime');
     } catch (e) {
       _logger.severe('Failed to schedule meal reminder: $e');
       rethrow;
     }
   }
 
-// Add these helper methods
+// ADD THESE HELPER METHODS TO YOUR NotificationService:
   int _getMealNotificationId(String mealType) {
     switch (mealType.toLowerCase()) {
       case 'breakfast':
@@ -727,6 +738,7 @@ class NotificationService {
     try {
       final id = _getMealNotificationId(mealType);
       await _localNotifications.cancel(id);
+      _logger.info('Cancelled existing meal reminder for $mealType (ID: $id)');
     } catch (e) {
       _logger.warning('Failed to cancel meal reminder for $mealType: $e');
     }

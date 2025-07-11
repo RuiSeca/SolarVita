@@ -1033,10 +1033,39 @@ class SustainabilityGoal {
       'currentValue': currentValue,
       'targetValue': targetValue,
       'unitKey': unitKey,
-      'iconCode': iconData.codePoint,
+      'iconName': _getIconName(iconData),
       'colorValue': color.toARGB32(),
       'category': category.index,
     };
+  }
+
+  String _getIconName(IconData iconData) {
+    if (iconData == Icons.eco) return 'eco';
+    if (iconData == Icons.nature_people) return 'nature_people';
+    if (iconData == Icons.directions_bike) return 'directions_bike';
+    if (iconData == Icons.recycling) return 'recycling';
+    if (iconData == Icons.restaurant_menu) return 'restaurant_menu';
+    if (iconData == Icons.flash_off) return 'flash_off';
+    return 'eco'; // default
+  }
+
+  static IconData _getIconFromName(String iconName) {
+    switch (iconName) {
+      case 'eco':
+        return Icons.eco;
+      case 'nature_people':
+        return Icons.nature_people;
+      case 'directions_bike':
+        return Icons.directions_bike;
+      case 'recycling':
+        return Icons.recycling;
+      case 'restaurant_menu':
+        return Icons.restaurant_menu;
+      case 'flash_off':
+        return Icons.flash_off;
+      default:
+        return Icons.eco;
+    }
   }
 
   factory SustainabilityGoal.fromJson(Map<String, dynamic> json) {
@@ -1047,7 +1076,8 @@ class SustainabilityGoal {
       currentValue: json['currentValue'].toDouble(),
       targetValue: json['targetValue'].toDouble(),
       unitKey: json['unitKey'],
-      iconData: IconData(json['iconCode'], fontFamily: 'MaterialIcons'),
+      iconData:
+          _getIconFromName(json['iconName'] ?? 'eco'), // ✅ Now uses const icons
       color: Color(json['colorValue']),
       category: GoalCategory.values[json['category']],
     );

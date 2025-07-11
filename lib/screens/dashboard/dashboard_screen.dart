@@ -1,10 +1,13 @@
 // lib/screens/dashboard/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../providers/user_profile_provider.dart';
+import '../../providers/auth_provider.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -47,99 +50,113 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      // <-- Wrap this Row in Expanded
-                      child: Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _pickImage,
-                            child: Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 20,
-                                  backgroundImage: imageFile != null
-                                      ? FileImage(imageFile!)
-                                      : null,
-                                  backgroundColor:
-                                      AppTheme.textFieldBackground(context),
-                                  child: imageFile == null
-                                      ? Icon(Icons.person,
-                                          color: theme.iconTheme.color)
-                                      : null,
-                                ),
-                                Positioned(
-                                  right: -2,
-                                  bottom: -2,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(2),
-                                    decoration: BoxDecoration(
-                                      color: theme.primaryColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: theme.scaffoldBackgroundColor,
-                                        width: 1.5,
+                Consumer2<UserProfileProvider, AuthProvider>(
+                  builder: (context, userProfileProvider, authProvider, _) {
+                    final userProfile = userProfileProvider.userProfile;
+                    final currentUser = authProvider.user;
+                    
+                    String displayName = userProfile?.displayName ?? 
+                                      currentUser?.displayName ?? 
+                                      'Fitness Enthusiast';
+                    
+                    String? profileImageUrl = userProfile?.photoURL ?? 
+                                           currentUser?.photoURL;
+                    
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              GestureDetector(
+                                onTap: _pickImage,
+                                child: Stack(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundImage: imageFile != null
+                                          ? FileImage(imageFile!)
+                                          : profileImageUrl != null
+                                              ? NetworkImage(profileImageUrl)
+                                              : null,
+                                      backgroundColor:
+                                          AppTheme.textFieldBackground(context),
+                                      child: imageFile == null && profileImageUrl == null
+                                          ? Icon(Icons.person,
+                                              color: theme.iconTheme.color)
+                                          : null,
+                                    ),
+                                    Positioned(
+                                      right: -2,
+                                      bottom: -2,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: theme.primaryColor,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                            color: theme.scaffoldBackgroundColor,
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.add,
+                                          size: 10,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
-                                    child: const Icon(
-                                      Icons.add,
-                                      size: 10,
-                                      color: Colors.white,
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tr(context, 'welcome'),
+                                      style: theme.textTheme.bodyLarge?.copyWith(
+                                        color: theme.hintColor,
+                                      ),
                                     ),
-                                  ),
+                                    Text(
+                                      displayName,
+                                      style: theme.textTheme.titleLarge?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 19,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            // <-- Wrap Column with Flexible
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  tr(context, 'welcome'),
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    color: theme.hintColor,
-                                  ),
-                                ),
-                                Text(
-                                  tr(context, 'fitness_enthusiast'),
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 19, // Reduce size as needed
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const EcoTipsScreen()),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor: theme.primaryColor.withAlpha(25),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20)),
-                      ),
-                      child: Text(
-                        tr(context, 'eco_tips'),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.primaryColor,
                         ),
-                      ),
-                    ),
-                  ],
+                        TextButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const EcoTipsScreen()),
+                          ),
+                          style: TextButton.styleFrom(
+                            backgroundColor: theme.primaryColor.withAlpha(25),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20)),
+                          ),
+                          child: Text(
+                            tr(context, 'eco_tips'),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
 
                 Container(
