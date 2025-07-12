@@ -181,52 +181,136 @@ class _MainWrapperState extends State<MainWrapper> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
+      body: IndexedStack(
+        index: _currentIndex,
         children: _screens,
-        onPageChanged: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-          );
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: theme.colorScheme.surface,
-        selectedItemColor: theme.primaryColor,
-        unselectedItemColor: theme.hintColor,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: tr(context, 'nav_home'),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? Colors.black : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.grey.shade800.withValues(alpha: 0.3) : Colors.grey.shade300.withValues(alpha: 0.5),
+              spreadRadius: 0,
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Container(
+            height: 66,
+            padding: const EdgeInsets.only(top: 4, bottom: 2),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedItemColor: isDark ? Colors.white : Colors.black,
+              unselectedItemColor: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+              selectedFontSize: 11,
+              unselectedFontSize: 9,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w400,
+                height: 1.5,
+              ),
+              items: [
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _currentIndex == 0 
+                        ? BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Icon(
+                      _currentIndex == 0 ? Icons.home : Icons.home_outlined,
+                      size: 24,
+                    ),
+                  ),
+                  label: tr(context, 'nav_home'),
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _currentIndex == 1 
+                        ? BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Icon(
+                      _currentIndex == 1 ? Icons.search : Icons.search_outlined,
+                      size: 24,
+                    ),
+                  ),
+                  label: tr(context, 'nav_search'),
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _currentIndex == 2 
+                        ? BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Icon(
+                      _currentIndex == 2 ? Icons.favorite : Icons.favorite_outline,
+                      size: 24,
+                    ),
+                  ),
+                  label: tr(context, 'nav_health'),
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _currentIndex == 3 
+                        ? BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Icon(
+                      _currentIndex == 3 ? Icons.chat_bubble : Icons.chat_bubble_outline,
+                      size: 24,
+                    ),
+                  ),
+                  label: tr(context, 'nav_solar_ai'),
+                ),
+                BottomNavigationBarItem(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: _currentIndex == 4 
+                        ? BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          )
+                        : null,
+                    child: Icon(
+                      _currentIndex == 4 ? Icons.person : Icons.person_outline,
+                      size: 24,
+                    ),
+                  ),
+                  label: tr(context, 'nav_profile'),
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.search),
-            label: tr(context, 'nav_search'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.favorite),
-            label: tr(context, 'nav_health'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.chat),
-            label: tr(context, 'nav_solar_ai'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: tr(context, 'nav_profile'),
-          ),
-        ],
+        ),
       ),
     );
   }

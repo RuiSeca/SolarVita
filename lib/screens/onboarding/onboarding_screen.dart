@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 import 'personal_info_preferences_screen.dart';
 
 final _logger = Logger('OnboardingScreen');
@@ -178,7 +179,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: LottieLoadingWidget(width: 20, height: 20),
                       )
                     : Text(
                         _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',

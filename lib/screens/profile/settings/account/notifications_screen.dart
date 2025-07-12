@@ -5,6 +5,7 @@ import '../../../../models/notification_preferences.dart';
 import '../../../../providers/user_profile_provider.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../services/meal_plan_service.dart';
+import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -243,7 +244,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: LottieLoadingWidget()),
       );
     }
 
@@ -270,7 +271,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               child: SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
+                child: LottieLoadingWidget(width: 20, height: 20),
               ),
             )
           else
@@ -782,7 +783,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: LottieLoadingWidget(width: 20, height: 20),
             )
           : const Icon(Icons.save),
         label: Text(_isSaving ? 'Saving...' : 'Save Settings'),

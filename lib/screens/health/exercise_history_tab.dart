@@ -6,6 +6,7 @@ import '../../utils/translation_helper.dart';
 import '../../services/exercise_tracking_service.dart';
 import '../../models/exercise_log.dart';
 import '../../models/personal_record.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 class ExerciseHistoryTab extends StatelessWidget {
   const ExerciseHistoryTab({super.key});
@@ -126,7 +127,7 @@ class ExerciseHistoryTab extends StatelessWidget {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                    child: LottieLoadingWidget(),
                   ),
                 );
               }
@@ -345,7 +346,7 @@ class ExerciseHistoryTab extends StatelessWidget {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                    child: LottieLoadingWidget(),
                   ),
                 );
               }
@@ -492,7 +493,7 @@ class ExerciseHistoryTab extends StatelessWidget {
                 return const Center(
                   child: Padding(
                     padding: EdgeInsets.all(16.0),
-                    child: CircularProgressIndicator(),
+                    child: LottieLoadingWidget(),
                   ),
                 );
               }

@@ -9,6 +9,7 @@ import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import 'meal_detail_screen.dart';
 import 'package:logger/logger.dart';
+import '../../../widgets/common/lottie_loading_widget.dart';
 
 var logger = Logger();
 
@@ -655,7 +656,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     if (_isLoading) {
       return const Expanded(
         child: Center(
-          child: CircularProgressIndicator(),
+          child: LottieLoadingWidget(),
         ),
       );
     }
@@ -738,7 +739,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(16.0),
-                child: CircularProgressIndicator(),
+                child: LottieLoadingWidget(),
               ),
             );
           }
@@ -831,12 +832,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                         return Container(
                           color: AppTheme.cardColor(context),
                           child: Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
+                            child: LottieLoadingWidget(),
                           ),
                         );
                       },

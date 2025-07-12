@@ -4,6 +4,7 @@ import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
 import '../../../../providers/user_profile_provider.dart';
 import '../../../../models/user_profile.dart';
+import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class DietaryPreferencesScreen extends StatefulWidget {
   const DietaryPreferencesScreen({super.key});
@@ -199,7 +200,7 @@ class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: LottieLoadingWidget())
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -604,7 +605,7 @@ class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
             ? const SizedBox(
                 height: 20,
                 width: 20,
-                child: CircularProgressIndicator(color: Colors.white),
+                child: LottieLoadingWidget(width: 20, height: 20),
               )
             : const Text(
                 'Save Preferences',

@@ -11,6 +11,7 @@ import '../../utils/translation_helper.dart';
 import '../exercise_history/exercise_history_screen.dart';
 import '../health/meals/meal_plan_screen.dart';
 import 'package:logger/logger.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -1210,13 +1211,9 @@ class FoodAnalyzingIndicator extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              SizedBox(
-                width: 100,
-                child: LinearProgressIndicator(
-                  backgroundColor: AppTheme.textColor(context).withAlpha(51),
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                ),
+              const LottieLoadingWidget(
+                width: 60,
+                height: 20,
               ),
             ],
           ),

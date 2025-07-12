@@ -15,6 +15,7 @@ import 'settings/preferences/sustainability_goals_screen.dart';
 import 'settings/app/language_screen.dart';
 import 'settings/app/help_support_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -693,9 +694,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    child: LottieLoadingWidget(
+                      width: 20,
+                      height: 20,
                     ),
                   )
                 : Text(

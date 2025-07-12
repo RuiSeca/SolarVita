@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../../providers/language_provider.dart';
 import '../../../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class LanguageScreen extends StatelessWidget {
   const LanguageScreen({super.key});
@@ -31,9 +32,7 @@ class LanguageScreen extends StatelessWidget {
           ),
           body: languageProvider.isLoading
               ? Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                  ),
+                  child: LottieLoadingWidget(),
                 )
               : Padding(
                   padding: const EdgeInsets.all(16),
