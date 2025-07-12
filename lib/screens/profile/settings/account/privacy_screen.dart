@@ -6,6 +6,7 @@ import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
 import '../../../../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
+import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -730,7 +731,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
           backgroundColor: AppTheme.cardColor(context),
           content: Row(
             children: [
-              const CircularProgressIndicator(),
+              const LottieLoadingWidget(),
               const SizedBox(width: 16),
               Text(
                 tr(context, 'deleting_account'),

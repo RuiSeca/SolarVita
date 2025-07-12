@@ -8,6 +8,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import 'exercise_detail_history_screen.dart';
 import 'log_exercise_screen.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 class ExerciseHistoryScreen extends StatefulWidget {
   final String? exerciseId;
@@ -145,7 +146,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
       future: _logsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LottieLoadingWidget());
         }
 
         if (snapshot.hasError) {
@@ -274,7 +275,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
       future: _logsFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LottieLoadingWidget());
         }
 
         if (snapshot.hasError) {
@@ -354,7 +355,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
           : _trackingService.getAllPersonalRecords(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const Center(child: LottieLoadingWidget());
         }
 
         if (snapshot.hasError) {

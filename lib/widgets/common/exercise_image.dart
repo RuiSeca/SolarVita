@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:logging/logging.dart';
+import 'lottie_loading_widget.dart';
 
 final log = Logger('ExerciseImage');
 
@@ -61,7 +62,7 @@ class ExerciseImage extends StatelessWidget {
       height: height,
       color: Colors.grey[200],
       child: const Center(
-        child: CircularProgressIndicator(),
+        child: LottieLoadingWidget(),
       ),
     );
   }

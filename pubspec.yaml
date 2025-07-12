@@ -30,6 +30,7 @@ dependencies:
   logger: ^1.1.0
   logging: ^1.2.0
   retry: ^3.1.2
+  lottie: ^3.1.2
 
   #Notifictions
   firebase_messaging: ^15.0.4
@@ -64,6 +65,7 @@ flutter:
   assets:
     - assets/images/
     - assets/videos/
+    - assets/lotties/
 
     # env file
     - .env

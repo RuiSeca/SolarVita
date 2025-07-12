@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 import '../../services/user_profile_service.dart';
 import '../../providers/user_profile_provider.dart';
 import 'workout_preferences_screen.dart';
@@ -307,7 +308,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: _isLoading
-            ? const CircularProgressIndicator()
+            ? const LottieLoadingWidget()
             : const Text('Continue to Workout Preferences'),
       ),
     );

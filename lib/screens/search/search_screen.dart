@@ -9,6 +9,7 @@ import 'workout_detail/workout_detail_screen.dart';
 import 'workout_detail/workout_detail_type.dart' as detail_types;
 import 'workout_detail/workout_list_screen.dart';
 import 'workout_detail/models/workout_item.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 final logger = Logger('SearchScreen');
 
@@ -27,6 +28,20 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // Flag to prevent automatic navigation during first build
   bool _isFirstBuild = true;
+
+  @override
+  void dispose() {
+    // Cancel any ongoing loading operations when the screen is disposed
+    Provider.of<ExerciseProvider>(context, listen: false).cancelLoading();
+    super.dispose();
+  }
+
+  @override
+  void deactivate() {
+    // Cancel loading when navigating away from the screen
+    Provider.of<ExerciseProvider>(context, listen: false).cancelLoading();
+    super.deactivate();
+  }
 
   @override
   void initState() {
@@ -393,7 +408,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const CircularProgressIndicator(),
+                      const LottieLoadingWidget(),
                       const SizedBox(height: 16),
                       Text(
                         'Loading exercises for $_loadingTarget...',
@@ -418,7 +433,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Consumer<ExerciseProvider>(
                   builder: (context, provider, _) {
                     if (provider.isLoading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: LottieLoadingWidget());
                     }
 
                     if (provider.errorMessage != null) {
@@ -674,7 +689,7 @@ class WorkoutCategoryCard extends StatelessWidget {
                     if (isLoading)
                       Positioned.fill(
                         child: Center(
-                          child: CircularProgressIndicator(),
+                          child: LottieLoadingWidget(),
                         ),
                       ),
                   ],
@@ -751,8 +766,9 @@ class WorkoutCategoryCard extends StatelessWidget {
                               child: SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                child: LottieLoadingWidget(
+                                  width: 24,
+                                  height: 24,
                                 ),
                               ),
                             ),
@@ -829,8 +845,9 @@ class WorkoutCategoryCard extends StatelessWidget {
                               child: SizedBox(
                                 width: 24,
                                 height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                child: LottieLoadingWidget(
+                                  width: 24,
+                                  height: 24,
                                 ),
                               ),
                             ),

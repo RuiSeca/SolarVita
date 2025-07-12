@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/common/lottie_loading_widget.dart';
 
 class AppLoadingScreen extends StatelessWidget {
   final String? message;
@@ -22,7 +23,7 @@ class AppLoadingScreen extends StatelessWidget {
               height: 120,
             ),
             const SizedBox(height: 32),
-            const CircularProgressIndicator(),
+            const LottieLoadingWidget(width: 100, height: 100),
             if (message != null) ...[
               const SizedBox(height: 16),
               Text(
