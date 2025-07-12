@@ -107,11 +107,145 @@ class NotificationService {
 
       if (initialized == true) {
         _logger.info('Local notifications initialized successfully');
+        
+        // Register Android notification channels
+        await _createNotificationChannels();
       } else {
         _logger.warning('Local notifications initialization returned false');
       }
     } catch (e) {
       _logger.severe('Failed to initialize local notifications: $e');
+      rethrow;
+    }
+  }
+
+  // Create and register all notification channels for Android
+  Future<void> _createNotificationChannels() async {
+    if (!Platform.isAndroid) return;
+    
+    try {
+      _logger.info('Creating Android notification channels...');
+      
+      final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      
+      if (androidPlugin == null) {
+        _logger.warning('Android plugin not available for notification channels');
+        return;
+      }
+
+      final channels = [
+        const AndroidNotificationChannel(
+          'default_channel',
+          '🌟 SolarVita',
+          description: 'General SolarVita notifications',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF4CAF50),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'test_simple',
+          'Test Simple',
+          description: 'Simple test notifications',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        const AndroidNotificationChannel(
+          'test_scheduled',
+          'Test Scheduled',
+          description: 'Test scheduled notifications',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        const AndroidNotificationChannel(
+          'delayed_test',
+          'Delayed Test',
+          description: 'Delayed test notifications',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+        ),
+        const AndroidNotificationChannel(
+          'workout_reminders',
+          '💪 Fitness Reminders',
+          description: 'Your personal workout motivation',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFFFF5722),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'water_reminders',
+          '💧 Hydration Alerts',
+          description: 'Stay healthy, stay hydrated',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF2196F3),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'eco_tips',
+          '🌱 Green Living',
+          description: 'Daily sustainability inspiration',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF4CAF50),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'progress_updates',
+          '🎉 Achievements',
+          description: 'Celebrate your amazing progress',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFFFFD700),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'meal_reminders',
+          '🍽️ Nutrition Time',
+          description: 'Fuel your body right',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFFFF9800),
+          showBadge: true,
+        ),
+        const AndroidNotificationChannel(
+          'solar_vitas_reminders',
+          '✨ Personal Coach',
+          description: 'Your AI-powered wellness companion',
+          importance: Importance.high,
+          playSound: true,
+          enableVibration: true,
+          enableLights: true,
+          ledColor: Color(0xFF9C27B0),
+          showBadge: true,
+        ),
+      ];
+
+      for (final channel in channels) {
+        await androidPlugin.createNotificationChannel(channel);
+        _logger.info('Created notification channel: ${channel.id}');
+      }
+      
+      _logger.info('All notification channels created successfully');
+    } catch (e) {
+      _logger.severe('Failed to create notification channels: $e');
       rethrow;
     }
   }
@@ -153,9 +287,21 @@ class NotificationService {
         );
         return settings.authorizationStatus == AuthorizationStatus.authorized;
       } else {
-        // For Android, request permission
-        final status = await Permission.notification.request();
-        return status.isGranted;
+        // For Android, request notification permission
+        final notificationStatus = await Permission.notification.request();
+        _logger.info('Notification permission status: $notificationStatus');
+        
+        // For Android 13+, also request schedule exact alarm permission
+        if (Platform.isAndroid) {
+          try {
+            final scheduleStatus = await Permission.scheduleExactAlarm.request();
+            _logger.info('Schedule exact alarm permission status: $scheduleStatus');
+          } catch (e) {
+            _logger.warning('Schedule exact alarm permission not available: $e');
+          }
+        }
+        
+        return notificationStatus.isGranted;
       }
     } catch (e) {
       _logger.severe('Failed to request notification permissions: $e');
@@ -246,211 +392,6 @@ class NotificationService {
     }
   }
 
-  // ====================
-  // DEBUG METHODS
-  // ====================
-
-  // Simple immediate notification for testing
-  Future<void> testSimpleNotification() async {
-    try {
-      _logger.info('Testing simple notification...');
-
-      const androidDetails = AndroidNotificationDetails(
-        'test_simple',
-        'Test Simple',
-        channelDescription: 'Simple test notifications',
-        importance: Importance.high,
-        priority: Priority.high,
-        playSound: true,
-        enableVibration: true,
-      );
-
-      const iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
-
-      const details = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
-
-      await _localNotifications.show(
-        _generateNotificationId(),
-        '✅ Simple Test Notification',
-        'This notification appeared immediately! ${DateTime.now().toString().substring(11, 19)}',
-        details,
-      );
-
-      _logger.info('Simple notification sent successfully');
-    } catch (e) {
-      _logger.severe('Failed to send simple notification: $e');
-      rethrow;
-    }
-  }
-
-  // Test scheduled notification with better error handling
-  Future<void> testScheduledNotification({
-    required String title,
-    required String body,
-    int delaySeconds = 5,
-    String? type,
-  }) async {
-    try {
-      _logger.info(
-          'Scheduling test notification with $delaySeconds second delay...');
-
-      if (!_isInitialized) {
-        throw Exception('Notification service not initialized');
-      }
-
-      const androidDetails = AndroidNotificationDetails(
-        'test_scheduled',
-        'Test Scheduled',
-        channelDescription: 'Test scheduled notifications',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-        playSound: true,
-        enableVibration: true,
-        visibility: NotificationVisibility.public,
-      );
-
-      const iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-        interruptionLevel: InterruptionLevel.active,
-      );
-
-      const details = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
-
-      final scheduledTime = DateTime.now().add(Duration(seconds: delaySeconds));
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
-      final notificationId = _generateNotificationId();
-
-      _logger.info('Current time: ${DateTime.now()}');
-      _logger.info('Scheduled time: $scheduledTime');
-      _logger.info('TZ Scheduled time: $tzScheduledTime');
-      _logger.info('Notification ID: $notificationId');
-
-      final payload = json.encode({
-        'type': type ?? 'test_scheduled',
-        'scheduledTime': scheduledTime.toIso8601String(),
-      });
-
-      await _localNotifications.zonedSchedule(
-        notificationId,
-        title,
-        body,
-        tzScheduledTime,
-        details,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: payload,
-      );
-
-      _logger.info('Test notification scheduled successfully');
-    } catch (e) {
-      _logger.severe('Failed to schedule test notification: $e');
-      rethrow;
-    }
-  }
-
-  // Alternative delayed notification using Timer
-  Future<void> testDelayedNotification({
-    required String title,
-    required String body,
-    int delaySeconds = 5,
-  }) async {
-    try {
-      _logger.info('Setting up delayed notification with Timer...');
-
-      Timer(Duration(seconds: delaySeconds), () async {
-        try {
-          const androidDetails = AndroidNotificationDetails(
-            'delayed_test',
-            'Delayed Test',
-            channelDescription: 'Delayed test notifications',
-            importance: Importance.high,
-            priority: Priority.high,
-            playSound: true,
-            enableVibration: true,
-          );
-
-          const iosDetails = DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          );
-
-          const details = NotificationDetails(
-            android: androidDetails,
-            iOS: iosDetails,
-          );
-
-          await _localNotifications.show(
-            _generateNotificationId(),
-            title,
-            body,
-            details,
-          );
-
-          _logger.info('Delayed notification sent successfully');
-        } catch (e) {
-          _logger.severe('Failed to send delayed notification: $e');
-        }
-      });
-
-      _logger.info('Delayed notification timer set for $delaySeconds seconds');
-    } catch (e) {
-      _logger.severe('Failed to set up delayed notification: $e');
-      rethrow;
-    }
-  }
-
-  // Get debug information
-  Future<Map<String, dynamic>> getDebugInfo() async {
-    try {
-      final token = await _firebaseMessaging.getToken();
-
-      bool hasPermissions = false;
-      try {
-        if (Platform.isAndroid) {
-          final status = await Permission.notification.status;
-          hasPermissions = status.isGranted;
-        } else {
-          final settings = await _firebaseMessaging.getNotificationSettings();
-          hasPermissions =
-              settings.authorizationStatus == AuthorizationStatus.authorized;
-        }
-      } catch (e) {
-        _logger.warning('Failed to check permissions: $e');
-      }
-
-      final pendingNotifications =
-          await _localNotifications.pendingNotificationRequests();
-
-      return {
-        'isInitialized': _isInitialized,
-        'hasPermissions': hasPermissions,
-        'fcmToken': token != null,
-        'fcmTokenLength': token?.length ?? 0,
-        'platform': Platform.operatingSystem,
-        'timezone': tz.local.name,
-        'currentTime': DateTime.now().toString(),
-        'pendingNotifications': pendingNotifications.length,
-      };
-    } catch (e) {
-      _logger.severe('Failed to get debug info: $e');
-      return {'error': e.toString()};
-    }
-  }
 
   // ====================
   // NOTIFICATION METHODS
@@ -763,8 +704,17 @@ class NotificationService {
         channelName,
         importance: Importance.high,
         priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
+        styleInformation: const BigTextStyleInformation(''),
         playSound: true,
         enableVibration: true,
+        enableLights: true,
+        colorized: true,
+        showWhen: true,
+        channelShowBadge: true,
+        autoCancel: true,
+        visibility: NotificationVisibility.public,
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -839,30 +789,30 @@ class NotificationService {
   String _getMealReminderTitle(String mealType) {
     switch (mealType.toLowerCase()) {
       case 'breakfast':
-        return '🍳 Breakfast Time!';
+        return '🌅 Rise & Fuel!';
       case 'lunch':
-        return '🥗 Lunch Time!';
+        return '☀️ Midday Energy!';
       case 'dinner':
-        return '🍽️ Dinner Time!';
+        return '🌙 Evening Nourishment!';
       case 'snacks':
-        return '🍎 Snack Time!';
+        return '⚡ Power Snack!';
       default:
-        return '🍽️ Meal Time!';
+        return '🍽️ Nutrition Time!';
     }
   }
 
   String _getMealReminderBody(String mealType) {
     switch (mealType.toLowerCase()) {
       case 'breakfast':
-        return 'Start your day with a nutritious breakfast!';
+        return 'Start your day strong with nutritious fuel for your body 💪';
       case 'lunch':
-        return 'Fuel your afternoon with a healthy lunch!';
+        return 'Recharge your energy with a healthy, delicious lunch 🚀';
       case 'dinner':
-        return 'End your day with a satisfying dinner!';
+        return 'Wind down with a satisfying meal to recover and restore 🌟';
       case 'snacks':
-        return 'Time for a healthy snack to keep you energized!';
+        return 'Keep your energy flowing with a smart, healthy snack 🔋';
       default:
-        return 'Don\'t forget to eat a healthy meal!';
+        return 'Nourish your body, fuel your dreams 💫';
     }
   }
 
@@ -956,7 +906,7 @@ class NotificationService {
 
     try {
       // Cancel existing workout notifications
-      await _cancelNotificationsByType('workout');
+      await cancelNotificationsByType('workout');
 
       for (final dayEntry in availableDays.entries) {
         if (!dayEntry.value) continue; // Skip unavailable days
@@ -1007,7 +957,7 @@ class NotificationService {
 
     try {
       // Cancel existing diary notifications
-      await _cancelNotificationsByType('diary');
+      await cancelNotificationsByType('diary');
 
       DateTime scheduledTime;
 
@@ -1051,7 +1001,7 @@ class NotificationService {
 
     try {
       // Cancel existing meal notifications
-      await _cancelNotificationsByType('meal');
+      await cancelNotificationsByType('meal');
 
       for (final mealEntry in mealTimes.entries) {
         final mealType = mealEntry.key;
@@ -1105,7 +1055,7 @@ class NotificationService {
   }
 
   /// Cancel notifications by type
-  Future<void> _cancelNotificationsByType(String type) async {
+  Future<void> cancelNotificationsByType(String type) async {
     try {
       final pendingNotifications = await getPendingNotifications();
       for (final notification in pendingNotifications) {
@@ -1138,11 +1088,41 @@ class NotificationService {
         if (daysToAdd <= 0) daysToAdd += 7;
         scheduled = scheduled.add(Duration(days: daysToAdd));
       }
-    } else if (scheduled.isBefore(now)) {
-      scheduled = scheduled.add(const Duration(days: 1));
+    } else {
+      // For 'today', if the time has passed, schedule for tomorrow
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
     }
     
+    _logger.info('Scheduled time calculated: ${scheduled.toString()} for day: $day, time: ${time.hour}:${time.minute.toString().padLeft(2, '0')}');
     return scheduled;
+  }
+
+  /// Test meal notification with current time + offset for debugging
+  Future<void> testMealNotificationNow({int offsetMinutes = 1}) async {
+    try {
+      final testTime = DateTime.now().add(Duration(minutes: offsetMinutes));
+      final testId = _generateNotificationId();
+      
+      _logger.info('Testing meal notification scheduled for: ${testTime.toString()}');
+      
+      await _scheduleNotification(
+        id: testId,
+        title: '🍽️ Test Meal Reminder',
+        body: 'This is a test meal notification scheduled for ${testTime.toString().substring(11, 16)}',
+        scheduledDate: testTime,
+        payload: jsonEncode({
+          'type': 'test_meal',
+          'timestamp': testTime.millisecondsSinceEpoch,
+        }),
+      );
+      
+      _logger.info('Test meal notification scheduled with ID: $testId');
+    } catch (e) {
+      _logger.severe('Failed to schedule test meal notification: $e');
+      rethrow;
+    }
   }
 
   /// Get random time within specified period

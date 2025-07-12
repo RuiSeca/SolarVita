@@ -1,12 +1,10 @@
-import 'dart:io';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
 import '../../../../theme/app_theme.dart';
+import '../../../../models/notification_preferences.dart';
+import '../../../../providers/user_profile_provider.dart';
 import '../../../../services/notification_service.dart';
-import 'enhanced_notifications_screen.dart';
+import '../../../../services/meal_plan_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -16,992 +14,786 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  late NotificationPreferences _preferences;
   final NotificationService _notificationService = NotificationService();
-  final Logger _logger = Logger('NotificationsScreen');
-
-  bool _workoutReminders = true;
-  bool _ecoTips = true;
-  bool _progressUpdates = true;
-  bool _waterReminders = true;
-  bool _mealReminders = true;
+  final MealPlanService _mealPlanService = MealPlanService();
+  
   bool _isLoading = true;
-
-  String? _fcmToken;
-  Map<String, dynamic>? _debugInfo;
+  bool _isSaving = false;
+  bool _hasMealPlans = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeNotificationSystem();
+    _loadPreferences();
   }
 
-  Future<void> _initializeNotificationSystem() async {
+  Future<void> _loadPreferences() async {
     try {
-      _logger.info('Initializing notification system...');
-
-      // Initialize timezone
-      tz.initializeTimeZones();
-
-      // Initialize notification service
       await _notificationService.initialize();
-
-      // Load preferences and data
-      await Future.wait([
-        _loadNotificationPreferences(),
-        _getFCMToken(),
-        _loadDebugInfo(),
-      ]);
-
+      
+      // Load existing preferences or create default
+      final existingPrefs = await _notificationService.loadNotificationPreferences();
+      _preferences = existingPrefs ?? NotificationPreferences(
+        workoutSettings: WorkoutNotificationSettings(),
+        mealSettings: MealNotificationSettings(),
+        diarySettings: DiaryNotificationSettings(),
+      );
+      
+      // Check if user has meal plans
+      _hasMealPlans = await _mealPlanService.hasMealPlans();
+      
       setState(() {
         _isLoading = false;
       });
-
-      _logger.info('Notification system initialized successfully');
     } catch (e) {
-      _logger.severe('Failed to initialize notification system: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-        _showErrorSnackBar('Failed to initialize notifications: $e');
-      }
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _loadNotificationPreferences() async {
-    try {
-      final results = await Future.wait([
-        _notificationService.workoutRemindersEnabled,
-        _notificationService.ecoTipsEnabled,
-        _notificationService.progressUpdatesEnabled,
-        _notificationService.waterRemindersEnabled,
-        _notificationService.mealRemindersEnabled,
-      ]);
+  Future<void> _savePreferences() async {
+    setState(() {
+      _isSaving = true;
+    });
 
+    try {
+      await _notificationService.saveNotificationPreferences(_preferences);
+      await _scheduleNotifications();
+      
       if (mounted) {
-        setState(() {
-          _workoutReminders = results[0];
-          _ecoTips = results[1];
-          _progressUpdates = results[2];
-          _waterReminders = results[3];
-          _mealReminders = results[4];
-        });
-      }
-    } catch (e) {
-      _logger.severe('Failed to load notification preferences: $e');
-    }
-  }
-
-  Future<void> _getFCMToken() async {
-    try {
-      final token = await _notificationService.getToken();
-      if (mounted) {
-        setState(() => _fcmToken = token);
-      }
-      _logger.info('FCM Token retrieved: ${token?.substring(0, 20)}...');
-    } catch (e) {
-      _logger.severe('Failed to get FCM token: $e');
-    }
-  }
-
-  Future<void> _loadDebugInfo() async {
-    try {
-      final info = await _notificationService.getDebugInfo();
-      if (mounted) {
-        setState(() => _debugInfo = info);
-      }
-    } catch (e) {
-      _logger.severe('Failed to load debug info: $e');
-    }
-  }
-
-  Future<void> _initializeAllNotifications() async {
-    try {
-      // Schedule water reminders
-      if (_waterReminders) {
-        await _notificationService.scheduleWaterReminder();
-      }
-
-      // Schedule eco tips (daily)
-      if (_ecoTips) {
-        final tomorrow = DateTime.now().add(const Duration(days: 1));
-        await _notificationService.scheduleEcoTip(
-          tip: 'Remember to use renewable energy sources when possible! 🌱',
-          scheduledTime:
-              DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 9, 0),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Settings saved successfully'),
+            backgroundColor: AppColors.primary,
+          ),
         );
       }
-
-      _showInfoSnackBar('All notifications initialized successfully!');
     } catch (e) {
-      _showErrorSnackBar('Failed to initialize notifications: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isSaving = false;
+      });
     }
   }
+
+  Future<void> _scheduleNotifications() async {
+    if (_preferences.workoutSettings.enabled) {
+      await _scheduleWorkoutNotifications();
+    }
+    if (_preferences.mealSettings.enabled) {
+      await _scheduleMealNotifications();
+    }
+  }
+
+  Future<void> _scheduleWorkoutNotifications() async {
+    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
+    final workoutPrefs = userProfileProvider.workoutPreferences;
+    
+    if (workoutPrefs != null) {
+      final settings = _preferences.workoutSettings;
+      
+      for (final day in workoutPrefs.availableDays.entries) {
+        if (day.value) {
+          DateTime scheduledTime;
+          
+          if (settings.timingType == NotificationTimingType.specificTime && settings.specificTime != null) {
+            scheduledTime = _getNextOccurrenceOfTime(day.key, settings.specificTime!);
+          } else {
+            scheduledTime = _getRandomTimeInPeriod(day.key, settings.timePeriod);
+          }
+          
+          scheduledTime = scheduledTime.subtract(Duration(minutes: settings.advanceMinutes));
+          
+          await _notificationService.scheduleWorkoutReminder(
+            title: '🏋️ Workout Reminder',
+            body: 'Time for your ${workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : "workout"} session!',
+            scheduledTime: scheduledTime,
+            workoutType: workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : 'general',
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _scheduleMealNotifications() async {
+    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
+    final dietaryPrefs = userProfileProvider.dietaryPreferences;
+    
+    for (final meal in _preferences.mealSettings.mealConfigs.entries) {
+      if (meal.value.enabled) {
+        DateTime scheduledDateTime;
+        
+        if (meal.value.timingType == NotificationTimingType.specificTime && meal.value.specificTime != null) {
+          // Use specific time set in meal config
+          scheduledDateTime = _getNextOccurrenceOfTime('today', meal.value.specificTime!);
+        } else if (dietaryPrefs != null) {
+          // Use meal plan time
+          final mealTimes = {
+            'breakfast': dietaryPrefs.breakfastTime,
+            'lunch': dietaryPrefs.lunchTime,
+            'dinner': dietaryPrefs.dinnerTime,
+            'snacks': dietaryPrefs.snackTime,
+          };
+          
+          if (mealTimes[meal.key] != null) {
+            final timeOfDay = _parseTimeOfDay(mealTimes[meal.key]!);
+            scheduledDateTime = _getNextOccurrenceOfTime('today', timeOfDay);
+          } else {
+            // Fallback to default meal time
+            scheduledDateTime = _getNextOccurrenceOfTime('today', _getDefaultMealTime(meal.key));
+          }
+        } else {
+          // No meal plan, use default time
+          scheduledDateTime = _getNextOccurrenceOfTime('today', _getDefaultMealTime(meal.key));
+        }
+        
+        // Apply advance notice
+        scheduledDateTime = scheduledDateTime.subtract(Duration(minutes: meal.value.advanceMinutes));
+        
+        await _notificationService.scheduleMealReminder(
+          mealType: meal.key,
+          scheduledTime: scheduledDateTime,
+          customMessage: meal.value.customMealName,
+        );
+      }
+    }
+  }
+
+  TimeOfDay _parseTimeOfDay(String timeString) {
+    try {
+      final parts = timeString.split(':');
+      return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+    } catch (e) {
+      return const TimeOfDay(hour: 12, minute: 0); // Default to noon
+    }
+  }
+
+  DateTime _getNextOccurrenceOfTime(String dayName, TimeOfDay time) {
+    final now = DateTime.now();
+    
+    if (dayName.toLowerCase() == 'today') {
+      // For meal times, use today or tomorrow if time has passed
+      final targetTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+      if (targetTime.isBefore(now)) {
+        return targetTime.add(const Duration(days: 1));
+      }
+      return targetTime;
+    }
+    
+    final weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    final targetDay = weekdays.indexOf(dayName.toLowerCase());
+    
+    if (targetDay == -1) return now;
+    
+    final today = now.weekday - 1;
+    int daysUntilTarget = (targetDay - today) % 7;
+    if (daysUntilTarget == 0 && TimeOfDay.now().hour * 60 + TimeOfDay.now().minute >= time.hour * 60 + time.minute) {
+      daysUntilTarget = 7;
+    }
+    
+    final targetDate = now.add(Duration(days: daysUntilTarget));
+    return DateTime(targetDate.year, targetDate.month, targetDate.day, time.hour, time.minute);
+  }
+
+  DateTime _getRandomTimeInPeriod(String dayName, String period) {
+    final baseTime = _getNextOccurrenceOfTime(dayName, const TimeOfDay(hour: 6, minute: 0));
+    
+    switch (period) {
+      case 'morning':
+        return baseTime.add(Duration(minutes: (6 * 60) + (DateTime.now().millisecond % (4 * 60))));
+      case 'afternoon':
+        return baseTime.add(Duration(minutes: (12 * 60) + (DateTime.now().millisecond % (6 * 60))));
+      case 'evening':
+        return baseTime.add(Duration(minutes: (18 * 60) + (DateTime.now().millisecond % (4 * 60))));
+      case 'night':
+        return baseTime.add(Duration(minutes: (20 * 60) + (DateTime.now().millisecond % (2 * 60))));
+      default:
+        return baseTime.add(Duration(minutes: (9 * 60))); // Default to 9 AM
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.surfaceColor(context),
-      appBar: AppBar(
-        title: const Text('Notifications'),
+    if (_isLoading) {
+      return Scaffold(
         backgroundColor: AppTheme.surfaceColor(context),
-        foregroundColor: AppTheme.textColor(context),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshNotificationData,
-            tooltip: 'Refresh',
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Initializing notifications...'),
-                ],
-              ),
-            )
-          : SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    _buildSystemStatus(),
-                    _buildNotificationSettings(),
-                    _buildQuickTests(),
-                    _buildAdvancedSettings(),
-                    _buildDebugSection(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+        appBar: AppBar(
+          backgroundColor: AppTheme.surfaceColor(context),
+          elevation: 0,
+          title: Text(
             'Notifications',
             style: TextStyle(
               color: AppTheme.textColor(context),
-              fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Manage your notification preferences and test the notification system',
-            style: TextStyle(
-              color: AppTheme.textColor(context).withValues(alpha: 153),
-              fontSize: 16,
-            ),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+            onPressed: () => Navigator.pop(context),
           ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppTheme.surfaceColor(context),
+      appBar: AppBar(
+        backgroundColor: AppTheme.surfaceColor(context),
+        elevation: 0,
+        title: Text(
+          'Notifications',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          if (_isSaving)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: Icon(Icons.save, color: AppColors.primary),
+              onPressed: _savePreferences,
+              tooltip: 'Save Settings',
+            ),
         ],
       ),
-    );
-  }
-
-  Widget _buildSystemStatus() {
-    if (_debugInfo == null) return const SizedBox.shrink();
-
-    return _buildSection(
-      context,
-      title: 'System Status',
-      child: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildStatusRow('Service Initialized',
-                _debugInfo!['isInitialized']?.toString() ?? 'Unknown'),
-            _buildStatusRow('Permissions',
-                _debugInfo!['hasPermissions']?.toString() ?? 'Unknown'),
-            _buildStatusRow(
-                'FCM Token',
-                _debugInfo!['fcmToken'] == true
-                    ? 'Available'
-                    : 'Not available'),
-            _buildStatusRow(
-                'Platform', _debugInfo!['platform']?.toString() ?? 'Unknown'),
-            _buildStatusRow(
-                'Timezone', _debugInfo!['timezone']?.toString() ?? 'Unknown'),
-            _buildStatusRow('Pending Notifications',
-                _debugInfo!['pendingNotifications']?.toString() ?? '0'),
+            _buildWorkoutSection(),
+            const SizedBox(height: 16),
+            _buildMealSection(),
+            const SizedBox(height: 16),
+            _buildOtherNotificationsSection(),
+            const SizedBox(height: 16),
+            _buildTestSection(),
+            const SizedBox(height: 16),
+            _buildHelpSection(),
+            const SizedBox(height: 24),
+            _buildSaveButton(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusRow(String label, String value) {
-    final isGood = value.toLowerCase().contains('true') ||
-        value.toLowerCase().contains('available') ||
-        value.toLowerCase().contains('android') ||
-        value.toLowerCase().contains('ios');
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 14,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: isGood ? Colors.green : AppColors.primary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+  Widget _buildSection({required String title, required IconData icon, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNotificationSettings() {
-    return _buildSection(
-      context,
-      title: 'Notification Types',
       child: Column(
         children: [
-          _buildNotificationTile(
-            icon: Icons.fitness_center,
-            title: 'Workout Reminders',
-            subtitle: 'Get reminded about your scheduled workouts',
-            value: _workoutReminders,
-            onChanged: (value) => _updatePreference(
-                'workout_reminders', value, (v) => _workoutReminders = v),
-          ),
-          _buildNotificationTile(
-            icon: Icons.water_drop,
-            title: 'Water Reminders',
-            subtitle: 'Stay hydrated with regular water reminders',
-            value: _waterReminders,
-            onChanged: (value) => _updatePreference(
-                'water_reminders', value, (v) => _waterReminders = v),
-          ),
-          _buildNotificationTile(
-            icon: Icons.eco,
-            title: 'Eco Tips',
-            subtitle: 'Daily tips for sustainable living',
-            value: _ecoTips,
-            onChanged: (value) =>
-                _updatePreference('eco_tips', value, (v) => _ecoTips = v),
-          ),
-          _buildNotificationTile(
-            icon: Icons.trending_up,
-            title: 'Progress Updates',
-            subtitle: 'Celebrate your achievements and milestones',
-            value: _progressUpdates,
-            onChanged: (value) => _updatePreference(
-                'progress_updates', value, (v) => _progressUpdates = v),
-          ),
-          _buildNotificationTile(
-            icon: Icons.restaurant_menu,
-            title: 'Meal Reminders',
-            subtitle: 'Get reminded about your meals',
-            value: _mealReminders,
-            onChanged: (value) => _updatePreference(
-                'meal_reminders', value, (v) => _mealReminders = v),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuickTests() {
-    return _buildSection(
-      context,
-      title: 'Quick Tests',
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _testSimpleNotification,
-                    icon: const Icon(Icons.notifications, size: 18),
-                    label: const Text('Immediate'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _testScheduledNotification,
-                    icon: const Icon(Icons.schedule, size: 18),
-                    label: const Text('5 Seconds'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _testDelayedNotification,
-                    icon: const Icon(Icons.timer, size: 18),
-                    label: const Text('Timer Test'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _testAllNotifications,
-                    icon: const Icon(Icons.notifications_active, size: 18),
-                    label: const Text('Test All'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdvancedSettings() {
-    return _buildSection(
-      context,
-      title: 'Advanced Settings',
-      child: Column(
-        children: [
-          _buildAdvancedTile(
-            icon: Icons.settings,
-            title: 'Personalized Notifications',
-            subtitle: 'Configure detailed workout and meal reminders',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const EnhancedNotificationsScreen(),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
               ),
             ),
-          ),
-          _buildAdvancedTile(
-            icon: Icons.cloud_queue,
-            title: 'FCM Token',
-            subtitle: _fcmToken != null
-                ? '${_fcmToken!.substring(0, 20)}...'
-                : 'Not available',
-            onTap: () => _copyFCMToken(),
-          ),
-          _buildAdvancedTile(
-            icon: Icons.security,
-            title: 'Permissions',
-            subtitle: 'Check and request notification permissions',
-            onTap: _checkAndRequestPermissions,
-          ),
-          _buildAdvancedTile(
-            icon: Icons.list,
-            title: 'Pending Notifications',
-            subtitle: 'View all scheduled notifications',
-            onTap: _listPendingNotifications,
-          ),
-          _buildAdvancedTile(
-            icon: Icons.refresh,
-            title: 'Initialize All Notifications',
-            subtitle:
-                'Set up recurring notifications based on your preferences',
-            onTap: _initializeAllNotifications,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDebugSection() {
-    return _buildSection(
-      context,
-      title: 'Debug & Developer Options',
-      child: Column(
-        children: [
-          _buildDebugTile(
-            'Show System Info',
-            () => _showDebugInfo(),
-          ),
-          _buildDebugTile(
-            'Refresh All Data',
-            () => _refreshNotificationData(),
-          ),
-          _buildDebugTile(
-            'Test Notification Types',
-            () => _testNotificationTypes(),
-          ),
-          _buildDebugTile(
-            'Force Permission Request',
-            () => _forcePermissionRequest(),
-          ),
-          _buildDebugTile(
-            'Cancel All Notifications',
-            () => _cancelAllNotifications(),
-            isDestructive: true,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(BuildContext context,
-      {required String title, required Widget child}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.cardColor(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: child,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNotificationTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 21),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
+                Icon(icon, color: AppColors.primary, size: 24),
+                const SizedBox(width: 12),
                 Text(
                   title,
                   style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                     color: AppTheme.textColor(context),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withValues(alpha: 153),
-                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.primary,
-          ),
+          child,
         ],
       ),
     );
   }
 
-  Widget _buildAdvancedTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
+  Widget _buildWorkoutSection() {
+    return _buildSection(
+      title: 'Workout Reminders',
+      icon: Icons.fitness_center,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
+        padding: const EdgeInsets.all(16),
+        child: Column(
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontSize: 16,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: AppTheme.textColor(context).withValues(alpha: 153),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            SwitchListTile(
+              title: Text(
+                'Enable Workout Reminders',
+                style: TextStyle(color: AppTheme.textColor(context)),
               ),
+              value: _preferences.workoutSettings.enabled,
+              onChanged: (value) {
+                setState(() {
+                  _preferences = _preferences.copyWith(
+                    workoutSettings: _preferences.workoutSettings.copyWith(enabled: value),
+                  );
+                });
+              },
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textColor(context).withValues(alpha: 153),
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDebugTile(String title, VoidCallback onTap,
-      {bool isDestructive = false}) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color:
-                      isDestructive ? Colors.red : AppTheme.textColor(context),
-                  fontSize: 16,
+            if (_preferences.workoutSettings.enabled) ...[
+              const Divider(),
+              // Timing options
+              ListTile(
+                title: Text(
+                  'Timing Type',
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
+                subtitle: DropdownButton<NotificationTimingType>(
+                  value: _preferences.workoutSettings.timingType,
+                  items: NotificationTimingType.values.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type == NotificationTimingType.specificTime 
+                        ? 'Specific Time' 
+                        : 'Random Time'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _preferences = _preferences.copyWith(
+                          workoutSettings: _preferences.workoutSettings.copyWith(timingType: value),
+                        );
+                      });
+                    }
+                  },
                 ),
               ),
-            ),
-            Icon(
-              isDestructive ? Icons.warning : Icons.bug_report,
-              color: isDestructive ? Colors.red : AppColors.primary,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ====================
-  // ACTION METHODS
-  // ====================
-
-  Future<void> _updatePreference(
-      String key, bool value, Function(bool) setter) async {
-    try {
-      setState(() => setter(value));
-      await _notificationService.setNotificationPreference(key, value);
-      _logger.info('Updated preference $key to $value');
-      _showInfoSnackBar('Preference updated successfully');
-    } catch (e) {
-      _logger.severe('Failed to update preference $key: $e');
-      _showErrorSnackBar('Failed to update preference');
-    }
-  }
-
-  Future<void> _testSimpleNotification() async {
-    try {
-      await _notificationService.testSimpleNotification();
-      _showInfoSnackBar('Simple test notification sent!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to send simple notification: $e');
-    }
-  }
-
-  Future<void> _testScheduledNotification() async {
-    try {
-      await _notificationService.testScheduledNotification(
-        title: '⏰ Scheduled Test',
-        body:
-            'This notification was scheduled 5 seconds ago! ${DateTime.now().toString().substring(11, 19)}',
-        delaySeconds: 5,
-        type: 'test_scheduled',
-      );
-      _showInfoSnackBar('Scheduled test notification in 5 seconds!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to schedule test notification: $e');
-    }
-  }
-
-  Future<void> _testDelayedNotification() async {
-    try {
-      await _notificationService.testDelayedNotification(
-        title: '⏲️ Timer Test',
-        body:
-            'This notification used Timer instead of scheduling! ${DateTime.now().toString().substring(11, 19)}',
-        delaySeconds: 3,
-      );
-      _showInfoSnackBar('Timer test notification in 3 seconds!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to send timer test notification: $e');
-    }
-  }
-
-  Future<void> _testNotificationTypes() async {
-    try {
-      // Test different notification types
-      await Future.wait([
-        _notificationService.scheduleWorkoutReminder(
-          title: '🏋️ Test Workout',
-          body: 'Test workout reminder notification!',
-          scheduledTime: DateTime.now().add(const Duration(seconds: 2)),
-          workoutType: 'test',
-        ),
-        _notificationService.scheduleEcoTip(
-          tip: 'Test eco tip: Use renewable energy! 🌱',
-          scheduledTime: DateTime.now().add(const Duration(seconds: 4)),
-        ),
-        _notificationService.scheduleMealReminder(
-          mealType: 'snacks',
-          scheduledTime: DateTime.now().add(const Duration(seconds: 6)),
-          customMessage: 'Test meal reminder - time for a healthy snack!',
-        ),
-      ]);
-
-      // Send immediate progress celebration
-      await _notificationService.sendProgressCelebration(
-        achievement: 'Test Achievement',
-        message: 'Congratulations on testing the notification types! 🎉',
-      );
-
-      _showInfoSnackBar('All notification types tested!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to test notification types: $e');
-    }
-  }
-
-  Future<void> _testAllNotifications() async {
-    try {
-      await Future.wait([
-        _testSimpleNotification(),
-        _testScheduledNotification(),
-        _testDelayedNotification(),
-      ]);
-      _showInfoSnackBar('All test notifications triggered!');
-    } catch (e) {
-      _showErrorSnackBar('Failed to test all notifications: $e');
-    }
-  }
-
-  Future<void> _refreshNotificationData() async {
-    setState(() => _isLoading = true);
-
-    try {
-      await Future.wait([
-        _loadNotificationPreferences(),
-        _getFCMToken(),
-        _loadDebugInfo(),
-      ]);
-
-      _showInfoSnackBar('Notification data refreshed');
-    } catch (e) {
-      _showErrorSnackBar('Failed to refresh data');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _copyFCMToken() async {
-    if (!mounted) return;
-
-    if (_fcmToken != null) {
-      _showInfoSnackBar('FCM Token: ${_fcmToken!.substring(0, 50)}...');
-    } else {
-      _showErrorSnackBar('No FCM token available');
-    }
-  }
-
-  Future<void> _checkAndRequestPermissions() async {
-    try {
-      bool hasPermission = false;
-
-      if (Platform.isIOS) {
-        final messaging = FirebaseMessaging.instance;
-        final settings = await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-          provisional: false,
-        );
-        hasPermission =
-            settings.authorizationStatus == AuthorizationStatus.authorized;
-      } else {
-        final status = await Permission.notification.request();
-        hasPermission = status.isGranted;
-      }
-
-      await _loadDebugInfo(); // Refresh debug info
-
-      _showInfoSnackBar(hasPermission
-          ? 'Notification permissions granted'
-          : 'Notification permissions denied');
-    } catch (e) {
-      _logger.severe('Failed to check permissions: $e');
-      _showErrorSnackBar('Failed to check permissions');
-    }
-  }
-
-  Future<void> _forcePermissionRequest() async {
-    try {
-      if (Platform.isAndroid) {
-        final status = await Permission.notification.request();
-        _showInfoSnackBar('Android permission status: $status');
-      } else {
-        final messaging = FirebaseMessaging.instance;
-        final settings = await messaging.requestPermission(
-          alert: true,
-          badge: true,
-          sound: true,
-          provisional: false,
-        );
-        _showInfoSnackBar(
-            'iOS permission status: ${settings.authorizationStatus}');
-      }
-
-      await _loadDebugInfo(); // Refresh debug info
-    } catch (e) {
-      _showErrorSnackBar('Failed to request permissions: $e');
-    }
-  }
-
-  Future<void> _listPendingNotifications() async {
-    try {
-      if (!mounted) return;
-
-      final notifications =
-          await _notificationService.getPendingNotifications();
-
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Pending Notifications'),
-          content: SizedBox(
-            width: double.maxFinite,
-            height: 300,
-            child: notifications.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No pending notifications',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: notifications.length,
-                    itemBuilder: (context, index) {
-                      final notification = notifications[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        child: ListTile(
-                          title: Text(
-                            notification.title ?? 'No title',
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('ID: ${notification.id}'),
-                              if (notification.body != null)
-                                Text('Body: ${notification.body}'),
-                              if (notification.payload != null)
-                                Text('Payload: ${notification.payload}'),
-                            ],
-                          ),
-                          dense: true,
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                AppColors.primary.withValues(alpha: 21),
-                            child: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ),
+              if (_preferences.workoutSettings.timingType == NotificationTimingType.specificTime)
+                ListTile(
+                  title: Text(
+                    'Specific Time',
+                    style: TextStyle(color: AppTheme.textColor(context)),
+                  ),
+                  subtitle: Text(
+                    _preferences.workoutSettings.specificTime?.format(context) ?? 'Not set',
+                  ),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: _preferences.workoutSettings.specificTime ?? const TimeOfDay(hour: 9, minute: 0),
+                    );
+                    if (time != null) {
+                      setState(() {
+                        _preferences = _preferences.copyWith(
+                          workoutSettings: _preferences.workoutSettings.copyWith(specificTime: time),
+                        );
+                      });
+                    }
+                  },
+                )
+              else
+                ListTile(
+                  title: Text(
+                    'Time Period',
+                    style: TextStyle(color: AppTheme.textColor(context)),
+                  ),
+                  subtitle: DropdownButton<String>(
+                    value: _preferences.workoutSettings.timePeriod,
+                    items: TimePeriods.allPeriods.map((period) {
+                      return DropdownMenuItem(
+                        value: period,
+                        child: Text(period.toUpperCase()),
                       );
+                    }).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          _preferences = _preferences.copyWith(
+                            workoutSettings: _preferences.workoutSettings.copyWith(timePeriod: value),
+                          );
+                        });
+                      }
                     },
                   ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            if (notifications.isNotEmpty)
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  _cancelAllNotifications();
-                },
-                style: TextButton.styleFrom(foregroundColor: Colors.red),
-                child: const Text('Cancel All'),
+                ),
+              ListTile(
+                title: Text(
+                  'Advance Notice (minutes)',
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
+                subtitle: Slider(
+                  value: _preferences.workoutSettings.advanceMinutes.toDouble(),
+                  min: 0,
+                  max: 120,
+                  divisions: 24,
+                  label: '${_preferences.workoutSettings.advanceMinutes} min',
+                  onChanged: (value) {
+                    setState(() {
+                      _preferences = _preferences.copyWith(
+                        workoutSettings: _preferences.workoutSettings.copyWith(advanceMinutes: value.round()),
+                      );
+                    });
+                  },
+                ),
               ),
+            ],
           ],
         ),
-      );
-    } catch (e) {
-      _logger.severe('Failed to list pending notifications: $e');
-      if (mounted) {
-        _showErrorSnackBar('Failed to list notifications: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _showDebugInfo() async {
-    try {
-      if (_debugInfo == null) {
-        await _loadDebugInfo();
-      }
-
-      if (!mounted || _debugInfo == null) return;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('System Debug Information'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _debugInfo!.entries.map((entry) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text('${entry.key}: ${entry.value}'),
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _loadDebugInfo();
-              },
-              child: const Text('Refresh'),
-            ),
-          ],
-        ),
-      );
-    } catch (e) {
-      _showErrorSnackBar('Failed to show debug info: $e');
-    }
-  }
-
-  Future<void> _cancelAllNotifications() async {
-    try {
-      if (!mounted) return;
-
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Cancel All Notifications'),
-          content: const Text(
-              'This will cancel all scheduled notifications. Continue?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Cancel All'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true && mounted) {
-        await _notificationService.cancelAllNotifications();
-        await _loadDebugInfo(); // Refresh debug info
-
-        if (mounted) {
-          _showInfoSnackBar('All notifications cancelled');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Failed to cancel notifications');
-      }
-    }
-  }
-
-  void _showInfoSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 3),
       ),
     );
   }
 
-  void _showErrorSnackBar(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 4),
+  Widget _buildMealSection() {
+    return _buildSection(
+      title: 'Meal Reminders',
+      icon: Icons.restaurant,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SwitchListTile(
+              title: Text(
+                'Enable Meal Reminders',
+                style: TextStyle(color: AppTheme.textColor(context)),
+              ),
+              value: _preferences.mealSettings.enabled,
+              onChanged: (value) {
+                setState(() {
+                  _preferences = _preferences.copyWith(
+                    mealSettings: _preferences.mealSettings.copyWith(enabled: value),
+                  );
+                });
+              },
+            ),
+            if (_preferences.mealSettings.enabled) ...[
+              const Divider(),
+              ..._preferences.mealSettings.mealConfigs.entries.map((meal) {
+                return _buildMealConfigTile(meal.key, meal.value);
+              }),
+              if (_hasMealPlans) ...[
+                const Divider(),
+                ListTile(
+                  title: Text(
+                    'Meal Plan Integration',
+                    style: TextStyle(color: AppTheme.textColor(context)),
+                  ),
+                  subtitle: const Text('Notifications will use your meal plan names'),
+                  trailing: Icon(Icons.check_circle, color: AppColors.primary),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMealConfigTile(String mealType, MealNotificationConfig config) {
+    return ExpansionTile(
+      title: Text(
+        mealType.toUpperCase(),
+        style: TextStyle(
+          color: AppTheme.textColor(context),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      subtitle: Text(
+        config.enabled ? 'Enabled' : 'Disabled',
+        style: TextStyle(
+          color: config.enabled ? AppColors.primary : Colors.grey,
+        ),
+      ),
+      trailing: Switch(
+        value: config.enabled,
+        onChanged: (value) {
+          setState(() {
+            final updatedConfigs = Map<String, MealNotificationConfig>.from(_preferences.mealSettings.mealConfigs);
+            updatedConfigs[mealType] = config.copyWith(enabled: value);
+            _preferences = _preferences.copyWith(
+              mealSettings: _preferences.mealSettings.copyWith(mealConfigs: updatedConfigs),
+            );
+          });
+        },
+      ),
+      children: config.enabled ? [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            children: [
+              // Timing Type
+              ListTile(
+                title: Text(
+                  'Timing Type',
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
+                subtitle: DropdownButton<NotificationTimingType>(
+                  value: config.timingType,
+                  items: NotificationTimingType.values.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(type == NotificationTimingType.specificTime 
+                        ? 'Specific Time' 
+                        : 'Use Meal Plan Time'),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        final updatedConfigs = Map<String, MealNotificationConfig>.from(_preferences.mealSettings.mealConfigs);
+                        updatedConfigs[mealType] = config.copyWith(timingType: value);
+                        _preferences = _preferences.copyWith(
+                          mealSettings: _preferences.mealSettings.copyWith(mealConfigs: updatedConfigs),
+                        );
+                      });
+                    }
+                  },
+                ),
+              ),
+              // Specific Time (if selected)
+              if (config.timingType == NotificationTimingType.specificTime)
+                ListTile(
+                  title: Text(
+                    'Specific Time',
+                    style: TextStyle(color: AppTheme.textColor(context)),
+                  ),
+                  subtitle: Text(
+                    config.specificTime?.format(context) ?? 'Not set',
+                  ),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () async {
+                    final time = await showTimePicker(
+                      context: context,
+                      initialTime: config.specificTime ?? _getDefaultMealTime(mealType),
+                    );
+                    if (time != null) {
+                      setState(() {
+                        final updatedConfigs = Map<String, MealNotificationConfig>.from(_preferences.mealSettings.mealConfigs);
+                        updatedConfigs[mealType] = config.copyWith(specificTime: time);
+                        _preferences = _preferences.copyWith(
+                          mealSettings: _preferences.mealSettings.copyWith(mealConfigs: updatedConfigs),
+                        );
+                      });
+                    }
+                  },
+                ),
+              // Advance Notice
+              ListTile(
+                title: Text(
+                  'Advance Notice (minutes)',
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
+                subtitle: Slider(
+                  value: config.advanceMinutes.toDouble(),
+                  min: 0,
+                  max: 60,
+                  divisions: 12,
+                  label: '${config.advanceMinutes} min',
+                  onChanged: (value) {
+                    setState(() {
+                      final updatedConfigs = Map<String, MealNotificationConfig>.from(_preferences.mealSettings.mealConfigs);
+                      updatedConfigs[mealType] = config.copyWith(advanceMinutes: value.round());
+                      _preferences = _preferences.copyWith(
+                        mealSettings: _preferences.mealSettings.copyWith(mealConfigs: updatedConfigs),
+                      );
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ] : [],
+    );
+  }
+
+  TimeOfDay _getDefaultMealTime(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return const TimeOfDay(hour: 8, minute: 0);
+      case 'lunch':
+        return const TimeOfDay(hour: 12, minute: 30);
+      case 'dinner':
+        return const TimeOfDay(hour: 19, minute: 0);
+      case 'snacks':
+        return const TimeOfDay(hour: 15, minute: 30);
+      default:
+        return const TimeOfDay(hour: 12, minute: 0);
+    }
+  }
+
+  Widget _buildOtherNotificationsSection() {
+    return _buildSection(
+      title: 'Other Notifications',
+      icon: Icons.notifications,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            SwitchListTile(
+              title: Text(
+                'Water Reminders',
+                style: TextStyle(color: AppTheme.textColor(context)),
+              ),
+              value: _preferences.waterReminders,
+              onChanged: (value) {
+                setState(() {
+                  _preferences = _preferences.copyWith(waterReminders: value);
+                });
+              },
+            ),
+            SwitchListTile(
+              title: Text(
+                'Eco Tips',
+                style: TextStyle(color: AppTheme.textColor(context)),
+              ),
+              value: _preferences.ecoTips,
+              onChanged: (value) {
+                setState(() {
+                  _preferences = _preferences.copyWith(ecoTips: value);
+                });
+              },
+            ),
+            SwitchListTile(
+              title: Text(
+                'Progress Updates',
+                style: TextStyle(color: AppTheme.textColor(context)),
+              ),
+              value: _preferences.progressUpdates,
+              onChanged: (value) {
+                setState(() {
+                  _preferences = _preferences.copyWith(progressUpdates: value);
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTestSection() {
+    return _buildSection(
+      title: 'Notification Status',
+      icon: Icons.notifications_active,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          'Notification settings have been configured. Your personalized reminders will appear based on your preferences above.',
+          style: TextStyle(
+            color: AppTheme.textColor(context).withValues(alpha: 0.7),
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpSection() {
+    return _buildSection(
+      title: 'Troubleshooting',
+      icon: Icons.help_outline,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'If scheduled notifications don\'t work:',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildHelpItem('1. Check notification permissions in Android settings'),
+            _buildHelpItem('2. Allow "Alarms & reminders" permission for this app'),
+            _buildHelpItem('3. Disable battery optimization for SolarVita'),
+            _buildHelpItem('4. Make sure "Do Not Disturb" is not blocking notifications'),
+            const SizedBox(height: 12),
+            Text(
+              'Meal Timing Options:',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            _buildHelpItem('• Specific Time: Set exact time for each meal'),
+            _buildHelpItem('• Use Meal Plan Time: Follow your dietary preferences'),
+            _buildHelpItem('• Advance Notice: Get notified before meal time'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHelpItem(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: AppTheme.textColor(context).withValues(alpha: 0.8),
+          fontSize: 14,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving ? null : _savePreferences,
+        icon: _isSaving 
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.save),
+        label: Text(_isSaving ? 'Saving...' : 'Save Settings'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       ),
     );
   }
