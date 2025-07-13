@@ -2,5 +2,14 @@
     "watch_video": "Watch Video",
     "add_to_meal_plan": "Add to Meal Plan",
     "select_meal_time": "Select Meal Time",
-    "meal_added_to_plan": "Meal added to plan"
+    "meal_added_to_plan": "Meal added to plan",
+    "add_favorites_hint": "Add to favorites for quick access",
+    "favorite_toggled": "Favorite status updated",
+    "ingredient_name": "Ingredient Name",
+    "instruction_step": "Instruction Step",
+    "instructions": "Instructions",
+    "meal_title": "Meal Title",
+    "no_meals_found": "No meals found",
+    "servings": "Servings",
+    "fatsecret_auth_error": "Unable to connect to nutrition database"
 }

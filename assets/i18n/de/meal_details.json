@@ -2,5 +2,14 @@
     "watch_video": "Video ansehen",
     "add_to_meal_plan": "Zum Mahlzeitenplan hinzufügen",
     "select_meal_time": "Mahlzeitenzeit wählen",
-    "meal_added_to_plan": "Mahlzeit zum Plan hinzugefügt"
+    "meal_added_to_plan": "Mahlzeit zum Plan hinzugefügt",
+    "add_favorites_hint": "Zu Favoriten hinzufügen für schnellen Zugriff",
+    "favorite_toggled": "Favoriten-Status aktualisiert",
+    "ingredient_name": "Zutat",
+    "instruction_step": "Anweisungsschritt",
+    "instructions": "Anweisungen",
+    "meal_title": "Mahlzeittitel",
+    "no_meals_found": "Keine Mahlzeiten gefunden",
+    "servings": "Portionen",
+    "fatsecret_auth_error": "Verbindung zur Nährwertdatenbank nicht möglich"
 }

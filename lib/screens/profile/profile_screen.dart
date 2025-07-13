@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'widgets/modern_stats_row.dart';
+import 'widgets/modern_profile_header.dart';
+import 'widgets/modern_action_grid.dart';
+import 'widgets/modern_achievements_section.dart';
+import 'widgets/modern_weekly_summary.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/user_profile_provider.dart';
-import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
 import 'supporter_requests_screen.dart';
-import 'add_friend_screen.dart';
-import 'supporters_list_screen.dart';
-import 'friend_activity_feed_screen.dart';
-import 'following_list_screen.dart';
-import 'settings_main_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -41,15 +38,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildProfileHeader(context),
+              const ModernProfileHeader(),
               _buildSupporterRequestNotification(context),
-              const ModernStatsRow(),
+              const SizedBox(height: 8),
+              const ModernWeeklySummary(),
               const SizedBox(height: 24),
-              _buildWeeklySummary(context),
+              const ModernActionGrid(),
               const SizedBox(height: 24),
-              _buildQuickActions(context),
-              const SizedBox(height: 24),
-              _buildAchievementsSection(context),
+              const ModernAchievementsSection(),
               const SizedBox(height: 24),
               _buildDebugMigrationSection(context),
               const SizedBox(height: 32),
@@ -60,70 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(BuildContext context) {
-    return Consumer<UserProfileProvider>(
-      builder: (context, userProfileProvider, _) {
-        final userProfile = userProfileProvider.userProfile;
-        final displayName = userProfile?.displayName ?? 'User';
-        final photoURL = userProfile?.photoURL;
-        
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
-                backgroundColor: AppTheme.cardColor(context),
-                child: photoURL == null
-                    ? const Icon(
-                        Icons.person,
-                        size: 32,
-                        color: AppColors.primary,
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      displayName,
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      tr(context, 'eco_enthusiast'),
-                      style: TextStyle(
-                        color: AppTheme.textColor(context).withAlpha(153),
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings, color: AppColors.primary),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SettingsMainScreen(),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 
   Widget _buildSupporterRequestNotification(BuildContext context) {
     return StreamBuilder<List<SupporterRequest>>(
@@ -268,323 +200,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
 
-  Widget _buildAchievementsSection(BuildContext context) {
-    return _buildSection(
-      context,
-      title: 'achievements',
-      child: SizedBox(
-        height: 100,
-        child: ListView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.symmetric(horizontal: 2),
-          children: [
-            _buildAchievement(
-              context,
-              icon: Icons.directions_run,
-              label: 'achievement_10k',
-              isUnlocked: true,
-            ),
-            _buildAchievement(
-              context,
-              icon: Icons.eco,
-              label: 'achievement_tree',
-              isUnlocked: true,
-            ),
-            _buildAchievement(
-              context,
-              icon: Icons.fitness_center,
-              label: 'achievement_gym',
-              isUnlocked: true,
-            ),
-            _buildAchievement(
-              context,
-              icon: Icons.local_dining,
-              label: 'achievement_veggie',
-              isUnlocked: false,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildAchievement(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required bool isUnlocked,
-  }) {
-    final Color iconColor = isUnlocked ? AppColors.gold : Colors.grey;
-    final Color backgroundColor = isUnlocked
-        ? AppTheme.cardColor(context)
-        : AppColors.primary.withValues(alpha: 21);
-    final Color textColor = isUnlocked
-        ? AppTheme.textColor(context)
-        : AppTheme.textColor(context).withValues(alpha: 153);
 
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: iconColor),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            tr(context, label),
-            style: TextStyle(
-              color: textColor,
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildWeeklySummary(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    return _buildSection(
-      context,
-      title: 'This Week\'s Progress',
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.primaryColor.withAlpha(25),
-              theme.primaryColor.withAlpha(13),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: theme.primaryColor.withAlpha(76),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _buildWeeklyStatCard(
-                  context,
-                  icon: Icons.fitness_center,
-                  label: 'Workouts',
-                  value: '4',
-                  target: '5',
-                  color: Colors.blue,
-                ),
-                const SizedBox(width: 12),
-                _buildWeeklyStatCard(
-                  context,
-                  icon: Icons.restaurant,
-                  label: 'Meals Logged',
-                  value: '18',
-                  target: '21',
-                  color: Colors.orange,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildWeeklyStatCard(
-                  context,
-                  icon: Icons.eco,
-                  label: 'CO2 Saved',
-                  value: '2.3kg',
-                  target: '3kg',
-                  color: Colors.green,
-                ),
-                const SizedBox(width: 12),
-                _buildWeeklyStatCard(
-                  context,
-                  icon: Icons.local_fire_department,
-                  label: 'Streak',
-                  value: '12',
-                  target: 'days',
-                  color: Colors.red,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
-  Widget _buildWeeklyStatCard(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required String value,
-    required String target,
-    required Color color,
-  }) {
-    final theme = Theme.of(context);
-    
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: AppTheme.cardColor(context),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            Text(
-              '/ $target',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.hintColor,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.hintColor,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions(BuildContext context) {
-    return _buildSection(
-      context,
-      title: 'Quick Actions',
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.add_circle,
-                  label: 'Log Workout',
-                  color: Colors.blue,
-                  onTap: () {
-                    // Navigate to log workout screen
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.camera_alt,
-                  label: 'Add Meal',
-                  color: Colors.orange,
-                  onTap: () {
-                    // Navigate to meal logging screen
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.person_add,
-                  label: 'Add Supporter',
-                  color: Colors.purple,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AddSupporterScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.people,
-                  label: 'Supporters',
-                  color: Colors.green,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SupportersListScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.timeline,
-                  label: 'Supporter Activities',
-                  color: Colors.teal,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FriendActivityFeedScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionButton(
-                  context,
-                  icon: Icons.person_search,
-                  label: 'Supporting',
-                  color: Colors.indigo,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FollowingListScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildActionButton(
     BuildContext context, {

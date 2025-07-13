@@ -664,18 +664,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           children: [
             SwitchListTile(
               title: Text(
-                'Water Reminders',
-                style: TextStyle(color: AppTheme.textColor(context)),
-              ),
-              value: _preferences.waterReminders,
-              onChanged: (value) {
-                setState(() {
-                  _preferences = _preferences.copyWith(waterReminders: value);
-                });
-              },
-            ),
-            SwitchListTile(
-              title: Text(
                 'Eco Tips',
                 style: TextStyle(color: AppTheme.textColor(context)),
               ),
