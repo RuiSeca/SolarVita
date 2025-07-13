@@ -1,0 +1,13 @@
+{
+    "close": "Chiudi",
+    "dismiss": "Ignora",
+    "retry": "Riprova",
+    "history": "Cronologia",
+    "records": "Record",
+    "charts": "Grafici",
+    "charts_will_be_implemented": "I grafici saranno implementati presto",
+    "select_date_range": "Seleziona Intervallo di Date",
+    "switch_light_dark_mode": "Cambia Modalità Chiara/Scura",
+    "try_different_category": "Prova una categoria diversa",
+    "get_help_contact_support": "Ottieni aiuto e contatta il supporto"
+}

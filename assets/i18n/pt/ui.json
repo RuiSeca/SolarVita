@@ -1,0 +1,13 @@
+{
+    "close": "Fechar",
+    "dismiss": "Dispensar",
+    "retry": "Tentar Novamente",
+    "history": "Histórico",
+    "records": "Registros",
+    "charts": "Gráficos",
+    "charts_will_be_implemented": "Os gráficos serão implementados em breve",
+    "select_date_range": "Selecionar Período",
+    "switch_light_dark_mode": "Alternar Modo Claro/Escuro",
+    "try_different_category": "Tente uma categoria diferente",
+    "get_help_contact_support": "Obter ajuda e contatar suporte"
+}

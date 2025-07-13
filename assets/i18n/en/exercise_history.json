@@ -16,5 +16,21 @@
     "this_week": "This Week",
     "this_month": "This Month",
     "total_workouts": "Total Workouts",
-    "exercises": "Exercises"
+    "exercises": "Exercises",
+    "about_exercises": "About Exercises",
+    "search_workout": "Search Workout",
+    "target_muscle_info": "Target Muscle Information",
+    "view_exercise_history": "View Exercise History",
+    "advanced_metrics": "Advanced Metrics",
+    "exercise_history_for_title": "Exercise History for",
+    "exercises_count_info": "Exercises Count Info",
+    "no_data_for_charts": "No data available for charts",
+    "no_exercises_found": "No exercises found",
+    "no_logs_found": "No logs found",
+    "no_personal_records": "No personal records",
+    "no_workouts_found": "No workouts found",
+    "progress_over_time": "Progress Over Time",
+    "tap_plus_to_log": "Tap + to log your first exercise",
+    "error_loading_logs": "Error loading exercise logs",
+    "error_loading_records": "Error loading personal records"
 }

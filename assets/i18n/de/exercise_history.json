@@ -16,5 +16,21 @@
     "this_week": "Diese Woche",
     "this_month": "Dieser Monat",
     "total_workouts": "Gesamtworkouts",
-    "exercises": "Übungen"
+    "exercises": "Übungen",
+    "about_exercises": "Über Übungen",
+    "search_workout": "Workout suchen",
+    "target_muscle_info": "Zielmuskel-Information",
+    "view_exercise_history": "Übungshistorie anzeigen",
+    "advanced_metrics": "Erweiterte Metriken",
+    "exercise_history_for_title": "Übungshistorie für",
+    "exercises_count_info": "Übungsanzahl-Info",
+    "no_data_for_charts": "Keine Daten für Diagramme verfügbar",
+    "no_exercises_found": "Keine Übungen gefunden",
+    "no_logs_found": "Keine Protokolle gefunden",
+    "no_personal_records": "Keine persönlichen Rekorde",
+    "no_workouts_found": "Keine Workouts gefunden",
+    "progress_over_time": "Fortschritt über Zeit",
+    "tap_plus_to_log": "Tippe + um deine erste Übung zu protokollieren",
+    "error_loading_logs": "Fehler beim Laden der Übungsprotokolle",
+    "error_loading_records": "Fehler beim Laden der persönlichen Rekorde"
 }

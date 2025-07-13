@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
+import '../../widgets/common/lottie_water_widget.dart';
+import 'water_detail_screen.dart';
 
 class HealthScreen extends StatefulWidget {
   const HealthScreen({super.key});
@@ -15,35 +17,18 @@ class HealthScreen extends StatefulWidget {
 
 class _HealthScreenState extends State<HealthScreen>
     with TickerProviderStateMixin {
-  double waterIntake = 0.25; // Start with 250ml
-  late AnimationController _waterAnimationController;
+  double waterIntake = 0.0; // Start with 0ml
+  double waterDailyLimit = 2.0; // Default 2000ml = 2.0L
   late AnimationController _rippleController;
-  late AnimationController _waveController;
   late Map<String, AnimationController> _iconAnimationControllers;
-  late Animation<double> _waterAnimation;
-  late Animation<double> _waveAnimation;
+  bool _isWaterAnimating = false;
 
   @override
   void initState() {
     super.initState();
-    _waterAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
     _rippleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
-    );
-    _waveController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    )..repeat();
-    _waterAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(
-          parent: _waterAnimationController, curve: Curves.easeInOut),
-    );
-    _waveAnimation = Tween<double>(begin: 0, end: 2 * pi).animate(
-      CurvedAnimation(parent: _waveController, curve: Curves.linear),
     );
 
     // Initialize animation controllers for each stat
@@ -65,9 +50,7 @@ class _HealthScreenState extends State<HealthScreen>
 
   @override
   void dispose() {
-    _waterAnimationController.dispose();
     _rippleController.dispose();
-    _waveController.dispose();
     for (final controller in _iconAnimationControllers.values) {
       controller.dispose();
     }
@@ -79,36 +62,47 @@ class _HealthScreenState extends State<HealthScreen>
     final today = DateTime.now().toIso8601String().split('T')[0];
     final lastDate = prefs.getString('water_last_date') ?? '';
 
+    // Load water daily limit
+    final dailyLimit = prefs.getDouble('water_daily_limit') ?? 2.0;
+
     if (lastDate != today) {
       // Reset for new day
       setState(() {
-        waterIntake = 0.25;
+        waterIntake = 0.0;
+        waterDailyLimit = dailyLimit;
       });
       await prefs.setString('water_last_date', today);
-      await prefs.setDouble('water_intake', 0.25);
+      await prefs.setDouble('water_intake', 0.0);
     } else {
       setState(() {
-        waterIntake = prefs.getDouble('water_intake') ?? 0.25;
+        waterIntake = prefs.getDouble('water_intake') ?? 0.0;
+        waterDailyLimit = dailyLimit;
       });
     }
   }
 
   Future<void> _addWater() async {
-    if (waterIntake < 2.0) {
+    if (waterIntake < waterDailyLimit) {
       final prefs = await SharedPreferences.getInstance();
-      final bool wasCompleted = waterIntake >= 2.0;
+      final bool wasCompleted = waterIntake >= waterDailyLimit;
 
       setState(() {
-        waterIntake = (waterIntake + 0.25).clamp(0.25, 2.0);
+        waterIntake = (waterIntake + 0.25).clamp(0.0, waterDailyLimit);
+        _isWaterAnimating = true;
       });
       await prefs.setDouble('water_intake', waterIntake);
 
-      _waterAnimationController.forward().then((_) {
-        _waterAnimationController.reset();
+      // Stop the water animation after a delay
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _isWaterAnimating = false;
+          });
+        }
       });
 
       // Check if goal was just completed
-      if (!wasCompleted && waterIntake >= 2.0) {
+      if (!wasCompleted && waterIntake >= waterDailyLimit) {
         _rippleController.forward().then((_) {
           _rippleController.reset();
         });
@@ -130,6 +124,25 @@ class _HealthScreenState extends State<HealthScreen>
         }
       }
     }
+  }
+
+  void _navigateToWaterDetail() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WaterDetailScreen(
+          currentWaterIntake: waterIntake,
+          onWaterIntakeChanged: (newIntake) {
+            setState(() {
+              waterIntake = newIntake;
+            });
+          },
+        ),
+      ),
+    ).then((_) {
+      // Reload water settings when returning from detail screen
+      _loadWaterIntake();
+    });
   }
 
   @override
@@ -527,10 +540,11 @@ class _HealthScreenState extends State<HealthScreen>
   }
 
   Widget _buildWaterHorizontalCard(BuildContext context) {
-    final waterPercentage = (waterIntake - 0.25) / (2.0 - 0.25);
+    final waterPercentage = waterIntake / waterDailyLimit;
+    final isGoalReached = waterIntake >= waterDailyLimit;
 
     return GestureDetector(
-      onTap: _addWater,
+      onTap: isGoalReached ? _navigateToWaterDetail : _addWater,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: BackdropFilter(
@@ -550,14 +564,14 @@ class _HealthScreenState extends State<HealthScreen>
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: waterIntake >= 2.0
+                color: isGoalReached
                     ? Colors.green.withValues(alpha: 0.4)
                     : Colors.white.withValues(alpha: 0.2),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: waterIntake >= 2.0
+                  color: isGoalReached
                       ? Colors.green.withValues(alpha: 0.2)
                       : Colors.cyan.withValues(alpha: 0.1),
                   spreadRadius: 0,
@@ -574,55 +588,15 @@ class _HealthScreenState extends State<HealthScreen>
             ),
             child: Row(
               children: [
-                // Water animation container
-                Container(
+                // Lottie water animation container
+                LottieWaterWidget(
                   width: 48,
                   height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.cyan.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.cyan.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      // Water fill with waves
-                      AnimatedBuilder(
-                        animation:
-                            Listenable.merge([_waterAnimation, _waveAnimation]),
-                        builder: (context, child) {
-                          return Positioned(
-                            bottom: 2,
-                            left: 2,
-                            right: 2,
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: CustomPaint(
-                                size: Size(
-                                    44, (44 * waterPercentage).clamp(0.0, 44)),
-                                painter: WaterWavePainter(
-                                  waterLevel: waterPercentage,
-                                  waveOffset: _waveAnimation.value,
-                                  containerHeight: 44,
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      // Water drop icon overlay
-                      Center(
-                        child: Icon(
-                          Icons.water_drop,
-                          color:
-                              waterIntake >= 2.0 ? Colors.green : Colors.cyan,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
+                  waterLevel: waterPercentage.clamp(0.0, 1.0),
+                  isAnimating: _isWaterAnimating,
+                  onAnimationComplete: () {
+                    // Animation completed callback
+                  },
                 ),
                 const SizedBox(width: 16),
                 // Content
@@ -645,16 +619,16 @@ class _HealthScreenState extends State<HealthScreen>
                           Row(
                             children: [
                               Text(
-                                '${((waterIntake / 2.0) * 100).toInt()}%',
+                                '${((waterIntake / waterDailyLimit) * 100).toInt()}%',
                                 style: TextStyle(
-                                  color: waterIntake >= 2.0
+                                  color: isGoalReached
                                       ? Colors.green
                                       : Colors.cyan,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              if (waterIntake >= 2.0) ...[
+                              if (isGoalReached) ...[
                                 const SizedBox(width: 4),
                                 Icon(
                                   Icons.check_circle,
@@ -676,7 +650,9 @@ class _HealthScreenState extends State<HealthScreen>
                         ),
                       ),
                       Text(
-                        'Tap to add 250ml • Goal: 2L',
+                        isGoalReached 
+                            ? 'Goal completed! Tap to manage water intake'
+                            : 'Tap to add 250ml • Goal: ${(waterDailyLimit * 1000).toInt()}ml',
                         style: TextStyle(
                           color: AppTheme.textColor(context)
                               .withValues(alpha: 0.6),
@@ -695,7 +671,7 @@ class _HealthScreenState extends State<HealthScreen>
                     value: waterPercentage.clamp(0.0, 1.0),
                     backgroundColor: Colors.cyan.withValues(alpha: 0.2),
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      waterIntake >= 2.0 ? Colors.green : Colors.cyan,
+                      isGoalReached ? Colors.green : Colors.cyan,
                     ),
                     strokeWidth: 4,
                   ),
@@ -845,85 +821,6 @@ class StatItem extends StatelessWidget {
   }
 }
 
-class WaterWavePainter extends CustomPainter {
-  final double waterLevel;
-  final double waveOffset;
-  final double containerHeight;
-
-  WaterWavePainter({
-    required this.waterLevel,
-    required this.waveOffset,
-    required this.containerHeight,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (waterLevel <= 0) return;
-
-    final waterHeight = size.height;
-    final waveHeight = waterHeight * 0.1; // Wave amplitude
-    final waveLength = size.width / 2; // Wave length
-
-    // Create wave path
-    final path = Path();
-    path.moveTo(0, waterHeight);
-
-    // Draw sine wave at the top of water
-    for (double x = 0; x <= size.width; x += 1) {
-      final waveY = sin((x / waveLength * 2 * pi) + waveOffset) * waveHeight;
-      final y = (waterHeight - waveHeight) + waveY;
-      if (x == 0) {
-        path.lineTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-
-    // Complete the path
-    path.lineTo(size.width, waterHeight);
-    path.lineTo(0, waterHeight);
-    path.close();
-
-    // Create gradient paint
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.cyan.withValues(alpha: 0.7),
-          Colors.cyan.withValues(alpha: 0.9),
-          Colors.cyan,
-        ],
-        stops: [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    // Draw the water with waves
-    canvas.drawPath(path, paint);
-
-    // Add some sparkle effects
-    final sparkleRandom = Random(42); // Fixed seed for consistent sparkles
-    final sparklePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.6)
-      ..strokeWidth = 1;
-
-    for (int i = 0; i < 3; i++) {
-      final x = sparkleRandom.nextDouble() * size.width;
-      final y = sparkleRandom.nextDouble() * waterHeight * 0.8;
-      final sparkleOffset = sin(waveOffset + i) * 2;
-      canvas.drawCircle(
-        Offset(x + sparkleOffset, y),
-        1 + sin(waveOffset + i) * 0.5,
-        sparklePaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(WaterWavePainter oldDelegate) {
-    return oldDelegate.waterLevel != waterLevel ||
-        oldDelegate.waveOffset != waveOffset;
-  }
-}
 
 class StatDetailPage extends StatelessWidget {
   final String statType;

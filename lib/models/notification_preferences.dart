@@ -6,7 +6,6 @@ class NotificationPreferences {
   final DiaryNotificationSettings diarySettings;
   final bool ecoTips;
   final bool progressUpdates;
-  final bool waterReminders;
 
   NotificationPreferences({
     required this.workoutSettings,
@@ -14,7 +13,6 @@ class NotificationPreferences {
     required this.diarySettings,
     this.ecoTips = true,
     this.progressUpdates = true,
-    this.waterReminders = true,
   });
 
   factory NotificationPreferences.fromMap(Map<String, dynamic> map) {
@@ -24,7 +22,6 @@ class NotificationPreferences {
       diarySettings: DiaryNotificationSettings.fromMap(map['diarySettings'] ?? {}),
       ecoTips: map['ecoTips'] ?? true,
       progressUpdates: map['progressUpdates'] ?? true,
-      waterReminders: map['waterReminders'] ?? true,
     );
   }
 
@@ -35,7 +32,6 @@ class NotificationPreferences {
       'diarySettings': diarySettings.toMap(),
       'ecoTips': ecoTips,
       'progressUpdates': progressUpdates,
-      'waterReminders': waterReminders,
     };
   }
 
@@ -45,7 +41,6 @@ class NotificationPreferences {
     DiaryNotificationSettings? diarySettings,
     bool? ecoTips,
     bool? progressUpdates,
-    bool? waterReminders,
   }) {
     return NotificationPreferences(
       workoutSettings: workoutSettings ?? this.workoutSettings,
@@ -53,7 +48,6 @@ class NotificationPreferences {
       diarySettings: diarySettings ?? this.diarySettings,
       ecoTips: ecoTips ?? this.ecoTips,
       progressUpdates: progressUpdates ?? this.progressUpdates,
-      waterReminders: waterReminders ?? this.waterReminders,
     );
   }
 }

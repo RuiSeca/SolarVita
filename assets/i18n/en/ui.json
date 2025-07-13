@@ -1,0 +1,13 @@
+{
+    "close": "Close",
+    "dismiss": "Dismiss",
+    "retry": "Retry",
+    "history": "History",
+    "records": "Records",
+    "charts": "Charts",
+    "charts_will_be_implemented": "Charts will be implemented soon",
+    "select_date_range": "Select Date Range",
+    "switch_light_dark_mode": "Switch Light/Dark Mode",
+    "try_different_category": "Try a different category",
+    "get_help_contact_support": "Get help & contact support"
+}
