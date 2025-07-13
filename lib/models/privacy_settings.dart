@@ -1,0 +1,142 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'social_activity.dart';
+
+class PrivacySettings {
+  final String userId;
+  final PostVisibility defaultPostVisibility;
+  final bool showProfileInSearch;
+  final bool allowFriendRequests;
+  final bool showWorkoutStats;
+  final bool showNutritionStats;
+  final bool showEcoScore;
+  final bool showAchievements;
+  final bool allowChallengeInvites;
+  final DateTime updatedAt;
+
+  PrivacySettings({
+    required this.userId,
+    this.defaultPostVisibility = PostVisibility.supportersOnly,
+    this.showProfileInSearch = true,
+    this.allowFriendRequests = true,
+    this.showWorkoutStats = true,
+    this.showNutritionStats = false,
+    this.showEcoScore = true,
+    this.showAchievements = true,
+    this.allowChallengeInvites = true,
+    required this.updatedAt,
+  });
+
+  factory PrivacySettings.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>? ?? {};
+    return PrivacySettings(
+      userId: doc.id,
+      defaultPostVisibility: PostVisibility.values[data['defaultPostVisibility'] ?? 0],
+      showProfileInSearch: data['showProfileInSearch'] ?? true,
+      allowFriendRequests: data['allowFriendRequests'] ?? true,
+      showWorkoutStats: data['showWorkoutStats'] ?? true,
+      showNutritionStats: data['showNutritionStats'] ?? false,
+      showEcoScore: data['showEcoScore'] ?? true,
+      showAchievements: data['showAchievements'] ?? true,
+      allowChallengeInvites: data['allowChallengeInvites'] ?? true,
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'defaultPostVisibility': defaultPostVisibility.index,
+      'showProfileInSearch': showProfileInSearch,
+      'allowFriendRequests': allowFriendRequests,
+      'showWorkoutStats': showWorkoutStats,
+      'showNutritionStats': showNutritionStats,
+      'showEcoScore': showEcoScore,
+      'showAchievements': showAchievements,
+      'allowChallengeInvites': allowChallengeInvites,
+      'updatedAt': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  PrivacySettings copyWith({
+    PostVisibility? defaultPostVisibility,
+    bool? showProfileInSearch,
+    bool? allowFriendRequests,
+    bool? showWorkoutStats,
+    bool? showNutritionStats,
+    bool? showEcoScore,
+    bool? showAchievements,
+    bool? allowChallengeInvites,
+  }) {
+    return PrivacySettings(
+      userId: userId,
+      defaultPostVisibility: defaultPostVisibility ?? this.defaultPostVisibility,
+      showProfileInSearch: showProfileInSearch ?? this.showProfileInSearch,
+      allowFriendRequests: allowFriendRequests ?? this.allowFriendRequests,
+      showWorkoutStats: showWorkoutStats ?? this.showWorkoutStats,
+      showNutritionStats: showNutritionStats ?? this.showNutritionStats,
+      showEcoScore: showEcoScore ?? this.showEcoScore,
+      showAchievements: showAchievements ?? this.showAchievements,
+      allowChallengeInvites: allowChallengeInvites ?? this.allowChallengeInvites,
+      updatedAt: DateTime.now(),
+    );
+  }
+}
+
+class PublicProfile {
+  final String userId;
+  final String displayName;
+  final String? username;
+  final String? photoURL;
+  final String? fitnessLevel;
+  final String? ecoScore;
+  final int? totalWorkouts;
+  final List<String> badges;
+  final bool isVerified;
+  final DateTime joinedAt;
+
+  PublicProfile({
+    required this.userId,
+    required this.displayName,
+    this.username,
+    this.photoURL,
+    this.fitnessLevel,
+    this.ecoScore,
+    this.totalWorkouts,
+    this.badges = const [],
+    this.isVerified = false,
+    required this.joinedAt,
+  });
+
+  factory PublicProfile.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return PublicProfile(
+      userId: doc.id,
+      displayName: data['displayName'] ?? '',
+      username: data['username'],
+      photoURL: data['photoURL'],
+      fitnessLevel: data['fitnessLevel'],
+      ecoScore: data['ecoScore']?.toString(),
+      totalWorkouts: data['totalWorkouts'],
+      badges: List<String>.from(data['badges'] ?? []),
+      isVerified: data['isVerified'] ?? false,
+      joinedAt: data['joinedAt'] != null 
+          ? (data['joinedAt'] as Timestamp).toDate()
+          : DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'displayName': displayName,
+      'username': username,
+      'photoURL': photoURL,
+      'fitnessLevel': fitnessLevel,
+      'ecoScore': ecoScore,
+      'totalWorkouts': totalWorkouts,
+      'badges': badges,
+      'isVerified': isVerified,
+      'joinedAt': Timestamp.fromDate(joinedAt),
+    };
+  }
+}

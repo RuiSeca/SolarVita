@@ -4,6 +4,7 @@ class UserProfile {
   final String uid;
   final String email;
   final String displayName;
+  final String? username;
   final String? photoURL;
   final DateTime createdAt;
   final DateTime lastUpdated;
@@ -12,12 +13,14 @@ class UserProfile {
   final SustainabilityPreferences sustainabilityPreferences;
   final DiaryPreferences diaryPreferences;
   final DietaryPreferences dietaryPreferences;
+  final int supportersCount;
   final Map<String, dynamic> additionalData;
 
   UserProfile({
     required this.uid,
     required this.email,
     required this.displayName,
+    this.username,
     this.photoURL,
     required this.createdAt,
     required this.lastUpdated,
@@ -26,6 +29,7 @@ class UserProfile {
     required this.sustainabilityPreferences,
     required this.diaryPreferences,
     required this.dietaryPreferences,
+    this.supportersCount = 0,
     this.additionalData = const {},
   });
 
@@ -35,6 +39,7 @@ class UserProfile {
       uid: doc.id,
       email: data['email'] ?? '',
       displayName: data['displayName'] ?? '',
+      username: data['username'],
       photoURL: data['photoURL'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
@@ -43,6 +48,7 @@ class UserProfile {
       sustainabilityPreferences: SustainabilityPreferences.fromMap(data['sustainabilityPreferences'] ?? {}),
       diaryPreferences: DiaryPreferences.fromMap(data['diaryPreferences'] ?? {}),
       dietaryPreferences: DietaryPreferences.fromMap(data['dietaryPreferences'] ?? {}),
+      supportersCount: data['supportersCount'] ?? 0,
       additionalData: Map<String, dynamic>.from(data['additionalData'] ?? {}),
     );
   }
@@ -51,6 +57,7 @@ class UserProfile {
     return {
       'email': email,
       'displayName': displayName,
+      'username': username,
       'photoURL': photoURL,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastUpdated': Timestamp.fromDate(lastUpdated),
@@ -59,6 +66,7 @@ class UserProfile {
       'sustainabilityPreferences': sustainabilityPreferences.toMap(),
       'diaryPreferences': diaryPreferences.toMap(),
       'dietaryPreferences': dietaryPreferences.toMap(),
+      'supportersCount': supportersCount,
       'additionalData': additionalData,
     };
   }
@@ -66,6 +74,7 @@ class UserProfile {
   UserProfile copyWith({
     String? email,
     String? displayName,
+    String? username,
     String? photoURL,
     DateTime? lastUpdated,
     bool? isOnboardingComplete,
@@ -73,12 +82,14 @@ class UserProfile {
     SustainabilityPreferences? sustainabilityPreferences,
     DiaryPreferences? diaryPreferences,
     DietaryPreferences? dietaryPreferences,
+    int? supportersCount,
     Map<String, dynamic>? additionalData,
   }) {
     return UserProfile(
       uid: uid,
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
+      username: username ?? this.username,
       photoURL: photoURL ?? this.photoURL,
       createdAt: createdAt,
       lastUpdated: lastUpdated ?? DateTime.now(),
@@ -87,6 +98,7 @@ class UserProfile {
       sustainabilityPreferences: sustainabilityPreferences ?? this.sustainabilityPreferences,
       diaryPreferences: diaryPreferences ?? this.diaryPreferences,
       dietaryPreferences: dietaryPreferences ?? this.dietaryPreferences,
+      supportersCount: supportersCount ?? this.supportersCount,
       additionalData: additionalData ?? this.additionalData,
     );
   }

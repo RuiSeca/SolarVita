@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'widgets/modern_stats_row.dart';
-import '../../models/settings_item.dart';
 import '../../theme/app_theme.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/user_profile_provider.dart';
-import '../../providers/theme_provider.dart';
-import 'settings/account/personal_info_screen.dart';
-import 'settings/account/notifications_screen.dart';
-import 'settings/account/privacy_screen.dart';
-import 'settings/preferences/workout_preferences_screen.dart';
-import 'settings/preferences/dietary_preferences_screen.dart';
-import 'settings/preferences/sustainability_goals_screen.dart';
-import 'settings/app/language_screen.dart';
-import 'settings/app/help_support_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import '../../widgets/common/lottie_loading_widget.dart';
+import '../../services/social_service.dart';
+import '../../models/supporter.dart';
+import 'supporter_requests_screen.dart';
+import 'add_friend_screen.dart';
+import 'supporters_list_screen.dart';
+import 'friend_activity_feed_screen.dart';
+import 'following_list_screen.dart';
+import 'settings_main_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,6 +21,17 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final SocialService _socialService = SocialService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh user profile when profile screen loads to get latest supporter count
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<UserProfileProvider>(context, listen: false).refreshSupporterCount();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,14 +42,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildProfileHeader(context),
+              _buildSupporterRequestNotification(context),
               const ModernStatsRow(),
               const SizedBox(height: 24),
-              _buildMembershipSection(context),
+              _buildWeeklySummary(context),
+              const SizedBox(height: 24),
+              _buildQuickActions(context),
+              const SizedBox(height: 24),
               _buildAchievementsSection(context),
-              _buildAccountSettings(context),
-              _buildPreferencesSettings(context),
-              _buildAppSettings(context),
-              _buildSignOutButton(context),
+              const SizedBox(height: 24),
+              _buildDebugMigrationSection(context),
+              const SizedBox(height: 32),
             ],
           ),
         ),
@@ -55,42 +65,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, userProfileProvider, _) {
         final userProfile = userProfileProvider.userProfile;
         final displayName = userProfile?.displayName ?? 'User';
-        final email = userProfile?.email ?? '';
         final photoURL = userProfile?.photoURL;
         
         return Container(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary, width: 2),
-                  color: AppTheme.cardColor(context),
-                ),
-                child: photoURL != null
-                    ? ClipOval(
-                        child: Image.network(
-                          photoURL,
-                          width: 80,
-                          height: 80,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: AppColors.primary,
-                            );
-                          },
-                        ),
-                      )
-                    : const Icon(
+              CircleAvatar(
+                radius: 30,
+                backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
+                backgroundColor: AppTheme.cardColor(context),
+                child: photoURL == null
+                    ? const Icon(
                         Icons.person,
-                        size: 40,
+                        size: 32,
                         color: AppColors.primary,
-                      ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -105,20 +96,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    if (email.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        email,
-                        style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 153),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                    const SizedBox(height: 4),
                     Text(
                       tr(context, 'eco_enthusiast'),
                       style: TextStyle(
-                        color: AppTheme.textColor(context).withValues(alpha: 153),
+                        color: AppTheme.textColor(context).withAlpha(153),
                         fontSize: 16,
                       ),
                     ),
@@ -126,17 +108,137 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.edit, color: AppColors.primary),
+                icon: const Icon(Icons.settings, color: AppColors.primary),
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const PersonalInfoScreen(),
+                      builder: (context) => const SettingsMainScreen(),
                     ),
                   );
                 },
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSupporterRequestNotification(BuildContext context) {
+    return StreamBuilder<List<SupporterRequest>>(
+      stream: _socialService.getPendingSupporterRequests(),
+      builder: (context, snapshot) {
+        final pendingRequests = snapshot.data ?? [];
+        
+        if (pendingRequests.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final theme = Theme.of(context);
+        final count = pendingRequests.length;
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SupporterRequestsScreen(),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withAlpha(25),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: theme.primaryColor.withAlpha(76),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const Icon(
+                            Icons.person_add,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          if (count > 0)
+                            Positioned(
+                              right: -6,
+                              top: -6,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  count > 9 ? '9+' : count.toString(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            count == 1 
+                                ? 'You have 1 supporter request'
+                                : 'You have $count supporter requests',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tap to view and respond',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.primaryColor.withAlpha(179),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: theme.primaryColor,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -165,76 +267,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMembershipSection(BuildContext context) {
-    // Get the appropriate shadow color based on theme
-    final shadowColor = AppTheme.isDarkMode(context)
-        ? Colors.black.withValues(alpha: 25)
-        : Colors.white.withValues(alpha: 25);
-
-    return _buildSection(
-      context,
-      title: 'Membership',
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF66BB6A), // Lighter green
-              Color(0xFF388E3C), // Darker green
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor,
-              spreadRadius: 0,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.star, color: Colors.amber, size: 28),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tr(context, 'premium_eco_member'),
-                    style: TextStyle(
-                      color: AppColors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tr(context, 'valid_until'),
-                    style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 51),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            TextButton(
-              onPressed: () {},
-              style: TextButton.styleFrom(
-                foregroundColor: AppColors.white,
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              child: Text(tr(context, 'manage')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildAchievementsSection(BuildContext context) {
     return _buildSection(
@@ -318,74 +350,73 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildSettingsSection(
-    BuildContext context, {
-    required String title,
-    required List<SettingsItem> items,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr(context, title),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+  Widget _buildWeeklySummary(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    return _buildSection(
+      context,
+      title: 'This Week\'s Progress',
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              theme.primaryColor.withAlpha(25),
+              theme.primaryColor.withAlpha(13),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.cardColor(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: items
-                  .map((item) => _buildSettingsItem(context, item))
-                  .toList(),
-            ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.primaryColor.withAlpha(76),
+            width: 1,
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingsItem(BuildContext context, SettingsItem item) {
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => item.onTapScreen(context)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
+        ),
+        child: Column(
           children: [
-            Icon(item.icon, color: AppColors.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                tr(context, item.title),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 16,
+            Row(
+              children: [
+                _buildWeeklyStatCard(
+                  context,
+                  icon: Icons.fitness_center,
+                  label: 'Workouts',
+                  value: '4',
+                  target: '5',
+                  color: Colors.blue,
                 ),
-              ),
+                const SizedBox(width: 12),
+                _buildWeeklyStatCard(
+                  context,
+                  icon: Icons.restaurant,
+                  label: 'Meals Logged',
+                  value: '18',
+                  target: '21',
+                  color: Colors.orange,
+                ),
+              ],
             ),
-            if (item.value != null)
-              Text(
-                tr(context, item.value!),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withValues(alpha: 153),
-                  fontSize: 14,
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildWeeklyStatCard(
+                  context,
+                  icon: Icons.eco,
+                  label: 'CO2 Saved',
+                  value: '2.3kg',
+                  target: '3kg',
+                  color: Colors.green,
                 ),
-              ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textColor(context).withValues(alpha: 153),
-              size: 20,
+                const SizedBox(width: 12),
+                _buildWeeklyStatCard(
+                  context,
+                  icon: Icons.local_fire_department,
+                  label: 'Streak',
+                  value: '12',
+                  target: 'days',
+                  color: Colors.red,
+                ),
+              ],
             ),
           ],
         ),
@@ -393,119 +424,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildAccountSettings(BuildContext context) {
-    return _buildSettingsSection(
-      context,
-      title: 'account',
-      items: [
-        SettingsItem(
-          icon: Icons.person,
-          title: 'personal_information',
-          onTapScreen: (context) => const PersonalInfoScreen(),
+  Widget _buildWeeklyStatCard(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required String target,
+    required Color color,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor(context),
+          borderRadius: BorderRadius.circular(8),
         ),
-        SettingsItem(
-          icon: Icons.notifications,
-          title: 'notifications',
-          onTapScreen: (context) => const NotificationsScreen(),
-        ),
-        SettingsItem(
-          icon: Icons.privacy_tip,
-          title: 'privacy',
-          onTapScreen: (context) => const PrivacyScreen(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPreferencesSettings(BuildContext context) {
-    return _buildSettingsSection(
-      context,
-      title: 'preferences',
-      items: [
-        SettingsItem(
-          icon: Icons.fitness_center,
-          title: 'workout_preferences',
-          onTapScreen: (context) => const WorkoutPreferencesScreen(),
-        ),
-        SettingsItem(
-          icon: Icons.restaurant_menu,
-          title: 'dietary_preferences',
-          onTapScreen: (context) => const DietaryPreferencesScreen(),
-        ),
-        SettingsItem(
-          icon: Icons.eco,
-          title: 'sustainability_goals',
-          onTapScreen: (context) => const SustainabilityGoalsScreen(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAppSettings(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr(context, 'app'),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.cardColor(context),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                _buildLanguageItem(context),
-                _buildThemeItem(context),
-                _buildHelpSupportItem(context),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLanguageItem(BuildContext context) {
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LanguageScreen()),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
+        child: Column(
           children: [
-            Icon(Icons.language, color: AppColors.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                tr(context, 'language'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 16,
-                ),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: color,
               ),
             ),
             Text(
-              tr(context, 'language_value'),
-              style: TextStyle(
-                color: AppTheme.textColor(context).withValues(alpha: 153),
-                fontSize: 14,
+              '/ $target',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textColor(context).withValues(alpha: 153),
-              size: 20,
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -513,88 +472,153 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildThemeItem(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
+  Widget _buildQuickActions(BuildContext context) {
+    return _buildSection(
+      context,
+      title: 'Quick Actions',
+      child: Column(
+        children: [
+          Row(
             children: [
-              Icon(Icons.dark_mode, color: AppColors.primary, size: 20),
-              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  tr(context, 'theme'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 16,
-                  ),
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.add_circle,
+                  label: 'Log Workout',
+                  color: Colors.blue,
+                  onTap: () {
+                    // Navigate to log workout screen
+                  },
                 ),
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.textFieldBackground(context),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildThemeButton(
-                      context,
-                      icon: Icons.light_mode,
-                      label: 'Light',
-                      isSelected: themeProvider.isLight,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.light),
-                    ),
-                    _buildThemeButton(
-                      context,
-                      icon: Icons.dark_mode,
-                      label: 'Dark',
-                      isSelected: themeProvider.isDark,
-                      onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
-                    ),
-                  ],
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.camera_alt,
+                  label: 'Add Meal',
+                  color: Colors.orange,
+                  onTap: () {
+                    // Navigate to meal logging screen
+                  },
                 ),
               ),
             ],
           ),
-        );
-      },
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.person_add,
+                  label: 'Add Supporter',
+                  color: Colors.purple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AddSupporterScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.people,
+                  label: 'Supporters',
+                  color: Colors.green,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const SupportersListScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.timeline,
+                  label: 'Supporter Activities',
+                  color: Colors.teal,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FriendActivityFeedScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.person_search,
+                  label: 'Supporting',
+                  color: Colors.indigo,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FollowingListScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _buildThemeButton(
+  Widget _buildActionButton(
     BuildContext context, {
     required IconData icon,
     required String label,
-    required bool isSelected,
+    required Color color,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
+          color: color.withAlpha(25),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: color.withAlpha(76),
+            width: 1,
+          ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Column(
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? Colors.white : AppTheme.textColor(context).withValues(alpha: 153),
-            ),
-            const SizedBox(width: 4),
+            Icon(icon, color: color, size: 28),
+            const SizedBox(height: 8),
             Text(
               label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : AppTheme.textColor(context).withValues(alpha: 153),
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: color,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -602,113 +626,258 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildHelpSupportItem(BuildContext context) {
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const HelpSupportScreen()),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            Icon(Icons.help, color: AppColors.primary, size: 20),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                tr(context, 'help_support'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 16,
+  Widget _buildDebugMigrationSection(BuildContext context) {
+    return _buildSection(
+      context,
+      title: 'Debug - Migration Tools',
+      child: Column(
+        children: [
+          const Text(
+            'Migration tools for bidirectional following and supporter counts',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.sync,
+                  label: 'Migrate Follows',
+                  color: Colors.amber,
+                  onTap: () => _runMigration(),
                 ),
               ),
-            ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textColor(context).withValues(alpha: 153),
-              size: 20,
-            ),
-          ],
-        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.info,
+                  label: 'Debug State',
+                  color: Colors.cyan,
+                  onTap: () => _debugState(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.people_outline,
+                  label: 'Fix My Count',
+                  color: Colors.purple,
+                  onTap: () => _runSupporterCountMigration(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionButton(
+                  context,
+                  icon: Icons.refresh,
+                  label: 'Refresh Count',
+                  color: Colors.green,
+                  onTap: () => _refreshSupporterCount(),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSignOutButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          return ElevatedButton(
-            onPressed: authProvider.isLoading
-                ? null
-                : () async {
-                    // Store navigator reference before async operation
-                    final navigator = Navigator.of(context);
+  Future<void> _runMigration() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Running migration...'),
+            ],
+          ),
+        ),
+      );
 
-                    // Show confirmation dialog
-                    final shouldSignOut = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: Text(tr(context, 'sign_out')),
-                        content: Text(tr(context, 'sign_out_confirmation')),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: Text(tr(context, 'cancel')),
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: Text(
-                              tr(context, 'sign_out'),
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+      await _socialService.migrateSupporterRequestsToMutualSupporting();
 
-                    // Use stored navigator reference instead of context
-                    if (shouldSignOut == true) {
-                      if (!mounted) return;
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
 
-                      await authProvider.signOut();
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Migration completed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
 
-                      if (!mounted) return;
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Migration failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
-                      // Use stored navigator instead of context
-                      navigator.pushNamedAndRemoveUntil(
-                        '/',
-                        (route) => false,
-                      );
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.red,
-              minimumSize: const Size(double.infinity, 50),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+  Future<void> _debugState() async {
+    try {
+      final state = await _socialService.debugRelationshipState();
+      
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Debug State'),
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('User ID: ${state['currentUserId']}'),
+                  const SizedBox(height: 8),
+                  Text('Supporters: ${state['supporters']['total']}'),
+                  Text('Supporting: ${state['supporting']['supporting']}'),
+                  Text('Followers: ${state['follows']['followers']}'),
+                  const SizedBox(height: 16),
+                  const Text('Details:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(state.toString(), style: const TextStyle(fontSize: 10)),
+                ],
               ),
             ),
-            child: authProvider.isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: LottieLoadingWidget(
-                      width: 20,
-                      height: 20,
-                    ),
-                  )
-                : Text(
-                    tr(context, 'sign_out'),
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 16,
-                    ),
-                  ),
-          );
-        },
-      ),
-    );
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Debug failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _runSupporterCountMigration() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Fixing your supporter count...'),
+            ],
+          ),
+        ),
+      );
+
+      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
+      await userProfileProvider.initializeSupportersCount();
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Your supporter count has been fixed!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Migration failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _refreshSupporterCount() async {
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Refreshing supporter count...'),
+            ],
+          ),
+        ),
+      );
+
+      await _socialService.refreshCurrentUserSupporterCount();
+      
+      if (mounted) {
+        final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
+        await userProfileProvider.refreshSupporterCount();
+      }
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Supporter count refreshed successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refresh failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

@@ -7,6 +7,9 @@ import '../../../../utils/translation_helper.dart';
 import '../../../../providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
+import '../../../../services/social_service.dart';
+import '../../../../models/privacy_settings.dart';
+import '../../../../models/social_activity.dart';
 
 class PrivacyScreen extends StatefulWidget {
   const PrivacyScreen({super.key});
@@ -16,6 +19,8 @@ class PrivacyScreen extends StatefulWidget {
 }
 
 class _PrivacyScreenState extends State<PrivacyScreen> {
+  final SocialService _socialService = SocialService();
+  
   // Privacy settings state
   bool _dataCollection = true;
   bool _analyticsTracking = true;
@@ -26,6 +31,17 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   bool _appLock = false;
   bool _hideAppInRecents = false;
 
+  // Social privacy settings
+  PrivacySettings? _socialPrivacySettings;
+  PostVisibility _defaultPostVisibility = PostVisibility.supportersOnly;
+  bool _showProfileInSearch = true;
+  bool _allowFriendRequests = true;
+  bool _showWorkoutStats = true;
+  bool _showNutritionStats = false;
+  bool _showEcoScore = true;
+  bool _showAchievements = true;
+  bool _allowChallengeInvites = true;
+
   // Data retention period (in months)
   int _dataRetentionPeriod = 12;
 
@@ -33,6 +49,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
   void initState() {
     super.initState();
     _loadPrivacySettings();
+    _loadSocialPrivacySettings();
   }
 
   Future<void> _loadPrivacySettings() async {
@@ -60,6 +77,65 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
     await prefs.setInt('data_retention_period', months);
   }
 
+  Future<void> _loadSocialPrivacySettings() async {
+    try {
+      final settings = await _socialService.getPrivacySettings();
+      setState(() {
+        _socialPrivacySettings = settings;
+        _defaultPostVisibility = settings.defaultPostVisibility;
+        _showProfileInSearch = settings.showProfileInSearch;
+        _allowFriendRequests = settings.allowFriendRequests;
+        _showWorkoutStats = settings.showWorkoutStats;
+        _showNutritionStats = settings.showNutritionStats;
+        _showEcoScore = settings.showEcoScore;
+        _showAchievements = settings.showAchievements;
+        _allowChallengeInvites = settings.allowChallengeInvites;
+      });
+    } catch (e) {
+      // Handle error silently, use defaults
+    }
+  }
+
+  Future<void> _updateSocialPrivacySetting({
+    PostVisibility? defaultPostVisibility,
+    bool? showProfileInSearch,
+    bool? allowFriendRequests,
+    bool? showWorkoutStats,
+    bool? showNutritionStats,
+    bool? showEcoScore,
+    bool? showAchievements,
+    bool? allowChallengeInvites,
+  }) async {
+    if (_socialPrivacySettings == null) return;
+
+    try {
+      final updatedSettings = _socialPrivacySettings!.copyWith(
+        defaultPostVisibility: defaultPostVisibility,
+        showProfileInSearch: showProfileInSearch,
+        allowFriendRequests: allowFriendRequests,
+        showWorkoutStats: showWorkoutStats,
+        showNutritionStats: showNutritionStats,
+        showEcoScore: showEcoScore,
+        showAchievements: showAchievements,
+        allowChallengeInvites: allowChallengeInvites,
+      );
+
+      await _socialService.updatePrivacySettings(updatedSettings);
+      setState(() {
+        _socialPrivacySettings = updatedSettings;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating privacy setting: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +160,8 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _buildSocialPrivacySection(),
+            const SizedBox(height: 24),
             _buildDataPrivacySection(),
             const SizedBox(height: 24),
             _buildSecuritySection(),
@@ -97,6 +175,175 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildSocialPrivacySection() {
+    return _buildSection(
+      context,
+      title: 'Social & Community Privacy',
+      subtitle: 'Control who can see your activities and profile',
+      children: [
+        _buildDefaultPostVisibilityTile(),
+        _buildSwitchTile(
+          context,
+          title: 'Show Profile in Search',
+          subtitle: 'Allow others to find your profile in user search',
+          value: _showProfileInSearch,
+          onChanged: (value) {
+            setState(() => _showProfileInSearch = value);
+            _updateSocialPrivacySetting(showProfileInSearch: value);
+          },
+          icon: Icons.search,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Allow Supporter Requests',
+          subtitle: 'Let other users send you supporter requests',
+          value: _allowFriendRequests,
+          onChanged: (value) {
+            setState(() => _allowFriendRequests = value);
+            _updateSocialPrivacySetting(allowFriendRequests: value);
+          },
+          icon: Icons.person_add,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Show Workout Stats',
+          subtitle: 'Display workout metrics on your public profile',
+          value: _showWorkoutStats,
+          onChanged: (value) {
+            setState(() => _showWorkoutStats = value);
+            _updateSocialPrivacySetting(showWorkoutStats: value);
+          },
+          icon: Icons.fitness_center,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Show Nutrition Stats',
+          subtitle: 'Display meal and calorie information publicly',
+          value: _showNutritionStats,
+          onChanged: (value) {
+            setState(() => _showNutritionStats = value);
+            _updateSocialPrivacySetting(showNutritionStats: value);
+          },
+          icon: Icons.restaurant,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Show Eco Score',
+          subtitle: 'Display your sustainability score publicly',
+          value: _showEcoScore,
+          onChanged: (value) {
+            setState(() => _showEcoScore = value);
+            _updateSocialPrivacySetting(showEcoScore: value);
+          },
+          icon: Icons.eco,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Show Achievements',
+          subtitle: 'Display badges and milestones on profile',
+          value: _showAchievements,
+          onChanged: (value) {
+            setState(() => _showAchievements = value);
+            _updateSocialPrivacySetting(showAchievements: value);
+          },
+          icon: Icons.emoji_events,
+        ),
+        _buildSwitchTile(
+          context,
+          title: 'Allow Challenge Invites',
+          subtitle: 'Let supporters invite you to community challenges',
+          value: _allowChallengeInvites,
+          onChanged: (value) {
+            setState(() => _allowChallengeInvites = value);
+            _updateSocialPrivacySetting(allowChallengeInvites: value);
+          },
+          icon: Icons.groups,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDefaultPostVisibilityTile() {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withAlpha(26),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          Icons.visibility,
+          color: AppColors.primary,
+          size: 20,
+        ),
+      ),
+      title: Text(
+        'Default Post Visibility',
+        style: TextStyle(
+          color: AppTheme.textColor(context),
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Text(
+        'Who can see your activities by default',
+        style: TextStyle(
+          color: AppTheme.textColor(context).withAlpha(179),
+          fontSize: 14,
+        ),
+      ),
+      trailing: DropdownButton<PostVisibility>(
+        value: _defaultPostVisibility,
+        onChanged: (value) {
+          if (value != null) {
+            setState(() => _defaultPostVisibility = value);
+            _updateSocialPrivacySetting(defaultPostVisibility: value);
+          }
+        },
+        items: PostVisibility.values
+            .map((visibility) => DropdownMenuItem(
+                  value: visibility,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _getVisibilityIcon(visibility),
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _getVisibilityText(visibility),
+                        style: TextStyle(color: AppTheme.textColor(context)),
+                      ),
+                    ],
+                  ),
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  String _getVisibilityIcon(PostVisibility visibility) {
+    switch (visibility) {
+      case PostVisibility.supportersOnly:
+        return '👥';
+      case PostVisibility.community:
+        return '🌍';
+      case PostVisibility.public:
+        return '🔓';
+    }
+  }
+
+  String _getVisibilityText(PostVisibility visibility) {
+    switch (visibility) {
+      case PostVisibility.supportersOnly:
+        return 'Supporters Only';
+      case PostVisibility.community:
+        return 'Community';
+      case PostVisibility.public:
+        return 'Public';
+    }
   }
 
   Widget _buildDataPrivacySection() {

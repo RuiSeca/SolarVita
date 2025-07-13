@@ -49,6 +49,8 @@ class AppTheme {
     return isDarkMode(context) ? AppColors.cardDark : AppColors.cardLight;
   }
 
+  static Color get primaryColor => AppColors.primary;
+
   static ThemeData get darkTheme {
     return ThemeData.dark().copyWith(
       primaryColor: AppColors.primary,

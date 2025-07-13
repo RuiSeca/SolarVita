@@ -166,6 +166,12 @@ class _SearchScreenState extends State<SearchScreen> {
     final targetMuscle = _getTargetMuscle(titleKey);
     final provider = Provider.of<ExerciseProvider>(context, listen: false);
 
+    // Prevent multiple simultaneous calls
+    if (_isLoadingExercises || provider.isLoading) {
+      logger.warning("Already loading exercises, ignoring duplicate request");
+      return;
+    }
+
     // Check if we already have data for this target
     if (provider.currentTarget == targetMuscle && provider.hasData) {
       logger.info("Already loaded data for $targetMuscle, navigating directly");
@@ -184,38 +190,54 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
 
+    // Clear any previous error state
+    provider.clearError();
+
     // Set loading state
     setState(() {
       _isLoadingExercises = true;
       _loadingTarget = targetMuscle;
     });
 
-    logger.info("Loading exercises for target muscle: $targetMuscle");
+    logger.info("🚀 Loading exercises for target muscle: $targetMuscle");
 
-    // Add a timeout
+    // Add a timeout with more detailed handling
     bool timeoutOccurred = false;
-    Timer? timeoutTimer = Timer(const Duration(seconds: 10), () {
+    Timer? timeoutTimer = Timer(const Duration(seconds: 12), () {
       timeoutOccurred = true;
+      logger.warning("⏰ Timeout occurred for target: $targetMuscle");
+      
+      // Cancel the provider's loading operation
+      provider.cancelLoading();
+      
       if (mounted) {
         setState(() {
           _isLoadingExercises = false;
           _loadingTarget = '';
         });
-        _showErrorSnackBar(context, 'Loading timed out. Please try again.');
+        _showErrorSnackBar(context, 'Loading timed out. Please check your connection and try again.');
       }
     });
 
     try {
+      logger.info("📡 Calling provider.loadExercisesByTarget($targetMuscle)");
       await provider.loadExercisesByTarget(targetMuscle);
 
       // Cancel timeout timer
       timeoutTimer.cancel();
+      logger.info("✅ Provider call completed for $targetMuscle");
 
       // If timeout already occurred, don't proceed
-      if (timeoutOccurred) return;
+      if (timeoutOccurred) {
+        logger.warning("⏰ Timeout already occurred, aborting navigation");
+        return;
+      }
 
       // Check if context is still valid
-      if (!context.mounted) return;
+      if (!context.mounted) {
+        logger.warning("📱 Context no longer mounted, aborting navigation");
+        return;
+      }
 
       // Clear loading state
       setState(() {
@@ -224,7 +246,7 @@ class _SearchScreenState extends State<SearchScreen> {
       });
 
       if (provider.hasError) {
-        logger.severe("Provider returned error: ${provider.errorMessage}");
+        logger.severe("❌ Provider returned error: ${provider.errorMessage}");
         _showErrorDialog(
           context,
           provider.errorMessage ?? 'Error loading exercises',
@@ -232,7 +254,7 @@ class _SearchScreenState extends State<SearchScreen> {
           () => provider.retryCurrentTarget(),
         );
       } else if (!provider.hasData) {
-        logger.info("Provider has no data");
+        logger.warning("📭 Provider has no data for $targetMuscle");
         _showErrorDialog(
           context,
           tr(context, 'no_exercises_found'),
@@ -240,17 +262,18 @@ class _SearchScreenState extends State<SearchScreen> {
           null,
         );
       } else {
-        logger.info(
-            "Successfully loaded ${provider.exercises?.length} exercises");
+        logger.info("🎯 Successfully loaded ${provider.exercises?.length} exercises for $targetMuscle");
 
         // Navigate based on workout type
         switch (type) {
           case detail_types.WorkoutDetailType.categoryList:
+            logger.info("🧭 Navigating to category list");
             _navigateToCategoryList(
                 context, title, image, targetMuscle, provider.exercises!);
             break;
           case detail_types.WorkoutDetailType.specificExercise:
           case detail_types.WorkoutDetailType.alternateExercise:
+            logger.info("🧭 Navigating to specific exercise");
             _navigateToSpecificExercise(context, provider.exercises!);
             break;
         }
@@ -259,13 +282,13 @@ class _SearchScreenState extends State<SearchScreen> {
       // Cancel timeout timer
       timeoutTimer.cancel();
 
-      logger.severe("Exception during exercise loading: $e");
+      logger.severe("💥 Exception during exercise loading: $e");
       if (context.mounted && !timeoutOccurred) {
         setState(() {
           _isLoadingExercises = false;
           _loadingTarget = '';
         });
-        _showErrorSnackBar(context, 'Unexpected error: $e');
+        _showErrorSnackBar(context, 'Failed to load exercises: ${e.toString()}');
       }
     }
   }

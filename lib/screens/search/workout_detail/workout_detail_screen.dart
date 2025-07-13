@@ -174,7 +174,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   icon: const Icon(Icons.play_arrow),
                   label: Text(tr(context, 'start_now')),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppTheme.primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -234,7 +234,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withAlpha(26),
+                        color: AppTheme.primaryColor.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -243,7 +243,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                           Icon(
                             Icons.trending_up,
                             size: 14,
-                            color: AppColors.primary,
+                            color: AppTheme.primaryColor,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -251,7 +251,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                                 'tracked'), // or 'You\'re tracking this'
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.primary,
+                              color: AppTheme.primaryColor,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -289,12 +289,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.primary.withAlpha(26),
+            color: AppTheme.primaryColor.withAlpha(26),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
-            color: AppColors.primary,
+            color: AppTheme.primaryColor,
             size: 24,
           ),
         ),
@@ -364,7 +364,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               color: AppTheme.cardColor(context),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primary.withAlpha(26),
+                color: AppTheme.primaryColor.withAlpha(26),
               ),
             ),
             child: Row(
@@ -373,12 +373,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(26),
+                    color: AppTheme.primaryColor.withAlpha(26),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     step.isCompleted ? Icons.check : Icons.play_arrow,
-                    color: AppColors.primary,
+                    color: AppTheme.primaryColor,
                     size: 16,
                   ),
                 ),
@@ -409,7 +409,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                   isExpanded
                       ? Icons.keyboard_arrow_up
                       : Icons.keyboard_arrow_down,
-                  color: AppColors.primary,
+                  color: AppTheme.primaryColor,
                 ),
               ],
             ),
@@ -453,7 +453,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                             height: 6,
                             margin: const EdgeInsets.only(top: 6, right: 8),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: AppTheme.primaryColor,
                               shape: BoxShape.circle,
                             ),
                           ),
