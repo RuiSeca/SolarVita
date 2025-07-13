@@ -6,6 +6,49 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Allow authenticated users to query users collection for username availability
+    match /users/{document} {
+      allow read: if request.auth != null;
+    }
+    
+    // Allow authenticated users to manage supporter requests
+    match /supporterRequests/{document} {
+      // Allow reading supporter requests where user is involved - more permissive for debugging
+      allow read, list: if request.auth != null;
+      
+      // Allow creating supporter requests where user is the requester
+      allow create: if request.auth != null 
+        && request.resource.data.requesterId == request.auth.uid;
+      
+      // Allow updating supporter requests where user is involved (for accepting/rejecting)
+      allow update: if request.auth != null 
+        && (resource.data.requesterId == request.auth.uid 
+            || resource.data.receiverId == request.auth.uid);
+      
+      // Allow deleting supporter requests where user is involved
+      allow delete: if request.auth != null 
+        && (resource.data.requesterId == request.auth.uid 
+            || resource.data.receiverId == request.auth.uid);
+    }
+    
+    // Allow reading public profiles for supporter discovery and display
+    match /public_profiles/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Allow reading privacy settings to respect user preferences
+    match /privacy_settings/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow reading social activities with privacy controls
+    match /activities/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
+    
     // Users can only read/write their own exercise logs
     match /users/{userId}/exerciseLogs/{document} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -29,6 +72,30 @@ service cloud.firestore {
     // Global sustainable products can be read by authenticated users
     match /sustainableProducts/{document} {
       allow read: if request.auth != null;
+    }
+    
+    // Allow authenticated users to manage supporters (unidirectional supporting)
+    match /supporters/{document} {
+      // Allow reading and querying supporters for authenticated users
+      allow read, list: if request.auth != null;
+      
+      // Allow creating supporters where user is the supporter
+      allow create: if request.auth != null 
+        && request.resource.data.supporterId == request.auth.uid;
+      
+      // Allow updating supporters where user is the supporter (not typically needed but for completeness)
+      allow update: if request.auth != null 
+        && resource.data.supporterId == request.auth.uid;
+      
+      // Allow deleting supporters where user is the supporter
+      allow delete: if request.auth != null 
+        && resource.data.supporterId == request.auth.uid;
+    }
+    
+    // Allow authenticated users to manage challenges
+    match /challenges/{document} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
     
     // Deny all other access

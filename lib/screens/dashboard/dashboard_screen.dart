@@ -159,41 +159,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
 
-                Container(
-                  margin:
-                      const EdgeInsets.symmetric(vertical: 16), // <-- add this
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: AppTheme.textFieldBackground(context),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: theme.iconTheme.color),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: tr(context, 'search_activities'),
-                            hintStyle: TextStyle(color: theme.hintColor),
-                            border: InputBorder.none,
-                          ),
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(Icons.tune,
-                            color: Colors.white, size: 20),
-                      ),
-                    ],
-                  ),
-                ),
+
+                const SizedBox(height: 16),
 
                 // Popular Workouts Section
                 Row(
@@ -297,6 +264,68 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Icons.local_drink_outlined, tr(context, 'supplements')),
                   ],
                 ),
+
+                const SizedBox(height: 32),
+
+                // Community Feed Section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Friends & Community',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.people,
+                          size: 20,
+                          color: theme.primaryColor,
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to full community page
+                      },
+                      child: Text(
+                        'See All',
+                        style: TextStyle(color: theme.primaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildSocialFeed(),
+
+                const SizedBox(height: 32),
+
+                // Active Challenges Section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Community Challenges',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // Navigate to challenges page
+                      },
+                      child: Text(
+                        'View All',
+                        style: TextStyle(color: theme.primaryColor),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildActiveChallenges(),
               ],
             ),
           ),
@@ -497,6 +526,289 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSocialFeed() {
+    final theme = Theme.of(context);
+    
+    // Mock data for now - will be replaced with actual data from Firebase
+    final mockActivities = [
+      {
+        'userName': 'Sarah M.',
+        'activity': 'completed a 30-min HIIT workout',
+        'time': '2h ago',
+        'icon': '💪',
+        'likes': 12,
+        'visibility': '👥', // Friends only
+        'isFriend': true,
+      },
+      {
+        'userName': 'Mike R.',
+        'activity': 'saved 500g CO2 by biking to work',
+        'time': '4h ago',
+        'icon': '🌱',
+        'likes': 8,
+        'visibility': '🌍', // Community
+        'isFriend': false,
+      },
+      {
+        'userName': 'Emma K.',
+        'activity': 'shared a healthy breakfast recipe',
+        'time': '6h ago',
+        'icon': '🍽️',
+        'likes': 15,
+        'visibility': '👥', // Friends only
+        'isFriend': true,
+      },
+    ];
+
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: mockActivities.length,
+        itemBuilder: (context, index) {
+          final activity = mockActivities[index];
+          return Container(
+            width: 280,
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.textFieldBackground(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.dividerColor.withAlpha(51),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: theme.primaryColor.withAlpha(51),
+                          child: Text(
+                            activity['userName'].toString().substring(0, 1),
+                            style: TextStyle(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (activity['isFriend'] == true)
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: theme.scaffoldBackgroundColor,
+                                  width: 1,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                size: 8,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  activity['userName'].toString(),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                activity['visibility'].toString(),
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            activity['time'].toString(),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.hintColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      activity['icon'].toString(),
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  activity['activity'].toString(),
+                  style: theme.textTheme.bodyMedium,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const Spacer(),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.favorite_border,
+                      size: 16,
+                      color: theme.hintColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      activity['likes'].toString(),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 16,
+                      color: theme.hintColor,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildActiveChallenges() {
+    final theme = Theme.of(context);
+    
+    // Mock challenge data
+    final mockChallenges = [
+      {
+        'title': '7-Day Eco Challenge',
+        'description': 'Reduce your carbon footprint for a week',
+        'progress': 0.6,
+        'participants': 156,
+        'daysLeft': 3,
+        'icon': '🌍',
+      },
+      {
+        'title': 'January Fitness Sprint',
+        'description': 'Complete 20 workouts this month',
+        'progress': 0.45,
+        'participants': 89,
+        'daysLeft': 12,
+        'icon': '🏃‍♂️',
+      },
+    ];
+
+    return SizedBox(
+      height: 140,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: mockChallenges.length,
+        itemBuilder: (context, index) {
+          final challenge = mockChallenges[index];
+          return Container(
+            width: 260,
+            margin: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.primaryColor.withAlpha(51),
+                  theme.primaryColor.withAlpha(25),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.primaryColor.withAlpha(76),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      challenge['icon'].toString(),
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        challenge['title'].toString(),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  challenge['description'].toString(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.hintColor,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                LinearProgressIndicator(
+                  value: challenge['progress'] as double,
+                  backgroundColor: theme.dividerColor.withAlpha(76),
+                  valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${challenge['participants']} participants',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.hintColor,
+                      ),
+                    ),
+                    Text(
+                      '${challenge['daysLeft']} days left',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.primaryColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 }

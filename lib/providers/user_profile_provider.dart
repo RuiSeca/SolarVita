@@ -4,6 +4,7 @@ import 'package:logging/logging.dart';
 import '../models/user_profile.dart';
 import '../services/user_profile_service.dart';
 import '../services/auth_service.dart';
+import '../services/social_service.dart';
 
 class UserProfileProvider with ChangeNotifier {
   final UserProfileService _userProfileService = UserProfileService();
@@ -295,4 +296,33 @@ class UserProfileProvider with ChangeNotifier {
   String? get photoURL => _userProfile?.photoURL;
   DateTime? get createdAt => _userProfile?.createdAt;
   DateTime? get lastUpdated => _userProfile?.lastUpdated;
+  
+  // Method to refresh supporter count when relationships change
+  Future<void> refreshSupporterCount() async {
+    if (_userProfile == null) return;
+    
+    try {
+      // Clear cache to force fresh data
+      _userProfileService.clearCache();
+      await _loadUserProfile();
+      _logger.info('Supporter count refreshed');
+    } catch (e) {
+      _logger.severe('Error refreshing supporter count: $e');
+    }
+  }
+  
+  // Method to initialize supporter counts for existing users (migration)
+  Future<void> initializeSupportersCount() async {
+    try {
+      final socialService = SocialService();
+      await socialService.initializeSupportersCount();
+      
+      // Refresh current user profile after migration
+      await refreshSupporterCount();
+      _logger.info('SupportersCount migration completed and profile refreshed');
+    } catch (e) {
+      _logger.severe('Error during supportersCount migration: $e');
+      rethrow;
+    }
+  }
 }

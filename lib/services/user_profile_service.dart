@@ -412,4 +412,21 @@ class UserProfileService {
       throw Exception('Failed to update profile field');
     }
   }
+
+  Future<bool> isUsernameAvailable(String username) async {
+    try {
+      final query = await _firestore
+          .collection(_usersCollection)
+          .where('username', isEqualTo: username)
+          .limit(1)
+          .get();
+      
+      final isAvailable = query.docs.isEmpty;
+      _logger.info('Username "$username" availability check: $isAvailable');
+      return isAvailable;
+    } catch (e) {
+      _logger.severe('Error checking username availability: $e');
+      return false;
+    }
+  }
 }

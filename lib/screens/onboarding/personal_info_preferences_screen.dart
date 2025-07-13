@@ -18,6 +18,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
   bool _isLoading = false;
 
   // Form controllers
+  late TextEditingController _usernameController;
   late TextEditingController _phoneController;
   late TextEditingController _heightController;
   late TextEditingController _weightController;
@@ -48,6 +49,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
   @override
   void initState() {
     super.initState();
+    _usernameController = TextEditingController();
     _phoneController = TextEditingController();
     _heightController = TextEditingController();
     _weightController = TextEditingController();
@@ -56,6 +58,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _phoneController.dispose();
     _heightController.dispose();
     _weightController.dispose();
@@ -124,6 +127,35 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _usernameController,
+          decoration: const InputDecoration(
+            labelText: 'Username',
+            hintText: 'yourname',
+            helperText: 'Letters, numbers, and underscores allowed',
+            prefixIcon: Icon(Icons.alternate_email),
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a username';
+            }
+            if (value.length < 3) {
+              return 'Username must be at least 3 characters';
+            }
+            if (value.length > 20) {
+              return 'Username must be less than 20 characters';
+            }
+            if (value.contains(' ')) {
+              return 'Username cannot contain spaces';
+            }
+            if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
+              return 'Username can contain letters, numbers, and underscores';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -334,6 +366,24 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
       });
 
       try {
+        // Check username availability
+        final username = _usernameController.text.trim();
+        final isUsernameAvailable = await _userProfileService.isUsernameAvailable(username);
+        if (!isUsernameAvailable) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Username is already taken. Please choose a different one.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            setState(() {
+              _isLoading = false;
+            });
+          }
+          return;
+        }
+
         final profile = await _userProfileService.getOrCreateUserProfile();
         final updatedAdditionalData = Map<String, dynamic>.from(profile.additionalData);
         
@@ -348,6 +398,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
         });
 
         final updatedProfile = profile.copyWith(
+          username: _usernameController.text.trim(),
           additionalData: updatedAdditionalData,
         );
         

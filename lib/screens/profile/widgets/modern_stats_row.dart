@@ -1,46 +1,54 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../../providers/user_profile_provider.dart';
 
 class ModernStatsRow extends StatelessWidget {
   const ModernStatsRow({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatCard(
-              context,
-              icon: Icons.local_fire_department,
-              value: '2,450',
-              label: 'calories',
-              baseColor: Colors.deepOrange,
-            ),
+    return Consumer<UserProfileProvider>(
+      builder: (context, userProfileProvider, _) {
+        final supportersCount = userProfileProvider.userProfile?.supportersCount ?? 0;
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.people,
+                  value: supportersCount.toString(),
+                  label: 'supporters',
+                  baseColor: Colors.purple,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.eco,
+                  value: '75kg',
+                  label: 'co2_saved',
+                  baseColor: Colors.green,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  context,
+                  icon: Icons.timer,
+                  value: '14.2h',
+                  label: 'active_time',
+                  baseColor: Colors.blue,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              context,
-              icon: Icons.eco,
-              value: '75kg',
-              label: 'co2_saved',
-              baseColor: Colors.green,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildStatCard(
-              context,
-              icon: Icons.timer,
-              value: '14.2h',
-              label: 'active_time',
-              baseColor: Colors.blue,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

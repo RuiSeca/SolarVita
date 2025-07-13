@@ -13,7 +13,8 @@ class HealthScreen extends StatefulWidget {
   State<HealthScreen> createState() => _HealthScreenState();
 }
 
-class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMixin {
+class _HealthScreenState extends State<HealthScreen>
+    with TickerProviderStateMixin {
   double waterIntake = 0.25; // Start with 250ml
   late AnimationController _waterAnimationController;
   late AnimationController _rippleController;
@@ -21,7 +22,7 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
   late Map<String, AnimationController> _iconAnimationControllers;
   late Animation<double> _waterAnimation;
   late Animation<double> _waveAnimation;
-  
+
   @override
   void initState() {
     super.initState();
@@ -38,21 +39,27 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
       vsync: this,
     )..repeat();
     _waterAnimation = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _waterAnimationController, curve: Curves.easeInOut),
+      CurvedAnimation(
+          parent: _waterAnimationController, curve: Curves.easeInOut),
     );
     _waveAnimation = Tween<double>(begin: 0, end: 2 * pi).animate(
       CurvedAnimation(parent: _waveController, curve: Curves.linear),
     );
-    
+
     // Initialize animation controllers for each stat
     _iconAnimationControllers = {
-      'steps': AnimationController(duration: const Duration(milliseconds: 1000), vsync: this),
-      'active': AnimationController(duration: const Duration(milliseconds: 800), vsync: this),
-      'calories': AnimationController(duration: const Duration(milliseconds: 1200), vsync: this),
-      'sleep': AnimationController(duration: const Duration(milliseconds: 1500), vsync: this),
-      'heart': AnimationController(duration: const Duration(milliseconds: 600), vsync: this),
+      'steps': AnimationController(
+          duration: const Duration(milliseconds: 1000), vsync: this),
+      'active': AnimationController(
+          duration: const Duration(milliseconds: 800), vsync: this),
+      'calories': AnimationController(
+          duration: const Duration(milliseconds: 1200), vsync: this),
+      'sleep': AnimationController(
+          duration: const Duration(milliseconds: 1500), vsync: this),
+      'heart': AnimationController(
+          duration: const Duration(milliseconds: 600), vsync: this),
     };
-    
+
     _loadWaterIntake();
   }
 
@@ -71,7 +78,7 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().split('T')[0];
     final lastDate = prefs.getString('water_last_date') ?? '';
-    
+
     if (lastDate != today) {
       // Reset for new day
       setState(() {
@@ -90,16 +97,16 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
     if (waterIntake < 2.0) {
       final prefs = await SharedPreferences.getInstance();
       final bool wasCompleted = waterIntake >= 2.0;
-      
+
       setState(() {
         waterIntake = (waterIntake + 0.25).clamp(0.25, 2.0);
       });
       await prefs.setDouble('water_intake', waterIntake);
-      
+
       _waterAnimationController.forward().then((_) {
         _waterAnimationController.reset();
       });
-      
+
       // Check if goal was just completed
       if (!wasCompleted && waterIntake >= 2.0) {
         _rippleController.forward().then((_) {
@@ -195,76 +202,76 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
               ),
             ],
           ),
-      child: Row(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: 2),
-              image: const DecorationImage(
-                image: AssetImage(
-                    'assets/images/health/health_profile/profile.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(context, 'solarvita_fitness'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  tr(context, 'eco_friendly_workouts'),
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.local_fire_department,
-                    color: Colors.orange,
-                    size: 20,
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  image: const DecorationImage(
+                    image: AssetImage(
+                        'assets/images/health/health_profile/profile.jpg'),
+                    fit: BoxFit.cover,
                   ),
-                  const SizedBox(width: 4),
-                  const Text(
-                    '7',
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr(context, 'solarvita_fitness'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr(context, 'eco_friendly_workouts'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.local_fire_department,
+                        color: Colors.orange,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 4),
+                      const Text(
+                        '7',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'day streak',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: 11,
                     ),
                   ),
                 ],
               ),
-              Text(
-                'day streak',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 11,
-                ),
-              ),
             ],
           ),
-        ],
-      ),
         ),
       ),
     );
@@ -275,75 +282,74 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Column(
         children: [
-        _buildHorizontalStatCard(
-          context, 
-          Icons.directions_walk, 
-          '2,146', 
-          'Steps', 
-          'Daily walking goal', 
-          0.7, 
-          Colors.blue,
-          'steps',
-        ),
-        const SizedBox(height: 12),
-        _buildHorizontalStatCard(
-          context, 
-          Icons.directions_run, 
-          '45min', 
-          'Active Time', 
-          'Eco-friendly workouts', 
-          0.8, 
-          Colors.green,
-          'active',
-        ),
-        const SizedBox(height: 12),
-        _buildHorizontalStatCard(
-          context, 
-          Icons.local_fire_department, 
-          '320', 
-          'Calories Burned', 
-          'Energy used today', 
-          0.6, 
-          Colors.orange,
-          'calories',
-        ),
-        const SizedBox(height: 12),
-        _buildWaterHorizontalCard(context),
-        const SizedBox(height: 12),
-        _buildHorizontalStatCard(
-          context, 
-          Icons.bedtime, 
-          '7.2h', 
-          'Sleep Quality', 
-          'Restful night tracking', 
-          0.9, 
-          Colors.indigo,
-          'sleep',
-        ),
-        const SizedBox(height: 12),
-        _buildHorizontalStatCard(
-          context, 
-          Icons.favorite, 
-          '72 BPM', 
-          'Heart Rate', 
-          'Cardiovascular health', 
-          0.85, 
-          Colors.red,
-          'heart',
-        ),
+          _buildHorizontalStatCard(
+            context,
+            Icons.directions_walk,
+            '2,146',
+            'Steps',
+            'Daily walking goal',
+            0.7,
+            Colors.blue,
+            'steps',
+          ),
+          const SizedBox(height: 12),
+          _buildHorizontalStatCard(
+            context,
+            Icons.directions_run,
+            '45min',
+            'Active Time',
+            'Eco-friendly workouts',
+            0.8,
+            Colors.green,
+            'active',
+          ),
+          const SizedBox(height: 12),
+          _buildHorizontalStatCard(
+            context,
+            Icons.local_fire_department,
+            '320',
+            'Calories Burned',
+            'Energy used today',
+            0.6,
+            Colors.orange,
+            'calories',
+          ),
+          const SizedBox(height: 12),
+          _buildWaterHorizontalCard(context),
+          const SizedBox(height: 12),
+          _buildHorizontalStatCard(
+            context,
+            Icons.bedtime,
+            '7.2h',
+            'Sleep Quality',
+            'Restful night tracking',
+            0.9,
+            Colors.indigo,
+            'sleep',
+          ),
+          const SizedBox(height: 12),
+          _buildHorizontalStatCard(
+            context,
+            Icons.favorite,
+            '72 BPM',
+            'Heart Rate',
+            'Cardiovascular health',
+            0.85,
+            Colors.red,
+            'heart',
+          ),
         ],
       ),
     );
   }
 
-
   Widget _buildHorizontalStatCard(
-    BuildContext context, 
-    IconData icon, 
-    String value, 
-    String title, 
-    String subtitle, 
-    double progress, 
+    BuildContext context,
+    IconData icon,
+    String value,
+    String title,
+    String subtitle,
+    double progress,
     Color iconColor,
     String statType,
   ) {
@@ -368,107 +374,109 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
             ),
           ],
         ),
-            child: Row(
-              children: [
-                // Animated Icon
-                AnimatedBuilder(
-                  animation: _iconAnimationControllers[statType]!,
-                  builder: (context, child) {
-                    return Transform.translate(
-                      offset: Offset(
-                        _getAnimationOffset(statType, _iconAnimationControllers[statType]!.value),
-                        0,
-                      ),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: iconColor.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          icon,
-                          color: iconColor,
-                          size: 20,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 12),
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Flexible(
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                value,
-                                style: TextStyle(
-                                  color: AppTheme.textColor(context),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+        child: Row(
+          children: [
+            // Animated Icon
+            AnimatedBuilder(
+              animation: _iconAnimationControllers[statType]!,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(
+                    _getAnimationOffset(
+                        statType, _iconAnimationControllers[statType]!.value),
+                    0,
+                  ),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: iconColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: iconColor,
+                      size: 20,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(width: 12),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            value,
+                            style: TextStyle(
+                              color: AppTheme.textColor(context),
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
                             ),
-                            Text(
-                              '${(progress * 100).toInt()}%',
-                              style: TextStyle(
-                                color: iconColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                      Flexible(
-                        child: Text(
-                          title,
+                        Text(
+                          '${(progress * 100).toInt()}%',
                           style: TextStyle(
-                            color: AppTheme.textColor(context),
-                            fontSize: 12,
+                            color: iconColor,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      Flexible(
-                        child: Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                            fontSize: 10,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Progress indicator
-                SizedBox(
-                  width: 36,
-                  height: 36,
-                  child: CircularProgressIndicator(
-                    value: progress,
-                    backgroundColor: iconColor.withValues(alpha: 0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(iconColor),
-                    strokeWidth: 3,
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-              ],
+                  Flexible(
+                    child: Text(
+                      subtitle,
+                      style: TextStyle(
+                        color:
+                            AppTheme.textColor(context).withValues(alpha: 0.6),
+                        fontSize: 10,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(width: 12),
+            // Progress indicator
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(
+                value: progress,
+                backgroundColor: iconColor.withValues(alpha: 0.2),
+                valueColor: AlwaysStoppedAnimation<Color>(iconColor),
+                strokeWidth: 3,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -489,7 +497,7 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
         return sin(animationValue * 2 * pi) * 6;
       case 'heart':
         // Heart beat rhythm
-        return animationValue < 0.5 
+        return animationValue < 0.5
             ? sin(animationValue * 8 * pi) * 10
             : sin(animationValue * 2 * pi) * 3;
       default:
@@ -500,7 +508,7 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
   Future<void> _navigateWithAnimation(String statType, Color color) async {
     // Start the witty animation
     await _iconAnimationControllers[statType]!.forward();
-    
+
     // Navigate to detail page
     if (mounted) {
       Navigator.push(
@@ -513,14 +521,14 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
         ),
       );
     }
-    
+
     // Reset animation
     _iconAnimationControllers[statType]!.reset();
   }
 
   Widget _buildWaterHorizontalCard(BuildContext context) {
     final waterPercentage = (waterIntake - 0.25) / (2.0 - 0.25);
-    
+
     return GestureDetector(
       onTap: _addWater,
       child: ClipRRect(
@@ -542,14 +550,14 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
               ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: waterIntake >= 2.0 
+                color: waterIntake >= 2.0
                     ? Colors.green.withValues(alpha: 0.4)
                     : Colors.white.withValues(alpha: 0.2),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: waterIntake >= 2.0 
+                  color: waterIntake >= 2.0
                       ? Colors.green.withValues(alpha: 0.2)
                       : Colors.cyan.withValues(alpha: 0.1),
                   spreadRadius: 0,
@@ -582,7 +590,8 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
                     children: [
                       // Water fill with waves
                       AnimatedBuilder(
-                        animation: Listenable.merge([_waterAnimation, _waveAnimation]),
+                        animation:
+                            Listenable.merge([_waterAnimation, _waveAnimation]),
                         builder: (context, child) {
                           return Positioned(
                             bottom: 2,
@@ -591,7 +600,8 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: CustomPaint(
-                                size: Size(44, (44 * waterPercentage).clamp(0.0, 44)),
+                                size: Size(
+                                    44, (44 * waterPercentage).clamp(0.0, 44)),
                                 painter: WaterWavePainter(
                                   waterLevel: waterPercentage,
                                   waveOffset: _waveAnimation.value,
@@ -606,7 +616,8 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
                       Center(
                         child: Icon(
                           Icons.water_drop,
-                          color: waterIntake >= 2.0 ? Colors.green : Colors.cyan,
+                          color:
+                              waterIntake >= 2.0 ? Colors.green : Colors.cyan,
                           size: 20,
                         ),
                       ),
@@ -636,7 +647,9 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
                               Text(
                                 '${((waterIntake / 2.0) * 100).toInt()}%',
                                 style: TextStyle(
-                                  color: waterIntake >= 2.0 ? Colors.green : Colors.cyan,
+                                  color: waterIntake >= 2.0
+                                      ? Colors.green
+                                      : Colors.cyan,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -653,20 +666,21 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 1),
                       Text(
                         'Water Intake',
                         style: TextStyle(
                           color: AppTheme.textColor(context),
-                          fontSize: 14,
+                          fontSize: 9,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       Text(
                         'Tap to add 250ml • Goal: 2L',
                         style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                          fontSize: 12,
+                          color: AppTheme.textColor(context)
+                              .withValues(alpha: 0.6),
+                          fontSize: 9,
                         ),
                       ),
                     ],
@@ -694,7 +708,6 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
     );
   }
 
-
   Widget _buildMealsSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -712,7 +725,6 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
       ],
     );
   }
-
 
   Widget _buildMealPlanningCard(BuildContext context) {
     return Container(
@@ -795,7 +807,6 @@ class _HealthScreenState extends State<HealthScreen> with TickerProviderStateMix
       ),
     );
   }
-
 }
 
 class StatItem extends StatelessWidget {
@@ -910,7 +921,7 @@ class WaterWavePainter extends CustomPainter {
   @override
   bool shouldRepaint(WaterWavePainter oldDelegate) {
     return oldDelegate.waterLevel != waterLevel ||
-           oldDelegate.waveOffset != waveOffset;
+        oldDelegate.waveOffset != waveOffset;
   }
 }
 
@@ -996,7 +1007,8 @@ class StatDetailPage extends StatelessWidget {
                       Text(
                         _getStatSubtitle(statType),
                         style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                          color: AppTheme.textColor(context)
+                              .withValues(alpha: 0.7),
                           fontSize: 16,
                         ),
                       ),
@@ -1016,49 +1028,74 @@ class StatDetailPage extends StatelessWidget {
 
   String _getStatTitle(String statType) {
     switch (statType) {
-      case 'steps': return 'Steps Tracking';
-      case 'active': return 'Active Time';
-      case 'calories': return 'Calories Burned';
-      case 'sleep': return 'Sleep Quality';
-      case 'heart': return 'Heart Rate';
-      default: return 'Health Stats';
+      case 'steps':
+        return 'Steps Tracking';
+      case 'active':
+        return 'Active Time';
+      case 'calories':
+        return 'Calories Burned';
+      case 'sleep':
+        return 'Sleep Quality';
+      case 'heart':
+        return 'Heart Rate';
+      default:
+        return 'Health Stats';
     }
   }
 
   IconData _getStatIcon(String statType) {
     switch (statType) {
-      case 'steps': return Icons.directions_walk;
-      case 'active': return Icons.directions_run;
-      case 'calories': return Icons.local_fire_department;
-      case 'sleep': return Icons.bedtime;
-      case 'heart': return Icons.favorite;
-      default: return Icons.analytics;
+      case 'steps':
+        return Icons.directions_walk;
+      case 'active':
+        return Icons.directions_run;
+      case 'calories':
+        return Icons.local_fire_department;
+      case 'sleep':
+        return Icons.bedtime;
+      case 'heart':
+        return Icons.favorite;
+      default:
+        return Icons.analytics;
     }
   }
 
   String _getStatValue(String statType) {
     switch (statType) {
-      case 'steps': return '2,146';
-      case 'active': return '45min';
-      case 'calories': return '320';
-      case 'sleep': return '7.2h';
-      case 'heart': return '72';
-      default: return '0';
+      case 'steps':
+        return '2,146';
+      case 'active':
+        return '45min';
+      case 'calories':
+        return '320';
+      case 'sleep':
+        return '7.2h';
+      case 'heart':
+        return '72';
+      default:
+        return '0';
     }
   }
 
   String _getStatSubtitle(String statType) {
     switch (statType) {
-      case 'steps': return 'steps today';
-      case 'active': return 'active minutes';
-      case 'calories': return 'calories burned';
-      case 'sleep': return 'hours of sleep';
-      case 'heart': return 'BPM average';
-      default: return 'data points';
+      case 'steps':
+        return 'steps today';
+      case 'active':
+        return 'active minutes';
+      case 'calories':
+        return 'calories burned';
+      case 'sleep':
+        return 'hours of sleep';
+      case 'heart':
+        return 'BPM average';
+      default:
+        return 'data points';
     }
   }
 
-  List<Widget> _getDetailCards(BuildContext context, String statType, Color color) {
+  List<Widget> _getDetailCards(
+      BuildContext context, String statType, Color color) {
     return [
       _buildDetailCard(
         context,
@@ -1086,7 +1123,8 @@ class StatDetailPage extends StatelessWidget {
     ];
   }
 
-  Widget _buildDetailCard(BuildContext context, String title, String value, double progress, Color color) {
+  Widget _buildDetailCard(BuildContext context, String title, String value,
+      double progress, Color color) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -1117,7 +1155,8 @@ class StatDetailPage extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                        color:
+                            AppTheme.textColor(context).withValues(alpha: 0.7),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1153,67 +1192,103 @@ class StatDetailPage extends StatelessWidget {
 
   String _getTodayGoal(String statType) {
     switch (statType) {
-      case 'steps': return '2,146 / 10,000';
-      case 'active': return '45 / 60 min';
-      case 'calories': return '320 / 500 cal';
-      case 'sleep': return '7.2 / 8.0 hrs';
-      case 'heart': return '72 BPM (Normal)';
-      default: return 'N/A';
+      case 'steps':
+        return '2,146 / 10,000';
+      case 'active':
+        return '45 / 60 min';
+      case 'calories':
+        return '320 / 500 cal';
+      case 'sleep':
+        return '7.2 / 8.0 hrs';
+      case 'heart':
+        return '72 BPM (Normal)';
+      default:
+        return 'N/A';
     }
   }
 
   double _getTodayProgress(String statType) {
     switch (statType) {
-      case 'steps': return 0.21;
-      case 'active': return 0.75;
-      case 'calories': return 0.64;
-      case 'sleep': return 0.9;
-      case 'heart': return 0.85;
-      default: return 0.0;
+      case 'steps':
+        return 0.21;
+      case 'active':
+        return 0.75;
+      case 'calories':
+        return 0.64;
+      case 'sleep':
+        return 0.9;
+      case 'heart':
+        return 0.85;
+      default:
+        return 0.0;
     }
   }
 
   String _getWeeklyAverage(String statType) {
     switch (statType) {
-      case 'steps': return '8,423 avg/day';
-      case 'active': return '52 min avg/day';
-      case 'calories': return '387 cal avg/day';
-      case 'sleep': return '7.5 hrs avg/night';
-      case 'heart': return '74 BPM avg';
-      default: return 'N/A';
+      case 'steps':
+        return '8,423 avg/day';
+      case 'active':
+        return '52 min avg/day';
+      case 'calories':
+        return '387 cal avg/day';
+      case 'sleep':
+        return '7.5 hrs avg/night';
+      case 'heart':
+        return '74 BPM avg';
+      default:
+        return 'N/A';
     }
   }
 
   double _getWeeklyProgress(String statType) {
     switch (statType) {
-      case 'steps': return 0.84;
-      case 'active': return 0.87;
-      case 'calories': return 0.77;
-      case 'sleep': return 0.94;
-      case 'heart': return 0.88;
-      default: return 0.0;
+      case 'steps':
+        return 0.84;
+      case 'active':
+        return 0.87;
+      case 'calories':
+        return 0.77;
+      case 'sleep':
+        return 0.94;
+      case 'heart':
+        return 0.88;
+      default:
+        return 0.0;
     }
   }
 
   String _getMonthlyStats(String statType) {
     switch (statType) {
-      case 'steps': return '248,690 total';
-      case 'active': return '1,560 min total';
-      case 'calories': return '11,610 cal total';
-      case 'sleep': return '232.5 hrs total';
-      case 'heart': return '73 BPM avg';
-      default: return 'N/A';
+      case 'steps':
+        return '248,690 total';
+      case 'active':
+        return '1,560 min total';
+      case 'calories':
+        return '11,610 cal total';
+      case 'sleep':
+        return '232.5 hrs total';
+      case 'heart':
+        return '73 BPM avg';
+      default:
+        return 'N/A';
     }
   }
 
   double _getMonthlyProgress(String statType) {
     switch (statType) {
-      case 'steps': return 0.83;
-      case 'active': return 0.78;
-      case 'calories': return 0.74;
-      case 'sleep': return 0.91;
-      case 'heart': return 0.86;
-      default: return 0.0;
+      case 'steps':
+        return 0.83;
+      case 'active':
+        return 0.78;
+      case 'calories':
+        return 0.74;
+      case 'sleep':
+        return 0.91;
+      case 'heart':
+        return 0.86;
+      default:
+        return 0.0;
     }
   }
 }

@@ -212,6 +212,17 @@ class ExerciseProvider with ChangeNotifier {
     }
   }
 
+  // Method to clear error state
+  void clearError() {
+    if (_loadingState == LoadingState.error) {
+      log.info('Clearing error state');
+      _loadingState = LoadingState.idle;
+      _errorMessage = null;
+      _errorDetails = null;
+      _notifySafely();
+    }
+  }
+
   void _notifySafely() {
     if (_isNotifying) {
       log.warning('Skipping notifyListeners: Already notifying');
