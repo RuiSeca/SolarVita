@@ -4,7 +4,7 @@ import '../../../../models/sustainable_products.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
 class SustainableProductsSection extends StatelessWidget {
-  final List<SustainableProduct> products = [
+  static const List<SustainableProduct> products = [
     SustainableProduct(
       nameKey: 'product_bottle_name',
       descriptionKey: 'product_bottle_description',
@@ -32,7 +32,7 @@ class SustainableProductsSection extends StatelessWidget {
     ),
   ];
 
-  SustainableProductsSection({super.key});
+  const SustainableProductsSection({super.key});
 
   Future<void> _launchUrl(String url) async {
     if (!await launchUrl(Uri.parse(url))) {
@@ -75,6 +75,7 @@ class SustainableProductsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: products.length,
+          itemExtent: 350, // Fixed height: 200px image + 150px content/padding
           itemBuilder: (context, index) {
             final product = products[index];
             return Card(

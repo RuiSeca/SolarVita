@@ -176,6 +176,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _faqs.length,
+      itemExtent: 80.0, // Fixed height for collapsed FAQ items
       itemBuilder: (context, index) {
         return _FAQItem(faq: _faqs[index]);
       },

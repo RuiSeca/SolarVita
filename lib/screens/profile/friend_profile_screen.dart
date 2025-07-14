@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
@@ -211,7 +212,7 @@ class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
                   radius: 50,
                   backgroundColor: Colors.white.withValues(alpha: 0.2),
                   backgroundImage: widget.supporter.photoURL != null
-                      ? NetworkImage(widget.supporter.photoURL!)
+                      ? CachedNetworkImageProvider(widget.supporter.photoURL!)
                       : null,
                   child: widget.supporter.photoURL == null
                       ? const Icon(
@@ -609,7 +610,6 @@ class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Implement message functionality
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -634,7 +634,6 @@ class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    // TODO: Implement view activities functionality
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
@@ -138,7 +139,7 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
                         CircleAvatar(
                           radius: 30,
                           backgroundColor: theme.primaryColor.withAlpha(51),
-                          backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
+                          backgroundImage: photoURL != null ? CachedNetworkImageProvider(photoURL) : null,
                           child: photoURL == null
                               ? Text(
                                   displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',

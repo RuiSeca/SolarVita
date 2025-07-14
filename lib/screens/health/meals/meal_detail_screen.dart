@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import 'meal_edit_screen.dart';
@@ -122,10 +123,16 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             Hero(
               // Use mealId as the hero tag for consistency
               tag: widget.mealId,
-              child: Image.network(
-                widget.imagePath,
+              child: CachedNetworkImage(
+                imageUrl: widget.imagePath,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[300],
+                  child: const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                ),
+                errorWidget: (context, url, error) {
                   return Container(
                     color: AppTheme.cardColor(context),
                     child: const Icon(Icons.broken_image, size: 40),

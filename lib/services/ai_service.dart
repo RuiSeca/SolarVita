@@ -282,7 +282,7 @@ CONVERSATION STATUS: This is a continuing conversation.
       'good night'
     ];
     final lowerQuery = query.toLowerCase();
-    return simplePatterns.any((pattern) => lowerQuery.contains(pattern));
+    return simplePatterns.any((pattern) => lowerQuery.contains(pattern.toString()));
   }
 
   // Build contextual prompt with conversation history

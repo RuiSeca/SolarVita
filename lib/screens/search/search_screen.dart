@@ -25,6 +25,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String _searchQuery = '';
   bool _isLoadingExercises = false;
   String _loadingTarget = '';
+  Timer? _timeoutTimer;
 
   // Flag to prevent automatic navigation during first build
   bool _isFirstBuild = true;
@@ -32,6 +33,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     // Cancel any ongoing loading operations when the screen is disposed
+    _timeoutTimer?.cancel();
     Provider.of<ExerciseProvider>(context, listen: false).cancelLoading();
     super.dispose();
   }
@@ -203,7 +205,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     // Add a timeout with more detailed handling
     bool timeoutOccurred = false;
-    Timer? timeoutTimer = Timer(const Duration(seconds: 12), () {
+    _timeoutTimer = Timer(const Duration(seconds: 12), () {
       timeoutOccurred = true;
       logger.warning("⏰ Timeout occurred for target: $targetMuscle");
       
@@ -224,7 +226,7 @@ class _SearchScreenState extends State<SearchScreen> {
       await provider.loadExercisesByTarget(targetMuscle);
 
       // Cancel timeout timer
-      timeoutTimer.cancel();
+      _timeoutTimer?.cancel();
       logger.info("✅ Provider call completed for $targetMuscle");
 
       // If timeout already occurred, don't proceed
@@ -280,7 +282,7 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     } catch (e) {
       // Cancel timeout timer
-      timeoutTimer.cancel();
+      _timeoutTimer?.cancel();
 
       logger.severe("💥 Exception during exercise loading: $e");
       if (context.mounted && !timeoutOccurred) {

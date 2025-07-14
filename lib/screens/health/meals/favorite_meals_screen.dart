@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import 'meal_detail_screen.dart';
@@ -135,19 +136,23 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                   child: Hero(
                     tag: mealId,
                     child: imagePath.isNotEmpty
-                        ? Image.network(
-                            imagePath,
+                        ? CachedNetworkImage(
+                            imageUrl: imagePath,
                             height: 140,
                             width: double.infinity,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                height: 140,
-                                width: double.infinity,
-                                color: AppTheme.cardColor(context),
-                                child: const Icon(Icons.broken_image, size: 40),
-                              );
-                            },
+                            placeholder: (context, url) => Container(
+                              height: 140,
+                              width: double.infinity,
+                              color: AppTheme.cardColor(context),
+                              child: const CircularProgressIndicator(),
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              height: 140,
+                              width: double.infinity,
+                              color: AppTheme.cardColor(context),
+                              child: const Icon(Icons.broken_image, size: 40),
+                            ),
                           )
                         : Container(
                             height: 140,

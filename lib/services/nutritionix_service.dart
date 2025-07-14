@@ -301,7 +301,7 @@ class NutritionixService {
       'pepper',
       'mushroom'
     ];
-    return vegetables.any((veg) => food.contains(veg));
+    return vegetables.any((veg) => food.toLowerCase().contains(veg));
   }
 
   bool _isFruit(String food) {
@@ -314,7 +314,7 @@ class NutritionixService {
       'pear',
       'plum'
     ];
-    return fruits.any((fruit) => food.contains(fruit));
+    return fruits.any((fruit) => food.toLowerCase().contains(fruit));
   }
 
   bool _isProtein(String food) {
@@ -327,12 +327,12 @@ class NutritionixService {
       'turkey',
       'pork'
     ];
-    return proteins.any((protein) => food.contains(protein));
+    return proteins.any((protein) => food.toLowerCase().contains(protein));
   }
 
   bool _isGrain(String food) {
     final grains = ['grain', 'wheat', 'corn', 'barley', 'rye', 'noodle'];
-    return grains.any((grain) => food.contains(grain));
+    return grains.any((grain) => food.toLowerCase().contains(grain));
   }
 
   // Calculate confidence based on food recognition accuracy
@@ -376,11 +376,11 @@ class NutritionixService {
       'item'
     ];
 
-    if (highConfidenceFoods.any((food) => foodLower.contains(food))) {
+    if (highConfidenceFoods.any((food) => foodLower.contains(food.toString()))) {
       return 0.9;
-    } else if (mediumConfidenceFoods.any((food) => foodLower.contains(food))) {
+    } else if (mediumConfidenceFoods.any((food) => foodLower.contains(food.toString()))) {
       return 0.7;
-    } else if (lowConfidenceFoods.any((food) => foodLower.contains(food))) {
+    } else if (lowConfidenceFoods.any((food) => foodLower.contains(food.toString()))) {
       return 0.3;
     }
 

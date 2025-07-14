@@ -83,7 +83,9 @@ class _ExerciseProgressChartState extends State<ExerciseProgressChart> {
           const SizedBox(height: 8),
           SizedBox(
             height: 250,
-            child: LineChart(_createLineChart()),
+            child: RepaintBoundary(
+              child: LineChart(_createLineChart()),
+            ),
           ),
         ],
       ),
