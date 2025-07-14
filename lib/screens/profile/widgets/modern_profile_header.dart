@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/user_profile_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
@@ -82,7 +83,7 @@ class ModernProfileHeader extends StatelessWidget {
                                   padding: const EdgeInsets.all(3),
                                   child: CircleAvatar(
                                     radius: 35,
-                                    backgroundImage: photoURL != null ? NetworkImage(photoURL) : null,
+                                    backgroundImage: photoURL != null ? CachedNetworkImageProvider(photoURL) : null,
                                     backgroundColor: AppTheme.cardColor(context),
                                     child: photoURL == null
                                         ? const Icon(

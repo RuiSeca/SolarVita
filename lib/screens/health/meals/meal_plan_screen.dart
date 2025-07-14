@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
@@ -209,7 +210,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         _mealData[mealTime] = [];
       }
       // Prevent duplicate meals
-      if (!_mealData[mealTime]!.any((m) => m['id'] == formattedMeal['id'])) {
+      if (!_mealData[mealTime]!.any((m) => m['id']?.toString() == formattedMeal['id']?.toString())) {
         _mealData[mealTime]!.add(formattedMeal);
       }
     });
@@ -599,6 +600,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _weekDays.length,
+        itemExtent: 72.0, // Fixed width for horizontal day selector items (width + margin)
         itemBuilder: (context, index) {
           final isSelected = _selectedDayIndex == index;
           return GestureDetector(
@@ -855,6 +857,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _mealTimes.length,
+      itemExtent: 200.0, // Fixed height for meal time cards (base height without dynamic content)
       itemBuilder: (context, index) =>
           _buildMealCard(context, _mealTimes[index]),
     );
@@ -927,19 +930,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         borderRadius: BorderRadius.circular(8),
         child:
             meal['imagePath'] != null && meal['imagePath'].toString().isNotEmpty
-                ? Image.network(
-                    meal['imagePath'],
+                ? CachedNetworkImage(
+                    imageUrl: meal['imagePath'],
                     width: 70,
                     height: 70,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 70,
-                        height: 70,
-                        color: AppTheme.cardColor(context),
-                        child: const Icon(Icons.restaurant, size: 30),
-                      );
-                    },
+                    placeholder: (context, url) => Container(
+                      width: 70,
+                      height: 70,
+                      color: AppTheme.cardColor(context),
+                      child: const CircularProgressIndicator(),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      width: 70,
+                      height: 70,
+                      color: AppTheme.cardColor(context),
+                      child: const Icon(Icons.restaurant, size: 30),
+                    ),
                   )
                 : Container(
                     width: 70,

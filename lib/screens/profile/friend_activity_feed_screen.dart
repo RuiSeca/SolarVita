@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_service.dart';
 import '../../models/social_activity.dart';
@@ -106,6 +107,7 @@ class _FriendActivityFeedScreenState extends State<FriendActivityFeedScreen> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: activities.length,
+              itemExtent: 200.0, // Fixed height for activity cards (margin + padding + content)
               itemBuilder: (context, index) {
                 final activity = activities[index];
                 return _buildActivityCard(context, activity);
@@ -143,7 +145,7 @@ class _FriendActivityFeedScreenState extends State<FriendActivityFeedScreen> {
                   radius: 20,
                   backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                   backgroundImage: activity.userPhotoURL != null
-                      ? NetworkImage(activity.userPhotoURL!)
+                      ? CachedNetworkImageProvider(activity.userPhotoURL!)
                       : null,
                   child: activity.userPhotoURL == null
                       ? Icon(

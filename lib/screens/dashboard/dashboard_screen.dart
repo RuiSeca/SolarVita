@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
@@ -77,7 +78,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       backgroundImage: imageFile != null
                                           ? FileImage(imageFile!)
                                           : profileImageUrl != null
-                                              ? NetworkImage(profileImageUrl)
+                                              ? CachedNetworkImageProvider(profileImageUrl)
                                               : null,
                                       backgroundColor:
                                           AppTheme.textFieldBackground(context),

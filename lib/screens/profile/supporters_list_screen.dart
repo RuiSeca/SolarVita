@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
@@ -115,6 +116,7 @@ class _SupportersListScreenState extends State<SupportersListScreen> {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: friends.length,
+            itemExtent: 128.0, // Fixed height for supporter cards (margin + padding + content)
             itemBuilder: (context, index) {
               final supporter = friends[index];
               return _buildSupporterCard(context, supporter);
@@ -160,7 +162,7 @@ class _SupportersListScreenState extends State<SupportersListScreen> {
                 radius: 30,
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                 backgroundImage: supporter.photoURL != null
-                    ? NetworkImage(supporter.photoURL!)
+                    ? CachedNetworkImageProvider(supporter.photoURL!)
                     : null,
                 child: supporter.photoURL == null
                     ? Icon(

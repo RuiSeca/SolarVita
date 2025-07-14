@@ -230,15 +230,17 @@ class _LottieWaterWidgetState extends State<LottieWaterWidget>
                 borderRadius: isCircular 
                     ? BorderRadius.circular((widget.width ?? 48) / 2)
                     : BorderRadius.circular(6),
-                child: CustomPaint(
-                  size: Size(widget.width ?? 48, widget.height ?? 48),
-                  painter: FlowingWaterPainter(
-                    waterHeight: _fillAnimation.value,
-                    waterColor: Colors.cyan,
-                    h1: _animation1.value,
-                    h2: _animation2.value,
-                    h3: _animation3.value,
-                    h4: _animation4.value,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    size: Size(widget.width ?? 48, widget.height ?? 48),
+                    painter: FlowingWaterPainter(
+                      waterHeight: _fillAnimation.value,
+                      waterColor: Colors.cyan,
+                      h1: _animation1.value,
+                      h2: _animation2.value,
+                      h3: _animation3.value,
+                      h4: _animation4.value,
+                    ),
                   ),
                 ),
               );

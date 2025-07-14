@@ -166,8 +166,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'look at',
     ];
 
-    final hasExerciseWord = exerciseWords.any((word) => text.contains(word));
-    final hasIntentWord = intentWords.any((word) => text.contains(word));
+    final hasExerciseWord = exerciseWords.any((word) => text.contains(word.toString()));
+    final hasIntentWord = intentWords.any((word) => text.contains(word.toString()));
 
     return hasExerciseWord && hasIntentWord;
   }
@@ -206,8 +206,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'look at',
     ];
 
-    final hasMealWord = mealWords.any((word) => text.contains(word));
-    final hasIntentWord = intentWords.any((word) => text.contains(word));
+    final hasMealWord = mealWords.any((word) => text.contains(word.toString()));
+    final hasIntentWord = intentWords.any((word) => text.contains(word.toString()));
 
     return hasMealWord && hasIntentWord;
   }

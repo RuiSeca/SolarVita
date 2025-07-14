@@ -196,6 +196,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
 
         return ListView.builder(
           itemCount: sortedDates.length,
+          itemExtent: 120, // Estimated height for date section + exercises
           itemBuilder: (context, index) {
             final date = sortedDates[index];
             final dateFormatted = DateFormat.yMMMd().format(date);

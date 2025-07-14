@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
@@ -115,6 +116,7 @@ class _FollowingListScreenState extends State<FollowingListScreen> {
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: following.length,
+            itemExtent: 128.0, // Fixed height for following cards (margin + padding + content)
             itemBuilder: (context, index) {
               final person = following[index];
               return _buildFollowingCard(context, person);
@@ -160,7 +162,7 @@ class _FollowingListScreenState extends State<FollowingListScreen> {
                 radius: 30,
                 backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
                 backgroundImage: person.photoURL != null
-                    ? NetworkImage(person.photoURL!)
+                    ? CachedNetworkImageProvider(person.photoURL!)
                     : null,
                 child: person.photoURL == null
                     ? Icon(

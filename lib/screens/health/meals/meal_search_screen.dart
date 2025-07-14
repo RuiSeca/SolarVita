@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:async';
-import 'package:retry/retry.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../services/recipe_service.dart';
 import 'meal_detail_screen.dart';
 import 'package:logger/logger.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
@@ -30,6 +29,7 @@ class MealSearchScreen extends StatefulWidget {
 class _MealSearchScreenState extends State<MealSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final MealDBService _mealService = MealDBService();
 
   final Set<String> _favoriteMeals = {};
   List<Map<String, dynamic>> _meals = [];
@@ -62,51 +62,20 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-            'https://www.themealdb.com/api/json/v1/1/filter.php?c=$_selectedCategory'),
-        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['meals'] != null) {
-          List<Map<String, dynamic>> newMeals = [];
-          final allMeals = List.from(data['meals']);
-          final existingMealIds = _meals.map((m) => m['id']).toSet();
-          final newMealsToFetch = allMeals
-              .where((meal) => !existingMealIds.contains(meal['idMeal']))
+      // Get more meals from the current category
+      final newMeals = await _mealService.getMealsByCategory(_selectedCategory);
+      
+      if (mounted) {
+        setState(() {
+          // Add new meals that aren't already in the list
+          final existingMealIds = _meals.map((m) => m['id']?.toString() ?? '').toSet();
+          final uniqueNewMeals = newMeals
+              .where((meal) => !existingMealIds.contains(meal['id']?.toString() ?? ''))
               .take(6)
               .toList();
-
-          for (var meal in newMealsToFetch) {
-            final detailResponse = await http.get(
-              Uri.parse(
-                  'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
-              headers: {
-                'Accept': 'application/json',
-                'Connection': 'keep-alive'
-              },
-            ).timeout(const Duration(seconds: 30));
-
-            if (detailResponse.statusCode == 200) {
-              final detailData = json.decode(detailResponse.body);
-              if (detailData['meals'] != null &&
-                  detailData['meals'].isNotEmpty) {
-                final formattedMeal = _formatMealData(detailData['meals'][0]);
-                newMeals.add(formattedMeal);
-              }
-            }
-          }
-
-          if (mounted) {
-            setState(() {
-              _meals.addAll(newMeals);
-            });
-          }
-        }
-      } else {
-        logger.d('Failed to load more meals: ${response.statusCode}');
+          
+          _meals.addAll(uniqueNewMeals);
+        });
       }
     } catch (e) {
       logger.d('Error loading more meals: $e');
@@ -128,6 +97,15 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
+      // Test API connection first
+      final apiTest = await _mealService.testApiConnection();
+      if (!apiTest) {
+        setState(() {
+          _error = 'Failed to connect to TheMealDB API. Please check your connection.';
+          _isLoading = false;
+        });
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
       final cachedCategories = prefs.getString('meal_categories');
 
@@ -162,59 +140,38 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         }
       }
 
-      // Fetch categories from API
+      // Fetch categories from API using new service
       try {
-        const retryOptions = RetryOptions(
-          maxAttempts: 3,
-          delayFactor: Duration(milliseconds: 500),
-        );
-        final categoryResponse = await retryOptions.retry(
-          () => http.get(
-            Uri.parse('https://www.themealdb.com/api/json/v1/1/categories.php'),
-            headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
-          ).timeout(const Duration(seconds: 30)),
-          retryIf: (e) => e is SocketException || e is TimeoutException,
-        );
-
-        logger.d('Category request sent');
-        logger.d('Response status: ${categoryResponse.statusCode}');
-        logger
-            .d('Response body: ${categoryResponse.body.substring(0, 100)}...');
-
+        final categories = await _mealService.getCategories();
+        
         if (!mounted) return;
 
-        if (categoryResponse.statusCode == 200) {
-          final data = json.decode(categoryResponse.body);
-          await prefs.setString('meal_categories', json.encode(data));
-          if (data['categories'] == null) {
-            throw Exception('No categories data found');
-          }
+        // Cache the categories
+        await prefs.setString('meal_categories', json.encode({'categories': categories}));
 
-          setState(() {
-            _categories = [
-              {
-                'strCategory': 'All',
-                'strCategoryThumb': '',
-                'strCategoryDescription': ''
-              }
-            ];
-            for (var category in data['categories']) {
-              _categories.add({
-                'strCategory': category['strCategory']?.toString() ?? '',
-                'strCategoryThumb':
-                    category['strCategoryThumb']?.toString() ?? '',
-                'strCategoryDescription':
-                    category['strCategoryDescription']?.toString() ?? '',
-              });
+        setState(() {
+          _categories = [
+            {
+              'strCategory': 'All',
+              'strCategoryThumb': '',
+              'strCategoryDescription': 'All available meals'
             }
-          });
-        } else {
-          throw Exception(
-              'Categories API error: ${categoryResponse.statusCode}');
-        }
+          ];
+          for (var category in categories) {
+            _categories.add({
+              'strCategory': category['strCategory']?.toString() ?? '',
+              'strCategoryThumb': category['strCategoryThumb']?.toString() ?? '',
+              'strCategoryDescription': category['strCategoryDescription']?.toString() ?? '',
+            });
+          }
+        });
       } catch (e) {
         logger.d('Categories error: $e');
-        throw Exception('Failed to load categories: $e');
+        if (!mounted) return;
+        
+        setState(() {
+          _error = 'Failed to load categories: ${e.toString()}';
+        });
       }
 
       // Load meals
@@ -242,42 +199,31 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
   Future<void> _loadMeals() async {
     try {
       List<Map<String, dynamic>> allMeals = [];
-      final response = await http.get(
-        Uri.parse('https://www.themealdb.com/api/json/v1/1/filter.php?c=Beef'),
-        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
-      ).timeout(const Duration(seconds: 30));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['meals'] != null) {
-          for (var meal in data['meals'].take(20)) {
-            final detailResponse = await http.get(
-              Uri.parse(
-                  'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
-              headers: {
-                'Accept': 'application/json',
-                'Connection': 'keep-alive'
-              },
-            ).timeout(const Duration(seconds: 30));
-            if (detailResponse.statusCode == 200) {
-              final detailData = json.decode(detailResponse.body);
-              if (detailData['meals'] != null &&
-                  detailData['meals'].isNotEmpty) {
-                allMeals.add(_formatMealData(detailData['meals'][0]));
-              }
-            }
-          }
-        }
+      
+      if (_selectedCategory == 'All') {
+        // Use the new getAllMeals method for "All" tab with V2 API features
+        allMeals = await _mealService.getAllMeals(limit: 50);
+      } else {
+        // Load meals for specific category
+        allMeals = await _mealService.getMealsByCategory(_selectedCategory);
       }
 
       if (!mounted) return;
 
       setState(() {
-        _meals = allMeals..shuffle();
+        _meals = allMeals;
       });
+      
+      if (allMeals.isEmpty) {
+      } else {
+      }
     } catch (e) {
       logger.d('Meals error: $e');
-      throw Exception('Failed to load meals: $e');
+      if (!mounted) return;
+      
+      setState(() {
+        _error = 'Failed to load meals: ${e.toString()}';
+      });
     }
   }
 
@@ -295,28 +241,14 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
-      final response = await http.get(
-        Uri.parse(
-            'https://www.themealdb.com/api/json/v1/1/search.php?s=$query'),
-        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
-      ).timeout(const Duration(seconds: 30));
+      final meals = await _mealService.searchMeals(query);
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        setState(() {
-          if (data['meals'] != null) {
-            _meals = List<Map<String, dynamic>>.from(
-                data['meals'].map((meal) => _formatMealData(meal)));
-          } else {
-            _meals = [];
-          }
-          _isLoading = false;
-        });
-      } else {
-        throw Exception('Failed to search meals');
-      }
+      setState(() {
+        _meals = meals;
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -337,155 +269,21 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
     });
 
     try {
-      if (category == 'All') {
-        await _loadInitialData();
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse(
-            'https://www.themealdb.com/api/json/v1/1/filter.php?c=$category'),
-        headers: {'Accept': 'application/json', 'Connection': 'keep-alive'},
-      ).timeout(const Duration(seconds: 30));
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['meals'] != null) {
-          List<Map<String, dynamic>> categoryMeals = [];
-          final allMeals = List.from(data['meals']);
-          final mealsToFetch = allMeals.take(12).toList();
-
-          for (var meal in mealsToFetch) {
-            final detailResponse = await http.get(
-              Uri.parse(
-                  'https://www.themealdb.com/api/json/v1/1/lookup.php?i=${meal['idMeal']}'),
-              headers: {
-                'Accept': 'application/json',
-                'Connection': 'keep-alive'
-              },
-            ).timeout(const Duration(seconds: 30));
-
-            if (detailResponse.statusCode == 200) {
-              final detailData = json.decode(detailResponse.body);
-              if (detailData['meals'] != null &&
-                  detailData['meals'].isNotEmpty) {
-                final formattedMeal = _formatMealData(detailData['meals'][0]);
-                categoryMeals.add(formattedMeal);
-              }
-            }
-          }
-
-          if (!mounted) return;
-
-          setState(() {
-            _meals = categoryMeals;
-            _isLoading = false;
-          });
-          return;
-        }
-        setState(() => _meals = []);
-      }
+      await _loadMeals(); // This will handle both "All" and specific categories
+      
+      setState(() {
+        _isLoading = false;
+      });
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error =
-              'Failed to load category meals. Please check your connection.';
+          _error = 'Failed to load category meals. Please check your connection.';
           _isLoading = false;
         });
       }
     }
   }
 
-  Map<String, dynamic> _formatMealData(Map<String, dynamic> meal) {
-    try {
-      if (meal['idMeal'] == null || meal['strMeal'] == null) {
-        throw Exception('Invalid meal data structure');
-      }
-
-      List<String> ingredients = [];
-      List<String> measures = [];
-
-      for (int i = 1; i <= 20; i++) {
-        final ingredient = meal['strIngredient$i'];
-        final measure = meal['strMeasure$i'];
-
-        if (ingredient != null && ingredient.toString().trim().isNotEmpty) {
-          ingredients.add(ingredient.toString().trim());
-          measures.add(measure?.toString().trim() ?? '');
-        }
-      }
-
-      List<String> instructions = [];
-      if (meal['strInstructions'] != null) {
-        instructions = meal['strInstructions']
-            .toString()
-            .split(RegExp(r'\r\n|\n|\r'))
-            .where((step) => step.trim().isNotEmpty)
-            .map((step) => step.trim())
-            .toList();
-      }
-
-      final calories = ingredients.length * 100;
-
-      return {
-        'id': meal['idMeal'].toString(),
-        'titleKey': meal['strMeal'].toString(),
-        'imagePath': meal['strMealThumb']?.toString() ?? '',
-        'category': meal['strCategory']?.toString() ?? '',
-        'area': meal['strArea']?.toString() ?? '',
-        'instructions': instructions,
-        'ingredients': ingredients,
-        'measures': measures,
-        'calories': '$calories kcal',
-        'nutritionFacts': {
-          'calories': calories.toString(),
-          'protein': '${(calories / 20).round()}g',
-          'carbs': '${(calories / 4).round()}g',
-          'fat': '${(calories / 9).round()}g',
-        },
-        'isVegan': !ingredients.any((ingredient) => [
-              'chicken',
-              'beef',
-              'meat',
-              'fish',
-              'pork',
-              'lamb',
-              'egg',
-              'milk',
-              'cream',
-              'cheese',
-              'butter',
-              'yogurt'
-            ].any((nonVegan) => ingredient.toLowerCase().contains(nonVegan))),
-        'isFavorite': _favoriteMeals.contains(meal['idMeal']),
-        'youtubeUrl': meal['strYoutube']?.toString(),
-      };
-    } catch (e) {
-      logger.d('Error formatting meal data: $e');
-      return {
-        'id': meal['idMeal']?.toString() ?? 'unknown',
-        'titleKey': meal['strMeal']?.toString() ?? 'Unknown Meal',
-        'imagePath': meal['strMealThumb']?.toString() ?? '',
-        'category': '',
-        'area': '',
-        'instructions': <String>[],
-        'ingredients': <String>[],
-        'measures': <String>[],
-        'calories': '0 kcal',
-        'nutritionFacts': {
-          'calories': '0',
-          'protein': '0g',
-          'carbs': '0g',
-          'fat': '0g',
-        },
-        'isVegan': false,
-        'isFavorite': false,
-        'youtubeUrl': null,
-      };
-    }
-  }
 
   void _toggleFavorite(String mealId) {
     setState(() {
@@ -591,6 +389,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: _categories.length,
+        itemExtent: 76.0, // Fixed width for horizontal category items (padding + icon/image width)
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = category['strCategory'] == _selectedCategory;
@@ -618,7 +417,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                       image: category['strCategory'] != 'All'
                           ? DecorationImage(
                               image:
-                                  NetworkImage(category['strCategoryThumb']!),
+                                  CachedNetworkImageProvider(category['strCategoryThumb']!),
                               fit: BoxFit.cover,
                               opacity: isSelected ? 0.7 : 1.0,
                             )
@@ -653,6 +452,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
   }
 
   Widget _buildMealGrid() {
+    
     if (_isLoading) {
       return const Expanded(
         child: Center(
@@ -823,25 +623,20 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(20),
                     ),
-                    child: Image.network(
-                      meal['imagePath'],
+                    child: CachedNetworkImage(
+                      imageUrl: meal['imagePath'],
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: AppTheme.cardColor(context),
-                          child: Center(
-                            child: LottieLoadingWidget(),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppTheme.cardColor(context),
-                          child: const Icon(Icons.broken_image, size: 40),
-                        );
-                      },
+                      placeholder: (context, url) => Container(
+                        color: AppTheme.cardColor(context),
+                        child: Center(
+                          child: LottieLoadingWidget(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppTheme.cardColor(context),
+                        child: const Icon(Icons.broken_image, size: 40),
+                      ),
                     ),
                   ),
                   if (meal['isVegan'])
