@@ -1,11 +1,9 @@
-cat > codemagic.yaml << 'EOF'
 workflows:
   ios-workflow:
     name: iOS Workflow
     max_build_duration: 120
     environment:
-      groups:
-        - env_files
+      groups: [env_files]
       vars:
         MEALDB_API_KEY: $MEALDB_API_KEY
         GEMINI_API_KEY: $GEMINI_API_KEY
@@ -21,25 +19,21 @@ workflows:
         script: |
           #!/usr/bin/env sh
           set -e
-          cat > .env <<EOF_ENV
+          cat > .env <<'ENVEOF'
           MEALDB_API_KEY=$MEALDB_API_KEY
           GEMINI_API_KEY=$GEMINI_API_KEY
           GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY
           NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY
           NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID
           RAPID_API_KEY=$RAPID_API_KEY
-          EOF_ENV
-
+          ENVEOF
       - name: Get Flutter dependencies
         script: flutter packages get
-
       - name: Build iOS
         script: flutter build ios --debug --simulator
-
     artifacts:
       - build/ios/**/*.app
       - build/**/outputs/**/*.apk
       - build/**/outputs/**/*.aab
       - build/**/outputs/**/mapping.txt
       - flutter_drive.log
-EOF
