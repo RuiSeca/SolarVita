@@ -28,6 +28,9 @@ import 'providers/riverpod/user_profile_provider.dart';
 import 'providers/riverpod/auth_provider.dart' as auth;
 import 'models/user_profile.dart';
 
+// Global flag to track Firebase initialization
+bool isFirebaseAvailable = false;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -38,17 +41,28 @@ void main() async {
         '[${record.level.name}] ${record.time}: ${record.loggerName}: ${record.message}');
   });
 
-  // Initialize Firebase (skip in test/CI environments)
+  // Initialize Firebase (graceful handling for test/CI environments)
+  bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
-    // Initialize notification service
-    final notificationService = NotificationService();
-    await notificationService.initialize();
+    firebaseInitialized = true;
+    isFirebaseAvailable = true;
+    debugPrint("Firebase initialized successfully");
   } catch (e) {
     debugPrint("Firebase initialization failed (test environment): $e");
+    // Continue without Firebase for testing
+  }
+  
+  // Initialize notification service only if Firebase is working
+  if (firebaseInitialized) {
+    try {
+      final notificationService = NotificationService();
+      await notificationService.initialize();
+    } catch (e) {
+      debugPrint("Notification service initialization failed: $e");
+    }
   }
 
   // Load environment variables (optional for CI/CD)
@@ -249,3 +263,4 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 }
+

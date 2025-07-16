@@ -4,7 +4,14 @@ import 'package:logger/logger.dart';
 
 class VisionApiConfig {
   static final Logger _logger = Logger();
-  static final String apiKey = dotenv.env['GOOGLE_VISION_API_KEY'] ?? '';
+  // Hybrid approach: try dart-define first, fallback to dotenv
+  static String get apiKey {
+    const dartDefine = String.fromEnvironment('GOOGLE_VISION_API_KEY');
+    if (dartDefine.isNotEmpty) return dartDefine;
+    
+    // Fallback to dotenv for local development
+    return dotenv.env['GOOGLE_VISION_API_KEY'] ?? '';
+  }
   static const String baseUrl =
       'https://vision.googleapis.com/v1/images:annotate';
 
@@ -20,7 +27,7 @@ class VisionApiConfig {
   // Strict validation that will return false if API key is missing
   static bool isConfigured() {
     if (apiKey.isEmpty) {
-      _logger.e('GOOGLE_VISION_API_KEY is not set in .env file');
+      _logger.e('GOOGLE_VISION_API_KEY is not set in .env file or dart-define');
       return false;
     }
     return true;

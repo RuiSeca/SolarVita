@@ -460,6 +460,66 @@ class NotificationService {
     }
   }
 
+  // Schedule water reminder at specific time
+  Future<void> scheduleWaterReminderAt({
+    required DateTime scheduledTime,
+    required String title,
+    required String body,
+  }) async {
+    if (!await _isNotificationTypeEnabled(_waterRemindersKey)) {
+      return;
+    }
+
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'water_reminders',
+        'Water Reminders',
+        channelDescription: 'Reminders to drink water throughout the day',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+        playSound: true,
+        enableVibration: true,
+        enableLights: true,
+        ledColor: Color(0xFF2196F3),
+      );
+
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      final payload = json.encode({
+        'type': 'water_reminder',
+        'scheduledTime': scheduledTime.toIso8601String(),
+      });
+
+      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      final notificationId = _generateNotificationId();
+
+      await _localNotifications.zonedSchedule(
+        notificationId,
+        title,
+        body,
+        tzScheduledTime,
+        details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        payload: payload,
+      );
+
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // Schedule eco tip
   Future<void> scheduleEcoTip({
     required String tip,

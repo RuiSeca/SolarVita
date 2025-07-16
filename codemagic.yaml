@@ -1,7 +1,8 @@
 workflows:
   ios-workflow:
-    name: iOS Workflow
+    name: iOS Debug Simulator
     max_build_duration: 120
+    instance_type: mac_mini_m1
     environment:
       groups:
         - env_files
@@ -9,29 +10,86 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Create .env file
-        script: |
-          echo "Creating .env file..."
-          echo "MEALDB_API_KEY=$MEALDB_API_KEY" > .env
-          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
-          echo "GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY" >> .env
-          echo "NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY" >> .env
-          echo "NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID" >> .env
-          echo "RAPID_API_KEY=$RAPID_API_KEY" >> .env
-          echo "Contents of .env file:"
-          cat .env
-          echo "Environment variables check:"
-          echo "GEMINI_API_KEY length: ${#GEMINI_API_KEY}"
-
       - name: Get Flutter dependencies
         script: flutter packages get
 
-      - name: Build iOS
-        script: flutter build ios --debug --simulator
+      - name: Build iOS Debug for Simulator
+        script:  < /dev/null | 
+          flutter build ios --debug --simulator \
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+
+    artifacts:
+      - build/ios/**/*.app
+      - flutter_drive.log
+
+  android-workflow:
+    name: Android Debug APK
+    max_build_duration: 120
+    instance_type: linux_x2
+    environment:
+      groups:
+        - env_files
+      flutter: stable
+      java: 17
+    scripts:
+      - name: Get Flutter dependencies
+        script: flutter packages get
+
+      - name: Build Android Debug APK
+        script: |
+          flutter build apk --debug \
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+
+    artifacts:
+      - build/**/outputs/**/*.apk
+      - flutter_drive.log
+
+  dual-platform-workflow:
+    name: iOS + Android Debug Build
+    max_build_duration: 180
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - env_files
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      java: 17
+    scripts:
+      - name: Get Flutter dependencies
+        script: flutter packages get
+
+      - name: Build iOS Debug for Simulator
+        script: |
+          flutter build ios --debug --simulator \
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+
+      - name: Build Android Debug APK
+        script: |
+          flutter build apk --debug \
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
       - build/ios/**/*.app
       - build/**/outputs/**/*.apk
-      - build/**/outputs/**/*.aab
-      - build/**/outputs/**/mapping.txt
       - flutter_drive.log
