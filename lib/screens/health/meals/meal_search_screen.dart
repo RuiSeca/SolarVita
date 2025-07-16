@@ -3,16 +3,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../services/recipe_service.dart';
+import '../../../providers/riverpod/meal_provider.dart';
 import 'meal_detail_screen.dart';
 import 'package:logger/logger.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
 
 var logger = Logger();
 
-class MealSearchScreen extends StatefulWidget {
+class MealSearchScreen extends ConsumerStatefulWidget {
   final int selectedDayIndex;
   final String currentMealTime;
 
@@ -23,89 +25,60 @@ class MealSearchScreen extends StatefulWidget {
   });
 
   @override
-  State createState() => _MealSearchScreenState();
+  ConsumerState<MealSearchScreen> createState() => _MealSearchScreenState();
 }
 
-class _MealSearchScreenState extends State<MealSearchScreen> {
+class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final MealDBService _mealService = MealDBService();
 
   final Set<String> _favoriteMeals = {};
-  List<Map<String, dynamic>> _meals = [];
   List<Map<String, String>> _categories = [];
   String _selectedCategory = 'All';
-  bool _isLoading = false;
-  bool _isLoadingMore = false;
-
-  String? _error;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    _searchController.addListener(_onSearchChanged);
     _loadInitialData();
   }
 
-  void _scrollListener() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent) {
-      _loadMoreMeals();
-    }
-  }
-
-  Future<void> _loadMoreMeals() async {
-    if (_selectedCategory == 'All' || _isLoadingMore) return;
-
-    setState(() {
-      _isLoadingMore = true;
+  void _onSearchChanged() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      final query = _searchController.text.trim();
+      if (query.isEmpty) {
+        ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
+      } else {
+        ref.read(mealNotifierProvider.notifier).searchMeals(query);
+      }
     });
-
-    try {
-      // Get more meals from the current category
-      final newMeals = await _mealService.getMealsByCategory(_selectedCategory);
-      
-      if (mounted) {
-        setState(() {
-          // Add new meals that aren't already in the list
-          final existingMealIds = _meals.map((m) => m['id']?.toString() ?? '').toSet();
-          final uniqueNewMeals = newMeals
-              .where((meal) => !existingMealIds.contains(meal['id']?.toString() ?? ''))
-              .take(6)
-              .toList();
-          
-          _meals.addAll(uniqueNewMeals);
-        });
-      }
-    } catch (e) {
-      logger.d('Error loading more meals: $e');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoadingMore = false;
-        });
-      }
-    }
   }
+
+  void _scrollListener() {
+    // Scroll listener can be used for future pagination if needed
+  }
+
 
   Future<void> _loadInitialData() async {
     if (!mounted) return;
 
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
     try {
-      // Test API connection first
-      final apiTest = await _mealService.testApiConnection();
-      if (!apiTest) {
-        setState(() {
-          _error = 'Failed to connect to TheMealDB API. Please check your connection.';
-          _isLoading = false;
-        });
-        return;
-      }
+      // Load categories for the filter
+      await _loadCategories();
+      
+      // Load initial meals using the provider
+      ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
+    } catch (e) {
+      logger.d('Error loading initial data: $e');
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    try {
       final prefs = await SharedPreferences.getInstance();
       final cachedCategories = prefs.getString('meal_categories');
 
@@ -132,7 +105,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                 });
               }
             });
-            await _loadMeals();
             return;
           }
         } catch (e) {
@@ -140,148 +112,56 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
         }
       }
 
-      // Fetch categories from API using new service
-      try {
-        final categories = await _mealService.getCategories();
-        
-        if (!mounted) return;
-
-        // Cache the categories
-        await prefs.setString('meal_categories', json.encode({'categories': categories}));
-
-        setState(() {
-          _categories = [
-            {
-              'strCategory': 'All',
-              'strCategoryThumb': '',
-              'strCategoryDescription': 'All available meals'
-            }
-          ];
-          for (var category in categories) {
-            _categories.add({
-              'strCategory': category['strCategory']?.toString() ?? '',
-              'strCategoryThumb': category['strCategoryThumb']?.toString() ?? '',
-              'strCategoryDescription': category['strCategoryDescription']?.toString() ?? '',
-            });
-          }
-        });
-      } catch (e) {
-        logger.d('Categories error: $e');
-        if (!mounted) return;
-        
-        setState(() {
-          _error = 'Failed to load categories: ${e.toString()}';
-        });
-      }
-
-      // Load meals
-      await _loadMeals();
-    } catch (e) {
+      // Fetch categories from API
+      final categories = await _mealService.getCategories();
+      
       if (!mounted) return;
+
+      // Cache the categories
+      await prefs.setString('meal_categories', json.encode({'categories': categories}));
+
       setState(() {
-        _error = 'Network error. Please check your connection and try again.';
         _categories = [
           {
             'strCategory': 'All',
             'strCategoryThumb': '',
-            'strCategoryDescription': ''
+            'strCategoryDescription': 'All available meals'
           }
         ];
-        _meals = [];
-      });
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  Future<void> _loadMeals() async {
-    try {
-      List<Map<String, dynamic>> allMeals = [];
-      
-      if (_selectedCategory == 'All') {
-        // Use the new getAllMeals method for "All" tab with V2 API features
-        allMeals = await _mealService.getAllMeals(limit: 50);
-      } else {
-        // Load meals for specific category
-        allMeals = await _mealService.getMealsByCategory(_selectedCategory);
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        _meals = allMeals;
-      });
-      
-      if (allMeals.isEmpty) {
-      } else {
-      }
-    } catch (e) {
-      logger.d('Meals error: $e');
-      if (!mounted) return;
-      
-      setState(() {
-        _error = 'Failed to load meals: ${e.toString()}';
-      });
-    }
-  }
-
-  Future<void> _searchMeals(String query) async {
-    if (!mounted) return;
-
-    if (query.isEmpty) {
-      _loadInitialData();
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final meals = await _mealService.searchMeals(query);
-
-      if (!mounted) return;
-
-      setState(() {
-        _meals = meals;
-        _isLoading = false;
+        for (var category in categories) {
+          _categories.add({
+            'strCategory': category['strCategory']?.toString() ?? '',
+            'strCategoryThumb': category['strCategoryThumb']?.toString() ?? '',
+            'strCategoryDescription': category['strCategoryDescription']?.toString() ?? '',
+          });
+        }
       });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to search meals. Please check your connection.';
-          _isLoading = false;
-        });
-      }
+      logger.d('Categories error: $e');
+      if (!mounted) return;
+      
+      setState(() {
+        _categories = [
+          {
+            'strCategory': 'All',
+            'strCategoryThumb': '',
+            'strCategoryDescription': 'All available meals'
+          }
+        ];
+      });
     }
   }
 
-  Future<void> _filterByCategory(String category) async {
-    if (!mounted) return;
-
+  void _onCategorySelected(String category) {
     setState(() {
       _selectedCategory = category;
-      _isLoading = true;
-      _error = null;
     });
-
-    try {
-      await _loadMeals(); // This will handle both "All" and specific categories
-      
-      setState(() {
-        _isLoading = false;
-      });
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Failed to load category meals. Please check your connection.';
-          _isLoading = false;
-        });
-      }
-    }
+    
+    // Clear search text when switching categories
+    _searchController.clear();
+    
+    // Load meals for the selected category using provider
+    ref.read(mealNotifierProvider.notifier).loadMealsByCategory(category);
   }
 
 
@@ -292,13 +172,8 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       } else {
         _favoriteMeals.add(mealId);
       }
-      _meals = _meals.map((meal) {
-        if (meal['id'] == mealId) {
-          return {...meal, 'isFavorite': _favoriteMeals.contains(mealId)};
-        }
-        return meal;
-      }).toList();
     });
+    // The UI will reflect the favorite state change on next rebuild
   }
 
   @override
@@ -357,7 +232,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: _searchMeals,
         style: TextStyle(color: AppTheme.textColor(context)),
         decoration: InputDecoration(
           hintText: tr(context, 'search_meals_hint'),
@@ -369,7 +243,6 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
                   icon: Icon(Icons.clear, color: AppTheme.textColor(context)),
                   onPressed: () {
                     _searchController.clear();
-                    _searchMeals('');
                   },
                 )
               : null,
@@ -396,7 +269,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: GestureDetector(
-              onTap: () => _filterByCategory(category['strCategory']!),
+              onTap: () => _onCategorySelected(category['strCategory']!),
               child: Column(
                 children: [
                   Container(
@@ -452,8 +325,13 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
   }
 
   Widget _buildMealGrid() {
+    final isLoading = ref.watch(isMealsLoadingProvider);
+    final hasError = ref.watch(hasMealsErrorProvider);
+    final errorMessage = ref.watch(mealsErrorMessageProvider);
+    final meals = ref.watch(mealsProvider);
+    final hasData = ref.watch(hasMealsDataProvider);
     
-    if (_isLoading) {
+    if (isLoading) {
       return const Expanded(
         child: Center(
           child: LottieLoadingWidget(),
@@ -461,7 +339,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       );
     }
 
-    if (_error != null) {
+    if (hasError) {
       return Expanded(
         child: Center(
           child: Column(
@@ -474,7 +352,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                _error!,
+                errorMessage ?? 'An error occurred',
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 16,
@@ -483,7 +361,9 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _loadInitialData,
+                onPressed: () {
+                  ref.read(mealNotifierProvider.notifier).retryCurrentSearch();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromARGB(255, 8, 178, 13),
                   shape: RoundedRectangleBorder(
@@ -498,7 +378,7 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
       );
     }
 
-    if (_meals.isEmpty) {
+    if (!hasData || meals.isEmpty) {
       return Expanded(
         child: Center(
           child: Column(
@@ -533,17 +413,9 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
         ),
-        itemCount: _meals.length + (_isLoadingMore ? 1 : 0),
+        itemCount: meals.length,
         itemBuilder: (context, index) {
-          if (index == _meals.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16.0),
-                child: LottieLoadingWidget(),
-              ),
-            );
-          }
-          return _buildMealCard(_meals[index]);
+          return _buildMealCard(meals[index]);
         },
       ),
     );
@@ -806,8 +678,10 @@ class _MealSearchScreenState extends State<MealSearchScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
   }

@@ -19,6 +19,9 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
 
+  // Public getter for the local notifications plugin
+  FlutterLocalNotificationsPlugin get localNotifications => _localNotifications;
+
   // Notification preferences keys
   static const String _workoutRemindersKey = 'workout_reminders';
   static const String _ecoTipsKey = 'eco_tips';

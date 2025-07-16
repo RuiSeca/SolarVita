@@ -19,19 +19,7 @@ class HealthData {
     required this.isDataAvailable,
   });
 
-  // Create mock data for demo purposes
-  factory HealthData.mock() {
-    return HealthData(
-      steps: 2146,
-      activeMinutes: 45,
-      caloriesBurned: 320,
-      sleepHours: 7.2,
-      heartRate: 72.0,
-      waterIntake: 0.0, // Will be handled separately
-      lastUpdated: DateTime.now(),
-      isDataAvailable: false,
-    );
-  }
+  // Removed mock data factory - no fake data should be shown to users
 
   // Create empty data
   factory HealthData.empty() {

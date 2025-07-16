@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
+import '../../../providers/riverpod/user_progress_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../settings_main_screen.dart';
 import 'dart:ui';
@@ -177,7 +178,7 @@ class ModernProfileHeader extends ConsumerWidget {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Level 3 Eco Warrior',
+                                        'Level ${ref.watch(currentLevelProvider)} ${ref.watch(levelTitleProvider)}',
                                         style: TextStyle(
                                           color: AppTheme.textColor(context).withAlpha(179),
                                           fontSize: 13,
@@ -230,7 +231,7 @@ class ModernProfileHeader extends ConsumerWidget {
                                 child: _buildQuickStat(
                                   context,
                                   Icons.local_fire_department_outlined,
-                                  '7',
+                                  '${ref.watch(currentStrikesProvider)}',
                                   'Day Streak',
                                 ),
                               ),

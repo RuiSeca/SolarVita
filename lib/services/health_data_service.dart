@@ -311,7 +311,7 @@ class HealthDataService {
     );
   }
 
-  /// Get cached health data or return mock data
+  /// Get cached health data or return empty data
   Future<HealthData> _getCachedHealthData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -327,8 +327,8 @@ class HealthDataService {
       // Ignore cache errors
     }
     
-    // Return mock data if no cache available
-    return HealthData.mock();
+    // Return empty data if no cache available - no fake data
+    return HealthData.empty();
   }
 
   /// Cache health data
