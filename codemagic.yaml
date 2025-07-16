@@ -14,14 +14,14 @@ workflows:
         script: flutter packages get
 
       - name: Build iOS Debug for Simulator
-        script: < /dev/null |
+        script: |
           flutter build ios --debug --simulator \
-          --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
-          --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
-          --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
-          --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
-          --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
-          --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
       - build/ios/**/*.app
