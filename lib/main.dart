@@ -47,8 +47,13 @@ void main() async {
   final notificationService = NotificationService();
   await notificationService.initialize();
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
+  // Load environment variables (optional for CI/CD)
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    // .env file not found, using environment variables from system
+    debugPrint("No .env file found, using system environment variables");
+  }
 
   runApp(
     ProviderScope(
