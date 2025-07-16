@@ -39,7 +39,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'grooves-app.firebasestorage.app',
   );
 
-  // Android configuration - extracted from your google-services.json
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyD3xGRM8-rRb8oTL1vm3TdU658Bfjj36a4',
     appId: '1:311138668281:android:384a4a8358b4b8c5011c28',
@@ -48,15 +47,20 @@ class DefaultFirebaseOptions {
     storageBucket: 'grooves-app.firebasestorage.app',
   );
 
-  // iOS configuration (you'll need to add iOS app to Firebase and get these values)
+  // Android configuration - extracted from your google-services.json
+
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'your-ios-api-key', // Get from GoogleService-Info.plist
-    appId: 'your-ios-app-id', // Get from GoogleService-Info.plist
+    apiKey: 'AIzaSyAsL-EIEx8UsDOEovwtftUA_fSmhrhbcTc',
+    appId: '1:311138668281:ios:9049ad18ef59525c011c28',
     messagingSenderId: '311138668281',
     projectId: 'grooves-app',
     storageBucket: 'grooves-app.firebasestorage.app',
+    androidClientId: '311138668281-eaepkngscf484ob7kblcl4k6r6rt6evv.apps.googleusercontent.com',
+    iosClientId: '311138668281-jnp6g3751c6c4vfvk85maln5fm5hvvqs.apps.googleusercontent.com',
     iosBundleId: 'com.solarvitadev.solarvita',
   );
+
+  // iOS configuration (you'll need to add iOS app to Firebase and get these values)
 
   // macOS configuration (same as iOS in most cases)
   static const FirebaseOptions macos = FirebaseOptions(
