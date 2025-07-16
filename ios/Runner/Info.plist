@@ -79,6 +79,10 @@
 		<string>background-fetch</string>
 	</array>
 	
+	<!-- Google Sign-In Configuration -->
+	<key>GIDClientID</key>
+	<string>311138668281-jnp6g3751c6c4vfvk85maln5fm5hvvqs.apps.googleusercontent.com</string>
+	
 	<!-- Firebase required -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -87,7 +91,7 @@
 			<string>REVERSED_CLIENT_ID</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID</string>
+				<string>com.googleusercontent.apps.311138668281-jnp6g3751c6c4vfvk85maln5fm5hvvqs</string>
 			</array>
 		</dict>
 	</array>
