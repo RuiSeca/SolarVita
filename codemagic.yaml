@@ -3,34 +3,28 @@ workflows:
     name: iOS Workflow
     max_build_duration: 120
     environment:
-      groups: [env_files]
-      vars:
-        MEALDB_API_KEY: $MEALDB_API_KEY
-        GEMINI_API_KEY: $GEMINI_API_KEY
-        GOOGLE_VISION_API_KEY: $GOOGLE_VISION_API_KEY
-        NUTRITIONIX_APP_KEY: $NUTRITIONIX_APP_KEY
-        NUTRITIONIX_APP_ID: $NUTRITIONIX_APP_ID
-        RAPID_API_KEY: $RAPID_API_KEY
+      groups:
+        - env_files
       flutter: stable
       xcode: latest
       cocoapods: default
     scripts:
       - name: Create .env file
         script: |
-          #!/usr/bin/env sh
-          set -e
-          cat > .env <<'ENVEOF'
-          MEALDB_API_KEY=$MEALDB_API_KEY
-          GEMINI_API_KEY=$GEMINI_API_KEY
-          GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY
-          NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY
-          NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID
-          RAPID_API_KEY=$RAPID_API_KEY
-          ENVEOF
+          echo "MEALDB_API_KEY=$MEALDB_API_KEY" > .env
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
+          echo "GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY" >> .env
+          echo "NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY" >> .env
+          echo "NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID" >> .env
+          echo "RAPID_API_KEY=$RAPID_API_KEY" >> .env
+          cat .env
+
       - name: Get Flutter dependencies
         script: flutter packages get
+
       - name: Build iOS
         script: flutter build ios --debug --simulator
+
     artifacts:
       - build/ios/**/*.app
       - build/**/outputs/**/*.apk
