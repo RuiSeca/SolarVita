@@ -4,8 +4,21 @@ import 'package:logger/logger.dart';
 
 class NutritionixApiConfig {
   static final Logger _logger = Logger();
-  static final String appId = dotenv.env['NUTRITIONIX_APP_ID'] ?? '';
-  static final String appKey = dotenv.env['NUTRITIONIX_APP_KEY'] ?? '';
+  // Hybrid approach: try dart-define first, fallback to dotenv
+  static String get appId {
+    const dartDefine = String.fromEnvironment('NUTRITIONIX_APP_ID');
+    if (dartDefine.isNotEmpty) return dartDefine;
+    
+    // Fallback to dotenv for local development
+    return dotenv.env['NUTRITIONIX_APP_ID'] ?? '';
+  }
+  static String get appKey {
+    const dartDefine = String.fromEnvironment('NUTRITIONIX_APP_KEY');
+    if (dartDefine.isNotEmpty) return dartDefine;
+    
+    // Fallback to dotenv for local development
+    return dotenv.env['NUTRITIONIX_APP_KEY'] ?? '';
+  }
   static const String baseUrl = 'https://trackapi.nutritionix.com/v2';
 
   // Headers for API requests
@@ -18,11 +31,11 @@ class NutritionixApiConfig {
   // Validation for API credentials
   static bool isConfigured() {
     if (appId.isEmpty) {
-      _logger.e('NUTRITIONIX_APP_ID is not set in .env file');
+      _logger.e('NUTRITIONIX_APP_ID is not set in .env file or dart-define');
       return false;
     }
     if (appKey.isEmpty) {
-      _logger.e('NUTRITIONIX_APP_KEY is not set in .env file');
+      _logger.e('NUTRITIONIX_APP_KEY is not set in .env file or dart-define');
       return false;
     }
     return true;

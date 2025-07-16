@@ -3,12 +3,19 @@ import 'package:logger/logger.dart';
 
 class GeminiApiConfig {
   static final Logger _logger = Logger();
-  static final String apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
+  // Hybrid approach: try dart-define first, fallback to dotenv
+  static String get apiKey {
+    const dartDefine = String.fromEnvironment('GEMINI_API_KEY');
+    if (dartDefine.isNotEmpty) return dartDefine;
+    
+    // Fallback to dotenv for local development
+    return dotenv.env['GEMINI_API_KEY'] ?? '';
+  }
 
   // Validate API key at runtime
   static bool isConfigured() {
     if (apiKey.isEmpty) {
-      _logger.e('GEMINI_API_KEY is not set in .env file');
+      _logger.e('GEMINI_API_KEY is not set in .env file or dart-define');
       return false;
     }
     return true;
