@@ -14,9 +14,9 @@ class WelcomeScreenState extends State<WelcomeScreen> {
   int _currentIndex = 0;
 
   final List<String> images = [
-    'assets/images/fitness1.jpg',
-    'assets/images/fitness2.jpg',
-    'assets/images/fitness3.jpg',
+    'assets/images/fitness1.webp',
+    'assets/images/fitness2.webp',
+    'assets/images/fitness3.webp',
   ];
 
   final List<String> titleKeys = [

@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/food_analysis.dart';
 import '../config/nutritionix_api_config.dart';
-import 'package:logger/logger.dart';
 import 'food_recognition_service.dart';
 
 // Enhanced data models for multi-ingredient analysis
@@ -94,14 +93,12 @@ class CombinedNutrition {
 }
 
 class NutritionixService {
-  final Logger _logger = Logger();
   final FoodRecognitionService _recognitionService = FoodRecognitionService();
 
   // Constructor validates API credentials
   NutritionixService() {
     if (!NutritionixApiConfig.isConfigured()) {
-      _logger.w(
-          'Nutritionix API is not properly configured. Set NUTRITIONIX_APP_ID and NUTRITIONIX_APP_KEY in .env file.');
+      // API not configured - handle silently
     }
   }
 
@@ -116,7 +113,6 @@ class NutritionixService {
         throw Exception('No food detected in the image');
       }
 
-      _logger.d('Identified foods: $identifiedFoods');
 
       // Step 2: Get nutrition data for each ingredient
       List<IngredientAnalysis> ingredientAnalyses = [];
@@ -136,7 +132,6 @@ class NutritionixService {
             ));
           }
         } catch (e) {
-          _logger.w('Failed to get data for $foodName: ${e.toString()}');
           failedIngredients.add(foodName);
         }
       }
@@ -163,7 +158,6 @@ class NutritionixService {
         primaryFood: primaryFood,
       );
     } catch (e) {
-      _logger.e('Error analyzing multiple ingredients', e);
       rethrow;
     }
   }
@@ -174,7 +168,6 @@ class NutritionixService {
       final multiAnalysis = await analyzeFoodImageAdvanced(image);
       return multiAnalysis.toLegacyFoodAnalysis();
     } catch (e) {
-      _logger.e('Error analyzing food', e);
       rethrow;
     }
   }
@@ -463,7 +456,6 @@ class NutritionixService {
   // Search for food using instant search (existing method - unchanged)
   Future<List<FoodAnalysis>> searchFood(String query) async {
     try {
-      _logger.d('Searching for food: $query');
 
       final uri = Uri.parse('${NutritionixApiConfig.baseUrl}/search/instant');
 
@@ -472,11 +464,9 @@ class NutritionixService {
         headers: NutritionixApiConfig.headers,
       );
 
-      _logger.d('Search response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        _logger.d('Search response structure: ${data.keys.toList()}');
 
         List<FoodAnalysis> results = [];
 
@@ -494,15 +484,11 @@ class NutritionixService {
           }
         }
 
-        _logger.d('Found ${results.length} food results for query: $query');
         return results;
       } else {
-        _logger.e(
-            'Failed to search foods: ${response.statusCode}, ${response.body}');
         throw Exception('Failed to search foods: ${response.statusCode}');
       }
     } catch (e) {
-      _logger.e('Error searching foods', e);
       throw Exception('Error searching for food data: ${e.toString()}');
     }
   }
@@ -510,7 +496,6 @@ class NutritionixService {
   // Get natural nutrients (existing method - unchanged)
   Future<FoodAnalysis?> getNaturalNutrients(String query) async {
     try {
-      _logger.d('Getting natural nutrients for: $query');
 
       final uri =
           Uri.parse('${NutritionixApiConfig.baseUrl}/natural/nutrients');
@@ -526,7 +511,6 @@ class NutritionixService {
         body: json.encode(requestBody),
       );
 
-      _logger.d('Natural nutrients response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -535,16 +519,12 @@ class NutritionixService {
           final foodData = data['foods'][0]; // Take the first result
           return _parseNaturalNutrientsFood(foodData);
         } else {
-          _logger.w('No nutrition data found for: $query');
           return null;
         }
       } else {
-        _logger.e(
-            'Failed to get natural nutrients: ${response.statusCode}, ${response.body}');
         throw Exception('Failed to get nutrition data: ${response.statusCode}');
       }
     } catch (e) {
-      _logger.e('Error getting natural nutrients', e);
       throw Exception('Error retrieving nutrition data: ${e.toString()}');
     }
   }
@@ -576,7 +556,6 @@ class NutritionixService {
         servingSize: 'serving',
       );
     } catch (e) {
-      _logger.e('Error parsing instant search food data', e);
       throw Exception('Error parsing food data: ${e.toString()}');
     }
   }
@@ -625,7 +604,6 @@ class NutritionixService {
         servingSize: servingSize,
       );
     } catch (e) {
-      _logger.e('Error parsing natural nutrients food data', e);
       throw Exception('Error parsing nutrition data: ${e.toString()}');
     }
   }

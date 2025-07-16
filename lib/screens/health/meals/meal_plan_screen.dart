@@ -667,9 +667,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   Widget _buildCarousel(BuildContext context) {
     final List<String> carouselImages = [
-      'assets/images/health/meals/create_meal.jpg',
-      'assets/images/health/meals/search_meal.jpg',
-      'assets/images/health/meals/featured_meal.jpg',
+      'assets/images/health/meals/create_meal.webp',
+      'assets/images/health/meals/search_meal.webp',
+      'assets/images/health/meals/featured_meal.webp',
     ];
 
     final List<String> carouselLabels = [

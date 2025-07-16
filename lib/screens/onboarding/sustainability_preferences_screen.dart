@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../models/user_profile.dart';
 import '../../services/user_profile_service.dart';
-import '../../providers/user_profile_provider.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 import 'diary_preferences_screen.dart';
 
-class SustainabilityPreferencesScreen extends StatefulWidget {
+class SustainabilityPreferencesScreen extends ConsumerStatefulWidget {
   const SustainabilityPreferencesScreen({super.key});
 
   @override
-  State<SustainabilityPreferencesScreen> createState() => _SustainabilityPreferencesScreenState();
+  ConsumerState<SustainabilityPreferencesScreen> createState() => _SustainabilityPreferencesScreenState();
 }
 
-class _SustainabilityPreferencesScreenState extends State<SustainabilityPreferencesScreen> {
+class _SustainabilityPreferencesScreenState extends ConsumerState<SustainabilityPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   bool _isLoading = false;
 
@@ -379,8 +379,7 @@ class _SustainabilityPreferencesScreenState extends State<SustainabilityPreferen
 
       if (mounted) {
         // Update the provider with the latest profile
-        final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-        await userProfileProvider.refreshUserProfile();
+        await ref.read(userProfileNotifierProvider.notifier).refreshUserProfile();
         
         // Check mounted again after async operation
         if (mounted) {

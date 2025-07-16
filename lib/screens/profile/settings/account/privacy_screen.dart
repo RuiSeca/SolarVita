@@ -4,21 +4,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
-import '../../../../providers/auth_provider.dart';
-import 'package:provider/provider.dart';
+import '../../../../providers/riverpod/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 import '../../../../services/social_service.dart';
 import '../../../../models/privacy_settings.dart';
 import '../../../../models/social_activity.dart';
 
-class PrivacyScreen extends StatefulWidget {
+class PrivacyScreen extends ConsumerStatefulWidget {
   const PrivacyScreen({super.key});
 
   @override
-  State<PrivacyScreen> createState() => _PrivacyScreenState();
+  ConsumerState<PrivacyScreen> createState() => _PrivacyScreenState();
 }
 
-class _PrivacyScreenState extends State<PrivacyScreen> {
+class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   final SocialService _socialService = SocialService();
   
   // Privacy settings state
@@ -968,7 +968,7 @@ class _PrivacyScreenState extends State<PrivacyScreen> {
 
   Future<void> _deleteAccount() async {
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final authProvider = ref.read(authNotifierProvider.notifier);
 
       // Show loading dialog
       showDialog(

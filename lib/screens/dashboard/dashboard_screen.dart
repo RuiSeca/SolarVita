@@ -1,23 +1,23 @@
 // lib/screens/dashboard/dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:io';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import '../../providers/user_profile_provider.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
+import '../../providers/riverpod/auth_provider.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   File? imageFile;
   final ImagePicker _picker = ImagePicker();
 
@@ -51,10 +51,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Consumer2<UserProfileProvider, AuthProvider>(
-                  builder: (context, userProfileProvider, authProvider, _) {
-                    final userProfile = userProfileProvider.userProfile;
-                    final currentUser = authProvider.user;
+                Builder(
+                  builder: (context) {
+                    final userProfileAsync = ref.watch(userProfileNotifierProvider);
+                    final currentUser = ref.watch(currentUserProvider);
+                    
+                    final userProfile = userProfileAsync.value;
                     
                     String displayName = userProfile?.displayName ?? 
                                       currentUser?.displayName ?? 
@@ -193,7 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   author: tr(context, 'active_user'),
                   isPremium: true,
                   color: Colors.green,
-                  imagePath: 'assets/images/dashboard/hiit.jpg',
+                  imagePath: 'assets/images/dashboard/hiit.webp',
                 ),
                 const SizedBox(height: 24),
 
@@ -227,7 +229,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       child: _buildExerciseCard(
                         title: tr(context, 'efficient_abs'),
                         author: tr(context, 'regular_trainer'),
-                        imagePath: 'assets/images/dashboard/abs.jpg',
+                        imagePath: 'assets/images/dashboard/abs.webp',
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -236,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         title: tr(context, 'strength_training'),
                         author: tr(context, 'fitness_coach'),
                         imagePath:
-                            'assets/images/search/strength_training/strength.jpg',
+                            'assets/images/search/strength_training/strength.webp',
                       ),
                     ),
                   ],
@@ -732,6 +734,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           final challenge = mockChallenges[index];
           return Container(
             width: 260,
+            height: 140,
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -751,6 +754,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
                   children: [
@@ -772,13 +776,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  challenge['description'].toString(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.hintColor,
+                Flexible(
+                  child: Text(
+                    challenge['description'].toString(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.hintColor,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 LinearProgressIndicator(

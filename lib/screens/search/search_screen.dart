@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async'; // Kept for TimeoutException in ExerciseProvider
-import 'package:logging/logging.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../providers/exercise_provider.dart';
+import '../../providers/riverpod/exercise_provider.dart';
 import 'workout_detail/workout_detail_screen.dart';
 import 'workout_detail/workout_detail_type.dart' as detail_types;
 import 'workout_detail/workout_list_screen.dart';
 import 'workout_detail/models/workout_item.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 
-final logger = Logger('SearchScreen');
 
-class SearchScreen extends StatefulWidget {
+class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
 
   @override
-  State<SearchScreen> createState() => _SearchScreenState();
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _isSearching = false;
   String _searchQuery = '';
   bool _isLoadingExercises = false;
@@ -34,14 +32,12 @@ class _SearchScreenState extends State<SearchScreen> {
   void dispose() {
     // Cancel any ongoing loading operations when the screen is disposed
     _timeoutTimer?.cancel();
-    Provider.of<ExerciseProvider>(context, listen: false).cancelLoading();
     super.dispose();
   }
 
   @override
   void deactivate() {
     // Cancel loading when navigating away from the screen
-    Provider.of<ExerciseProvider>(context, listen: false).cancelLoading();
     super.deactivate();
   }
 
@@ -56,8 +52,6 @@ class _SearchScreenState extends State<SearchScreen> {
         setState(() {
           _isFirstBuild = false;
         });
-        logger.info(
-            "SearchScreen initial build completed, navigation now enabled");
       }
     });
   }
@@ -65,10 +59,10 @@ class _SearchScreenState extends State<SearchScreen> {
   final List<Map<String, dynamic>> _workoutCategories = [
     {
       'titleKey': 'workout_strength',
-      'mainImage': 'assets/images/search/strength_training/strength.jpg',
+      'mainImage': 'assets/images/search/strength_training/strength.webp',
       'smallImages': <String>[
-        'assets/images/search/strength_training/strength-1.jpg',
-        'assets/images/search/strength_training/strength-2.jpg',
+        'assets/images/search/strength_training/strength-1.webp',
+        'assets/images/search/strength_training/strength-2.webp',
       ],
       'count': '29+',
       'type': 'challenges',
@@ -77,10 +71,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
     {
       'titleKey': 'workout_abs',
-      'mainImage': 'assets/images/search/abs_cardio/abs-1.jpg',
+      'mainImage': 'assets/images/search/abs_cardio/abs-1.webp',
       'smallImages': <String>[
-        'assets/images/search/abs_cardio/abs-2.jpg',
-        'assets/images/search/abs_cardio/cardio.jpg',
+        'assets/images/search/abs_cardio/abs-2.webp',
+        'assets/images/search/abs_cardio/cardio.webp',
       ],
       'count': '20+',
       'type': 'challenges',
@@ -89,10 +83,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
     {
       'titleKey': 'workout_outdoor',
-      'mainImage': 'assets/images/search/outdoor_activities/running.jpg',
+      'mainImage': 'assets/images/search/outdoor_activities/running.webp',
       'smallImages': <String>[
-        'assets/images/search/outdoor_activities/running-1.jpg',
-        'assets/images/search/outdoor_activities/running-2.jpg',
+        'assets/images/search/outdoor_activities/running-1.webp',
+        'assets/images/search/outdoor_activities/running-2.webp',
       ],
       'count': '32+',
       'type': 'workouts',
@@ -101,10 +95,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
     {
       'titleKey': 'workout_yoga',
-      'mainImage': 'assets/images/search/yoga_sessions/yoga.jpg',
+      'mainImage': 'assets/images/search/yoga_sessions/yoga.webp',
       'smallImages': <String>[
-        'assets/images/search/yoga_sessions/yoga-1.jpg',
-        'assets/images/search/yoga_sessions/yoga-2.jpg',
+        'assets/images/search/yoga_sessions/yoga-1.webp',
+        'assets/images/search/yoga_sessions/yoga-2.webp',
       ],
       'count': '27+',
       'type': 'activities',
@@ -113,10 +107,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
     {
       'titleKey': 'workout_calisthenics',
-      'mainImage': 'assets/images/search/calisthenics/calisthenics.jpg',
+      'mainImage': 'assets/images/search/calisthenics/calisthenics.webp',
       'smallImages': <String>[
-        'assets/images/search/calisthenics/calisthenics-1.jpg',
-        'assets/images/search/calisthenics/calisthenics-2.jpg',
+        'assets/images/search/calisthenics/calisthenics-1.webp',
+        'assets/images/search/calisthenics/calisthenics-2.webp',
       ],
       'count': '50+',
       'type': 'activities',
@@ -125,10 +119,10 @@ class _SearchScreenState extends State<SearchScreen> {
     },
     {
       'titleKey': 'workout_meditation',
-      'mainImage': 'assets/images/search/meditation/meditation-2.jpg',
+      'mainImage': 'assets/images/search/meditation/meditation-2.webp',
       'smallImages': <String>[
-        'assets/images/search/meditation/meditation-1.jpg',
-        'assets/images/search/meditation/meditation.jpg',
+        'assets/images/search/meditation/meditation-1.webp',
+        'assets/images/search/meditation/meditation.webp',
       ],
       'count': '13+',
       'type': 'challenges',
@@ -150,45 +144,29 @@ class _SearchScreenState extends State<SearchScreen> {
     }).toList();
   }
 
-  Future<void> _navigateToDetail(
-      BuildContext context,
+  Future<void> _loadExercisesAndNavigate(
       detail_types.WorkoutDetailType type,
       String image,
       String titleKey,
       String title) async {
     // Block navigation during the initial build
     if (_isFirstBuild) {
-      logger.info("Blocking automatic navigation attempt during initial build");
       return;
     }
 
-    // Ensure the context is still mounted
-    if (!context.mounted) return;
-
     final targetMuscle = _getTargetMuscle(titleKey);
-    final provider = Provider.of<ExerciseProvider>(context, listen: false);
-
+    final provider = ref.read(exerciseNotifierProvider.notifier);
+    final exerciseState = ref.read(exerciseNotifierProvider);
+    
     // Prevent multiple simultaneous calls
-    if (_isLoadingExercises || provider.isLoading) {
-      logger.warning("Already loading exercises, ignoring duplicate request");
+    if (_isLoadingExercises || exerciseState.isLoading) {
       return;
     }
 
     // Check if we already have data for this target
-    if (provider.currentTarget == targetMuscle && provider.hasData) {
-      logger.info("Already loaded data for $targetMuscle, navigating directly");
-
-      // Navigate based on workout type without reloading
-      switch (type) {
-        case detail_types.WorkoutDetailType.categoryList:
-          _navigateToCategoryList(
-              context, title, image, targetMuscle, provider.exercises!);
-          break;
-        case detail_types.WorkoutDetailType.specificExercise:
-        case detail_types.WorkoutDetailType.alternateExercise:
-          _navigateToSpecificExercise(context, provider.exercises!);
-          break;
-      }
+    if (exerciseState.currentTarget == targetMuscle && exerciseState.hasData) {
+      // Navigate immediately with cached data
+      _performNavigation(type, title, image, targetMuscle, exerciseState.exercises!);
       return;
     }
 
@@ -201,108 +179,99 @@ class _SearchScreenState extends State<SearchScreen> {
       _loadingTarget = targetMuscle;
     });
 
-    logger.info("🚀 Loading exercises for target muscle: $targetMuscle");
-
     // Add a timeout with more detailed handling
     bool timeoutOccurred = false;
     _timeoutTimer = Timer(const Duration(seconds: 12), () {
       timeoutOccurred = true;
-      logger.warning("⏰ Timeout occurred for target: $targetMuscle");
-      
-      // Cancel the provider's loading operation
-      provider.cancelLoading();
       
       if (mounted) {
         setState(() {
           _isLoadingExercises = false;
           _loadingTarget = '';
         });
-        _showErrorSnackBar(context, 'Loading timed out. Please check your connection and try again.');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Loading timed out. Please try again.')),
+        );
       }
     });
 
     try {
-      logger.info("📡 Calling provider.loadExercisesByTarget($targetMuscle)");
       await provider.loadExercisesByTarget(targetMuscle);
 
       // Cancel timeout timer
       _timeoutTimer?.cancel();
-      logger.info("✅ Provider call completed for $targetMuscle");
 
       // If timeout already occurred, don't proceed
-      if (timeoutOccurred) {
-        logger.warning("⏰ Timeout already occurred, aborting navigation");
+      if (timeoutOccurred || !mounted) {
         return;
       }
-
-      // Check if context is still valid
-      if (!context.mounted) {
-        logger.warning("📱 Context no longer mounted, aborting navigation");
-        return;
-      }
-
+      
       // Clear loading state
       setState(() {
         _isLoadingExercises = false;
         _loadingTarget = '';
       });
 
-      if (provider.hasError) {
-        logger.severe("❌ Provider returned error: ${provider.errorMessage}");
-        _showErrorDialog(
-          context,
-          provider.errorMessage ?? 'Error loading exercises',
-          provider.errorDetails ?? 'Please try again later',
-          () => provider.retryCurrentTarget(),
-        );
-      } else if (!provider.hasData) {
-        logger.warning("📭 Provider has no data for $targetMuscle");
-        _showErrorDialog(
-          context,
-          tr(context, 'no_exercises_found'),
-          tr(context, 'try_different_category'),
-          null,
-        );
+      final finalState = ref.read(exerciseNotifierProvider);
+      
+      if (finalState.hasError) {
+        _showErrorMessage('Error loading exercises', finalState.errorMessage ?? 'Please try again later');
+      } else if (!finalState.hasData || finalState.exercises == null || finalState.exercises!.isEmpty) {
+        _showErrorMessage('No exercises found', 'Try a different category');
       } else {
-        logger.info("🎯 Successfully loaded ${provider.exercises?.length} exercises for $targetMuscle");
-
-        // Navigate based on workout type
-        switch (type) {
-          case detail_types.WorkoutDetailType.categoryList:
-            logger.info("🧭 Navigating to category list");
-            _navigateToCategoryList(
-                context, title, image, targetMuscle, provider.exercises!);
-            break;
-          case detail_types.WorkoutDetailType.specificExercise:
-          case detail_types.WorkoutDetailType.alternateExercise:
-            logger.info("🧭 Navigating to specific exercise");
-            _navigateToSpecificExercise(context, provider.exercises!);
-            break;
-        }
+        // Exercises loaded successfully, navigate immediately
+        _performNavigation(type, title, image, targetMuscle, finalState.exercises!);
       }
     } catch (e) {
       // Cancel timeout timer
       _timeoutTimer?.cancel();
 
-      logger.severe("💥 Exception during exercise loading: $e");
-      if (context.mounted && !timeoutOccurred) {
+      if (mounted && !timeoutOccurred) {
         setState(() {
           _isLoadingExercises = false;
           _loadingTarget = '';
         });
-        _showErrorSnackBar(context, 'Failed to load exercises: ${e.toString()}');
+        _showErrorMessage('Failed to load exercises', e.toString());
       }
     }
   }
 
-  void _navigateToCategoryList(
-    BuildContext context,
+  void _performNavigation(
+    detail_types.WorkoutDetailType type,
     String title,
     String image,
     String targetMuscle,
     List<WorkoutItem> exercises,
   ) {
-    logger.info("Navigating to category list: $title");
+    if (!mounted) {
+      return;
+    }
+    
+    switch (type) {
+      case detail_types.WorkoutDetailType.categoryList:
+        _navigateToCategoryList(title, image, targetMuscle, exercises);
+        break;
+      case detail_types.WorkoutDetailType.specificExercise:
+      case detail_types.WorkoutDetailType.alternateExercise:
+        _navigateToSpecificExercise(exercises);
+        break;
+    }
+  }
+
+  void _showErrorMessage(String title, String message) {
+    if (!mounted) return;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$title: $message')),
+    );
+  }
+
+  void _navigateToCategoryList(
+    String title,
+    String image,
+    String targetMuscle,
+    List<WorkoutItem> exercises,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -317,18 +286,14 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _navigateToSpecificExercise(
-    BuildContext context,
     List<WorkoutItem> exercises,
   ) {
     if (exercises.isEmpty) {
-      logger
-          .info("Cannot navigate to specific exercise: no exercises available");
-      _showErrorSnackBar(context, tr(context, 'no_exercises_found'));
+      _showErrorMessage('No exercises found', 'Try a different category');
       return;
     }
 
     final exercise = exercises.first;
-    logger.info("Navigating to specific exercise: ${exercise.title}");
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -346,53 +311,6 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  void _showErrorDialog(
-    BuildContext context,
-    String title,
-    String message,
-    VoidCallback? onRetry,
-  ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-            },
-            child: Text(tr(context, 'close')),
-          ),
-          if (onRetry != null)
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                onRetry();
-              },
-              child: Text(tr(context, 'retry')),
-            ),
-        ],
-      ),
-    );
-  }
-
-  void _showErrorSnackBar(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(16),
-        action: SnackBarAction(
-          label: tr(context, 'dismiss'),
-          onPressed: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          },
-        ),
-      ),
-    );
-  }
 
   String _getTargetMuscle(String categoryKey) {
     switch (categoryKey) {
@@ -415,7 +333,6 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    logger.info("Building SearchScreen (isFirstBuild: $_isFirstBuild)");
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -455,19 +372,21 @@ class _SearchScreenState extends State<SearchScreen> {
               )
             else
               Expanded(
-                child: Consumer<ExerciseProvider>(
-                  builder: (context, provider, _) {
-                    if (provider.isLoading) {
+                child: Consumer(
+                  builder: (context, ref, _) {
+                    final exerciseState = ref.watch(exerciseNotifierProvider);
+                    
+                    if (exerciseState.isLoading) {
                       return const Center(child: LottieLoadingWidget());
                     }
 
-                    if (provider.errorMessage != null) {
+                    if (exerciseState.errorMessage != null) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              provider.errorMessage!,
+                              exerciseState.errorMessage!,
                               style: TextStyle(
                                 color: AppTheme.textColor(context),
                                 fontSize: 16,
@@ -476,7 +395,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () {
-                                provider.clearExercises();
+                                ref.read(exerciseNotifierProvider.notifier).clearExercises();
                               },
                               child: const Text('Retry'),
                             ),
@@ -656,18 +575,13 @@ class WorkoutCategoryCard extends StatelessWidget {
                 onTap: (isLoading || isFirstBuild)
                     ? null // Disable when loading
                     : () {
-                        logger.info(
-                            "Main card tapped: $titleKey for specific exercise");
                         if (!isFirstBuild && searchScreenState != null) {
-                          searchScreenState._navigateToDetail(
-                            context,
+                          searchScreenState._loadExercisesAndNavigate(
                             detail_types.WorkoutDetailType.specificExercise,
                             mainImage,
                             titleKey,
                             title,
                           );
-                        } else {
-                          logger.info("Ignoring tap during first build");
                         }
                       },
                 child: Stack(
@@ -729,19 +643,14 @@ class WorkoutCategoryCard extends StatelessWidget {
                     onTap: (isLoading || isFirstBuild)
                         ? null // Disable when loading
                         : () {
-                            logger.info(
-                                "Small card tapped: $titleKey for alternate exercise");
                             if (!isFirstBuild && searchScreenState != null) {
-                              searchScreenState._navigateToDetail(
-                                context,
+                              searchScreenState._loadExercisesAndNavigate(
                                 detail_types
                                     .WorkoutDetailType.alternateExercise,
                                 smallImages[0],
                                 titleKey,
                                 title,
                               );
-                            } else {
-                              logger.info("Ignoring tap during first build");
                             }
                           },
                     child: Stack(
@@ -806,18 +715,13 @@ class WorkoutCategoryCard extends StatelessWidget {
                     onTap: (isLoading || isFirstBuild)
                         ? null // Disable when loading
                         : () {
-                            logger.info(
-                                "Category card tapped: $titleKey for category list");
                             if (!isFirstBuild && searchScreenState != null) {
-                              searchScreenState._navigateToDetail(
-                                context,
+                              searchScreenState._loadExercisesAndNavigate(
                                 detail_types.WorkoutDetailType.categoryList,
                                 smallImages[1],
                                 titleKey,
                                 title,
                               );
-                            } else {
-                              logger.info("Ignoring tap during first build");
                             }
                           },
                     child: Stack(

@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
-import '../../../providers/user_profile_provider.dart';
+import '../../../providers/riverpod/user_profile_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../settings_main_screen.dart';
 import 'dart:ui';
 
-class ModernProfileHeader extends StatelessWidget {
+class ModernProfileHeader extends ConsumerWidget {
   const ModernProfileHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<UserProfileProvider>(
-      builder: (context, userProfileProvider, _) {
-        final userProfile = userProfileProvider.userProfile;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userProfileAsync = ref.watch(userProfileNotifierProvider);
+    
+    return userProfileAsync.when(
+      data: (userProfile) => Builder(
+      builder: (context) {
         final displayName = userProfile?.displayName ?? 'User';
         final photoURL = userProfile?.photoURL;
         
@@ -35,19 +37,19 @@ class ModernProfileHeader extends StatelessWidget {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          AppColors.primary.withValues(alpha: 0.15),
-                          AppColors.primary.withValues(alpha: 0.05),
-                          Colors.white.withValues(alpha: 0.1),
+                          AppColors.primary.withAlpha(38),
+                          AppColors.primary.withAlpha(13),
+                          Colors.white.withAlpha(26),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
+                        color: Colors.white.withAlpha(51),
                         width: 1.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.1),
+                          color: AppColors.primary.withAlpha(26),
                           spreadRadius: 0,
                           blurRadius: 30,
                           offset: const Offset(0, 10),
@@ -68,12 +70,12 @@ class ModernProfileHeader extends StatelessWidget {
                                     gradient: LinearGradient(
                                       colors: [
                                         AppColors.primary,
-                                        AppColors.primary.withValues(alpha: 0.7),
+                                        AppColors.primary.withAlpha(179),
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        color: AppColors.primary.withAlpha(77),
                                         spreadRadius: 0,
                                         blurRadius: 15,
                                         offset: const Offset(0, 5),
@@ -110,7 +112,7 @@ class ModernProfileHeader extends StatelessWidget {
                                       ),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.green.withValues(alpha: 0.5),
+                                          color: Colors.green.withAlpha(128),
                                           spreadRadius: 0,
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
@@ -146,13 +148,13 @@ class ModernProfileHeader extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
-                                          AppColors.primary.withValues(alpha: 0.2),
-                                          AppColors.primary.withValues(alpha: 0.1),
+                                          AppColors.primary.withAlpha(51),
+                                          AppColors.primary.withAlpha(26),
                                         ],
                                       ),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: AppColors.primary.withValues(alpha: 0.3),
+                                        color: AppColors.primary.withAlpha(77),
                                         width: 1,
                                       ),
                                     ),
@@ -177,7 +179,7 @@ class ModernProfileHeader extends StatelessWidget {
                                       Text(
                                         'Level 3 Eco Warrior',
                                         style: TextStyle(
-                                          color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                                          color: AppTheme.textColor(context).withAlpha(179),
                                           fontSize: 13,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -196,35 +198,41 @@ class ModernProfileHeader extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: Colors.white.withAlpha(26),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white.withAlpha(51),
                               width: 1,
                             ),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _buildQuickStat(
-                                context,
-                                Icons.people_outline,
-                                '${userProfile?.supportersCount ?? 0}',
-                                'Supporters',
+                              Flexible(
+                                child: _buildQuickStat(
+                                  context,
+                                  Icons.people_outline,
+                                  '${userProfile?.supportersCount ?? 0}',
+                                  'Supporters',
+                                ),
                               ),
                               _buildDivider(),
-                              _buildQuickStat(
-                                context,
-                                Icons.eco_outlined,
-                                '2.4kg',
-                                'CO₂ Saved',
+                              Flexible(
+                                child: _buildQuickStat(
+                                  context,
+                                  Icons.eco_outlined,
+                                  '2.4kg',
+                                  'CO₂ Saved',
+                                ),
                               ),
                               _buildDivider(),
-                              _buildQuickStat(
-                                context,
-                                Icons.local_fire_department_outlined,
-                                '7',
-                                'Day Streak',
+                              Flexible(
+                                child: _buildQuickStat(
+                                  context,
+                                  Icons.local_fire_department_outlined,
+                                  '7',
+                                  'Day Streak',
+                                ),
                               ),
                             ],
                           ),
@@ -251,15 +259,15 @@ class ModernProfileHeader extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: Colors.white.withAlpha(38),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
+                        color: Colors.white.withAlpha(77),
                         width: 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
+                          color: Colors.black.withAlpha(26),
                           spreadRadius: 0,
                           blurRadius: 10,
                           offset: const Offset(0, 2),
@@ -278,7 +286,46 @@ class ModernProfileHeader extends StatelessWidget {
           ),
         );
       },
-    );
+    ),
+    loading: () => Container(
+      height: 200,
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    ),
+    error: (error, stackTrace) => Container(
+      height: 200,
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 32,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Error loading profile',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
   }
 
   Widget _buildQuickStat(BuildContext context, IconData icon, String value, String label) {
@@ -302,7 +349,7 @@ class ModernProfileHeader extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: AppTheme.textColor(context).withValues(alpha: 0.6),
+            color: AppTheme.textColor(context).withAlpha(153),
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -315,7 +362,7 @@ class ModernProfileHeader extends StatelessWidget {
     return Container(
       width: 1,
       height: 40,
-      color: Colors.white.withValues(alpha: 0.2),
+      color: Colors.white.withAlpha(51),
     );
   }
 }

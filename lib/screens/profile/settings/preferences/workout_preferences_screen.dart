@@ -1,21 +1,21 @@
 // lib/screens/profile/settings/preferences/workout_preferences_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
-import '../../../../providers/user_profile_provider.dart';
+import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../models/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
-class WorkoutPreferencesScreen extends StatefulWidget {
+class WorkoutPreferencesScreen extends ConsumerStatefulWidget {
   const WorkoutPreferencesScreen({super.key});
 
   @override
-  State<WorkoutPreferencesScreen> createState() =>
+  ConsumerState<WorkoutPreferencesScreen> createState() =>
       _WorkoutPreferencesScreenState();
 }
 
-class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen> {
+class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -84,8 +84,8 @@ class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen> {
   }
 
   void _loadUserPreferences() {
-    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-    final workoutPrefs = userProfileProvider.workoutPreferences;
+    final userProfileProvider = ref.read(userProfileNotifierProvider);
+    final workoutPrefs = userProfileProvider.value?.workoutPreferences;
     
     if (workoutPrefs != null) {
       setState(() {
@@ -106,8 +106,6 @@ class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen> {
     });
 
     try {
-      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-      
       final updatedWorkoutPrefs = WorkoutPreferences(
         preferredWorkoutTypes: _selectedWorkoutTypes,
         workoutFrequencyPerWeek: _workoutFrequency,
@@ -118,7 +116,7 @@ class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen> {
         preferredTime: _preferredTime,
       );
 
-      await userProfileProvider.updateWorkoutPreferences(updatedWorkoutPrefs);
+      await ref.read(userProfileNotifierProvider.notifier).updateWorkoutPreferences(updatedWorkoutPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

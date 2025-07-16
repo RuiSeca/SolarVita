@@ -101,19 +101,19 @@ class ModernWeeklySummary extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                color.withValues(alpha: 0.1),
-                color.withValues(alpha: 0.05),
-                Colors.white.withValues(alpha: 0.05),
+                color.withAlpha(26),
+                color.withAlpha(13),
+                Colors.white.withAlpha(13),
               ],
             ),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: color.withValues(alpha: 0.2),
+              color: color.withAlpha(51),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.1),
+                color: color.withAlpha(26),
                 spreadRadius: 0,
                 blurRadius: 15,
                 offset: const Offset(0, 5),
@@ -129,7 +129,7 @@ class ModernWeeklySummary extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
+                      color: color.withAlpha(38),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -141,7 +141,7 @@ class ModernWeeklySummary extends StatelessWidget {
                   Text(
                     '$value/$target',
                     style: TextStyle(
-                      color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                      color: AppTheme.textColor(context).withAlpha(153),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -161,7 +161,7 @@ class ModernWeeklySummary extends StatelessWidget {
               Text(
                 title,
                 style: TextStyle(
-                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -171,7 +171,7 @@ class ModernWeeklySummary extends StatelessWidget {
               Container(
                 height: 6,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
+                  color: color.withAlpha(51),
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: FractionallySizedBox(
@@ -182,13 +182,13 @@ class ModernWeeklySummary extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           color,
-                          color.withValues(alpha: 0.8),
+                          color.withAlpha(204),
                         ],
                       ),
                       borderRadius: BorderRadius.circular(3),
                       boxShadow: [
                         BoxShadow(
-                          color: color.withValues(alpha: 0.4),
+                          color: color.withAlpha(102),
                           spreadRadius: 0,
                           blurRadius: 4,
                           offset: const Offset(0, 1),

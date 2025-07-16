@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
-import '../../../../providers/user_profile_provider.dart';
+import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../models/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
-class SustainabilityGoalsScreen extends StatefulWidget {
+class SustainabilityGoalsScreen extends ConsumerStatefulWidget {
   const SustainabilityGoalsScreen({super.key});
 
   @override
-  State<SustainabilityGoalsScreen> createState() =>
+  ConsumerState<SustainabilityGoalsScreen> createState() =>
       _SustainabilityGoalsScreenState();
 }
 
-class _SustainabilityGoalsScreenState extends State<SustainabilityGoalsScreen> {
+class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -65,8 +65,8 @@ class _SustainabilityGoalsScreenState extends State<SustainabilityGoalsScreen> {
   }
 
   void _loadUserPreferences() {
-    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-    final sustainabilityPrefs = userProfileProvider.sustainabilityPreferences;
+    final userProfileProvider = ref.read(userProfileNotifierProvider);
+    final sustainabilityPrefs = userProfileProvider.value?.sustainabilityPreferences;
     
     if (sustainabilityPrefs != null) {
       setState(() {
@@ -83,15 +83,13 @@ class _SustainabilityGoalsScreenState extends State<SustainabilityGoalsScreen> {
     });
 
     try {
-      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-      
       final updatedSustainabilityPrefs = SustainabilityPreferences(
         sustainabilityGoals: _selectedSustainabilityGoals,
         ecoFriendlyActivities: _ecoFriendlyActivities,
         preferredTransportMode: _transportMode,
       );
 
-      await userProfileProvider.updateSustainabilityPreferences(updatedSustainabilityPrefs);
+      await ref.read(userProfileNotifierProvider.notifier).updateSustainabilityPreferences(updatedSustainabilityPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

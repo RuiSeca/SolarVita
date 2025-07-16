@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:logging/logging.dart';
 import '../models/user_profile.dart';
 
 class UserProfileService {
@@ -10,7 +9,6 @@ class UserProfileService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Logger _logger = Logger('UserProfileService');
 
   static const String _usersCollection = 'users';
   
@@ -20,7 +18,6 @@ class UserProfileService {
 
   // Clear the profile cache
   void clearCache() {
-    _logger.info('🗑️ Clearing profile cache');
     _cachedProfile = null;
     _cachedUid = null;
   }
@@ -29,7 +26,6 @@ class UserProfileService {
     try {
       final user = _auth.currentUser;
       if (user == null) {
-        _logger.warning('No authenticated user found');
         _cachedProfile = null;
         _cachedUid = null;
         return null;
@@ -37,14 +33,11 @@ class UserProfileService {
 
       // Return cached profile if available and valid
       if (_cachedProfile != null && _cachedUid == user.uid) {
-        _logger.info('🎯 Using cached profile for uid: ${user.uid}');
         return _cachedProfile;
       }
 
-      _logger.info('🔄 Fetching fresh profile for uid: ${user.uid}');
       final doc = await _firestore.collection(_usersCollection).doc(user.uid).get();
       if (!doc.exists) {
-        _logger.info('❌ User profile not found for uid: ${user.uid}');
         _cachedProfile = null;
         _cachedUid = null;
         return null;
@@ -53,10 +46,8 @@ class UserProfileService {
       final profile = UserProfile.fromFirestore(doc);
       _cachedProfile = profile;
       _cachedUid = user.uid;
-      _logger.info('✅ Profile cached for uid: ${user.uid}, onboarding: ${profile.isOnboardingComplete}');
       return profile;
     } catch (e) {
-      _logger.severe('Error fetching current user profile: $e');
       throw Exception('Failed to fetch user profile');
     }
   }
@@ -65,13 +56,11 @@ class UserProfileService {
     try {
       final doc = await _firestore.collection(_usersCollection).doc(uid).get();
       if (!doc.exists) {
-        _logger.info('User profile not found for uid: $uid');
         return null;
       }
 
       return UserProfile.fromFirestore(doc);
     } catch (e) {
-      _logger.severe('Error fetching user profile for uid $uid: $e');
       throw Exception('Failed to fetch user profile');
     }
   }
@@ -107,10 +96,8 @@ class UserProfileService {
       _cachedProfile = userProfile;
       _cachedUid = uid;
       
-      _logger.info('User profile created for uid: $uid');
       return userProfile;
     } catch (e) {
-      _logger.severe('Error creating user profile: $e');
       throw Exception('Failed to create user profile');
     }
   }
@@ -128,10 +115,8 @@ class UserProfileService {
       _cachedProfile = updatedProfile;
       _cachedUid = profile.uid;
       
-      _logger.info('User profile updated for uid: ${profile.uid}');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error updating user profile: $e');
       throw Exception('Failed to update user profile');
     }
   }
@@ -139,9 +124,7 @@ class UserProfileService {
   Future<void> deleteUserProfile(String uid) async {
     try {
       await _firestore.collection(_usersCollection).doc(uid).delete();
-      _logger.info('User profile deleted for uid: $uid');
     } catch (e) {
-      _logger.severe('Error deleting user profile: $e');
       throw Exception('Failed to delete user profile');
     }
   }
@@ -166,10 +149,8 @@ class UserProfileService {
           .doc(uid)
           .update(updatedProfile.toFirestore());
 
-      _logger.info('Workout preferences updated for uid: $uid');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error updating workout preferences: $e');
       throw Exception('Failed to update workout preferences');
     }
   }
@@ -194,10 +175,8 @@ class UserProfileService {
           .doc(uid)
           .update(updatedProfile.toFirestore());
 
-      _logger.info('Sustainability preferences updated for uid: $uid');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error updating sustainability preferences: $e');
       throw Exception('Failed to update sustainability preferences');
     }
   }
@@ -222,10 +201,8 @@ class UserProfileService {
           .doc(uid)
           .update(updatedProfile.toFirestore());
 
-      _logger.info('Diary preferences updated for uid: $uid');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error updating diary preferences: $e');
       throw Exception('Failed to update diary preferences');
     }
   }
@@ -250,10 +227,8 @@ class UserProfileService {
           .doc(uid)
           .update(updatedProfile.toFirestore());
 
-      _logger.info('Dietary preferences updated for uid: $uid');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error updating dietary preferences: $e');
       throw Exception('Failed to update dietary preferences');
     }
   }
@@ -275,10 +250,8 @@ class UserProfileService {
           .doc(uid)
           .update(updatedProfile.toFirestore());
 
-      _logger.info('Onboarding completed for uid: $uid');
       return updatedProfile;
     } catch (e) {
-      _logger.severe('Error completing onboarding: $e');
       throw Exception('Failed to complete onboarding');
     }
   }
@@ -292,7 +265,6 @@ class UserProfileService {
 
       // Clear cache if user has changed
       if (_cachedUid != null && _cachedUid != user.uid) {
-        _logger.info('User changed, clearing profile cache');
         _cachedProfile = null;
         _cachedUid = null;
       }
@@ -300,7 +272,6 @@ class UserProfileService {
       UserProfile? profile = await getCurrentUserProfile();
       
       if (profile == null) {
-        _logger.info('Creating new user profile for uid: ${user.uid}');
         profile = await createUserProfile(
           uid: user.uid,
           email: user.email ?? '',
@@ -308,8 +279,6 @@ class UserProfileService {
           photoURL: user.photoURL,
         );
       } else {
-        _logger.info('Found existing profile for uid: ${user.uid}, isOnboardingComplete: ${profile.isOnboardingComplete}');
-        
         // Update profile with latest Firebase Auth data if needed
         bool needsUpdate = false;
         String? newEmail;
@@ -343,7 +312,6 @@ class UserProfileService {
 
       return profile;
     } catch (e) {
-      _logger.severe('Error getting or creating user profile: $e');
       throw Exception('Failed to get or create user profile');
     }
   }
@@ -374,7 +342,6 @@ class UserProfileService {
       final doc = await _firestore.collection(_usersCollection).doc(uid).get();
       return doc.exists;
     } catch (e) {
-      _logger.severe('Error checking if user profile exists: $e');
       return false;
     }
   }
@@ -388,10 +355,7 @@ class UserProfileService {
         'additionalData': data,
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       });
-
-      _logger.info('Additional data updated for uid: $uid');
     } catch (e) {
-      _logger.severe('Error updating additional data: $e');
       throw Exception('Failed to update additional data');
     }
   }
@@ -405,10 +369,7 @@ class UserProfileService {
         field: value,
         'lastUpdated': Timestamp.fromDate(DateTime.now()),
       });
-
-      _logger.info('Profile field $field updated for uid: $uid');
     } catch (e) {
-      _logger.severe('Error updating profile field $field: $e');
       throw Exception('Failed to update profile field');
     }
   }
@@ -422,10 +383,8 @@ class UserProfileService {
           .get();
       
       final isAvailable = query.docs.isEmpty;
-      _logger.info('Username "$username" availability check: $isAvailable');
       return isAvailable;
     } catch (e) {
-      _logger.severe('Error checking username availability: $e');
       return false;
     }
   }

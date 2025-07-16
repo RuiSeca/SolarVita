@@ -1,13 +1,11 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:logging/logging.dart';
 
 class MealPlanService {
   static final MealPlanService _instance = MealPlanService._internal();
   factory MealPlanService() => _instance;
   MealPlanService._internal();
 
-  final Logger _logger = Logger('MealPlanService');
   static const String _weeklyMealDataKey = 'weeklyMealData';
 
   /// Get custom meal names for a specific day and meal type
@@ -43,7 +41,6 @@ class MealPlanService {
       return meal['name'] as String?;
       
     } catch (e) {
-      _logger.warning('Failed to get meal name for notification: $e');
       return null;
     }
   }
@@ -100,7 +97,6 @@ class MealPlanService {
       return weeklyData.isNotEmpty;
       
     } catch (e) {
-      _logger.warning('Failed to check meal plans: $e');
       return false;
     }
   }
@@ -110,16 +106,10 @@ class MealPlanService {
     try {
       // This would be called when meal plans are updated
       // to refresh notifications with new meal names
-      final hasPlans = await hasMealPlans();
-      
-      if (hasPlans) {
-        _logger.info('Meal plans detected, notifications can use custom meal names');
-      } else {
-        _logger.info('No meal plans found, using default meal names for notifications');
-      }
+      await hasMealPlans();
       
     } catch (e) {
-      _logger.severe('Failed to update meal plan notifications: $e');
+      // Handle error silently
     }
   }
 

@@ -26,17 +26,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     OnboardingPage(
       title: 'Track Your Fitness Journey',
       description: 'Monitor your workouts, set goals, and achieve your fitness objectives.',
-      image: 'assets/images/fitness1.jpg',
+      image: 'assets/images/fitness1.webp',
     ),
     OnboardingPage(
       title: 'Live Sustainably',
       description: 'Reduce your carbon footprint and make eco-friendly choices.',
-      image: 'assets/images/fitness2.jpg',
+      image: 'assets/images/fitness2.webp',
     ),
     OnboardingPage(
       title: 'Keep a Personal Diary',
       description: 'Document your progress, thoughts, and achievements.',
-      image: 'assets/images/fitness3.jpg',
+      image: 'assets/images/fitness3.webp',
     ),
   ];
 

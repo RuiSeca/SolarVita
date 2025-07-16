@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../models/notification_preferences.dart';
-import '../../../../providers/user_profile_provider.dart';
+import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../services/meal_plan_service.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   late NotificationPreferences _preferences;
   final NotificationService _notificationService = NotificationService();
   final MealPlanService _mealPlanService = MealPlanService();
@@ -97,8 +97,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _scheduleWorkoutNotifications() async {
-    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-    final workoutPrefs = userProfileProvider.workoutPreferences;
+    final userProfileProvider = ref.read(userProfileNotifierProvider);
+    final workoutPrefs = userProfileProvider.value?.workoutPreferences;
     
     if (workoutPrefs != null) {
       final settings = _preferences.workoutSettings;
@@ -127,8 +127,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _scheduleMealNotifications() async {
-    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-    final dietaryPrefs = userProfileProvider.dietaryPreferences;
+    final userProfileProvider = ref.read(userProfileNotifierProvider);
+    final dietaryPrefs = userProfileProvider.value?.dietaryPreferences;
     
     for (final meal in _preferences.mealSettings.mealConfigs.entries) {
       if (meal.value.enabled) {

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../models/user_profile.dart';
 import '../../services/user_profile_service.dart';
-import '../../providers/user_profile_provider.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 
-class DiaryPreferencesScreen extends StatefulWidget {
+class DiaryPreferencesScreen extends ConsumerStatefulWidget {
   const DiaryPreferencesScreen({super.key});
 
   @override
-  State<DiaryPreferencesScreen> createState() => _DiaryPreferencesScreenState();
+  ConsumerState<DiaryPreferencesScreen> createState() => _DiaryPreferencesScreenState();
 }
 
-class _DiaryPreferencesScreenState extends State<DiaryPreferencesScreen> {
+class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   bool _isLoading = false;
 
@@ -369,7 +369,7 @@ class _DiaryPreferencesScreenState extends State<DiaryPreferencesScreen> {
 
       if (mounted) {
         // Update the provider so the main app can handle navigation
-        final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
+        final userProfileProvider = ref.read(userProfileNotifierProvider.notifier);
         await userProfileProvider.refreshUserProfile();
         
         // Check mounted again after async operation

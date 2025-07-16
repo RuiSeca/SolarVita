@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
 import '../../utils/translation_helper.dart';
-import '../../providers/user_profile_provider.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 
-class SupporterProfileScreen extends StatefulWidget {
+class SupporterProfileScreen extends ConsumerStatefulWidget {
   final Supporter supporter;
 
   const SupporterProfileScreen({
@@ -17,10 +17,10 @@ class SupporterProfileScreen extends StatefulWidget {
   });
 
   @override
-  State<SupporterProfileScreen> createState() => _SupporterProfileScreenState();
+  ConsumerState<SupporterProfileScreen> createState() => _SupporterProfileScreenState();
 }
 
-class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
+class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen> {
   final SocialService _socialService = SocialService();
   final Logger _logger = Logger();
   bool _isSupporting = false;
@@ -102,7 +102,7 @@ class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
           });
           _logger.d('Updated UI state: _isSupporting = false');
           // Refresh supporter count in the current user's profile
-          Provider.of<UserProfileProvider>(context, listen: false).refreshSupporterCount();
+          ref.read(userProfileNotifierProvider.notifier).refreshSupporterCount();
           
           // Refresh supporter count for the user being viewed
           _refreshViewedUserSupporterCount();
@@ -122,7 +122,7 @@ class _SupporterProfileScreenState extends State<SupporterProfileScreen> {
             _isSupporting = true;
           });
           // Refresh supporter count in the current user's profile
-          Provider.of<UserProfileProvider>(context, listen: false).refreshSupporterCount();
+          ref.read(userProfileNotifierProvider.notifier).refreshSupporterCount();
           
           // Refresh supporter count for the user being viewed
           _refreshViewedUserSupporterCount();

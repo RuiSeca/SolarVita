@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/theme_provider.dart';
+import '../../providers/riverpod/auth_provider.dart';
+import '../../providers/riverpod/theme_provider.dart';
 import 'settings/account/personal_info_screen.dart';
 import 'settings/account/notifications_screen.dart';
 import 'settings/account/privacy_screen.dart';
@@ -13,11 +13,11 @@ import 'settings/app/language_screen.dart';
 import 'settings/app/help_support_screen.dart';
 import '../../utils/translation_helper.dart';
 
-class SettingsMainScreen extends StatelessWidget {
+class SettingsMainScreen extends ConsumerWidget {
   const SettingsMainScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
@@ -44,7 +44,7 @@ class SettingsMainScreen extends StatelessWidget {
             _buildAccountSettings(context),
             _buildPreferencesSettings(context),
             _buildAppSettings(context),
-            _buildSignOutButton(context),
+            _buildSignOutButton(context, ref),
             const SizedBox(height: 32),
           ],
         ),
@@ -151,21 +151,25 @@ class SettingsMainScreen extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const LanguageScreen()),
           ),
         ),
-        Consumer<ThemeProvider>(
-          builder: (context, themeProvider, child) {
+        Consumer(
+          builder: (context, ref, child) {
+            final themeMode = ref.watch(themeNotifierProvider);
+            final themeNotifier = ref.read(themeNotifierProvider.notifier);
+            final isDark = themeMode == ThemeMode.dark;
+            
             return _buildSettingsTile(
               context,
-              icon: themeProvider.isDark 
+              icon: isDark 
                   ? Icons.light_mode 
                   : Icons.dark_mode,
               title: tr(context, 'theme'),
               subtitle: tr(context, 'switch_light_dark_mode'),
-              onTap: () => themeProvider.setThemeMode(
-                themeProvider.isDark ? ThemeMode.light : ThemeMode.dark
+              onTap: () => themeNotifier.setThemeMode(
+                isDark ? ThemeMode.light : ThemeMode.dark
               ),
               trailing: Switch(
-                value: themeProvider.isDark,
-                onChanged: (value) => themeProvider.setThemeMode(
+                value: isDark,
+                onChanged: (value) => themeNotifier.setThemeMode(
                   value ? ThemeMode.dark : ThemeMode.light
                 ),
                 activeColor: AppColors.primary,
@@ -189,13 +193,13 @@ class SettingsMainScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSignOutButton(BuildContext context) {
+  Widget _buildSignOutButton(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton.icon(
-          onPressed: () => _showSignOutDialog(context),
+          onPressed: () => _showSignOutDialog(context, ref),
           icon: const Icon(Icons.logout, color: Colors.red),
           label: Text(
             tr(context, 'sign_out'),
@@ -241,7 +245,7 @@ class SettingsMainScreen extends StatelessWidget {
     );
   }
 
-  void _showSignOutDialog(BuildContext context) {
+  void _showSignOutDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -261,8 +265,8 @@ class SettingsMainScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () async {
-              final authProvider = Provider.of<AuthProvider>(context, listen: false);
-              await authProvider.signOut();
+              final authNotifier = ref.read(authNotifierProvider.notifier);
+              await authNotifier.signOut();
               if (context.mounted) {
                 Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
               }

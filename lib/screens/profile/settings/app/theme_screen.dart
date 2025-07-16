@@ -1,21 +1,23 @@
 // lib/screens/profile/settings/app/theme_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../providers/theme_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/riverpod/theme_provider.dart';
 
-class ThemeScreen extends StatelessWidget {
+class ThemeScreen extends ConsumerWidget {
   const ThemeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         title: const Text('Theme'),
       ),
-      body: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      body: Builder(
+        builder: (context) {
+          final themeMode = ref.watch(themeNotifierProvider);
+          final themeNotifier = ref.read(themeNotifierProvider.notifier);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -23,8 +25,8 @@ class ThemeScreen extends StatelessWidget {
                 context,
                 title: 'System',
                 subtitle: 'Follow system theme',
-                isSelected: themeProvider.isSystem,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.system),
+                isSelected: themeMode == ThemeMode.system,
+                onTap: () => themeNotifier.setThemeMode(ThemeMode.system),
                 icon: Icons.brightness_auto,
               ),
               const SizedBox(height: 8),
@@ -32,8 +34,8 @@ class ThemeScreen extends StatelessWidget {
                 context,
                 title: 'Light',
                 subtitle: 'Light theme',
-                isSelected: themeProvider.isLight,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.light),
+                isSelected: themeMode == ThemeMode.light,
+                onTap: () => themeNotifier.setThemeMode(ThemeMode.light),
                 icon: Icons.light_mode,
               ),
               const SizedBox(height: 8),
@@ -41,8 +43,8 @@ class ThemeScreen extends StatelessWidget {
                 context,
                 title: 'Dark',
                 subtitle: 'Dark theme',
-                isSelected: themeProvider.isDark,
-                onTap: () => themeProvider.setThemeMode(ThemeMode.dark),
+                isSelected: themeMode == ThemeMode.dark,
+                onTap: () => themeNotifier.setThemeMode(ThemeMode.dark),
                 icon: Icons.dark_mode,
               ),
             ],

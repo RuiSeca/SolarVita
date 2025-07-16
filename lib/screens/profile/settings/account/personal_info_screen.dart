@@ -1,17 +1,17 @@
 // lib/screens/profile/settings/account/personal_info_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../providers/user_profile_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../theme/app_theme.dart';
 
-class PersonalInfoScreen extends StatefulWidget {
+class PersonalInfoScreen extends ConsumerStatefulWidget {
   const PersonalInfoScreen({super.key});
 
   @override
-  State<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
+  ConsumerState<PersonalInfoScreen> createState() => _PersonalInfoScreenState();
 }
 
-class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
+class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
   late TextEditingController _emailController;
@@ -48,9 +48,11 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserProfileProvider>(
-      builder: (context, userProfileProvider, _) {
-        final userProfile = userProfileProvider.userProfile;
+    final userProfileProvider = ref.watch(userProfileNotifierProvider);
+    final userProfile = userProfileProvider.value;
+    
+    return Builder(
+      builder: (context) {
         
         // Initialize controllers with user data when available
         if (userProfile != null && !_isEditing) {
@@ -206,8 +208,8 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
 
   Future<void> _saveChanges() async {
     if (_formKey.currentState!.validate()) {
-      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-      final currentProfile = userProfileProvider.userProfile;
+      final userProfileNotifier = ref.read(userProfileNotifierProvider.notifier);
+      final currentProfile = ref.read(userProfileNotifierProvider).value;
       
       if (currentProfile != null) {
         final updatedAdditionalData = Map<String, dynamic>.from(currentProfile.additionalData);
@@ -225,7 +227,7 @@ class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
           additionalData: updatedAdditionalData,
         );
         
-        await userProfileProvider.updateUserProfile(updatedProfile);
+        await userProfileNotifier.updateUserProfile(updatedProfile);
         
         setState(() {
           _isEditing = false;
