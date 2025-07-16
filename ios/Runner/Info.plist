@@ -45,5 +45,51 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	
+	<!-- Health Kit Permissions -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>This app needs access to your health data to track your fitness progress, including steps, calories burned, and workout activities.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app needs to write health data to track your workouts and fitness activities.</string>
+	
+	<!-- Camera Permission for food recognition -->
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to identify food items and provide nutritional information.</string>
+	
+	<!-- Photo Library Permission -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to your photo library to analyze food images for nutritional information.</string>
+	
+	<!-- Motion & Fitness Permission -->
+	<key>NSMotionUsageDescription</key>
+	<string>This app uses motion data to track your physical activity and provide personalized fitness insights.</string>
+	
+	<!-- Location Permission (if needed for outdoor activities) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app uses location data to track outdoor workouts and provide location-based fitness features.</string>
+	
+	<!-- Notifications Permission -->
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>This app sends notifications to remind you about your health goals and achievements.</string>
+	
+	<!-- Background App Refresh -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>background-processing</string>
+		<string>background-fetch</string>
+	</array>
+	
+	<!-- Firebase required -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>REVERSED_CLIENT_ID</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.YOUR_REVERSED_CLIENT_ID</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

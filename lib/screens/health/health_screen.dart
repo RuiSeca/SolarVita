@@ -10,6 +10,7 @@ import '../../widgets/common/lottie_water_widget.dart';
 import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
+import '../../providers/riverpod/user_progress_provider.dart';
 import '../../models/health_data.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
@@ -281,9 +282,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                         size: 20,
                       ),
                       const SizedBox(width: 4),
-                      const Text(
-                        '7',
-                        style: TextStyle(
+                      Text(
+                        '${ref.watch(currentStrikesProvider)}',
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
