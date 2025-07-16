@@ -9,7 +9,7 @@ class SustainableProductsSection extends StatelessWidget {
       nameKey: 'product_bottle_name',
       descriptionKey: 'product_bottle_description',
       imagePath:
-          'assets/images/eco_tips/sustainable_products/bamboo_bottle.jpg',
+          'assets/images/eco_tips/sustainable_products/bamboo_bottle.webp',
       websiteUrl: 'https://eco-bottle-partner.com',
       discountCode: 'SOLARVITA15',
       discountPercentage: 15,
@@ -17,7 +17,7 @@ class SustainableProductsSection extends StatelessWidget {
     SustainableProduct(
       nameKey: 'product_activewear_name',
       descriptionKey: 'product_activewear_description',
-      imagePath: 'assets/images/eco_tips/sustainable_products/eco_clothes.jpg',
+      imagePath: 'assets/images/eco_tips/sustainable_products/eco_clothes.webp',
       websiteUrl: 'https://eco-clothes-partner.com',
       discountCode: 'SOLARVITA20',
       discountPercentage: 20,
@@ -25,7 +25,7 @@ class SustainableProductsSection extends StatelessWidget {
     SustainableProduct(
       nameKey: 'product_yoga_name',
       descriptionKey: 'product_yoga_description',
-      imagePath: 'assets/images/eco_tips/sustainable_products/yoga_mat.jpg',
+      imagePath: 'assets/images/eco_tips/sustainable_products/yoga_mat.webp',
       websiteUrl: 'https://eco-yoga-partner.com',
       discountCode: 'SOLARVITA15',
       discountPercentage: 15,

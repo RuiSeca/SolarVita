@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../services/user_profile_service.dart';
-import '../../providers/user_profile_provider.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 import 'workout_preferences_screen.dart';
 
-class PersonalInfoPreferencesScreen extends StatefulWidget {
+class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
   const PersonalInfoPreferencesScreen({super.key});
 
   @override
-  State<PersonalInfoPreferencesScreen> createState() => _PersonalInfoPreferencesScreenState();
+  ConsumerState<PersonalInfoPreferencesScreen> createState() => _PersonalInfoPreferencesScreenState();
 }
 
-class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesScreen> {
+class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
@@ -406,8 +406,7 @@ class _PersonalInfoPreferencesScreenState extends State<PersonalInfoPreferencesS
 
         if (mounted) {
           // Update the provider
-          final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-          userProfileProvider.setUserProfile(updatedProfile);
+          ref.read(userProfileNotifierProvider.notifier).setUserProfile(updatedProfile);
           
           // Navigate to workout preferences
           Navigator.of(context).pushReplacement(

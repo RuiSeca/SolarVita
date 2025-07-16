@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,15 +8,18 @@ import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
 import '../../widgets/common/lottie_water_widget.dart';
 import 'water_detail_screen.dart';
+import 'health_setup_screen.dart';
+import '../../providers/riverpod/health_data_provider.dart';
+import '../../models/health_data.dart';
 
-class HealthScreen extends StatefulWidget {
+class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
 
   @override
-  State<HealthScreen> createState() => _HealthScreenState();
+  ConsumerState<HealthScreen> createState() => _HealthScreenState();
 }
 
-class _HealthScreenState extends State<HealthScreen>
+class _HealthScreenState extends ConsumerState<HealthScreen>
     with TickerProviderStateMixin {
   double waterIntake = 0.0; // Start with 0ml
   double waterDailyLimit = 2.0; // Default 2000ml = 2.0L
@@ -147,6 +151,10 @@ class _HealthScreenState extends State<HealthScreen>
 
   @override
   Widget build(BuildContext context) {
+    final healthDataAsync = ref.watch(healthDataNotifierProvider);
+    final permissionsStatus = ref.watch(healthPermissionsNotifierProvider);
+    final lastSyncAsync = ref.watch(lastSyncTimeProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
@@ -156,20 +164,29 @@ class _HealthScreenState extends State<HealthScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  tr(context, 'fitness_profile'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        tr(context, 'fitness_profile'),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    _buildSyncButton(healthDataAsync, permissionsStatus),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                _buildHealthDataStatus(healthDataAsync, permissionsStatus, lastSyncAsync),
                 const SizedBox(height: 20),
                 _buildUserOverviewCard(context),
                 const SizedBox(height: 20),
                 _buildMealsSection(context),
                 const SizedBox(height: 24),
-                _buildStatsGrid(context),
+                _buildStatsGrid(context, healthDataAsync),
               ],
             ),
           ),
@@ -225,7 +242,7 @@ class _HealthScreenState extends State<HealthScreen>
                   border: Border.all(color: Colors.white, width: 2),
                   image: const DecorationImage(
                     image: AssetImage(
-                        'assets/images/health/health_profile/profile.jpg'),
+                        'assets/images/health/health_profile/profile.webp'),
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -290,70 +307,510 @@ class _HealthScreenState extends State<HealthScreen>
     );
   }
 
-  Widget _buildStatsGrid(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Column(
-        children: [
-          _buildHorizontalStatCard(
+  Widget _buildSyncButton(AsyncValue<HealthData> healthDataAsync, AsyncValue<HealthPermissionStatus> permissionsStatus) {
+    return permissionsStatus.when(
+      data: (permissions) {
+        if (!permissions.isGranted) {
+          return IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => HealthSetupScreen(
+                    onSetupComplete: () {
+                      ref.invalidate(healthDataNotifierProvider);
+                      ref.invalidate(healthPermissionsNotifierProvider);
+                    },
+                  ),
+                ),
+              );
+            },
+            icon: Icon(
+              Icons.settings,
+              color: AppTheme.textColor(context).withValues(alpha: 0.7),
+              size: 24,
+            ),
+            tooltip: 'Setup Health Data',
+          );
+        }
+
+        return IconButton(
+          onPressed: healthDataAsync.isLoading
+              ? null
+              : () async {
+                  final notifier = ref.read(healthDataNotifierProvider.notifier);
+                  await notifier.syncHealthData();
+                },
+          icon: healthDataAsync.isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.textColor(context).withValues(alpha: 0.7),
+                    ),
+                  ),
+                )
+              : Icon(
+                  Icons.refresh,
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  size: 24,
+                ),
+          tooltip: 'Sync Health Data',
+        );
+      },
+      loading: () => const SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      ),
+      error: (error, _) => IconButton(
+        onPressed: () {
+          Navigator.push(
             context,
-            Icons.directions_walk,
-            '2,146',
-            'Steps',
-            'Daily walking goal',
-            0.7,
-            Colors.blue,
-            'steps',
-          ),
-          const SizedBox(height: 12),
-          _buildHorizontalStatCard(
-            context,
-            Icons.directions_run,
-            '45min',
-            'Active Time',
-            'Eco-friendly workouts',
-            0.8,
-            Colors.green,
-            'active',
-          ),
-          const SizedBox(height: 12),
-          _buildHorizontalStatCard(
-            context,
-            Icons.local_fire_department,
-            '320',
-            'Calories Burned',
-            'Energy used today',
-            0.6,
-            Colors.orange,
-            'calories',
-          ),
-          const SizedBox(height: 12),
-          _buildWaterHorizontalCard(context),
-          const SizedBox(height: 12),
-          _buildHorizontalStatCard(
-            context,
-            Icons.bedtime,
-            '7.2h',
-            'Sleep Quality',
-            'Restful night tracking',
-            0.9,
-            Colors.indigo,
-            'sleep',
-          ),
-          const SizedBox(height: 12),
-          _buildHorizontalStatCard(
-            context,
-            Icons.favorite,
-            '72 BPM',
-            'Heart Rate',
-            'Cardiovascular health',
-            0.85,
-            Colors.red,
-            'heart',
-          ),
-        ],
+            MaterialPageRoute(
+              builder: (context) => HealthSetupScreen(
+                onSetupComplete: () {
+                  ref.invalidate(healthDataNotifierProvider);
+                  ref.invalidate(healthPermissionsNotifierProvider);
+                },
+              ),
+            ),
+          );
+        },
+        icon: Icon(
+          Icons.error,
+          color: Colors.red,
+          size: 24,
+        ),
+        tooltip: 'Fix Health Data Setup',
       ),
     );
+  }
+
+  Widget _buildHealthDataStatus(
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<HealthPermissionStatus> permissionsStatus,
+    AsyncValue<DateTime?> lastSyncAsync,
+  ) {
+    return permissionsStatus.when(
+      data: (permissions) {
+        if (!permissions.isGranted) {
+          return Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.orange.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.health_and_safety,
+                  color: Colors.orange,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Connect your health data for personalized insights',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HealthSetupScreen(
+                          onSetupComplete: () {
+                            ref.invalidate(healthDataNotifierProvider);
+                            ref.invalidate(healthPermissionsNotifierProvider);
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                  child: const Text('Setup'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return lastSyncAsync.when(
+          data: (lastSync) {
+            final syncText = lastSync != null
+                ? 'Last sync: ${_formatSyncTime(lastSync)}'
+                : 'Health data connected';
+            
+            return Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.green.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      syncText,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  if (healthDataAsync.value?.isDataAvailable == true)
+                    Icon(
+                      Icons.sync,
+                      color: Colors.green,
+                      size: 16,
+                    ),
+                ],
+              ),
+            );
+          },
+          loading: () => Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.blue.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Syncing health data...',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          error: (error, _) => Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Colors.red.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error,
+                  color: Colors.red,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Error syncing health data',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.grey.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.grey),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Checking health data permissions...',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (error, _) => Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Colors.red.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.error,
+              color: Colors.red,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Health data setup error',
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatSyncTime(DateTime syncTime) {
+    final now = DateTime.now();
+    final difference = now.difference(syncTime);
+
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
+  }
+
+  Widget _buildStatsGrid(BuildContext context, AsyncValue<HealthData> healthDataAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        // Calculate progress values
+        final stepsProgress = (healthData.steps / 10000).clamp(0.0, 1.0);
+        final activeProgress = (healthData.activeMinutes / 60).clamp(0.0, 1.0);
+        final caloriesProgress = (healthData.caloriesBurned / 500).clamp(0.0, 1.0);
+        final sleepProgress = (healthData.sleepHours / 8).clamp(0.0, 1.0);
+        final heartRateProgress = healthData.heartRate > 0 ? 0.85 : 0.0; // Normalized heart rate
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(
+            children: [
+              _buildHorizontalStatCard(
+                context,
+                Icons.directions_walk,
+                _formatNumber(healthData.steps),
+                'Steps',
+                'Daily walking goal',
+                stepsProgress,
+                Colors.blue,
+                'steps',
+                isHealthData: healthData.isDataAvailable,
+              ),
+              const SizedBox(height: 12),
+              _buildHorizontalStatCard(
+                context,
+                Icons.directions_run,
+                '${healthData.activeMinutes}min',
+                'Active Time',
+                'Eco-friendly workouts',
+                activeProgress,
+                Colors.green,
+                'active',
+                isHealthData: healthData.isDataAvailable,
+              ),
+              const SizedBox(height: 12),
+              _buildHorizontalStatCard(
+                context,
+                Icons.local_fire_department,
+                _formatNumber(healthData.caloriesBurned),
+                'Calories Burned',
+                'Energy used today',
+                caloriesProgress,
+                Colors.orange,
+                'calories',
+                isHealthData: healthData.isDataAvailable,
+              ),
+              const SizedBox(height: 12),
+              _buildWaterHorizontalCard(context),
+              const SizedBox(height: 12),
+              _buildHorizontalStatCard(
+                context,
+                Icons.bedtime,
+                '${healthData.sleepHours.toStringAsFixed(1)}h',
+                'Sleep Quality',
+                'Restful night tracking',
+                sleepProgress,
+                Colors.indigo,
+                'sleep',
+                isHealthData: healthData.isDataAvailable,
+              ),
+              const SizedBox(height: 12),
+              _buildHorizontalStatCard(
+                context,
+                Icons.favorite,
+                healthData.heartRate > 0 ? '${healthData.heartRate.toInt()} BPM' : 'N/A',
+                'Heart Rate',
+                'Cardiovascular health',
+                heartRateProgress,
+                Colors.red,
+                'heart',
+                isHealthData: healthData.isDataAvailable,
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            for (int i = 0; i < 6; i++) ...[
+              Container(
+                height: 76,
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context).withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppTheme.textColor(context).withValues(alpha: 0.3),
+                    ),
+                    strokeWidth: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ],
+        ),
+      ),
+      error: (error, _) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Column(
+          children: [
+            // Show mock data on error
+            _buildHorizontalStatCard(
+              context,
+              Icons.directions_walk,
+              '2,146',
+              'Steps',
+              'Daily walking goal',
+              0.7,
+              Colors.blue,
+              'steps',
+              isHealthData: false,
+            ),
+            const SizedBox(height: 12),
+            _buildHorizontalStatCard(
+              context,
+              Icons.directions_run,
+              '45min',
+              'Active Time',
+              'Eco-friendly workouts',
+              0.8,
+              Colors.green,
+              'active',
+              isHealthData: false,
+            ),
+            const SizedBox(height: 12),
+            _buildHorizontalStatCard(
+              context,
+              Icons.local_fire_department,
+              '320',
+              'Calories Burned',
+              'Energy used today',
+              0.6,
+              Colors.orange,
+              'calories',
+              isHealthData: false,
+            ),
+            const SizedBox(height: 12),
+            _buildWaterHorizontalCard(context),
+            const SizedBox(height: 12),
+            _buildHorizontalStatCard(
+              context,
+              Icons.bedtime,
+              '7.2h',
+              'Sleep Quality',
+              'Restful night tracking',
+              0.9,
+              Colors.indigo,
+              'sleep',
+              isHealthData: false,
+            ),
+            const SizedBox(height: 12),
+            _buildHorizontalStatCard(
+              context,
+              Icons.favorite,
+              '72 BPM',
+              'Heart Rate',
+              'Cardiovascular health',
+              0.85,
+              Colors.red,
+              'heart',
+              isHealthData: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatNumber(int number) {
+    if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}k';
+    }
+    return number.toString();
   }
 
   Widget _buildHorizontalStatCard(
@@ -364,8 +821,9 @@ class _HealthScreenState extends State<HealthScreen>
     String subtitle,
     double progress,
     Color iconColor,
-    String statType,
-  ) {
+    String statType, {
+    bool isHealthData = false,
+  }) {
     return GestureDetector(
       onTap: () => _navigateWithAnimation(statType, iconColor),
       child: Container(
@@ -438,13 +896,32 @@ class _HealthScreenState extends State<HealthScreen>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Text(
-                          '${(progress * 100).toInt()}%',
-                          style: TextStyle(
-                            color: iconColor,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isHealthData)
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.health_and_safety,
+                                  color: Colors.white,
+                                  size: 8,
+                                ),
+                              ),
+                            if (isHealthData) const SizedBox(width: 4),
+                            Text(
+                              '${(progress * 100).toInt()}%',
+                              style: TextStyle(
+                                color: iconColor,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -712,7 +1189,7 @@ class _HealthScreenState extends State<HealthScreen>
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
         image: const DecorationImage(
-          image: AssetImage('assets/images/health/meals/meal.jpg'),
+          image: AssetImage('assets/images/health/meals/meal.webp'),
           fit: BoxFit.cover,
         ),
       ),
@@ -886,27 +1363,37 @@ class StatDetailPage extends StatelessWidget {
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         _getStatIcon(statType),
                         color: color,
-                        size: 64,
+                        size: 56, // Reduced from 64
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _getStatValue(statType),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(height: 12), // Reduced from 16
+                      Flexible(
+                        child: Text(
+                          _getStatValue(statType),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 32, // Reduced from 36
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      Text(
-                        _getStatSubtitle(statType),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context)
-                              .withValues(alpha: 0.7),
-                          fontSize: 16,
+                      const SizedBox(height: 4),
+                      Flexible(
+                        child: Text(
+                          _getStatSubtitle(statType),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context)
+                                .withValues(alpha: 0.7),
+                            fontSize: 14, // Reduced from 16
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

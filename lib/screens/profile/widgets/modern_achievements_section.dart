@@ -119,10 +119,10 @@ class ModernAchievementsSection extends StatelessWidget {
                           ],
                         )
                       : null,
-                  color: hasNew ? null : Colors.grey.withValues(alpha: 0.3),
+                  color: hasNew ? null : Colors.grey.withAlpha(77),
                   boxShadow: [
                     BoxShadow(
-                      color: color.withValues(alpha: 0.3),
+                      color: color.withAlpha(77),
                       spreadRadius: 0,
                       blurRadius: 10,
                       offset: const Offset(0, 3),
@@ -137,7 +137,7 @@ class ModernAchievementsSection extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        color.withValues(alpha: 0.8),
+                        color.withAlpha(204),
                         color,
                       ],
                     ),

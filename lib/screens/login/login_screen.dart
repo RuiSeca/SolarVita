@@ -1,18 +1,19 @@
 // lib/screens/login/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../main.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -30,62 +31,80 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleEmailAuth() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authNotifier = ref.read(authNotifierProvider.notifier);
     bool success;
 
     if (_isSignUp) {
-      success = await authProvider.signUpWithEmailAndPassword(
+      success = await authNotifier.signUpWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
     } else {
-      success = await authProvider.signInWithEmailAndPassword(
+      success = await authNotifier.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
     }
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else if (authProvider.errorMessage != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage!),
-          backgroundColor: Colors.red,
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        (route) => false,
       );
+    } else {
+      final errorMessage = ref.read(authNotifierProvider).errorMessage;
+      if (errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _handleGoogleSignIn() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithGoogle();
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final success = await authNotifier.signInWithGoogle();
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else if (authProvider.errorMessage != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage!),
-          backgroundColor: Colors.red,
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        (route) => false,
       );
+    } else {
+      final errorMessage = ref.read(authNotifierProvider).errorMessage;
+      if (errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _handleFacebookSignIn() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.signInWithFacebook();
+    final authNotifier = ref.read(authNotifierProvider.notifier);
+    final success = await authNotifier.signInWithFacebook();
 
     if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/main');
-    } else if (authProvider.errorMessage != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage!),
-          backgroundColor: Colors.red,
-        ),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
+        (route) => false,
       );
+    } else {
+      final errorMessage = ref.read(authNotifierProvider).errorMessage;
+      if (errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -100,9 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authNotifier = ref.read(authNotifierProvider.notifier);
     final success =
-        await authProvider.sendPasswordResetEmail(_emailController.text.trim());
+        await authNotifier.sendPasswordResetEmail(_emailController.text.trim());
 
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -111,13 +130,16 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.green,
         ),
       );
-    } else if (authProvider.errorMessage != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage!),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } else {
+      final errorMessage = ref.read(authNotifierProvider).errorMessage;
+      if (errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -141,8 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
+      body: Consumer(
+        builder: (context, ref, child) {
+          final authState = ref.watch(authNotifierProvider);
           return SingleChildScrollView(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
@@ -181,7 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Social Login Buttons
                     OutlinedButton.icon(
                       onPressed:
-                          authProvider.isLoading ? null : _handleGoogleSignIn,
+                          authState.isLoading ? null : _handleGoogleSignIn,
                       icon: const SizedBox(
                         width: 24,
                         height: 24,
@@ -204,7 +227,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     OutlinedButton.icon(
                       onPressed:
-                          authProvider.isLoading ? null : _handleFacebookSignIn,
+                          authState.isLoading ? null : _handleFacebookSignIn,
                       icon: const SizedBox(
                         width: 24,
                         height: 24,
@@ -330,7 +353,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
-                          onPressed: authProvider.isLoading
+                          onPressed: authState.isLoading
                               ? null
                               : _handleForgotPassword,
                           child: Text(
@@ -345,7 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Continue Button
                     ElevatedButton(
                       onPressed:
-                          authProvider.isLoading ? null : _handleEmailAuth,
+                          authState.isLoading ? null : _handleEmailAuth,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.primaryColor,
                         padding: const EdgeInsets.all(16),
@@ -353,7 +376,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: authProvider.isLoading
+                      child: authState.isLoading
                           ? const LottieLoadingWidget(
                               width: 20,
                               height: 20,
@@ -383,7 +406,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: theme.textTheme.bodyMedium,
                         ),
                         TextButton(
-                          onPressed: authProvider.isLoading
+                          onPressed: authState.isLoading
                               ? null
                               : () {
                                   setState(() {

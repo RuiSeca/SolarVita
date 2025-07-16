@@ -3,10 +3,8 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/vision_api_config.dart';
-import 'package:logger/logger.dart';
 
 class FoodRecognitionService {
-  final Logger _logger = Logger();
 
   // Constructor validates API key
   FoodRecognitionService() {
@@ -88,7 +86,6 @@ class FoodRecognitionService {
         }
       }
 
-      _logger.d('Food items detected: $foodItems');
 
       if (foodItems.isEmpty) {
         throw Exception('No food detected in the image');
@@ -96,8 +93,6 @@ class FoodRecognitionService {
 
       return foodItems.toList();
     } else {
-      _logger.e(
-          'Google Vision API error: ${response.statusCode}, ${response.body}');
       throw Exception('Failed to analyze image: ${response.statusCode}');
     }
   }

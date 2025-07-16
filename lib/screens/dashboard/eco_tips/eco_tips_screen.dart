@@ -19,25 +19,25 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
       titleKey: 'tip_recycle_title',
       descriptionKey: 'tip_recycle_description',
       category: 'category_waste',
-      imagePath: 'assets/images/eco_tips/waste_management/recycle.jpg',
+      imagePath: 'assets/images/eco_tips/waste_management/recycle.webp',
     ),
     EcoTip(
       titleKey: 'tip_energy_title',
       descriptionKey: 'tip_energy_description',
       category: 'category_energy',
-      imagePath: 'assets/images/eco_tips/energy/energy.jpg',
+      imagePath: 'assets/images/eco_tips/energy/energy.webp',
     ),
     EcoTip(
       titleKey: 'tip_water_title',
       descriptionKey: 'tip_water_description',
       category: 'category_water',
-      imagePath: 'assets/images/eco_tips/water/water.jpg',
+      imagePath: 'assets/images/eco_tips/water/water.webp',
     ),
     EcoTip(
       titleKey: 'tip_transport_title',
       descriptionKey: 'tip_transport_description',
       category: 'category_transport',
-      imagePath: 'assets/images/eco_tips/transport/transport.jpg',
+      imagePath: 'assets/images/eco_tips/transport/transport.webp',
     ),
   ];
   final List<CarbonActivity> _carbonActivities = [

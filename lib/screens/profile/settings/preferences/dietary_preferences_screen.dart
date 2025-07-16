@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
-import '../../../../providers/user_profile_provider.dart';
+import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../models/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
-class DietaryPreferencesScreen extends StatefulWidget {
+class DietaryPreferencesScreen extends ConsumerStatefulWidget {
   const DietaryPreferencesScreen({super.key});
 
   @override
-  State<DietaryPreferencesScreen> createState() =>
+  ConsumerState<DietaryPreferencesScreen> createState() =>
       _DietaryPreferencesScreenState();
 }
 
-class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
+class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -83,8 +83,8 @@ class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
   }
 
   void _loadUserPreferences() {
-    final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-    final dietaryPrefs = userProfileProvider.dietaryPreferences;
+    final userProfileProvider = ref.read(userProfileNotifierProvider);
+    final dietaryPrefs = userProfileProvider.value?.dietaryPreferences;
     
     if (dietaryPrefs != null) {
       setState(() {
@@ -126,8 +126,6 @@ class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
     });
 
     try {
-      final userProfileProvider = Provider.of<UserProfileProvider>(context, listen: false);
-      
       final updatedDietaryPrefs = DietaryPreferences(
         dietType: _selectedDietType,
         allergies: _allergies,
@@ -150,7 +148,7 @@ class _DietaryPreferencesScreenState extends State<DietaryPreferencesScreen> {
         snackTime: _formatTimeOfDay(_snackTime),
       );
 
-      await userProfileProvider.updateDietaryPreferences(updatedDietaryPrefs);
+      await ref.read(userProfileNotifierProvider.notifier).updateDietaryPreferences(updatedDietaryPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

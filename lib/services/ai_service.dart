@@ -4,13 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../models/user_context.dart';
 import '../config/gemini_api_config.dart';
-import 'package:logger/logger.dart';
 
 class AIService {
   final UserContext context;
   late final GenerativeModel _fastModel;
   late final GenerativeModel _standardModel;
-  final Logger _logger = Logger();
 
   // Rate limiting for free tier
   static const int _maxRequestsPerMinute = 15; // Free tier limit
@@ -74,7 +72,6 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
 
   void _initializeModels() {
     if (!GeminiApiConfig.isConfigured()) {
-      _logger.e('Gemini API key not configured');
       throw Exception(
           'Gemini API key not configured. Please set GEMINI_API_KEY in .env file.');
     }
@@ -117,7 +114,6 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
       ],
     );
 
-    _logger.i('AI service initialized with rate limiting');
   }
 
   String _getPersonalizedSystemPrompt() {
@@ -165,7 +161,6 @@ CONVERSATION STATUS: This is a continuing conversation.
       // Check cache for recent similar queries
       final cachedResponse = _getCachedResponse(userMessage);
       if (cachedResponse != null) {
-        _logger.d('Returning cached response');
         return cachedResponse;
       }
 
@@ -199,10 +194,8 @@ CONVERSATION STATUS: This is a continuing conversation.
       // Track request for rate limiting
       _trackRequest();
 
-      _logger.d('AI response generated successfully');
       return response;
     } catch (e) {
-      _logger.e('Error generating AI response: $e');
       return _getContextAwareFallback(userMessage);
     }
   }
@@ -242,7 +235,6 @@ CONVERSATION STATUS: This is a continuing conversation.
         _trackRequest();
       }
     } catch (e) {
-      _logger.e('Error in AI stream: $e');
       yield _getContextAwareFallback(userMessage);
     }
   }
@@ -318,7 +310,6 @@ CONVERSATION STATUS: This is a continuing conversation.
 
       return response.text?.trim() ?? '';
     } on TimeoutException {
-      _logger.w('AI request timed out');
       throw Exception('Response timed out');
     }
   }
@@ -375,7 +366,6 @@ CONVERSATION STATUS: This is a continuing conversation.
     }
 
     if (_dailyRequestCount >= _maxRequestsPerDay) {
-      _logger.w('Daily rate limit exceeded');
       return false;
     }
 
@@ -384,7 +374,6 @@ CONVERSATION STATUS: This is a continuing conversation.
     _requestTimes.removeWhere((time) => time.isBefore(windowStart));
 
     if (_requestTimes.length >= _maxRequestsPerMinute) {
-      _logger.w('Per-minute rate limit exceeded');
       return false;
     }
 
@@ -471,13 +460,11 @@ CONVERSATION STATUS: This is a continuing conversation.
     _hasIntroduced = false;
     _conversationHistory.clear();
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
-    _logger.i('New conversation started with session ID: $_currentSessionId');
   }
 
   void endConversation() {
     _hasIntroduced = false;
     _conversationHistory.clear();
-    _logger.i('Conversation ended for session: $_currentSessionId');
   }
 
   // Persistence
@@ -496,7 +483,7 @@ CONVERSATION STATUS: This is a continuing conversation.
         }
       }
     } catch (e) {
-      _logger.e('Error loading request history: $e');
+      // Ignore history load errors
     }
   }
 
@@ -509,7 +496,7 @@ CONVERSATION STATUS: This is a continuing conversation.
             'last_request_date', _lastRequestDate!.toIso8601String());
       }
     } catch (e) {
-      _logger.e('Error saving request history: $e');
+      // Ignore history save errors
     }
   }
 
@@ -522,13 +509,11 @@ CONVERSATION STATUS: This is a continuing conversation.
   // Public methods for backward compatibility
   String generateResponse(String message) {
     // This method should not be used anymore, but kept for compatibility
-    _logger.w('Using deprecated generateResponse method');
     return _getContextAwareFallback(message);
   }
 
   String generateQuickResponse(String action) {
     // This method should not be used anymore, but kept for compatibility
-    _logger.w('Using deprecated generateQuickResponse method');
     return _getContextAwareFallback("Quick help with: $action");
   }
 
@@ -544,7 +529,6 @@ CONVERSATION STATUS: This is a continuing conversation.
 
       return response.isNotEmpty;
     } catch (e) {
-      _logger.e('Connection test failed: $e');
       return false;
     }
   }
@@ -552,13 +536,11 @@ CONVERSATION STATUS: This is a continuing conversation.
   // Utility methods
   void clearCache() {
     _responseCache.clear();
-    _logger.i('Response cache cleared');
   }
 
   void clearHistory() {
     _conversationHistory.clear();
     _hasIntroduced = false;
-    _logger.i('Conversation history cleared');
   }
 
   // Get usage statistics

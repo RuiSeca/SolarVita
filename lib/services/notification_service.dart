@@ -8,7 +8,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
-import 'package:logging/logging.dart';
 import '../models/notification_preferences.dart';
 
 class NotificationService {
@@ -19,7 +18,6 @@ class NotificationService {
   final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
-  final Logger _logger = Logger('NotificationService');
 
   // Notification preferences keys
   static const String _workoutRemindersKey = 'workout_reminders';
@@ -39,7 +37,6 @@ class NotificationService {
     if (_isInitialized) return;
 
     try {
-      _logger.info('Starting notification service initialization...');
 
       // Initialize timezone first
       await _ensureTimeZoneInitialized();
@@ -51,9 +48,7 @@ class NotificationService {
       await _initializePushNotifications();
 
       _isInitialized = true;
-      _logger.info('Notification service initialized successfully');
     } catch (e) {
-      _logger.severe('Failed to initialize notification service: $e');
       rethrow;
     }
   }
@@ -61,23 +56,16 @@ class NotificationService {
   // Ensure timezone is properly initialized
   Future<void> _ensureTimeZoneInitialized() async {
     try {
-      _logger.info('Initializing timezone...');
       tz.initializeTimeZones();
 
       // Try to set local timezone, fallback to UTC if it fails
       try {
-        final String currentTimeZone = DateTime.now().timeZoneName;
-        _logger.info('System timezone: $currentTimeZone');
-
         // For most cases, just use the local timezone
         tz.setLocalLocation(tz.local);
-        _logger.info('Timezone set to local: ${tz.local.name}');
       } catch (e) {
-        _logger.warning('Failed to set local timezone, using UTC: $e');
         tz.setLocalLocation(tz.getLocation('UTC'));
       }
     } catch (e) {
-      _logger.severe('Failed to initialize timezone: $e');
       rethrow;
     }
   }
@@ -85,7 +73,6 @@ class NotificationService {
   // Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
     try {
-      _logger.info('Initializing local notifications...');
 
       const androidSettings =
           AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -106,15 +93,12 @@ class NotificationService {
       );
 
       if (initialized == true) {
-        _logger.info('Local notifications initialized successfully');
         
         // Register Android notification channels
         await _createNotificationChannels();
       } else {
-        _logger.warning('Local notifications initialization returned false');
       }
     } catch (e) {
-      _logger.severe('Failed to initialize local notifications: $e');
       rethrow;
     }
   }
@@ -124,13 +108,11 @@ class NotificationService {
     if (!Platform.isAndroid) return;
     
     try {
-      _logger.info('Creating Android notification channels...');
       
       final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       
       if (androidPlugin == null) {
-        _logger.warning('Android plugin not available for notification channels');
         return;
       }
 
@@ -240,12 +222,9 @@ class NotificationService {
 
       for (final channel in channels) {
         await androidPlugin.createNotificationChannel(channel);
-        _logger.info('Created notification channel: ${channel.id}');
       }
       
-      _logger.info('All notification channels created successfully');
     } catch (e) {
-      _logger.severe('Failed to create notification channels: $e');
       rethrow;
     }
   }
@@ -253,24 +232,19 @@ class NotificationService {
   // Initialize push notifications
   Future<void> _initializePushNotifications() async {
     try {
-      _logger.info('Initializing push notifications...');
 
       // Request permission
-      final hasPermission = await _requestNotificationPermissions();
-      _logger.info('Notification permissions granted: $hasPermission');
+      await _requestNotificationPermissions();
 
       // Get FCM token
-      final token = await _firebaseMessaging.getToken();
-      _logger.info('FCM Token: ${token?.substring(0, 20)}...');
+      await _firebaseMessaging.getToken();
 
       // Configure message handlers
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
       FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
       FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
 
-      _logger.info('Push notifications initialized successfully');
     } catch (e) {
-      _logger.severe('Failed to initialize push notifications: $e');
       // Don't rethrow - push notifications are optional
     }
   }
@@ -289,49 +263,42 @@ class NotificationService {
       } else {
         // For Android, request notification permission
         final notificationStatus = await Permission.notification.request();
-        _logger.info('Notification permission status: $notificationStatus');
         
         // For Android 13+, also request schedule exact alarm permission
         if (Platform.isAndroid) {
           try {
-            final scheduleStatus = await Permission.scheduleExactAlarm.request();
-            _logger.info('Schedule exact alarm permission status: $scheduleStatus');
+            await Permission.scheduleExactAlarm.request();
           } catch (e) {
-            _logger.warning('Schedule exact alarm permission not available: $e');
+            // Permission request failed, continue without schedule exact alarm
           }
         }
         
         return notificationStatus.isGranted;
       }
     } catch (e) {
-      _logger.severe('Failed to request notification permissions: $e');
       return false;
     }
   }
 
   // Handle notification tap
   void _onNotificationTapped(NotificationResponse response) {
-    _logger.info('Notification tapped: ${response.payload}');
     if (response.payload != null) {
       try {
         final data = json.decode(response.payload!);
         _handleNotificationNavigation(data);
       } catch (e) {
-        _logger.warning('Failed to parse notification payload: $e');
+        // Failed to parse notification payload
       }
     }
   }
 
   // Handle foreground messages
   void _handleForegroundMessage(RemoteMessage message) {
-    _logger.info('Foreground message: ${message.notification?.title}');
     _showLocalNotificationFromRemote(message);
   }
 
   // Handle background messages
   static Future<void> _handleBackgroundMessage(RemoteMessage message) async {
-    final logger = Logger('NotificationService');
-    logger.info('Background message: ${message.notification?.title}');
   }
 
   // Show local notification from remote message
@@ -364,14 +331,13 @@ class NotificationService {
         payload: json.encode(message.data),
       );
     } catch (e) {
-      _logger.severe('Failed to show local notification from remote: $e');
+      // Failed to show local notification from remote message
     }
   }
 
   // Handle notification navigation
   void _handleNotificationNavigation(Map<String, dynamic> data) {
     final type = data['type'] ?? '';
-    _logger.info('Handling navigation for notification type: $type');
 
     switch (type) {
       case 'workout_reminder':
@@ -406,7 +372,6 @@ class NotificationService {
     String? workoutType,
   }) async {
     if (!await _isNotificationTypeEnabled(_workoutRemindersKey)) {
-      _logger.info('Workout reminders are disabled');
       return;
     }
 
@@ -441,8 +406,6 @@ class NotificationService {
       final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
       final notificationId = _generateNotificationId();
 
-      _logger.info(
-          'Scheduling workout reminder at $tzScheduledTime (ID: $notificationId)');
 
       await _localNotifications.zonedSchedule(
         notificationId,
@@ -456,10 +419,7 @@ class NotificationService {
         payload: payload,
       );
 
-      _logger
-          .info('Workout reminder scheduled successfully for $scheduledTime');
     } catch (e) {
-      _logger.severe('Failed to schedule workout reminder: $e');
       rethrow;
     }
   }
@@ -467,7 +427,6 @@ class NotificationService {
   // Schedule water reminder
   Future<void> scheduleWaterReminder() async {
     if (!await _isNotificationTypeEnabled(_waterRemindersKey)) {
-      _logger.info('Water reminders are disabled');
       return;
     }
 
@@ -493,9 +452,7 @@ class NotificationService {
         }
       }
 
-      _logger.info('Water reminders scheduled successfully');
     } catch (e) {
-      _logger.severe('Failed to schedule water reminders: $e');
       rethrow;
     }
   }
@@ -506,7 +463,6 @@ class NotificationService {
     DateTime? scheduledTime,
   }) async {
     if (!await _isNotificationTypeEnabled(_ecoTipsKey)) {
-      _logger.info('Eco tips are disabled');
       return;
     }
 
@@ -525,9 +481,7 @@ class NotificationService {
         notificationType: 'eco_tip',
       );
 
-      _logger.info('Eco tip scheduled for $time');
     } catch (e) {
-      _logger.severe('Failed to schedule eco tip: $e');
       rethrow;
     }
   }
@@ -538,7 +492,6 @@ class NotificationService {
     required String message,
   }) async {
     if (!await _isNotificationTypeEnabled(_progressUpdatesKey)) {
-      _logger.info('Progress updates are disabled');
       return;
     }
 
@@ -579,9 +532,7 @@ class NotificationService {
         payload: payload,
       );
 
-      _logger.info('Progress celebration sent: $achievement');
     } catch (e) {
-      _logger.severe('Failed to send progress celebration: $e');
       rethrow;
     }
   }
@@ -593,7 +544,6 @@ class NotificationService {
     String? customMessage,
   }) async {
     if (!await _isNotificationTypeEnabled(_mealRemindersKey)) {
-      _logger.info('Meal reminders are disabled');
       return;
     }
 
@@ -636,8 +586,6 @@ class NotificationService {
       // Use a consistent ID for each meal type so we can cancel/update them
       final notificationId = _getMealNotificationId(mealType);
 
-      _logger.info(
-          'Scheduling meal reminder: $mealType at $tzScheduledTime (ID: $notificationId)');
 
       await _localNotifications.zonedSchedule(
         notificationId,
@@ -653,10 +601,7 @@ class NotificationService {
             DateTimeComponents.time, // This makes it repeat daily!
       );
 
-      _logger.info(
-          'Meal reminder scheduled successfully: $mealType for $scheduledTime');
     } catch (e) {
-      _logger.severe('Failed to schedule meal reminder: $e');
       rethrow;
     }
   }
@@ -681,9 +626,8 @@ class NotificationService {
     try {
       final id = _getMealNotificationId(mealType);
       await _localNotifications.cancel(id);
-      _logger.info('Cancelled existing meal reminder for $mealType (ID: $id)');
     } catch (e) {
-      _logger.warning('Failed to cancel meal reminder for $mealType: $e');
+      // Failed to cancel meal reminder
     }
   }
 
@@ -743,7 +687,6 @@ class NotificationService {
         payload: payload,
       );
     } catch (e) {
-      _logger.severe('Failed to schedule repeating notification: $e');
       rethrow;
     }
   }
@@ -758,7 +701,6 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getBool(key) ?? true; // Default to enabled
     } catch (e) {
-      _logger.warning('Failed to check notification preference for $key: $e');
       return true;
     }
   }
@@ -767,9 +709,7 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(key, enabled);
-      _logger.info('Notification preference set: $key = $enabled');
     } catch (e) {
-      _logger.severe('Failed to set notification preference for $key: $e');
       rethrow;
     }
   }
@@ -825,7 +765,6 @@ class NotificationService {
     try {
       return await _localNotifications.pendingNotificationRequests();
     } catch (e) {
-      _logger.severe('Failed to get pending notifications: $e');
       return [];
     }
   }
@@ -834,9 +773,7 @@ class NotificationService {
   Future<void> cancelAllNotifications() async {
     try {
       await _localNotifications.cancelAll();
-      _logger.info('All notifications cancelled');
     } catch (e) {
-      _logger.severe('Failed to cancel all notifications: $e');
       rethrow;
     }
   }
@@ -845,9 +782,7 @@ class NotificationService {
   Future<void> cancelNotification(int id) async {
     try {
       await _localNotifications.cancel(id);
-      _logger.info('Notification $id cancelled');
     } catch (e) {
-      _logger.severe('Failed to cancel notification $id: $e');
       rethrow;
     }
   }
@@ -857,7 +792,6 @@ class NotificationService {
     try {
       return await _firebaseMessaging.getToken();
     } catch (e) {
-      _logger.severe('Failed to get FCM token: $e');
       return null;
     }
   }
@@ -872,9 +806,7 @@ class NotificationService {
       final prefs = await SharedPreferences.getInstance();
       final jsonString = jsonEncode(preferences.toMap());
       await prefs.setString(_enhancedNotificationPreferencesKey, jsonString);
-      _logger.info('Enhanced notification preferences saved');
     } catch (e) {
-      _logger.severe('Failed to save enhanced notification preferences: $e');
       rethrow;
     }
   }
@@ -890,7 +822,6 @@ class NotificationService {
       }
       return null;
     } catch (e) {
-      _logger.severe('Failed to load enhanced notification preferences: $e');
       return null;
     }
   }
@@ -941,10 +872,8 @@ class NotificationService {
           }),
         );
 
-        _logger.info('Scheduled workout notification for $day at ${scheduledTime.toString()}');
       }
     } catch (e) {
-      _logger.severe('Failed to schedule personalized workout reminders: $e');
       rethrow;
     }
   }
@@ -984,9 +913,7 @@ class NotificationService {
         }),
       );
 
-      _logger.info('Scheduled diary notification at ${scheduledTime.toString()}');
     } catch (e) {
-      _logger.severe('Failed to schedule personalized diary reminders: $e');
       rethrow;
     }
   }
@@ -1046,10 +973,8 @@ class NotificationService {
           }),
         );
 
-        _logger.info('Scheduled meal notification for $mealType at ${scheduledTime.toString()}');
       }
     } catch (e) {
-      _logger.severe('Failed to schedule personalized meal reminders: $e');
       rethrow;
     }
   }
@@ -1064,7 +989,7 @@ class NotificationService {
         }
       }
     } catch (e) {
-      _logger.warning('Failed to cancel notifications by type $type: $e');
+      // Failed to cancel notifications by type
     }
   }
 
@@ -1095,7 +1020,6 @@ class NotificationService {
       }
     }
     
-    _logger.info('Scheduled time calculated: ${scheduled.toString()} for day: $day, time: ${time.hour}:${time.minute.toString().padLeft(2, '0')}');
     return scheduled;
   }
 
@@ -1105,7 +1029,6 @@ class NotificationService {
       final testTime = DateTime.now().add(Duration(minutes: offsetMinutes));
       final testId = _generateNotificationId();
       
-      _logger.info('Testing meal notification scheduled for: ${testTime.toString()}');
       
       await _scheduleNotification(
         id: testId,
@@ -1118,9 +1041,7 @@ class NotificationService {
         }),
       );
       
-      _logger.info('Test meal notification scheduled with ID: $testId');
     } catch (e) {
-      _logger.severe('Failed to schedule test meal notification: $e');
       rethrow;
     }
   }
@@ -1186,7 +1107,6 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (e) {
-      _logger.severe('Failed to schedule notification: $e');
       rethrow;
     }
   }

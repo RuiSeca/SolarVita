@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import '../../../providers/user_profile_provider.dart';
+import '../../../providers/riverpod/user_profile_provider.dart';
 
-class ModernStatsRow extends StatelessWidget {
+class ModernStatsRow extends ConsumerWidget {
   const ModernStatsRow({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<UserProfileProvider>(
-      builder: (context, userProfileProvider, _) {
-        final supportersCount = userProfileProvider.userProfile?.supportersCount ?? 0;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userProfileProvider = ref.watch(userProfileNotifierProvider);
+    final supportersCount = userProfileProvider.value?.supportersCount ?? 0;
+    
+    return Builder(
+      builder: (context) {
         
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),

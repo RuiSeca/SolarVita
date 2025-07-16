@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:logger/logger.dart';
 import '../models/social_activity.dart';
 import '../models/supporter.dart';
 import '../models/support.dart';
@@ -11,7 +10,6 @@ import '../models/privacy_settings.dart';
 class SocialService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Logger _logger = Logger();
 
   String? get currentUserId => _auth.currentUser?.uid;
 
@@ -181,29 +179,20 @@ class SocialService {
     
     // Automatically create mutual support relationships between supporters
     try {
-      _logger.d('acceptSupporterRequest: Creating mutual support relationships');
-      
       // Create support: current user → requester (if not exists)
       final existingSupport1 = await _checkExistingSupport(requesterId);
       if (existingSupport1 == null) {
-        _logger.d('acceptSupporterRequest: Creating support current user → requester');
         await supportUser(requesterId);
-      } else {
-        _logger.d('acceptSupporterRequest: Support current user → requester already exists');
       }
       
       // Create support: requester → current user (if not exists)
       // We need to check from the requester's perspective
       final requesterSupportsMe = await _checkSupportFromUser(requesterId, currentUserId!);
       if (requesterSupportsMe == null) {
-        _logger.d('acceptSupporterRequest: Creating support requester → current user');
         await _createSupportRelationship(requesterId, currentUserId!);
-      } else {
-        _logger.d('acceptSupporterRequest: Support requester → current user already exists');
       }
     } catch (e) {
       // If support creation fails, don't fail the entire supporter acceptance
-      _logger.w('Failed to auto-support user after accepting supporter request: $e');
     }
   }
 
@@ -242,11 +231,10 @@ class SocialService {
             supporters.add(supporter);
           }
         } catch (e) {
-          _logger.w('Failed to fetch supporter data: $e');
+          // Failed to fetch supporter data
         }
       }
       
-      _logger.d('getSupporters: Returning ${supporters.length} supporters');
       return supporters;
     });
   }
@@ -282,11 +270,10 @@ class SocialService {
             supporting.add(supported);
           }
         } catch (e) {
-          _logger.w('Failed to fetch supporting data: $e');
+          // Failed to fetch supporting data
         }
       }
       
-      _logger.d('getSupporting: Returning ${supporting.length} supporting');
       return supporting;
     });
   }
@@ -349,24 +336,19 @@ class SocialService {
       _notifyUIRefresh();
       
     } catch (e) {
-      _logger.e('Error in supportUser: $e');
       rethrow;
     }
   }
 
   Future<void> unsupportUser(String userId) async {
     if (currentUserId == null) {
-      _logger.w('unsupportUser: currentUserId is null');
       return;
     }
 
     try {
-      _logger.d('unsupportUser: Current user ID = $currentUserId, target user ID = $userId');
       final existingSupport = await _checkExistingSupport(userId);
       if (existingSupport != null) {
-        _logger.d('unsupportUser: Found existing support with ID ${existingSupport.id}, deleting...');
         await _firestore.collection('supporters').doc(existingSupport.id).delete();
-        _logger.d('unsupportUser: Successfully deleted support document');
         
         // Update supporter count for the user being unsupported
         await _decrementSupporterCount(userId);
@@ -374,11 +356,9 @@ class SocialService {
         // Notify UI to refresh (if available)
         _notifyUIRefresh();
       } else {
-        _logger.e('unsupportUser: No existing support found for user $userId');
         throw Exception('Not supporting this user');
       }
     } catch (e) {
-      _logger.e('Error in unsupportUser: $e');
       rethrow;
     }
   }
@@ -392,12 +372,10 @@ class SocialService {
 
   Future<Support?> _checkExistingSupport(String supportedId) async {
     if (currentUserId == null) {
-      _logger.w('_checkExistingSupport: currentUserId is null');
       return null;
     }
     
     try {
-      _logger.d('_checkExistingSupport: Querying supports for supporterId=$currentUserId, supportedId=$supportedId');
       final snapshot = await _firestore
           .collection('supporters')
           .where('supporterId', isEqualTo: currentUserId)
@@ -405,18 +383,13 @@ class SocialService {
           .limit(1)
           .get();
       
-      _logger.d('_checkExistingSupport: Found ${snapshot.docs.length} documents');
-      
       if (snapshot.docs.isNotEmpty) {
         final doc = snapshot.docs.first;
-        _logger.d('_checkExistingSupport: Found support document with ID ${doc.id}');
         return Support.fromFirestore(doc);
       }
       
-      _logger.d('_checkExistingSupport: No support relationship found');
       return null;
     } catch (e) {
-      _logger.e('Error in _checkExistingSupport: $e');
       return null;
     }
   }
@@ -424,7 +397,6 @@ class SocialService {
   // Helper method to check if a specific user supports another user
   Future<Support?> _checkSupportFromUser(String supporterId, String supportedId) async {
     try {
-      _logger.d('_checkSupportFromUser: Querying supports for supporterId=$supporterId, supportedId=$supportedId');
       final snapshot = await _firestore
           .collection('supporters')
           .where('supporterId', isEqualTo: supporterId)
@@ -432,17 +404,13 @@ class SocialService {
           .limit(1)
           .get();
       
-      _logger.d('_checkSupportFromUser: Found ${snapshot.docs.length} documents');
-      
       if (snapshot.docs.isNotEmpty) {
         final doc = snapshot.docs.first;
-        _logger.d('_checkSupportFromUser: Found support document with ID ${doc.id}');
         return Support.fromFirestore(doc);
       }
       
       return null;
     } catch (e) {
-      _logger.e('Error in _checkSupportFromUser: $e');
       return null;
     }
   }
@@ -474,7 +442,6 @@ class SocialService {
       };
 
       await _firestore.collection('supporters').add(support);
-      _logger.d('_createSupportRelationship: Created support $supporterId → $supportedId');
       
       // Update supporter count for the user being supported
       await _incrementSupporterCount(supportedId);
@@ -482,7 +449,6 @@ class SocialService {
       // Notify UI to refresh (if available)
       _notifyUIRefresh();
     } catch (e) {
-      _logger.e('Error in _createSupportRelationship: $e');
       rethrow;
     }
   }
@@ -722,14 +688,10 @@ class SocialService {
   // Helper method to check existing supporterRequest
   Future<SupporterRequest?> _checkExistingSupporterRequest(String otherUserId) async {
     if (currentUserId == null) {
-      _logger.w('_checkExistingSupporterRequest: currentUserId is null');
       return null;
     }
     
-    _logger.d('_checkExistingSupporterRequest: Checking supporterRequest between $currentUserId and $otherUserId');
-    
     // Check for supporterRequest where current user is requester
-    _logger.d('_checkExistingSupporterRequest: Checking where current user is requester');
     final snapshot1 = await _firestore
         .collection('supporterRequests')
         .where('requesterId', isEqualTo: currentUserId)
@@ -737,16 +699,12 @@ class SocialService {
         .limit(1)
         .get();
     
-    _logger.d('_checkExistingSupporterRequest: Found ${snapshot1.docs.length} supporterRequests (current as requester)');
-    
     if (snapshot1.docs.isNotEmpty) {
       final supporterRequest = SupporterRequest.fromFirestore(snapshot1.docs.first);
-      _logger.d('_checkExistingSupporterRequest: Found supporterRequest as requester, status = ${supporterRequest.status}');
       return supporterRequest;
     }
     
     // Check for supporterRequest where current user is receiver
-    _logger.d('_checkExistingSupporterRequest: Checking where current user is receiver');
     final snapshot2 = await _firestore
         .collection('supporterRequests')
         .where('requesterId', isEqualTo: otherUserId)
@@ -754,23 +712,17 @@ class SocialService {
         .limit(1)
         .get();
     
-    _logger.d('_checkExistingSupporterRequest: Found ${snapshot2.docs.length} supporterRequests (current as receiver)');
-    
     if (snapshot2.docs.isNotEmpty) {
       final supporterRequest = SupporterRequest.fromFirestore(snapshot2.docs.first);
-      _logger.d('_checkExistingSupporterRequest: Found supporterRequest as receiver, status = ${supporterRequest.status}');
       return supporterRequest;
     }
     
-    _logger.d('_checkExistingSupporterRequest: No supporterRequest found');
     return null;
   }
 
   // Helper method to get supporterRequest status
   Future<SupporterRequestStatus?> getSupporterRequestStatus(String otherUserId) async {
-    _logger.d('getSupporterRequestStatus: Checking supporterRequest with user $otherUserId');
     final supporterRequest = await _checkExistingSupporterRequest(otherUserId);
-    _logger.d('getSupporterRequestStatus: Found supporterRequest status = ${supporterRequest?.status}');
     return supporterRequest?.status;
   }
 
@@ -785,8 +737,6 @@ class SocialService {
     // Check if mutual supports still exist
     final iSupportThem = await isSupporting(otherUserId);
     final theySupportMe = await _checkSupportFromUser(otherUserId, currentUserId!);
-    
-    _logger.d('hasActiveSupporterRequest: iSupportThem=$iSupportThem, theySupportMe=${theySupportMe != null}');
     
     return iSupportThem && theySupportMe != null;
   }
@@ -903,13 +853,10 @@ class SocialService {
   // Migration method to fix existing supporterRequests to have bidirectional supporting
   Future<void> migrateSupporterRequestsToMutualSupporting() async {
     if (currentUserId == null) {
-      _logger.e('migrateSupporterRequestsToMutualSupporting: User not authenticated');
       return;
     }
 
     try {
-      _logger.i('Starting migration: Converting supporterRequests to mutual supporting');
-      
       // Get all accepted supporterRequests where current user is involved
       final supporterRequestsAsRequester = await _firestore
           .collection('supporterRequests')
@@ -924,44 +871,25 @@ class SocialService {
           .get();
 
       final allSupporterRequests = [...supporterRequestsAsRequester.docs, ...supporterRequestsAsReceiver.docs];
-      _logger.i('Found ${allSupporterRequests.length} accepted supporterRequests to migrate');
-
-      int supportsCreated = 0;
-      int supportsSkipped = 0;
 
       for (final supporterRequestDoc in allSupporterRequests) {
         final data = supporterRequestDoc.data();
         final requesterId = data['requesterId'] as String;
         final receiverId = data['receiverId'] as String;
 
-        _logger.d('Processing supporterRequest: $requesterId ↔ $receiverId');
-
         // Ensure requester supports receiver
         final requesterSupportsReceiver = await _checkSupportFromUser(requesterId, receiverId);
         if (requesterSupportsReceiver == null) {
-          _logger.d('Creating support: $requesterId → $receiverId');
           await _createSupportRelationship(requesterId, receiverId);
-          supportsCreated++;
-        } else {
-          _logger.d('Support already exists: $requesterId → $receiverId');
-          supportsSkipped++;
         }
 
         // Ensure receiver supports requester
         final receiverSupportsRequester = await _checkSupportFromUser(receiverId, requesterId);
         if (receiverSupportsRequester == null) {
-          _logger.d('Creating support: $receiverId → $requesterId');
           await _createSupportRelationship(receiverId, requesterId);
-          supportsCreated++;
-        } else {
-          _logger.d('Support already exists: $receiverId → $requesterId');
-          supportsSkipped++;
         }
       }
-
-      _logger.i('Migration completed: $supportsCreated supports created, $supportsSkipped skipped');
     } catch (e) {
-      _logger.e('Error during migration: $e');
       rethrow;
     }
   }
@@ -1031,10 +959,8 @@ class SocialService {
         }
       };
 
-      _logger.i('Debug state: ${result.toString()}');
       return result;
     } catch (e) {
-      _logger.e('Error getting debug state: $e');
       return {'error': e.toString()};
     }
   }
@@ -1048,11 +974,10 @@ class SocialService {
         if (doc.exists) {
           final currentCount = doc.data()?['supportersCount'] ?? 0;
           transaction.update(userRef, {'supportersCount': currentCount + 1});
-          _logger.d('Incremented supporter count for user $userId from $currentCount to ${currentCount + 1}');
         }
       });
     } catch (e) {
-      _logger.e('Error incrementing supporter count for user $userId: $e');
+      // Error incrementing supporter count
     }
   }
 
@@ -1065,11 +990,10 @@ class SocialService {
           final currentCount = doc.data()?['supportersCount'] ?? 0;
           final newCount = (currentCount - 1).clamp(0, double.infinity).toInt();
           transaction.update(userRef, {'supportersCount': newCount});
-          _logger.d('Decremented supporter count for user $userId from $currentCount to $newCount');
         }
       });
     } catch (e) {
-      _logger.e('Error decrementing supporter count for user $userId: $e');
+      // Error decrementing supporter count
     }
   }
 
@@ -1081,8 +1005,6 @@ class SocialService {
         
         // If supportersCount field doesn't exist, initialize it
         if (!data!.containsKey('supportersCount')) {
-          _logger.d('SupportersCount field missing for user $userId, initializing...');
-          
           // Count actual supporters
           final supportersSnapshot = await _firestore
               .collection('supporters')
@@ -1096,7 +1018,6 @@ class SocialService {
             'supportersCount': actualCount,
           });
           
-          _logger.d('Initialized supportersCount for user $userId: $actualCount');
           return actualCount;
         }
         
@@ -1104,7 +1025,6 @@ class SocialService {
       }
       return 0;
     } catch (e) {
-      _logger.e('Error getting supporter count for user $userId: $e');
       return 0;
     }
   }
@@ -1117,7 +1037,6 @@ class SocialService {
           .get();
       return snapshot.docs.length;
     } catch (e) {
-      _logger.e('Error getting supporting count for user $userId: $e');
       return 0;
     }
   }
@@ -1125,8 +1044,6 @@ class SocialService {
   // UI Refresh Notification - can be implemented by UI layer
   void _notifyUIRefresh() {
     // This can be connected to a global event bus or provider refresh
-    // For now, just log that refresh should happen
-    _logger.d('UI should refresh supporter counts');
   }
   
   // Method to refresh supporter count for current user
@@ -1146,10 +1063,8 @@ class SocialService {
       await _firestore.collection('users').doc(currentUserId).update({
         'supportersCount': actualCount,
       });
-      
-      _logger.d('Refreshed supporter count for current user: $actualCount');
     } catch (e) {
-      _logger.e('Error refreshing current user supporter count: $e');
+      // Error refreshing current user supporter count
     }
   }
 
@@ -1160,8 +1075,6 @@ class SocialService {
     }
     
     try {
-      _logger.i('Starting migration: Initializing supportersCount for current user');
-      
       // Get current user document
       final userDoc = await _firestore.collection('users').doc(currentUserId).get();
       
@@ -1185,8 +1098,6 @@ class SocialService {
         await _firestore.collection('users').doc(currentUserId).update({
           'supportersCount': actualCount,
         });
-        
-        _logger.i('Initialized supportersCount for current user: $actualCount');
       } else {
         // Force refresh the count even if field exists
         final supportersSnapshot = await _firestore
@@ -1199,11 +1110,8 @@ class SocialService {
         await _firestore.collection('users').doc(currentUserId).update({
           'supportersCount': actualCount,
         });
-        
-        _logger.i('Refreshed supportersCount for current user: $actualCount');
       }
     } catch (e) {
-      _logger.e('Error during supportersCount migration: $e');
       rethrow;
     }
   }
@@ -1231,12 +1139,11 @@ class SocialService {
         
         // If mutual supports are broken, delete the supporterRequest record
         if (!iSupportThem || theySupportMe == null) {
-          _logger.d('cleanupBrokenSupporterRequests: Removing broken supporterRequest with $otherUserId');
           await _firestore.collection('supporterRequests').doc(doc.id).delete();
         }
       }
     } catch (e) {
-      _logger.e('Error cleaning up broken supporterRequests: $e');
+      // Error cleaning up broken supporterRequests
     }
   }
 }
