@@ -11,13 +11,17 @@ workflows:
     scripts:
       - name: Create .env file
         script: |
+          echo "Creating .env file..."
           echo "MEALDB_API_KEY=$MEALDB_API_KEY" > .env
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" >> .env
           echo "GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY" >> .env
           echo "NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY" >> .env
           echo "NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID" >> .env
           echo "RAPID_API_KEY=$RAPID_API_KEY" >> .env
+          echo "Contents of .env file:"
           cat .env
+          echo "Environment variables check:"
+          echo "GEMINI_API_KEY length: ${#GEMINI_API_KEY}"
 
       - name: Get Flutter dependencies
         script: flutter packages get
