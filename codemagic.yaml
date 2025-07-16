@@ -10,6 +10,13 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Load Firebase configuration
+        script: |
+          #!/usr/bin/env sh
+          set -e
+          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter dependencies
         script: flutter packages get
 
@@ -37,6 +44,13 @@ workflows:
       flutter: stable
       java: 17
     scripts:
+      - name: Load Firebase configuration
+        script: |
+          #!/usr/bin/env sh
+          set -e
+          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter dependencies
         script: flutter packages get
 
@@ -66,6 +80,13 @@ workflows:
       cocoapods: default
       java: 17
     scripts:
+      - name: Load Firebase configuration
+        script: |
+          #!/usr/bin/env sh
+          set -e
+          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+
       - name: Get Flutter dependencies
         script: flutter packages get
 
