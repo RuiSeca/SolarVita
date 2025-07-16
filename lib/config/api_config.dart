@@ -1,7 +1,8 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConfig {
-  static final String rapidApiKey = dotenv.env['RAPID_API_KEY'] ?? '';
+  static final String rapidApiKey = dotenv.env['RAPID_API_KEY'] ?? 
+      const String.fromEnvironment('RAPIDAPI_KEY', defaultValue: '');
   static const String rapidApiHost = 'exercisedb.p.rapidapi.com';
   static const String baseUrl = 'https://exercisedb.p.rapidapi.com'; // Root URL
 
