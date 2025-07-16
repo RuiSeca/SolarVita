@@ -1675,4 +1675,5 @@ class StatDetailPage extends StatelessWidget {
         return 0.0;
     }
   }
+
 }

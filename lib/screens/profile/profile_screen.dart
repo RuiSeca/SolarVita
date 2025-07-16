@@ -4,6 +4,7 @@ import 'widgets/modern_profile_header.dart';
 import 'widgets/modern_action_grid.dart';
 import 'widgets/modern_achievements_section.dart';
 import 'widgets/modern_weekly_summary.dart';
+import 'widgets/daily_goals_progress_widget.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../services/social_service.dart';
@@ -40,6 +41,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 const ModernProfileHeader(),
                 _buildSupporterRequestNotification(context),
+                const SizedBox(height: 8),
+                const DailyGoalsProgressWidget(),
                 const SizedBox(height: 8),
                 const ModernWeeklySummary(),
                 const SizedBox(height: 24),

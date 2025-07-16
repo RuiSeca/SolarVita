@@ -38,17 +38,39 @@ class ExerciseService {
 
   ExerciseService({this.timeout = const Duration(seconds: 15)});
 
+  // Test API connection using the status endpoint
+  Future<bool> testApiConnection() async {
+    try {
+      final url = Uri.parse('${ApiConfig.baseUrl}/status');
+      
+      final response = await http.get(url, headers: ApiConfig.headers).timeout(timeout);
+      
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<List<WorkoutItem>> getExercisesByTarget(String target) async {
     // Normalize the target name to lowercase
     final normalizedTarget = target.trim().toLowerCase();
 
     // Check cache first
     if (_cache.containsKey(normalizedTarget)) {
-      log.info('📦 Cache hit for target: $normalizedTarget');
       return _cache[normalizedTarget]!;
     }
 
-    log.info('📡 Fetching exercises for target: $normalizedTarget');
+    
+    // Test API connection first
+    final connectionTest = await testApiConnection();
+    if (!connectionTest) {
+      throw ApiException('API connection failed. Please check your subscription.',
+          endpoint: '${ApiConfig.baseUrl}/status');
+    }
 
     // Validate target against API's valid target muscles
     final validTargets = [
@@ -77,59 +99,87 @@ class ExerciseService {
     String apiTarget = normalizedTarget;
     if (!validTargets.contains(normalizedTarget)) {
       apiTarget = _mapTargetToValidApiTarget(normalizedTarget);
-      log.info(
-          '🔄 Mapped target "$normalizedTarget" to "$apiTarget" for API compatibility');
     }
 
     // Validate API configuration
     if (ApiConfig.rapidApiKey.isEmpty) {
-      log.severe('API key not configured');
       throw ApiException('API key not configured. Check .env file.',
           endpoint: '${ApiConfig.baseUrl}/exercises/target/$apiTarget');
     }
+    
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/exercises/target/$apiTarget');
-    log.info('🔗 Requesting URL: $url');
+    // Try different endpoint patterns based on ExerciseDB documentation
+    final endpoints = [
+      '${ApiConfig.baseUrl}/exercises/target/$apiTarget?limit=10',  // Standard target endpoint with limit and full data
+      '${ApiConfig.baseUrl}/exercises/bodyPart/${_mapTargetToBodyPart(apiTarget)}?limit=10', // Body part endpoint
+      '${ApiConfig.baseUrl}/exercises?limit=10', // Fallback to all exercises
+    ];
 
-    try {
-      final response =
-          await http.get(url, headers: ApiConfig.headers).timeout(timeout);
+    Exception? lastException;
+    
+    for (int i = 0; i < endpoints.length; i++) {
+      final url = Uri.parse(endpoints[i]);
 
-      log.info('📥 Status Code: ${response.statusCode}');
+      try {
+        final response =
+            await http.get(url, headers: ApiConfig.headers).timeout(timeout);
 
-      // Handle HTTP status codes
-      if (response.statusCode == 200) {
-        return _processSuccessResponse(response.body, normalizedTarget);
-      } else if (response.statusCode == 404) {
-        log.warning('No exercises found for target: $apiTarget');
-        throw ApiException('No exercises found for the selected muscle group.',
-            statusCode: response.statusCode, endpoint: url.toString());
-      } else if (response.statusCode == 429) {
-        log.severe('Rate limit exceeded');
-        throw ApiException('API rate limit exceeded. Please try again later.',
-            statusCode: response.statusCode, endpoint: url.toString());
-      } else {
-        final errorBody = _parseErrorResponse(response.body);
-        log.severe('API error: ${response.statusCode} - $errorBody');
-        throw ApiException('Failed to load exercises: ${response.statusCode}',
-            statusCode: response.statusCode, endpoint: url.toString());
+
+        // Handle HTTP status codes
+        if (response.statusCode == 200) {
+          final result = await _processSuccessResponse(response.body, normalizedTarget);
+          
+          // If we're using the fallback endpoint (all exercises), filter by target
+          if (i == 2 && result.isNotEmpty) {
+            final filteredExercises = result.where((exercise) {
+              final target = exercise.description.toLowerCase();
+              return target.contains(apiTarget) || target.contains(normalizedTarget);
+            }).toList();
+            
+            if (filteredExercises.isNotEmpty) {
+              return filteredExercises.take(10).toList(); // Limit to 10 exercises
+            }
+          }
+          
+          return result;
+        } else if (response.statusCode == 403) {
+          _parseErrorResponse(response.body); // Log the error details
+          lastException = ApiException('API access denied. Please check your RapidAPI subscription for ExerciseDB.',
+              statusCode: response.statusCode, endpoint: url.toString());
+          continue; // Try next endpoint
+        } else if (response.statusCode == 404) {
+          lastException = ApiException('No exercises found for the selected muscle group.',
+              statusCode: response.statusCode, endpoint: url.toString());
+          continue; // Try next endpoint
+        } else if (response.statusCode == 429) {
+          throw ApiException('API rate limit exceeded. Please try again later.',
+              statusCode: response.statusCode, endpoint: url.toString());
+        } else {
+          lastException = ApiException('Failed to load exercises: ${response.statusCode}',
+              statusCode: response.statusCode, endpoint: url.toString());
+          continue; // Try next endpoint
+        }
+      } on SocketException catch (_) {
+        throw NetworkException(
+            'No internet connection. Please check your network settings.',
+            endpoint: url.toString());
+      } on http.ClientException catch (_) {
+        throw NetworkException('Failed to connect to the server.',
+            endpoint: url.toString());
+      } on TimeoutException catch (_) {
+        throw NetworkException('Connection timed out. Please try again.',
+            endpoint: url.toString());
+      } catch (e) {
+        lastException = e is Exception ? e : Exception(e.toString());
+        continue; // Try next endpoint
       }
-    } on SocketException catch (e) {
-      log.severe('Socket exception: $e');
-      throw NetworkException(
-          'No internet connection. Please check your network settings.',
-          endpoint: url.toString());
-    } on http.ClientException catch (e) {
-      log.severe('HTTP client exception: $e');
-      throw NetworkException('Failed to connect to the server.',
-          endpoint: url.toString());
-    } on TimeoutException catch (e) {
-      log.severe('Timeout exception: $e');
-      throw NetworkException('Connection timed out. Please try again.',
-          endpoint: url.toString());
-    } catch (e) {
-      log.severe('❌ Unhandled service error: $e');
-      rethrow;
+    }
+    
+    // If we get here, all endpoints failed
+    if (lastException != null) {
+      throw lastException;
+    } else {
+      throw ApiException('All API endpoints failed', endpoint: 'Multiple endpoints tried');
     }
   }
 
@@ -158,36 +208,72 @@ class ExerciseService {
     }
   }
 
-  List<WorkoutItem> _processSuccessResponse(
-      String responseBody, String target) {
+  String _mapTargetToBodyPart(String target) {
+    // Map target muscles to body parts based on ExerciseDB documentation
+    // Body parts: "waist", "upper legs", "back", "lower legs", "chest", "upper arms", "cardio", "shoulders", "lower arms", "neck"
+    switch (target) {
+      case 'pectorals':
+        return 'chest';
+      case 'abs':
+      case 'core':
+        return 'waist';
+      case 'quads':
+      case 'hamstrings':
+      case 'glutes':
+      case 'adductors':
+      case 'abductors':
+        return 'upper legs';
+      case 'calves':
+        return 'lower legs';
+      case 'lats':
+      case 'upper back':
+      case 'traps':
+      case 'spine':
+        return 'back';
+      case 'biceps':
+      case 'triceps':
+        return 'upper arms';
+      case 'forearms':
+        return 'lower arms';
+      case 'delts':
+        return 'shoulders';
+      case 'cardiovascular system':
+        return 'cardio';
+      case 'levator scapulae':
+      case 'serratus anterior':
+        return 'neck';
+      default:
+        return 'chest'; // Default fallback
+    }
+  }
+
+  Future<List<WorkoutItem>> _processSuccessResponse(
+      String responseBody, String target) async {
     try {
       final data = json.decode(responseBody);
       if (data is List) {
         if (data.isEmpty) {
-          log.warning('Empty exercise list received for target: $target');
           return [_createFallbackWorkoutItem(target)];
         }
 
-        final exercises = data.map((exercise) {
+        final exerciseFutures = data.map((exercise) async {
           if (exercise is Map<String, dynamic>) {
-            return _convertToWorkoutItem(exercise);
+            return await _convertToWorkoutItem(exercise);
           } else {
-            log.warning('Invalid exercise data: $exercise');
             return _createFallbackWorkoutItem(target);
           }
         }).toList();
+        
+        final exercises = await Future.wait(exerciseFutures);
 
-        log.info('✅ Exercises found: ${exercises.length}');
         _cache[target] = exercises;
         return exercises;
       } else {
-        log.severe('Response is not a list: $data');
         throw ApiException('Unexpected response format (not a list).',
             endpoint: '${ApiConfig.baseUrl}/exercises/target/$target');
       }
     } catch (e) {
       if (e is ApiException) rethrow;
-      log.severe('Error processing response: $e');
       throw ApiException('Error processing exercise data: ${e.toString()}',
           endpoint: '${ApiConfig.baseUrl}/exercises/target/$target');
     }
@@ -202,11 +288,19 @@ class ExerciseService {
     }
   }
 
-  WorkoutItem _convertToWorkoutItem(Map<String, dynamic> exercise) {
+
+  Future<WorkoutItem> _convertToWorkoutItem(Map<String, dynamic> exercise) async {
     try {
       final name = exercise['name'] ?? 'Unknown Exercise';
       final equipment = exercise['equipment'] ?? 'body weight';
-      final gifUrl = exercise['gifUrl'] ?? '';
+      
+      // Check if exercise has gifUrl field, if not fetch individual exercise data
+      final exerciseId = exercise['id']?.toString() ?? '';
+      // Build GIF URL using ExerciseDB image endpoint (180 resolution for BASIC plan)
+      String gifUrl = exerciseId.isNotEmpty 
+          ? 'https://exercisedb.p.rapidapi.com/image?exerciseId=$exerciseId&resolution=180&rapidapi-key=${ApiConfig.rapidApiKey}'
+          : '';
+      
       final instructions = exercise['instructions'] is List
           ? List<String>.from(exercise['instructions'])
           : <String>[];
@@ -265,7 +359,6 @@ class ExerciseService {
         tips: _generateTips(name, target, equipment),
       );
     } catch (e) {
-      log.severe('❌ Error converting exercise: $e');
       return _createFallbackWorkoutItem('Unknown');
     }
   }
@@ -472,12 +565,10 @@ class ExerciseService {
 
   void clearCache() {
     _cache.clear();
-    log.info('Cache cleared');
   }
 
   void clearCacheForTarget(String target) {
     final normalizedTarget = target.trim().toLowerCase();
     _cache.remove(normalizedTarget);
-    log.info('Cache cleared for target: $normalizedTarget');
   }
 }

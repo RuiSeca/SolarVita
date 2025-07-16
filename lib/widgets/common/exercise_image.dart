@@ -24,19 +24,55 @@ class ExerciseImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (imageUrl.isEmpty) {
+      log.warning('ExerciseImage: Empty imageUrl provided');
       return _buildPlaceholder();
     }
 
+    // Check if the URL is a GIF - GIFs need special handling for animations
+    final isGif = imageUrl.toLowerCase().contains('.gif');
+    log.info('ExerciseImage: Loading ${isGif ? 'GIF' : 'image'}: $imageUrl');
+    
     return ClipRRect(
       borderRadius: borderRadius ?? BorderRadius.zero,
-      child: CachedNetworkImage(
-        imageUrl: imageUrl,
+      child: isGif 
+        ? _buildGifWidget()
+        : CachedNetworkImage(
+            imageUrl: imageUrl,
+            width: width,
+            height: height,
+            fit: fit,
+            placeholder: (context, url) => _buildLoadingIndicator(),
+            errorWidget: (context, url, error) {
+              log.severe('Error loading image: $url, error: $error');
+              return _buildErrorWidget();
+            },
+          ),
+    );
+  }
+  
+  Widget _buildGifWidget() {
+    log.info('ExerciseImage: Building GIF widget for URL: $imageUrl');
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Image.network(
+        imageUrl,
         width: width,
         height: height,
         fit: fit,
-        placeholder: (context, url) => _buildLoadingIndicator(),
-        errorWidget: (context, url, error) {
-          log.severe('Error loading image: $url, error: $error');
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) {
+            log.info('ExerciseImage: GIF loaded successfully: $imageUrl');
+            return child;
+          }
+          final progress = loadingProgress.expectedTotalBytes != null
+              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+              : 0.0;
+          log.info('ExerciseImage: Loading GIF progress: ${(progress * 100).toStringAsFixed(1)}%');
+          return _buildLoadingIndicator();
+        },
+        errorBuilder: (context, error, stackTrace) {
+          log.severe('Error loading GIF: $imageUrl, error: $error, stackTrace: $stackTrace');
           return _buildErrorWidget();
         },
       ),

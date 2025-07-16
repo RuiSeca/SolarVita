@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
+import '../../../providers/riverpod/user_progress_provider.dart';
 import 'dart:ui';
 
-class ModernWeeklySummary extends StatelessWidget {
+class ModernWeeklySummary extends ConsumerWidget {
   const ModernWeeklySummary({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -67,9 +69,9 @@ class ModernWeeklySummary extends StatelessWidget {
                 child: _buildProgressCard(
                   context,
                   title: 'Streak',
-                  value: '7',
+                  value: '${ref.watch(currentStrikesProvider)}',
                   target: '∞',
-                  progress: 1.0,
+                  progress: ref.watch(levelProgressProvider),
                   icon: Icons.local_fire_department_outlined,
                   color: Colors.red,
                 ),

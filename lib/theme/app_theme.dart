@@ -16,6 +16,11 @@ class AppColors {
   static const grey = Color(0x8E222121); // Cinza claro com opacidade 40%
   static const gold = Color(0xFFFFD700); // Gold color added
   static const cream = Color(0xFFFFFDD0);
+  
+  // Text colors
+  static const textPrimary = Color(0xFF333333);
+  static const textSecondary = Color(0xFF666666);
+  static const secondary = Color(0xFF4CAF50);
 }
 
 class AppTheme {
