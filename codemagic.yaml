@@ -55,6 +55,14 @@ workflows:
       - name: Get Flutter dependencies
         script: flutter packages get
 
+      - name: Clean and reinstall iOS dependencies
+        script: |
+          # Clean pods and reinstall to ensure compatibility
+          cd ios
+          rm -rf Pods Podfile.lock
+          pod install --repo-update
+          cd ..
+
       - name: Build iOS Debug (Unsigned)
         script: |
           flutter build ios --debug --no-codesign \
