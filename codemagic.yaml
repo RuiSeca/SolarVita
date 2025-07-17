@@ -6,7 +6,6 @@ workflows:
     environment:
       groups:
         - env_files
-        - firebase_credentials
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -42,7 +41,6 @@ workflows:
     environment:
       groups:
         - env_files
-        - firebase_credentials
       flutter: stable
       java: 17
     scripts:
@@ -77,7 +75,6 @@ workflows:
     environment:
       groups:
         - env_files
-        - firebase_credentials
       flutter: stable
       xcode: latest
       cocoapods: default
