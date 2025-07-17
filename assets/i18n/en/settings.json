@@ -32,5 +32,7 @@
   "manage_diet_restrictions": "Manage Diet Restrictions",
   "manage_notification_preferences": "Manage Notification Preferences",
   "privacy_security_settings": "Privacy & Security Settings",
-  "set_environmental_targets": "Set Environmental Targets"
+  "set_environmental_targets": "Set Environmental Targets",
+  "switch_light_dark_mode": "Light or Dark Mode",
+  "get_help_contact_support": "Get Help & Contact Support"
 }

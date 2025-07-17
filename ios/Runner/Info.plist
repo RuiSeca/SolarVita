@@ -72,11 +72,12 @@
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>This app sends notifications to remind you about your health goals and achievements.</string>
 	
-	<!-- Background App Refresh -->
+	<!-- Background App Refresh and Notifications -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>background-processing</string>
 		<string>background-fetch</string>
+		<string>remote-notification</string>
 	</array>
 	
 	<!-- Google Sign-In Configuration -->

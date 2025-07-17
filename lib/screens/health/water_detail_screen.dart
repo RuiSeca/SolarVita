@@ -132,7 +132,9 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
-                Text('Water reminders scheduled every ${_getIntervalText()}'),
+                Expanded(
+                  child: Text('Water reminders scheduled every ${_getIntervalText()}'),
+                ),
               ],
             ),
             backgroundColor: Colors.green,
@@ -149,7 +151,9 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               children: [
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 8),
-                Text('Failed to schedule water reminders: ${e.toString()}'),
+                Expanded(
+                  child: Text('Failed to schedule water reminders: ${e.toString()}'),
+                ),
               ],
             ),
             backgroundColor: Colors.red,
@@ -205,7 +209,9 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             children: [
               Icon(Icons.refresh, color: Colors.white),
               SizedBox(width: 8),
-              Text('Water intake reset to 0ml'),
+              Expanded(
+                child: Text('Water intake reset to 0ml'),
+              ),
             ],
           ),
           backgroundColor: Colors.blue,

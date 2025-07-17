@@ -197,7 +197,14 @@ class HealthDataService {
       );
 
       if (healthDataPoints.isEmpty) {
-        return await _getCachedHealthData();
+        // If no new data, try to return cached data, but ensure it has meaningful values
+        final cachedData = await _getCachedHealthData();
+        // Only return cached data if it actually has some health information
+        if (cachedData.isDataAvailable) {
+          return cachedData;
+        }
+        // If no meaningful cached data, return empty but mark as unavailable
+        return HealthData.empty();
       }
 
       // Process the health data

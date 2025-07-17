@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
@@ -34,6 +35,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
   final MealDBService _mealService = MealDBService();
 
   final Set<String> _favoriteMeals = {};
+  List<Map<String, dynamic>> _favoriteMealsList = [];
   List<Map<String, String>> _categories = [];
   String _selectedCategory = 'All';
   Timer? _debounceTimer;
@@ -43,12 +45,13 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     super.initState();
     _scrollController.addListener(_scrollListener);
     _searchController.addListener(_onSearchChanged);
+    _loadFavorites();
     _loadInitialData();
   }
 
   void _onSearchChanged() {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () { // Reduced debounce time
       final query = _searchController.text.trim();
       if (query.isEmpty) {
         ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
@@ -164,16 +167,116 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     ref.read(mealNotifierProvider.notifier).loadMealsByCategory(category);
   }
 
+  // Helper method to determine whether to use File or Network image
+  Widget _buildImageWidget(String imagePath) {
+    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
+    
+    if (isLocalFile) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: AppTheme.cardColor(context),
+            child: const Icon(Icons.broken_image, size: 40),
+          ),
+        );
+      }
+    }
+    
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      width: double.infinity,
+      fit: BoxFit.cover,
+      fadeInDuration: const Duration(milliseconds: 200), // Slightly slower for smoother transition
+      fadeOutDuration: const Duration(milliseconds: 100),
+      placeholder: (context, url) => Container(
+        color: AppTheme.cardColor(context),
+        child: const Center(
+          child: SizedBox(
+            width: 60,
+            height: 60,
+            child: LottieLoadingWidget(),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: AppTheme.cardColor(context),
+        child: const Icon(Icons.broken_image, size: 40),
+      ),
+    );
+  }
 
-  void _toggleFavorite(String mealId) {
+
+  Future<void> _loadFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load favorite meal IDs
+      final favoriteIds = prefs.getStringList('favorite_meal_ids') ?? [];
+      setState(() {
+        _favoriteMeals.addAll(favoriteIds);
+      });
+      
+      // Load favorite meals data
+      final favoriteMealsJson = prefs.getString('favorite_meals_data');
+      if (favoriteMealsJson != null) {
+        final decodedData = json.decode(favoriteMealsJson);
+        if (decodedData is List) {
+          setState(() {
+            _favoriteMealsList = List<Map<String, dynamic>>.from(decodedData);
+          });
+        }
+      }
+    } catch (e) {
+      logger.d('Error loading favorites: $e');
+    }
+  }
+
+  Future<void> _saveFavorites() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Save favorite meal IDs
+      await prefs.setStringList('favorite_meal_ids', _favoriteMeals.toList());
+      
+      // Save favorite meals data
+      await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
+      
+      // Debug logging
+      logger.d('Saved favorites: ${_favoriteMeals.length} IDs, ${_favoriteMealsList.length} meals');
+      logger.d('Favorite IDs: ${_favoriteMeals.toList()}');
+    } catch (e) {
+      logger.d('Error saving favorites: $e');
+    }
+  }
+
+  void _toggleFavorite(String mealId, [Map<String, dynamic>? mealData]) {
     setState(() {
       if (_favoriteMeals.contains(mealId)) {
+        // Remove from favorites
         _favoriteMeals.remove(mealId);
+        _favoriteMealsList.removeWhere((meal) => meal['id'] == mealId);
       } else {
+        // Add to favorites
         _favoriteMeals.add(mealId);
+        if (mealData != null) {
+          // Store the complete meal data for the favorites page
+          _favoriteMealsList.add({
+            ...mealData,
+            'isFavorite': true,
+          });
+        }
       }
     });
-    // The UI will reflect the favorite state change on next rebuild
+    
+    // Persist the changes
+    _saveFavorites();
+    
+    // Update the meal data in the provider to reflect favorite status
+    ref.read(mealNotifierProvider.notifier).updateMealFavoriteStatus(mealId, _favoriteMeals.contains(mealId));
   }
 
   @override
@@ -331,10 +434,23 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     final meals = ref.watch(mealsProvider);
     final hasData = ref.watch(hasMealsDataProvider);
     
-    if (isLoading) {
-      return const Expanded(
+    if (isLoading && meals.isEmpty) {
+      return Expanded(
         child: Center(
-          child: LottieLoadingWidget(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const LottieLoadingWidget(),
+              const SizedBox(height: 16),
+              Text(
+                tr(context, 'loading_meals'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -404,19 +520,48 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     }
 
     return Expanded(
-      child: GridView.builder(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.7,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        itemCount: meals.length,
-        itemBuilder: (context, index) {
-          return _buildMealCard(meals[index]);
-        },
+      child: Column(
+        children: [
+          Expanded(
+            child: GridView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              itemCount: meals.length,
+              itemBuilder: (context, index) {
+                return _buildMealCard(meals[index]);
+              },
+            ),
+          ),
+          // Show loading indicator at bottom when loading more data
+          if (isLoading && meals.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: LottieLoadingWidget(),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    tr(context, 'loading_more_meals'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -461,8 +606,8 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               category: formattedMeal['category'],
               isVegan: formattedMeal['isVegan'],
               youtubeUrl: meal['youtubeUrl'],
-              isFavorite: formattedMeal['isFavorite'],
-              onFavoriteToggle: (id) => _toggleFavorite(id),
+              isFavorite: _favoriteMeals.contains(formattedMeal['id']),
+              onFavoriteToggle: (id) => _toggleFavorite(id, formattedMeal),
               selectedDayIndex: widget.selectedDayIndex,
               currentMealTime: widget.currentMealTime,
             ),
@@ -495,21 +640,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(20),
                     ),
-                    child: CachedNetworkImage(
-                      imageUrl: meal['imagePath'],
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppTheme.cardColor(context),
-                        child: Center(
-                          child: LottieLoadingWidget(),
-                        ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        color: AppTheme.cardColor(context),
-                        child: const Icon(Icons.broken_image, size: 40),
-                      ),
-                    ),
+                    child: _buildImageWidget(meal['imagePath']),
                   ),
                   if (meal['isVegan'])
                     Positioned(
@@ -555,13 +686,13 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                       ),
                       child: IconButton(
                         icon: Icon(
-                          meal['isFavorite']
+                          _favoriteMeals.contains(meal['id'])
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: meal['isFavorite'] ? Colors.red : Colors.grey,
+                          color: _favoriteMeals.contains(meal['id']) ? Colors.red : Colors.grey,
                           size: 20,
                         ),
-                        onPressed: () => _toggleFavorite(meal['id']),
+                        onPressed: () => _toggleFavorite(meal['id'], meal),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
                       ),

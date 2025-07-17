@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/lottie_loading_widget.dart';
 import 'meal_detail_screen.dart';
 
 class FavoriteMealsScreen extends StatefulWidget {
@@ -27,6 +29,56 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
   void initState() {
     super.initState();
     _navigator = Navigator.of(context);
+  }
+
+  // Helper method to determine whether to use File or Network image
+  Widget _buildImageWidget(String imagePath, {double? width, double? height}) {
+    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
+    
+    if (isLocalFile) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          width: width,
+          height: height ?? 140,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: width,
+            height: height ?? 140,
+            color: AppTheme.cardColor(context),
+            child: const Icon(Icons.broken_image, size: 40),
+          ),
+        );
+      }
+    }
+    
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      width: width,
+      height: height ?? 140,
+      fit: BoxFit.cover,
+      fadeInDuration: const Duration(milliseconds: 100),
+      fadeOutDuration: const Duration(milliseconds: 100),
+      placeholder: (context, url) => Container(
+        width: width,
+        height: height ?? 140,
+        color: AppTheme.cardColor(context),
+        child: const Center(
+          child: SizedBox(
+            width: 60,
+            height: 60,
+            child: LottieLoadingWidget(),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        width: width,
+        height: height ?? 140,
+        color: AppTheme.cardColor(context),
+        child: const Icon(Icons.broken_image, size: 40),
+      ),
+    );
   }
 
   @override
@@ -91,7 +143,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
               padding: const EdgeInsets.all(16),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.75,
+                childAspectRatio: 0.68, // Increased to reduce height and prevent overflow
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
               ),
@@ -127,41 +179,26 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  child: Hero(
-                    tag: mealId,
-                    child: imagePath.isNotEmpty
-                        ? CachedNetworkImage(
-                            imageUrl: imagePath,
-                            height: 140,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              height: 140,
-                              width: double.infinity,
-                              color: AppTheme.cardColor(context),
-                              child: const CircularProgressIndicator(),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              height: 140,
+            Expanded(
+              flex: 3, // Give more space to the image section
+              child: Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    child: Hero(
+                      tag: mealId,
+                      child: imagePath.isNotEmpty
+                          ? _buildImageWidget(imagePath, height: double.infinity, width: double.infinity)
+                          : Container(
+                              height: double.infinity,
                               width: double.infinity,
                               color: AppTheme.cardColor(context),
                               child: const Icon(Icons.broken_image, size: 40),
                             ),
-                          )
-                        : Container(
-                            height: 140,
-                            width: double.infinity,
-                            color: AppTheme.cardColor(context),
-                            child: const Icon(Icons.broken_image, size: 40),
-                          ),
+                    ),
                   ),
-                ),
                 if (meal['isVegan'] == true)
                   Positioned(
                     top: 8,
@@ -196,13 +233,17 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                       ),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            Expanded(
+              flex: 2, // Give controlled space to the content section
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // Prevent overflow
+                  children: [
                   Text(
                     title,
                     style: TextStyle(
@@ -213,14 +254,14 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
-                            vertical: 4,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withAlpha(26),
@@ -256,7 +297,7 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
-                              vertical: 4,
+                              vertical: 3,
                             ),
                             decoration: BoxDecoration(
                               color: AppTheme.cardColor(context),
@@ -292,7 +333,9 @@ class _FavoriteMealsScreenState extends State<FavoriteMealsScreen> {
                       ],
                     ],
                   ),
+                  const Spacer(), // Absorb any extra vertical space
                 ],
+                ),
               ),
             ),
           ],

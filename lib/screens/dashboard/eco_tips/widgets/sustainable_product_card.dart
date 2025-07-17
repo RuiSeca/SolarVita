@@ -75,7 +75,7 @@ class SustainableProductsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: products.length,
-          itemExtent: 350, // Fixed height: 200px image + 150px content/padding
+          itemExtent: 380, // Fixed height: 200px image + 180px content/padding
           itemBuilder: (context, index) {
             final product = products[index];
             return Card(
@@ -99,7 +99,7 @@ class SustainableProductsSection extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -111,17 +111,17 @@ class SustainableProductsSection extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 6),
                         SizedBox(
-                          height: 60, // Fixed height for description
+                          height: 50, // Reduced height for description
                           child: Text(
                             tr(context, product.descriptionKey),
-                            style: theme.textTheme.bodyMedium,
-                            maxLines: 3,
+                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -152,14 +152,14 @@ class SustainableProductsSection extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () => _launchUrl(product.websiteUrl),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),

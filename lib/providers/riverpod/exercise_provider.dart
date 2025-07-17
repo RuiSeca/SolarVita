@@ -91,7 +91,6 @@ class ExerciseNotifier extends _$ExerciseNotifier {
       return;
     }
 
-    
     // Set loading state
     state = state.copyWith(
       isLoading: true,

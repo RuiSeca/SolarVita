@@ -127,8 +127,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFF4CAF50),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -162,8 +161,7 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFFFF5722),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -173,8 +171,7 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFF2196F3),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -184,8 +181,7 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFF4CAF50),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -195,8 +191,7 @@ class NotificationService {
           importance: Importance.max,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFFFFD700),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -206,8 +201,7 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFFFF9800),
+          enableLights: false,
           showBadge: true,
         ),
         const AndroidNotificationChannel(
@@ -217,8 +211,7 @@ class NotificationService {
           importance: Importance.high,
           playSound: true,
           enableVibration: true,
-          enableLights: true,
-          ledColor: Color(0xFF9C27B0),
+          enableLights: false,
           showBadge: true,
         ),
       ];
@@ -482,6 +475,8 @@ class NotificationService {
         enableVibration: true,
         enableLights: true,
         ledColor: Color(0xFF2196F3),
+        ledOnMs: 1000,
+        ledOffMs: 500,
       );
 
       const iosDetails = DarwinNotificationDetails(
@@ -716,7 +711,7 @@ class NotificationService {
         styleInformation: const BigTextStyleInformation(''),
         playSound: true,
         enableVibration: true,
-        enableLights: true,
+        enableLights: false,
         colorized: true,
         showWhen: true,
         channelShowBadge: true,

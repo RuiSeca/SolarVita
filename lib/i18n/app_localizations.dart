@@ -29,7 +29,8 @@ class AppLocalizations {
     'profile_privacy',
     'profile_sustainability',
     'workout_preferences',
-    'dietary_preferences'
+    'dietary_preferences',
+    'settings'
   ];
 
   AppLocalizations(this.locale);

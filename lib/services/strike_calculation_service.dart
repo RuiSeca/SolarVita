@@ -118,8 +118,14 @@ class StrikeCalculationService {
       final newTotalStrikes = currentProgress.totalStrikes + strikesToAdd - currentProgress.todayMultiplier;
       final newLevel = _calculateLevel(newTotalStrikes);
       
+      // Check if user leveled up
+      final leveledUp = newLevel > currentProgress.currentLevel;
+      
+      // If user hasn't leveled up, reset current strikes to 0
+      final finalCurrentStrikes = leveledUp ? newStrikes.clamp(0, double.infinity).toInt() : 0;
+      
       final updatedProgress = currentProgress.copyWith(
-        currentStrikes: newStrikes.clamp(0, double.infinity).toInt(),
+        currentStrikes: finalCurrentStrikes,
         totalStrikes: newTotalStrikes.clamp(0, double.infinity).toInt(),
         currentLevel: newLevel,
         lastStrikeDate: DateTime.now(),
@@ -131,7 +137,7 @@ class StrikeCalculationService {
       await saveProgressTransactionally(updatedProgress);
       
       // Send notifications for achievements
-      if (newLevel > currentProgress.currentLevel) {
+      if (leveledUp) {
         await _sendLevelUpNotification(newLevel);
       }
       
@@ -139,7 +145,7 @@ class StrikeCalculationService {
         await _sendPerfectDayNotification();
       }
       
-      log.info('🎯 Updated progress: $completedCount goals, ${multiplier}x multiplier, $newStrikes strikes, Level $newLevel');
+      log.info('🎯 Updated progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes strikes, Level $newLevel ${leveledUp ? "(LEVEL UP!)" : "(strikes reset)"}');
       
       return updatedProgress;
     }
@@ -381,8 +387,14 @@ class StrikeCalculationService {
     final newTotalStrikes = currentProgress.totalStrikes + (multiplier - currentProgress.todayMultiplier);
     final newLevel = _calculateLevel(newTotalStrikes);
     
+    // Check if user leveled up
+    final leveledUp = newLevel > currentProgress.currentLevel;
+    
+    // If user hasn't leveled up, reset current strikes to 0
+    final finalCurrentStrikes = leveledUp ? newStrikes.clamp(0, double.infinity).toInt() : 0;
+    
     final updatedProgress = currentProgress.copyWith(
-      currentStrikes: newStrikes.clamp(0, double.infinity).toInt(),
+      currentStrikes: finalCurrentStrikes,
       totalStrikes: newTotalStrikes.clamp(0, double.infinity).toInt(),
       currentLevel: newLevel,
       lastStrikeDate: DateTime.now(),
@@ -393,7 +405,7 @@ class StrikeCalculationService {
     
     await _saveUserProgress(updatedProgress);
     
-    log.info('✅ Goal ${goalType.displayName} completed manually');
+    log.info('✅ Goal ${goalType.displayName} completed manually - ${leveledUp ? "Level up!" : "Strikes reset to 0"}');
     
     return updatedProgress;
   }
