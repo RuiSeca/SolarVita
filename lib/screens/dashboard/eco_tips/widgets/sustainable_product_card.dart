@@ -75,7 +75,7 @@ class SustainableProductsSection extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: products.length,
-          itemExtent: 380, // Fixed height: 200px image + 180px content/padding
+          itemExtent: 420, // Fixed height: 200px image + 220px content/padding
           itemBuilder: (context, index) {
             final product = products[index];
             return Card(
@@ -111,19 +111,19 @@ class SustainableProductsSection extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         SizedBox(
-                          height: 50, // Reduced height for description
+                          height: 42, // Further reduced height for description
                           child: Text(
                             tr(context, product.descriptionKey),
-                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 13),
+                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: theme.primaryColor.withAlpha(51),
                             borderRadius: BorderRadius.circular(8),
@@ -152,14 +152,14 @@ class SustainableProductsSection extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () => _launchUrl(product.websiteUrl),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.primaryColor,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
