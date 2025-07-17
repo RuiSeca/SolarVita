@@ -48,10 +48,10 @@ class DefaultFirebaseOptions {
     storageBucket: 'grooves-app.firebasestorage.app',
   );
 
-  // iOS configuration (you'll need to add iOS app to Firebase and get these values)
+  // iOS configuration
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'your-ios-api-key', // Get from GoogleService-Info.plist
-    appId: 'your-ios-app-id', // Get from GoogleService-Info.plist
+    apiKey: 'AIzaSyAsL-EIEx8UsDOEovwtftUA_fSmhrhbcTc',
+    appId: '1:311138668281:ios:9049ad18ef59525c011c28',
     messagingSenderId: '311138668281',
     projectId: 'grooves-app',
     storageBucket: 'grooves-app.firebasestorage.app',
@@ -60,8 +60,8 @@ class DefaultFirebaseOptions {
 
   // macOS configuration (same as iOS in most cases)
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'your-ios-api-key', // Same as iOS
-    appId: 'your-ios-app-id', // Same as iOS
+    apiKey: 'AIzaSyAsL-EIEx8UsDOEovwtftUA_fSmhrhbcTc',
+    appId: '1:311138668281:ios:9049ad18ef59525c011c28',
     messagingSenderId: '311138668281',
     projectId: 'grooves-app',
     storageBucket: 'grooves-app.firebasestorage.app',
