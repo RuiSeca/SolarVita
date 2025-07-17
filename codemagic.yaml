@@ -34,6 +34,44 @@ workflows:
       - build/ios/**/*.app
       - flutter_drive.log
 
+  ios-device-workflow:
+    name: iOS Debug for TestApp.io
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - env_files
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: com.solarvitadev.solarvita
+    scripts:
+      - name: Load Firebase configuration
+        script: |
+          #!/usr/bin/env sh
+          set -e
+          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+
+      - name: Get Flutter dependencies
+        script: flutter packages get
+
+      - name: Build iOS Debug IPA for TestApp.io
+        script: |
+          flutter build ipa --debug \
+            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
+            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
+            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
+            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
+            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
+            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - flutter_drive.log
+
   android-workflow:
     name: Android Debug APK
     max_build_duration: 120
@@ -69,7 +107,7 @@ workflows:
       - flutter_drive.log
 
   dual-platform-workflow:
-    name: iOS + Android Debug Build
+    name: iOS + Android Debug Build (No Signing)
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
@@ -90,9 +128,9 @@ workflows:
       - name: Get Flutter dependencies
         script: flutter packages get
 
-      - name: Build iOS Debug for Simulator
+      - name: Build iOS Debug (Unsigned)
         script: |
-          flutter build ios --debug --simulator \
+          flutter build ios --debug --no-codesign \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
             --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
@@ -111,6 +149,6 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
-      - build/ios/**/*.app
+      - build/ios/Runner.app/**
       - build/**/outputs/**/*.apk
       - flutter_drive.log
