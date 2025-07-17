@@ -6,6 +6,7 @@ workflows:
     environment:
       groups:
         - env_files
+        - firebase_credentials
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -14,8 +15,8 @@ workflows:
         script: |
           #!/usr/bin/env sh
           set -e
-          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
 
       - name: Get Flutter dependencies
         script: flutter packages get
@@ -41,6 +42,7 @@ workflows:
     environment:
       groups:
         - env_files
+        - firebase_credentials
       flutter: stable
       java: 17
     scripts:
@@ -48,8 +50,8 @@ workflows:
         script: |
           #!/usr/bin/env sh
           set -e
-          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
 
       - name: Get Flutter dependencies
         script: flutter packages get
@@ -75,6 +77,7 @@ workflows:
     environment:
       groups:
         - env_files
+        - firebase_credentials
       flutter: stable
       xcode: latest
       cocoapods: default
@@ -84,8 +87,8 @@ workflows:
         script: |
           #!/usr/bin/env sh
           set -e
-          echo $ANDROID_FIREBASE_SECRET > android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > ios/Runner/GoogleService-Info.plist
+          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
+          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
 
       - name: Get Flutter dependencies
         script: flutter packages get
