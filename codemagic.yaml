@@ -35,7 +35,7 @@ workflows:
       - flutter_drive.log
 
   ios-device-workflow:
-    name: iOS Debug for TestApp.io
+    name: iOS Debug Build (Simple)
     max_build_duration: 120
     instance_type: mac_mini_m1
     environment:
@@ -44,9 +44,6 @@ workflows:
       flutter: stable
       xcode: latest
       cocoapods: default
-      ios_signing:
-        distribution_type: development
-        bundle_identifier: com.solarvitadev.solarvita
     scripts:
       - name: Load Firebase configuration
         script: |
@@ -58,9 +55,9 @@ workflows:
       - name: Get Flutter dependencies
         script: flutter packages get
 
-      - name: Build iOS Debug IPA for TestApp.io
+      - name: Build iOS Debug (Unsigned)
         script: |
-          flutter build ipa --debug \
+          flutter build ios --debug --no-codesign \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
             --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
@@ -68,8 +65,21 @@ workflows:
             --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
+      - name: Create unsigned IPA for TestApp.io
+        script: |
+          # Create IPA structure
+          mkdir -p Payload
+          cp -r build/ios/Debug-iphoneos/Runner.app Payload/
+          zip -r build/ios/Runner-unsigned.ipa Payload/
+          
+          # Also create a zip with the .app for manual signing
+          cd build/ios/Debug-iphoneos
+          zip -r ../Runner.app.zip Runner.app/
+          cd ../../..
+
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/ios/Runner-unsigned.ipa
+      - build/ios/Runner.app.zip
       - flutter_drive.log
 
   android-workflow:
