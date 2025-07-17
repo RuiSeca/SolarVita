@@ -42,7 +42,6 @@ class ExerciseService {
   Future<bool> testApiConnection() async {
     try {
       final url = Uri.parse('${ApiConfig.baseUrl}/status');
-      
       final response = await http.get(url, headers: ApiConfig.headers).timeout(timeout);
       
       if (response.statusCode == 200) {
@@ -62,14 +61,6 @@ class ExerciseService {
     // Check cache first
     if (_cache.containsKey(normalizedTarget)) {
       return _cache[normalizedTarget]!;
-    }
-
-    
-    // Test API connection first
-    final connectionTest = await testApiConnection();
-    if (!connectionTest) {
-      throw ApiException('API connection failed. Please check your subscription.',
-          endpoint: '${ApiConfig.baseUrl}/status');
     }
 
     // Validate target against API's valid target muscles
@@ -143,7 +134,7 @@ class ExerciseService {
           
           return result;
         } else if (response.statusCode == 403) {
-          _parseErrorResponse(response.body); // Log the error details
+          _parseErrorResponse(response.body);
           lastException = ApiException('API access denied. Please check your RapidAPI subscription for ExerciseDB.',
               statusCode: response.statusCode, endpoint: url.toString());
           continue; // Try next endpoint

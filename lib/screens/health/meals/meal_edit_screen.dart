@@ -1,5 +1,7 @@
 // lib/screens/health/meal_edit_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 
@@ -28,6 +30,9 @@ class _MealEditScreenState extends State<MealEditScreen> {
   late List<TextEditingController> _ingredientControllers;
   late List<TextEditingController> _instructionControllers;
   late Map<String, TextEditingController> _nutritionControllers;
+  
+  File? _selectedImage;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -69,7 +74,8 @@ class _MealEditScreenState extends State<MealEditScreen> {
     // Here you would save the meal data to your storage/backend
     final meal = {
       'title': _titleController.text,
-      'imagePath': widget.imagePath,
+      'imagePath': _selectedImage?.path ?? widget.imagePath,
+      'imageFile': _selectedImage,
       'nutritionFacts': _nutritionControllers.map(
         (key, controller) => MapEntry(key, controller.text),
       ),
@@ -108,6 +114,160 @@ class _MealEditScreenState extends State<MealEditScreen> {
     setState(() {
       _instructionControllers[index].dispose();
       _instructionControllers.removeAt(index);
+    });
+  }
+
+  Future<void> _pickImage() async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppTheme.textColor(context).withAlpha(64),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              tr(context, 'select_image_source'),
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildImageSourceOption(
+                    context,
+                    Icons.camera_alt,
+                    tr(context, 'camera'),
+                    () => _selectImageSource(ImageSource.camera),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildImageSourceOption(
+                    context,
+                    Icons.photo_library,
+                    tr(context, 'gallery'),
+                    () => _selectImageSource(ImageSource.gallery),
+                  ),
+                ),
+              ],
+            ),
+            if (_selectedImage != null || widget.imagePath != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: _buildImageSourceOption(
+                  context,
+                  Icons.delete,
+                  tr(context, 'remove_image'),
+                  _removeImage,
+                ),
+              ),
+            ],
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImageSourceOption(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceColor(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.textColor(context).withAlpha(32),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 32,
+              color: AppColors.primary,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectImageSource(ImageSource source) async {
+    Navigator.pop(context); // Close the bottom sheet
+    
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1080,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImage = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(tr(context, 'error_picking_image')),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeImage() {
+    Navigator.pop(context); // Close the bottom sheet
+    setState(() {
+      _selectedImage = null;
     });
   }
 
@@ -162,30 +322,81 @@ class _MealEditScreenState extends State<MealEditScreen> {
   }
 
   Widget _buildImagePicker(BuildContext context) {
+    final hasImage = _selectedImage != null || widget.imagePath != null;
+    
     return GestureDetector(
-      onTap: () {
-        // Implement image picking functionality
-      },
+      onTap: _pickImage,
       child: Container(
         height: 200,
         width: double.infinity,
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
-          image: widget.imagePath != null
+          border: hasImage 
+              ? null 
+              : Border.all(
+                  color: AppTheme.textColor(context).withAlpha(64),
+                  width: 2,
+                ),
+          image: hasImage
               ? DecorationImage(
-                  image: AssetImage(widget.imagePath!),
+                  image: _selectedImage != null
+                      ? FileImage(_selectedImage!)
+                      : AssetImage(widget.imagePath!) as ImageProvider,
                   fit: BoxFit.cover,
                 )
               : null,
         ),
-        child: widget.imagePath == null
-            ? Icon(
-                Icons.add_photo_alternate,
-                size: 40,
-                color: AppTheme.textColor(context).withAlpha(128),
+        child: hasImage
+            ? Stack(
+                children: [
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withAlpha(128),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        onPressed: _pickImage,
+                      ),
+                    ),
+                  ),
+                ],
               )
-            : null,
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.add_photo_alternate,
+                    size: 48,
+                    color: AppTheme.textColor(context).withAlpha(128),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tr(context, 'add_meal_photo'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(128),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tr(context, 'tap_to_select_image'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(89),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

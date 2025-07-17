@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'dart:convert';
+import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/lottie_loading_widget.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
 import 'meal_search_screen.dart';
@@ -24,7 +26,7 @@ class MealPlanScreen extends StatefulWidget {
 class _MealPlanScreenState extends State<MealPlanScreen> {
   // Storage key constants
   static const String _weeklyMealDataKey = 'weeklyMealData';
-  static const String _favoriteMealsKey = 'favoriteMeals';
+  static const String _favoriteMealsKey = 'favorite_meal_ids';
 
   // Carousel setup
   late final PageController _pageController;
@@ -59,6 +61,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   // Favorite meals set
   final Set<String> _favoriteMeals = {};
+  List<Map<String, dynamic>> _favoriteMealsList = [];
 
   @override
   void initState() {
@@ -94,6 +97,56 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         }
       }
     });
+  }
+
+  // Helper method to determine whether to use File or Network image
+  Widget _buildImageWidget(String imagePath) {
+    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
+    
+    if (isLocalFile) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          width: 70,
+          height: 70,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            width: 70,
+            height: 70,
+            color: AppTheme.cardColor(context),
+            child: const Icon(Icons.restaurant, size: 30),
+          ),
+        );
+      }
+    }
+    
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      width: 70,
+      height: 70,
+      fit: BoxFit.cover,
+      fadeInDuration: const Duration(milliseconds: 100),
+      fadeOutDuration: const Duration(milliseconds: 100),
+      placeholder: (context, url) => Container(
+        width: 70,
+        height: 70,
+        color: AppTheme.cardColor(context),
+        child: const Center(
+          child: SizedBox(
+            width: 40,
+            height: 40,
+            child: LottieLoadingWidget(),
+          ),
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        width: 70,
+        height: 70,
+        color: AppTheme.cardColor(context),
+        child: const Icon(Icons.restaurant, size: 30),
+      ),
+    );
   }
 
   @override
@@ -151,11 +204,36 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
       // Load favorite meals
       final savedFavorites = prefs.getStringList(_favoriteMealsKey);
-      if (savedFavorites != null) {
-        setState(() {
+      setState(() {
+        _favoriteMeals.clear(); // Clear existing favorites to prevent duplicates
+        if (savedFavorites != null) {
           _favoriteMeals.addAll(savedFavorites);
+        }
+      });
+
+      // Load favorite meals data
+      final favoriteMealsJson = prefs.getString('favorite_meals_data');
+      if (favoriteMealsJson != null) {
+        try {
+          final decodedData = json.decode(favoriteMealsJson);
+          if (decodedData is List) {
+            setState(() {
+              _favoriteMealsList.clear(); // Clear existing data to prevent duplicates
+              _favoriteMealsList = List<Map<String, dynamic>>.from(decodedData);
+            });
+          }
+        } catch (e) {
+          logger.d('Error loading favorite meals data: $e');
+        }
+      } else {
+        setState(() {
+          _favoriteMealsList.clear(); // Clear if no data found
         });
       }
+      
+      // Debug logging
+      logger.d('Loaded favorites in meal plan: ${_favoriteMeals.length} IDs, ${_favoriteMealsList.length} meals');
+      logger.d('Favorite IDs: ${_favoriteMeals.toList()}');
     } catch (e) {
       logger.d('Error loading saved data: $e');
     }
@@ -179,6 +257,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       // Save both weekly data and favorites
       await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
       await prefs.setStringList(_favoriteMealsKey, _favoriteMeals.toList());
+      await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
     } catch (e) {
       logger.d('Error saving meal data: $e');
     }
@@ -239,9 +318,48 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     setState(() {
       if (_favoriteMeals.contains(id)) {
+        // Remove from favorites
         _favoriteMeals.remove(id);
+        _favoriteMealsList.removeWhere((meal) => meal['id']?.toString() == id);
       } else {
+        // Add to favorites
         _favoriteMeals.add(id);
+        
+        // Find the meal data to add to favorites list
+        Map<String, dynamic>? mealToAdd;
+        
+        // Search in weekly data
+        for (var dayData in _weeklyMealData.values) {
+          for (var mealTimeData in dayData.values) {
+            for (var meal in mealTimeData) {
+              if (meal['id']?.toString() == id) {
+                mealToAdd = Map<String, dynamic>.from(meal);
+                break;
+              }
+            }
+            if (mealToAdd != null) break;
+          }
+          if (mealToAdd != null) break;
+        }
+        
+        // Search in current day data if not found
+        if (mealToAdd == null) {
+          for (var mealTimeData in _mealData.values) {
+            for (var meal in mealTimeData) {
+              if (meal['id']?.toString() == id) {
+                mealToAdd = Map<String, dynamic>.from(meal);
+                break;
+              }
+            }
+            if (mealToAdd != null) break;
+          }
+        }
+        
+        // Add to favorites list if found
+        if (mealToAdd != null && !_favoriteMealsList.any((meal) => meal['id']?.toString() == id)) {
+          mealToAdd['isFavorite'] = true;
+          _favoriteMealsList.add(mealToAdd);
+        }
       }
 
       // Update the isFavorite status in all instances
@@ -323,14 +441,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     }
   }
 
-  /// Getter to return all meals from all meal times
-  List<Map<String, dynamic>> get _meals {
-    List<Map<String, dynamic>> allMeals = [];
-    _mealData.forEach((_, mealList) {
-      allMeals.addAll(mealList);
-    });
-    return allMeals;
-  }
 
   void _showAddMealOptions(BuildContext context, String mealTime) {
     setState(() {
@@ -414,6 +524,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       ),
                     ),
                   );
+                  
+                  // Refresh favorites data when returning from search
+                  await _loadSavedData();
+                  
                   if (result != null && mounted) {
                     if (result is Map<String, dynamic>) {
                       if (result['action'] == 'add_meal') {
@@ -430,6 +544,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 tr(context, 'from_favorites'),
                 style: TextStyle(color: AppTheme.textColor(context)),
               ),
+              subtitle: Text(
+                '${_favoriteMealsList.length} ${_favoriteMealsList.length == 1 ? 'meal' : 'meals'}',
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withAlpha(179),
+                  fontSize: 12,
+                ),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 final selectedMeal = await Navigator.push(
@@ -437,7 +558,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   MaterialPageRoute(
                     builder: (context) => FavoriteMealsScreen(
                       favoriteMeals: _favoriteMeals,
-                      meals: _meals,
+                      meals: _favoriteMealsList,
                       onFavoriteToggle: _toggleFavorite, // Pass the callback
                     ),
                   ),
@@ -733,6 +854,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     ),
                   );
 
+                  // Refresh favorites data when returning from search
+                  if (mounted) {
+                    await _loadSavedData();
+                  }
+
                   if (!mounted || result == null) return;
 
                   if (result is Map<String, dynamic> &&
@@ -930,24 +1056,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         borderRadius: BorderRadius.circular(8),
         child:
             meal['imagePath'] != null && meal['imagePath'].toString().isNotEmpty
-                ? CachedNetworkImage(
-                    imageUrl: meal['imagePath'],
-                    width: 70,
-                    height: 70,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      width: 70,
-                      height: 70,
-                      color: AppTheme.cardColor(context),
-                      child: const CircularProgressIndicator(),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      width: 70,
-                      height: 70,
-                      color: AppTheme.cardColor(context),
-                      child: const Icon(Icons.restaurant, size: 30),
-                    ),
-                  )
+                ? _buildImageWidget(meal['imagePath'])
                 : Container(
                     width: 70,
                     height: 70,
@@ -978,7 +1087,17 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           ),
           child: Row(
             children: [
-              buildMealImage(),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: meal['imagePath'] != null && meal['imagePath'].toString().isNotEmpty
+                    ? _buildImageWidget(meal['imagePath'])
+                    : Container(
+                        width: 70,
+                        height: 70,
+                        color: AppTheme.cardColor(context),
+                        child: const Icon(Icons.restaurant, size: 30),
+                      ),
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(

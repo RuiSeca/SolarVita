@@ -62,6 +62,28 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     super.dispose();
   }
 
+  // Calculate heart rate progress based on age-based target zones
+  double _calculateHeartRateProgress(double heartRate) {
+    if (heartRate <= 0) return 0.0;
+    
+    // Estimated age-based calculation (can be improved with actual user age)
+    const estimatedAge = 30; // Default assumption
+    final maxHeartRate = 220 - estimatedAge;
+    final targetZoneMin = maxHeartRate * 0.5; // 50% of max
+    final targetZoneMax = maxHeartRate * 0.85; // 85% of max
+    
+    if (heartRate < targetZoneMin) {
+      // Below target zone - show partial progress
+      return (heartRate / targetZoneMin * 0.5).clamp(0.0, 0.5);
+    } else if (heartRate <= targetZoneMax) {
+      // In target zone - excellent progress
+      return 0.5 + ((heartRate - targetZoneMin) / (targetZoneMax - targetZoneMin) * 0.5);
+    } else {
+      // Above target zone - cap at 100% but indicate it's high
+      return 1.0;
+    }
+  }
+
   Future<void> _loadWaterIntake() async {
     final prefs = await SharedPreferences.getInstance();
     final today = DateTime.now().toIso8601String().split('T')[0];
@@ -634,12 +656,25 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
   Widget _buildStatsGrid(BuildContext context, AsyncValue<HealthData> healthDataAsync) {
     return healthDataAsync.when(
       data: (healthData) {
-        // Calculate progress values
-        final stepsProgress = (healthData.steps / 10000).clamp(0.0, 1.0);
-        final activeProgress = (healthData.activeMinutes / 60).clamp(0.0, 1.0);
-        final caloriesProgress = (healthData.caloriesBurned / 500).clamp(0.0, 1.0);
-        final sleepProgress = (healthData.sleepHours / 8).clamp(0.0, 1.0);
-        final heartRateProgress = healthData.heartRate > 0 ? 0.85 : 0.0; // Normalized heart rate
+        // Get user's actual daily goals from user progress provider
+        final userProgressAsync = ref.watch(userProgressNotifierProvider);
+        
+        // Calculate progress values using actual user goals
+        final userProgress = userProgressAsync.value;
+        final stepsGoal = userProgress?.dailyGoals.stepsGoal.toDouble() ?? 8000.0;
+        final activeGoal = userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 30.0;
+        final caloriesGoal = userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 2000.0;
+        final sleepGoal = userProgress?.dailyGoals.sleepHoursGoal.toDouble() ?? 8.0;
+        
+        final stepsProgress = (healthData.steps / stepsGoal).clamp(0.0, 1.0);
+        final activeProgress = (healthData.activeMinutes / activeGoal).clamp(0.0, 1.0);
+        final caloriesProgress = (healthData.caloriesBurned / caloriesGoal).clamp(0.0, 1.0);
+        final sleepProgress = (healthData.sleepHours / sleepGoal).clamp(0.0, 1.0);
+        
+        // Calculate proper heart rate progress based on target zones (resting: 60-70, target: 70-85% max)
+        final heartRateProgress = healthData.heartRate > 0 
+            ? _calculateHeartRateProgress(healthData.heartRate) 
+            : 0.0;
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8),

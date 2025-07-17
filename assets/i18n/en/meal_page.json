@@ -36,5 +36,18 @@
     "delete_meal_confirmation": "Are you sure you want to remove this meal from your plan?",
     "cancel": "Cancel",
     "save": "Save",
-    "start_now": "Start Now"
+    "start_now": "Start Now",
+    "create_meal": "Create Meal",
+    "meal_title": "Meal Title",
+    "ingredients": "Ingredients",
+    "instructions": "Instructions",
+    "ingredient_name": "Ingredient",
+    "instruction_step": "Instruction Step",
+    "add_meal_photo": "Add Meal Photo",
+    "tap_to_select_image": "Tap to select image",
+    "select_image_source": "Select Image Source",
+    "camera": "Camera",
+    "gallery": "Gallery",
+    "remove_image": "Remove Image",
+    "error_picking_image": "Error selecting image. Please try again."
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
+import '../../../providers/riverpod/health_data_provider.dart';
 import 'dart:ui';
 
 class ModernWeeklySummary extends ConsumerWidget {
@@ -9,76 +10,106 @@ class ModernWeeklySummary extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'This Week',
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
+    final userProgressAsync = ref.watch(userProgressNotifierProvider);
+    final healthDataAsync = ref.watch(healthDataNotifierProvider);
+    
+    return userProgressAsync.when(
+      data: (userProgress) {
+        // Calculate real progress based on actual goals and data
+        final currentStrikes = userProgress.currentStrikes;
+        final levelProgress = userProgress.levelProgress;
+        
+        // Get actual health data for calculations
+        final healthData = healthDataAsync.value;
+        final dailyStepsGoal = userProgress.dailyGoals.stepsGoal;
+        final dailyActiveGoal = userProgress.dailyGoals.activeMinutesGoal;
+        
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildProgressCard(
-                  context,
-                  title: 'Workouts',
-                  value: '4',
-                  target: '5',
-                  progress: 0.8,
-                  icon: Icons.fitness_center_outlined,
-                  color: Colors.orange,
+              Text(
+                'This Week',
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildProgressCard(
-                  context,
-                  title: 'Meals Logged',
-                  value: '18',
-                  target: '21',
-                  progress: 0.85,
-                  icon: Icons.restaurant_outlined,
-                  color: Colors.green,
-                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildProgressCard(
+                      context,
+                      title: 'Daily Steps',
+                      value: '${healthData?.steps ?? 0}',
+                      target: '$dailyStepsGoal',
+                      progress: healthData != null && dailyStepsGoal > 0 
+                          ? (healthData.steps / dailyStepsGoal).clamp(0.0, 1.0)
+                          : 0.0,
+                      icon: Icons.directions_walk_outlined,
+                      color: Colors.orange,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildProgressCard(
+                      context,
+                      title: 'Active Minutes',
+                      value: '${healthData?.activeMinutes ?? 0}',
+                      target: '$dailyActiveGoal',
+                      progress: healthData != null && dailyActiveGoal > 0 
+                          ? (healthData.activeMinutes / dailyActiveGoal).clamp(0.0, 1.0)
+                          : 0.0,
+                      icon: Icons.fitness_center_outlined,
+                      color: Colors.green,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildProgressCard(
+                      context,
+                      title: 'Calories Burned',
+                      value: '${healthData?.caloriesBurned ?? 0}',
+                      target: '${userProgress.dailyGoals.caloriesBurnGoal}',
+                      progress: healthData != null && userProgress.dailyGoals.caloriesBurnGoal > 0 
+                          ? (healthData.caloriesBurned / userProgress.dailyGoals.caloriesBurnGoal).clamp(0.0, 1.0)
+                          : 0.0,
+                      icon: Icons.local_fire_department_outlined,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildProgressCard(
+                      context,
+                      title: 'Streak',
+                      value: '$currentStrikes',
+                      target: '∞',
+                      progress: levelProgress,
+                      icon: Icons.emoji_events_outlined,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildProgressCard(
-                  context,
-                  title: 'CO₂ Saved',
-                  value: '2.4kg',
-                  target: '3.0kg',
-                  progress: 0.8,
-                  icon: Icons.eco_outlined,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildProgressCard(
-                  context,
-                  title: 'Streak',
-                  value: '${ref.watch(currentStrikesProvider)}',
-                  target: '∞',
-                  progress: ref.watch(levelProgressProvider),
-                  icon: Icons.local_fire_department_outlined,
-                  color: Colors.red,
-                ),
-              ),
-            ],
-          ),
-        ],
+        );
+      },
+      loading: () => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, stack) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text('Error loading weekly summary: $error'),
       ),
     );
   }

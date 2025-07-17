@@ -1,9 +1,9 @@
 {
-    "change_app_language": "Alterar Idioma do App",
-    "customize_workout_settings": "Personalizar Configurações de Treino",
-    "edit_profile_details": "Editar Detalhes do Perfil",
-    "manage_diet_restrictions": "Gerenciar Restrições Alimentares",
-    "manage_notification_preferences": "Gerenciar Preferências de Notificação",
-    "privacy_security_settings": "Configurações de Privacidade e Segurança",
-    "set_environmental_targets": "Definir Metas Ambientais"
+  "change_app_language": "Alterar Idioma do App",
+  "customize_workout_settings": "Personalizar Configurações de Treino",
+  "edit_profile_details": "Editar Detalhes do Perfil",
+  "manage_diet_restrictions": "Gerenciar Restrições Alimentares",
+  "manage_notification_preferences": "Gerenciar Preferências de Notificação",
+  "privacy_security_settings": "Configurações de Privacidade e Segurança",
+  "set_environmental_targets": "Definir Metas Ambientais"
 }

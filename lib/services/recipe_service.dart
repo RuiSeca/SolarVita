@@ -7,8 +7,11 @@ import '../config/mealdb_api_config.dart';
 
 class MealDBService {
   static String get baseUrl => MealDBApiConfig.baseUrl;
-  static const int timeoutSeconds = 15;
-  static const int maxRetries = 3;
+  static const int timeoutSeconds = 12; // Increased timeout for larger data loads
+  static const int maxRetries = 2; // Keep retries low for responsiveness
+  
+  // Single persistent HTTP client for connection reuse
+  static final http.Client _client = http.Client();
   
   // Test method to verify API connection
   Future<bool> testApiConnection() async {
@@ -26,33 +29,30 @@ class MealDBService {
 
   Future<http.Response> _makeRequest(String url, {int retryCount = 0}) async {
     try {
-      final client = http.Client();
-      final response = await client.get(
+      final response = await _client.get(
         Uri.parse(url),
         headers: {
           'User-Agent': 'SolarVita/1.0',
           'Accept': 'application/json',
+          'Connection': 'keep-alive', // Enable connection reuse
         },
       ).timeout(Duration(seconds: timeoutSeconds));
-      if (response.statusCode != 200) {
-      }
-      client.close();
       return response;
     } on SocketException catch (e) {
       if (retryCount < maxRetries) {
-        await Future.delayed(Duration(seconds: 2 * (retryCount + 1)));
+        await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1))); // Reduced retry delay
         return _makeRequest(url, retryCount: retryCount + 1);
       }
       throw Exception('Network error: ${e.message}. Please check your internet connection or try using a VPN if you\'re on a restricted network.');
     } on TimeoutException {
       if (retryCount < maxRetries) {
-        await Future.delayed(Duration(seconds: 2 * (retryCount + 1)));
+        await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1))); // Reduced retry delay
         return _makeRequest(url, retryCount: retryCount + 1);
       }
       throw Exception('Request timeout. Please check your internet connection.');
     } catch (e) {
       if (retryCount < maxRetries) {
-        await Future.delayed(Duration(seconds: 2 * (retryCount + 1)));
+        await Future.delayed(Duration(milliseconds: 500 * (retryCount + 1))); // Reduced retry delay
         return _makeRequest(url, retryCount: retryCount + 1);
       }
       throw Exception('Request failed: $e');
@@ -90,18 +90,32 @@ class MealDBService {
       final data = json.decode(response.body);
       if (data['meals'] != null) {
         List<Map<String, dynamic>> meals = [];
-        // Limit to reasonable number of meals
-        final mealList = (data['meals'] as List).take(15).toList();
+        final mealList = data['meals'] as List; // Get ALL meals, no artificial limit
         
-        for (var meal in mealList) {
-          try {
-            final detailedMeal = await getMealById(meal['idMeal']);
-            meals.add(detailedMeal);
-          } catch (e) {
-            // Skip failed meals and continue with others
-            continue;
+        // Process meals in batches for better performance while loading all
+        const batchSize = 10;
+        for (int i = 0; i < mealList.length; i += batchSize) {
+          final batch = mealList.skip(i).take(batchSize).toList();
+          
+          // Use parallel requests for each batch
+          final futures = batch.map((meal) async {
+            try {
+              return await getMealById(meal['idMeal']);
+            } catch (e) {
+              return null; // Return null for failed requests
+            }
+          }).toList();
+          
+          final results = await Future.wait(futures);
+          
+          // Filter out null results and add to meals list
+          for (var meal in results) {
+            if (meal != null) {
+              meals.add(meal);
+            }
           }
         }
+        
         return meals;
       }
       return [];
@@ -143,53 +157,51 @@ class MealDBService {
   }
 
   /// Get all meals by fetching from multiple categories (for "All" tab)
-  Future<List<Map<String, dynamic>>> getAllMeals({int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> getAllMeals({int limit = 200}) async {
     try {
       List<Map<String, dynamic>> allMeals = [];
       
-      // First, try to get latest meals (premium) or random meals (fallback)
-      try {
-        final latestMeals = await getLatestMeals();
-        allMeals.addAll(latestMeals);
-      } catch (e) {
-        // Latest/random meals failed, will fallback to category sampling
-      }
+      // Get meals from all major categories for variety
+      final allCategories = [
+        'Chicken', 'Beef', 'Seafood', 'Pasta', 'Vegetarian', 'Pork',
+        'Lamb', 'Dessert', 'Breakfast', 'Side', 'Starter', 'Vegan',
+        'Goat', 'Miscellaneous'
+      ];
       
-      // If we don't have enough meals, fetch from popular categories
-      if (allMeals.length < limit) {
-        final popularCategories = [
-          'Chicken', 'Beef', 'Seafood', 'Pasta', 'Vegetarian', 
-          'Dessert', 'Breakfast', 'Side', 'Starter'
-        ];
+      // Process categories in smaller batches to avoid overwhelming the API
+      const batchSize = 4;
+      for (int i = 0; i < allCategories.length; i += batchSize) {
+        if (allMeals.length >= limit) break;
         
-        for (String category in popularCategories) {
-          if (allMeals.length >= limit) break;
-          
+        final categoryBatch = allCategories.skip(i).take(batchSize).toList();
+        
+        final futures = categoryBatch.map((category) async {
           try {
             final categoryMeals = await getMealsByCategory(category);
-            
-            // Add meals from each category to create variety
-            final mealsToAdd = categoryMeals.take(5).toList();
-            
-            for (var meal in mealsToAdd) {
-              if (allMeals.length >= limit) break;
-              // Avoid duplicates
-              if (!allMeals.any((existing) => existing['id']?.toString() == meal['id']?.toString())) {
-                allMeals.add(meal);
-              } else {
-              }
-            }
+            return categoryMeals; // Return ALL meals from each category
           } catch (e) {
-            // Failed to load category, continuing with next category
-            continue;
+            return <Map<String, dynamic>>[];
           }
+        }).toList();
+        
+        final results = await Future.wait(futures);
+        
+        // Combine all results
+        for (var categoryMeals in results) {
+          for (var meal in categoryMeals) {
+            if (allMeals.length >= limit) break;
+            // Avoid duplicates
+            if (!allMeals.any((existing) => existing['id']?.toString() == meal['id']?.toString())) {
+              allMeals.add(meal);
+            }
+          }
+          if (allMeals.length >= limit) break;
         }
       }
       
       // Shuffle the meals to provide variety
       allMeals.shuffle();
-      final finalMeals = allMeals.take(limit).toList();
-      return finalMeals;
+      return allMeals;
       
     } catch (e) {
       throw Exception('Failed to load all meals: $e');

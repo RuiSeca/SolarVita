@@ -60,11 +60,32 @@ class MealNotifier extends _$MealNotifier {
   // Track most recently used queries/categories
   final List<String> _recentKeys = [];
   // Maximum number of searches to keep in cache
-  static const int _maxCacheSize = 10;
+  static const int _maxCacheSize = 15; // Increased cache size for better performance
 
   @override
   MealState build() {
+    // Preload popular categories in background for faster access
+    _preloadPopularCategories();
     return const MealState();
+  }
+
+  // Preload popular categories in the background
+  void _preloadPopularCategories() {
+    Future.delayed(const Duration(milliseconds: 1000), () async {
+      // Preload the most commonly accessed categories
+      final popularCategories = ['chicken', 'beef', 'pasta', 'vegetarian', 'seafood'];
+      for (String category in popularCategories) {
+        try {
+          final mealService = ref.read(mealServiceProvider);
+          final meals = await mealService.getMealsByCategory(category);
+          final cacheKey = 'category_$category';
+          _cache[cacheKey] = meals; // Cache ALL meals from each category
+          _updateRecentKeys(cacheKey);
+        } catch (e) {
+          // Ignore errors during preloading
+        }
+      }
+    });
   }
 
   Future<void> loadMealsByCategory(String category) async {
@@ -279,6 +300,38 @@ class MealNotifier extends _$MealNotifier {
         errorMessage: null,
         errorDetails: null,
       );
+    }
+  }
+
+  // Update favorite status of a specific meal
+  void updateMealFavoriteStatus(String mealId, bool isFavorite) {
+    if (state.meals == null) return;
+
+    final updatedMeals = state.meals!.map((meal) {
+      if (meal['id'] == mealId) {
+        return {
+          ...meal,
+          'isFavorite': isFavorite,
+        };
+      }
+      return meal;
+    }).toList();
+
+    // Update current state
+    state = state.copyWith(meals: updatedMeals);
+
+    // Update cache as well
+    for (final entry in _cache.entries) {
+      final updatedCachedMeals = entry.value.map((meal) {
+        if (meal['id'] == mealId) {
+          return {
+            ...meal,
+            'isFavorite': isFavorite,
+          };
+        }
+        return meal;
+      }).toList();
+      _cache[entry.key] = updatedCachedMeals;
     }
   }
 
