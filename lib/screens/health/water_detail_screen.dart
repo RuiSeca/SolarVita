@@ -117,7 +117,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
 
         await notificationService.scheduleWaterReminderAt(
           scheduledTime: nextReminder,
-          title: '💧 Bebe Agua bebe, te amo!',
+          title: '💧 Stay Hydrated!',
           body: 'Time for a glass of water. Your body will thank you!',
         );
 
