@@ -10,6 +10,7 @@ import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../providers/riverpod/health_data_provider.dart';
 import '../../services/social_service.dart';
+import '../../services/data_sync_service.dart';
 import '../../models/supporter.dart';
 import 'supporter_requests_screen.dart';
 import '../../utils/translation_helper.dart';
@@ -29,6 +30,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     _supporterRequestsStream = _socialService.getPendingSupporterRequests();
+    
+    // Sync data to Firebase when profile loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncCurrentDataToFirebase();
+    });
   }
 
   Future<void> _refreshData() async {
@@ -37,6 +43,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ref.read(userProgressNotifierProvider.notifier).refresh(),
       ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
     ]);
+    
+    // Sync current data to Firebase so supporters can see it
+    await _syncCurrentDataToFirebase();
+  }
+
+  Future<void> _syncCurrentDataToFirebase() async {
+    try {
+      final userProfile = ref.read(userProfileNotifierProvider).value;
+      final userProgress = ref.read(userProgressNotifierProvider).value;
+      final healthData = ref.read(healthDataNotifierProvider).value;
+      
+      if (userProfile != null && userProgress != null && healthData != null) {
+        await DataSyncService().syncAllUserData(
+          progress: userProgress,
+          healthData: healthData,
+          displayName: userProfile.displayName,
+          avatarUrl: userProfile.photoURL,
+          supporterCount: userProfile.supportersCount,
+        );
+      }
+    } catch (e) {
+      // Don't block UI on sync failures
+    }
   }
 
   @override

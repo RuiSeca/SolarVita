@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:logging/logging.dart';
 import '../models/user_progress.dart';
 import '../models/health_data.dart';
+import 'data_sync_service.dart';
 
 final log = Logger('StrikeCalculationService');
 
@@ -254,6 +255,24 @@ class StrikeCalculationService {
     final prefs = await SharedPreferences.getInstance();
     final progressJson = json.encode(progress.toJson());
     await prefs.setString(_userProgressKey, progressJson);
+    
+    // Sync to Firebase for supporters to see
+    await DataSyncService().syncUserProgress(progress);
+    
+    // Also update public profile with current level and strikes
+    try {
+      await DataSyncService().syncPublicProfile(
+        displayName: 'User', // Will be updated from actual profile
+        avatarUrl: null,
+        currentLevel: progress.currentLevel,
+        currentStrikes: progress.currentStrikes,
+        ecoScore: 0.0, // Will be calculated separately
+        supporterCount: 0, // Will be fetched separately
+        supportingCount: 0, // Will be fetched separately
+      );
+    } catch (e) {
+      // Don't block on profile sync failures
+    }
   }
   
   // Transactional update - ensures both health data and strikes are saved together

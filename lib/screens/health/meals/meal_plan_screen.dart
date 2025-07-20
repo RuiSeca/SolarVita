@@ -7,6 +7,7 @@ import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
+import '../../../services/data_sync_service.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
 import 'meal_search_screen.dart';
@@ -66,6 +67,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Initialize to today's day (Monday = 0, Sunday = 6)
+    final today = DateTime.now();
+    _selectedDayIndex = today.weekday - 1; // Convert to 0-6 index
+    
+    logger.d('=== MEAL PLAN INIT ===');
+    logger.d('Today is: ${_weekDays[_selectedDayIndex]} (index: $_selectedDayIndex)');
+    
     _pageController = PageController(
       viewportFraction: 0.8,
       initialPage: 1,
@@ -239,9 +248,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     }
   }
 
-// Save meal data to SharedPreferences
+// Save meal data to SharedPreferences and sync to Firebase
   Future<void> _saveMealData() async {
     try {
+      logger.d('=== SAVE MEAL DATA START ===');
       final prefs = await SharedPreferences.getInstance();
 
       // Save current day's data to weekly data
@@ -258,24 +268,67 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
       await prefs.setStringList(_favoriteMealsKey, _favoriteMeals.toList());
       await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
+
+      logger.d('Local data saved successfully, now syncing to Firebase...');
+      
+      // Sync today's meals to Firebase for supporters to see
+      await _syncTodaysMealsToFirebase();
+      
+      logger.d('=== SAVE MEAL DATA COMPLETE ===');
     } catch (e) {
-      logger.d('Error saving meal data: $e');
+      logger.e('Error saving meal data: $e');
+    }
+  }
+
+  // Sync today's meals to Firebase
+  Future<void> _syncTodaysMealsToFirebase() async {
+    try {
+      final today = DateTime.now();
+      final currentDayIndex = today.weekday - 1; // Convert to 0-6 index
+      
+      logger.d('=== MEAL SYNC DEBUG ===');
+      logger.d('Selected day index: $_selectedDayIndex');
+      logger.d('Current day index: $currentDayIndex');
+      logger.d('Meal data: $_mealData');
+      
+      // Always sync if we're viewing today's meals, regardless of when we navigate to them
+      // Also force sync for testing on any day
+      if (_selectedDayIndex == currentDayIndex) {
+        logger.d('Syncing TODAY\'S meals to Firebase...');
+        await DataSyncService().syncDailyMealsForce(_mealData);
+        logger.d('Today\'s meals FORCE synced to Firebase successfully');
+      } else {
+        // For testing: sync any day's meals to today's Firebase entry
+        logger.d('TESTING: Force syncing selected day meals as today\'s meals...');
+        await DataSyncService().syncDailyMealsForce(_mealData);
+        logger.d('Selected day meals FORCE synced as today\'s meals for testing');
+      }
+    } catch (e) {
+      logger.e('Error syncing meals to Firebase: $e');
+      // Don't throw - sync failures shouldn't block the app
     }
   }
 
 // Add a meal to the current day
   void _addMealToDay(String mealTime, Map<String, dynamic> meal) {
-    // Format the meal data consistently
+    // Format the meal data consistently for both local storage and supporter sharing
     final formattedMeal = {
       'id': meal['id'],
       'titleKey': meal['titleKey'],
+      'name': meal['titleKey'] ?? meal['name'] ?? 'Unnamed Meal', // For supporter profile compatibility
       'imagePath': meal['imagePath'],
+      'image': meal['imagePath'] ?? meal['image'], // For supporter profile compatibility
+      'calories': meal['nutritionFacts']?['calories']?.toString() ?? meal['calories']?.toString() ?? '0', // For supporter profile compatibility
+      'servings': meal['servings'] ?? 1, // For supporter profile compatibility
+      'prepTime': meal['prepTime'], // For supporter profile compatibility
+      'description': meal['description'], // For supporter profile compatibility
       'nutritionFacts': {
-        'calories': meal['nutritionFacts']?['calories']?.toString() ?? '0',
+        'calories': meal['nutritionFacts']?['calories']?.toString() ?? meal['calories']?.toString() ?? '0',
         'protein': meal['nutritionFacts']?['protein'] ?? '0g',
         'carbs': meal['nutritionFacts']?['carbs'] ?? '0g',
         'fat': meal['nutritionFacts']?['fat'] ?? '0g',
       },
+      'nutrition': meal['nutritionFacts'] ?? {}, // For supporter profile compatibility
       'ingredients': meal['ingredients'] ?? [],
       'measures': meal['measures'] ?? [],
       'instructions': meal['instructions'] ?? [],
