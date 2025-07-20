@@ -94,6 +94,7 @@ class StrikeCalculationService {
     final currentProgress = await getUserProgress();
     final goals = currentProgress.dailyGoals;
     
+    
     // Check each goal completion
     final goalsCompleted = <String, bool>{
       GoalType.steps.key: healthData.steps >= goals.stepsGoal,
@@ -103,6 +104,7 @@ class StrikeCalculationService {
       GoalType.sleepQuality.key: _checkSleepQuality(healthData.sleepHours, goals.sleepHoursGoal),
     };
     
+    
     // Count completed goals
     final completedCount = goalsCompleted.values.where((completed) => completed).length;
     
@@ -110,19 +112,27 @@ class StrikeCalculationService {
     final multiplier = completedCount > 0 ? completedCount : 1;
     final strikesToAdd = completedCount > 0 ? multiplier : 0;
     
-    // Only update if this is the first completion today or if more goals were completed
-    final shouldUpdate = currentProgress.completedGoalsCount < completedCount;
+    
+    // Update if: more goals completed OR current strikes don't match what they should be for completed goals
+    final expectedDailyStrikes = completedCount > 0 ? multiplier : 0;
+    final actualStrikes = currentProgress.currentStrikes;
+    final strikesCorrect = actualStrikes == expectedDailyStrikes;
+    final shouldUpdate = currentProgress.completedGoalsCount < completedCount || !strikesCorrect;
+    
     
     if (shouldUpdate) {
-      final newStrikes = currentProgress.currentStrikes + strikesToAdd - currentProgress.todayMultiplier;
-      final newTotalStrikes = currentProgress.totalStrikes + strikesToAdd - currentProgress.todayMultiplier;
+      // For daily strikes, set absolute value, not incremental
+      final newDailyStrikes = strikesToAdd;
+      final strikeDifference = newDailyStrikes - currentProgress.currentStrikes;
+      final newTotalStrikes = currentProgress.totalStrikes + strikeDifference;
       final newLevel = _calculateLevel(newTotalStrikes);
+      
       
       // Check if user leveled up
       final leveledUp = newLevel > currentProgress.currentLevel;
       
-      // If user hasn't leveled up, reset current strikes to 0
-      final finalCurrentStrikes = leveledUp ? newStrikes.clamp(0, double.infinity).toInt() : 0;
+      // Current strikes should always reflect daily strikes earned
+      final finalCurrentStrikes = newDailyStrikes.clamp(0, double.infinity).toInt();
       
       final updatedProgress = currentProgress.copyWith(
         currentStrikes: finalCurrentStrikes,
@@ -145,7 +155,7 @@ class StrikeCalculationService {
         await _sendPerfectDayNotification();
       }
       
-      log.info('🎯 Updated progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes strikes, Level $newLevel ${leveledUp ? "(LEVEL UP!)" : "(strikes reset)"}');
+      log.info('🎯 Updated progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes strikes, Level $newLevel ${leveledUp ? "(LEVEL UP!)" : ""}');
       
       return updatedProgress;
     }
@@ -198,17 +208,45 @@ class StrikeCalculationService {
     final prefs = await SharedPreferences.getInstance();
     final progressJson = prefs.getString(_userProgressKey);
     
+    UserProgress progress;
     if (progressJson != null) {
       try {
         final progressMap = json.decode(progressJson) as Map<String, dynamic>;
-        return UserProgress.fromJson(progressMap);
+        progress = UserProgress.fromJson(progressMap);
       } catch (e) {
         log.warning('⚠️ Error parsing user progress: $e');
-        return _createDefaultProgress();
+        progress = _createDefaultProgress();
       }
+    } else {
+      progress = _createDefaultProgress();
     }
     
-    return _createDefaultProgress();
+    // Always sync water goal with user's custom daily limit
+    progress = await _updateWaterGoalFromUserPreference(progress);
+    
+    return progress;
+  }
+  
+  // Update water goal based on user's custom daily limit from SharedPreferences
+  Future<UserProgress> _updateWaterGoalFromUserPreference(UserProgress progress) async {
+    final prefs = await SharedPreferences.getInstance();
+    final customWaterLimit = prefs.getDouble('water_daily_limit') ?? 2.0;
+    
+    // Only update if the water goal differs from user's custom limit
+    if (progress.dailyGoals.waterIntakeGoal != customWaterLimit) {
+      final updatedGoals = progress.dailyGoals.copyWith(
+        waterIntakeGoal: customWaterLimit,
+      );
+      final updatedProgress = progress.copyWith(dailyGoals: updatedGoals);
+      
+      // Save the updated progress with the new water goal
+      await _saveUserProgress(updatedProgress);
+      log.info('💧 Updated water intake goal to ${customWaterLimit}L based on user preference');
+      
+      return updatedProgress;
+    }
+    
+    return progress;
   }
 
   // Save user progress to storage
@@ -390,8 +428,8 @@ class StrikeCalculationService {
     // Check if user leveled up
     final leveledUp = newLevel > currentProgress.currentLevel;
     
-    // If user hasn't leveled up, reset current strikes to 0
-    final finalCurrentStrikes = leveledUp ? newStrikes.clamp(0, double.infinity).toInt() : 0;
+    // Current strikes should always reflect daily strikes earned, not reset unless level up
+    final finalCurrentStrikes = newStrikes.clamp(0, double.infinity).toInt();
     
     final updatedProgress = currentProgress.copyWith(
       currentStrikes: finalCurrentStrikes,

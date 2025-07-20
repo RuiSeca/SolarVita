@@ -4,6 +4,7 @@ import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
 import '../../../providers/riverpod/health_data_provider.dart';
 import 'dart:ui';
+import '../../../utils/translation_helper.dart';
 
 class ModernWeeklySummary extends ConsumerWidget {
   const ModernWeeklySummary({super.key});
@@ -30,7 +31,7 @@ class ModernWeeklySummary extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'This Week',
+                tr(context, 'this_week'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 20,
@@ -43,7 +44,7 @@ class ModernWeeklySummary extends ConsumerWidget {
                   Expanded(
                     child: _buildProgressCard(
                       context,
-                      title: 'Daily Steps',
+                      title: tr(context, 'daily_steps'),
                       value: '${healthData?.steps ?? 0}',
                       target: '$dailyStepsGoal',
                       progress: healthData != null && dailyStepsGoal > 0 
@@ -57,7 +58,7 @@ class ModernWeeklySummary extends ConsumerWidget {
                   Expanded(
                     child: _buildProgressCard(
                       context,
-                      title: 'Active Minutes',
+                      title: tr(context, 'active_minutes'),
                       value: '${healthData?.activeMinutes ?? 0}',
                       target: '$dailyActiveGoal',
                       progress: healthData != null && dailyActiveGoal > 0 
@@ -75,7 +76,7 @@ class ModernWeeklySummary extends ConsumerWidget {
                   Expanded(
                     child: _buildProgressCard(
                       context,
-                      title: 'Calories Burned',
+                      title: tr(context, 'calories_burned'),
                       value: '${healthData?.caloriesBurned ?? 0}',
                       target: '${userProgress.dailyGoals.caloriesBurnGoal}',
                       progress: healthData != null && userProgress.dailyGoals.caloriesBurnGoal > 0 
@@ -89,7 +90,7 @@ class ModernWeeklySummary extends ConsumerWidget {
                   Expanded(
                     child: _buildProgressCard(
                       context,
-                      title: 'Streak',
+                      title: tr(context, 'streak'),
                       value: '$currentStrikes',
                       target: '∞',
                       progress: levelProgress,
@@ -109,7 +110,7 @@ class ModernWeeklySummary extends ConsumerWidget {
       ),
       error: (error, stack) => Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
-        child: Text('Error loading weekly summary: $error'),
+        child: Text(tr(context, 'error_loading_weekly_summary').replaceAll('{error}', error.toString())),
       ),
     );
   }
@@ -233,7 +234,7 @@ class ModernWeeklySummary extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '${(progress * 100).toInt()}% complete',
+                tr(context, 'percent_complete').replaceAll('{percent}', (progress * 100).toInt().toString()),
                 style: TextStyle(
                   color: color,
                   fontSize: 11,

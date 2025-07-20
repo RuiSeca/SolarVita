@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 
 class ModernAchievementsSection extends StatelessWidget {
   const ModernAchievementsSection({super.key});
@@ -15,7 +16,7 @@ class ModernAchievementsSection extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Story Highlights',
+                tr(context, 'story_highlights'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 20,
@@ -27,7 +28,7 @@ class ModernAchievementsSection extends StatelessWidget {
                   // View all achievements
                 },
                 child: Text(
-                  'View All',
+                  tr(context, 'view_all'),
                   style: TextStyle(
                     color: AppColors.primary,
                     fontSize: 14,
@@ -46,42 +47,42 @@ class ModernAchievementsSection extends StatelessWidget {
                 _buildStoryHighlight(
                   context,
                   icon: Icons.fitness_center,
-                  label: 'Workouts',
+                  label: tr(context, 'workouts'),
                   color: Colors.orange,
                   hasNew: true,
                 ),
                 _buildStoryHighlight(
                   context,
                   icon: Icons.eco,
-                  label: 'Eco Goals',
+                  label: tr(context, 'eco_goals'),
                   color: AppColors.primary,
                   hasNew: false,
                 ),
                 _buildStoryHighlight(
                   context,
                   icon: Icons.restaurant,
-                  label: 'Nutrition',
+                  label: tr(context, 'nutrition'),
                   color: Colors.green,
                   hasNew: true,
                 ),
                 _buildStoryHighlight(
                   context,
                   icon: Icons.emoji_events,
-                  label: 'Achievements',
+                  label: tr(context, 'achievements'),
                   color: Colors.amber,
                   hasNew: false,
                 ),
                 _buildStoryHighlight(
                   context,
                   icon: Icons.groups,
-                  label: 'Community',
+                  label: tr(context, 'community'),
                   color: Colors.blue,
                   hasNew: true,
                 ),
                 _buildStoryHighlight(
                   context,
                   icon: Icons.trending_up,
-                  label: 'Progress',
+                  label: tr(context, 'progress'),
                   color: Colors.purple,
                   hasNew: false,
                 ),

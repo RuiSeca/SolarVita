@@ -1,4 +1,8 @@
 {
     "search_meals_hint": "Cerca Pasti",
-    "discover_meals": "Scopri Pasti"
+    "discover_meals": "Scopri Pasti",
+    "loading_more_meals": "Caricamento di più pasti...",
+    "loading_meals": "Caricamento pasti...",
+    "no_meals_found": "Nessun pasto trovato",
+    "loading_details": "Caricamento dettagli..."
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/strike_calculation_service.dart';
 import '../../services/notification_service.dart';
 import '../../models/user_progress.dart';
@@ -248,4 +249,10 @@ final streakStatusProvider = Provider<String>((ref) {
   } else {
     return '$strikes day streak - Level $level! 🏆';
   }
+});
+
+// Water daily limit provider - reads from SharedPreferences
+final waterDailyLimitProvider = FutureProvider<double>((ref) async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getDouble('water_daily_limit') ?? 2.0;
 });

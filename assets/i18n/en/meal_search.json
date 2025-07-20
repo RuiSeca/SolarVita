@@ -1,4 +1,8 @@
 {
     "search_meals_hint": "Search Meals",
-    "discover_meals": "Discover Meals"
+    "discover_meals": "Discover Meals",
+    "loading_more_meals": "Loading more meals...",
+    "loading_meals": "Loading meals...",
+    "no_meals_found": "No meals found",
+    "loading_details": "Loading details..."
 }

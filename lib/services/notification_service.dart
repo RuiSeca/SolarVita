@@ -37,18 +37,23 @@ class NotificationService {
 
   // Initialize the notification service
   Future<void> initialize() async {
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      return;
+    }
 
     try {
-
       // Initialize timezone first
       await _ensureTimeZoneInitialized();
 
-      // Initialize local notifications
+      // Initialize local notifications (always works)
       await _initializeLocalNotifications();
 
-      // Initialize push notifications
-      await _initializePushNotifications();
+      // Initialize push notifications (optional - only if Firebase is available)
+      try {
+        await _initializePushNotifications();
+      } catch (e) {
+        // Push notifications failed, but local notifications should still work
+      }
 
       _isInitialized = true;
     } catch (e) {
@@ -61,22 +66,51 @@ class NotificationService {
     try {
       tz.initializeTimeZones();
 
-      // Try to set local timezone, fallback to UTC if it fails
+      // Try to detect and set the proper timezone for the UK
       try {
-        // For most cases, just use the local timezone
-        tz.setLocalLocation(tz.local);
+        // Get the system timezone (for reference, but we'll force UK timezone)
+        // final systemTimeZone = DateTime.now().timeZoneName;
+        // final systemOffset = DateTime.now().timeZoneOffset;
+        
+        
+        // Since we know the user is in UK, let's force set Europe/London
+        // This will handle both GMT (winter) and BST (summer) automatically
+        try {
+          tz.setLocalLocation(tz.getLocation('Europe/London'));
+        } catch (e) {
+          // Try alternative UK timezone names
+          try {
+            tz.setLocalLocation(tz.getLocation('GB'));
+          } catch (e2) {
+            tz.setLocalLocation(tz.local);
+          }
+        }
+        
+        // Final check - timezone is now set
+        // final currentLocation = tz.local;
+        // final currentOffset = currentLocation.currentTimeZone.offset;
+        
       } catch (e) {
-        tz.setLocalLocation(tz.getLocation('UTC'));
+        // If detection fails, try Europe/London as default for UK users
+        try {
+          tz.setLocalLocation(tz.getLocation('Europe/London'));
+        } catch (e2) {
+          // Final fallback to UTC
+          try {
+            tz.setLocalLocation(tz.getLocation('UTC'));
+          } catch (e3) {
+            // All timezone options failed, continue with system default
+          }
+        }
       }
     } catch (e) {
-      rethrow;
+      // If timezone initialization completely fails, continue without it
     }
   }
 
   // Initialize local notifications
   Future<void> _initializeLocalNotifications() async {
     try {
-
       const androidSettings =
           AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosSettings = DarwinInitializationSettings(
@@ -96,10 +130,10 @@ class NotificationService {
       );
 
       if (initialized == true) {
-        
         // Register Android notification channels
         await _createNotificationChannels();
       } else {
+        throw Exception('Local notifications initialization returned false');
       }
     } catch (e) {
       rethrow;
@@ -111,12 +145,11 @@ class NotificationService {
     if (!Platform.isAndroid) return;
     
     try {
-      
       final androidPlugin = _localNotifications.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
       
       if (androidPlugin == null) {
-        return;
+        throw Exception('Android plugin not available for notifications');
       }
 
       final channels = [
@@ -129,30 +162,6 @@ class NotificationService {
           enableVibration: true,
           enableLights: false,
           showBadge: true,
-        ),
-        const AndroidNotificationChannel(
-          'test_simple',
-          'Test Simple',
-          description: 'Simple test notifications',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: true,
-        ),
-        const AndroidNotificationChannel(
-          'test_scheduled',
-          'Test Scheduled',
-          description: 'Test scheduled notifications',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: true,
-        ),
-        const AndroidNotificationChannel(
-          'delayed_test',
-          'Delayed Test',
-          description: 'Delayed test notifications',
-          importance: Importance.high,
-          playSound: true,
-          enableVibration: true,
         ),
         const AndroidNotificationChannel(
           'workout_reminders',
@@ -265,7 +274,7 @@ class NotificationService {
           try {
             await Permission.scheduleExactAlarm.request();
           } catch (e) {
-            // Permission request failed, continue without schedule exact alarm
+            // Exact alarm permission request failed, but continue
           }
         }
         
@@ -274,6 +283,51 @@ class NotificationService {
     } catch (e) {
       return false;
     }
+  }
+
+  // Check if exact alarm permission is granted (Android 12+)
+  Future<bool> canScheduleExactAlarms() async {
+    if (!Platform.isAndroid) return true;
+    
+    try {
+      final status = await Permission.scheduleExactAlarm.status;
+      return status.isGranted;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Show user-friendly dialog for exact alarm permission
+  Future<bool> showExactAlarmPermissionDialog(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enable Scheduled Reminders'),
+          content: const Text(
+            'To receive scheduled reminders (workouts, meals, etc.), please enable "Alarms & reminders" permission in your phone settings.\n\n'
+            'Steps:\n'
+            '1. Tap "Open Settings" below\n'
+            '2. Find "Special app access"\n'
+            '3. Select "Alarms & reminders"\n'
+            '4. Enable permission for SolarVita'
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Later'),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(true);
+                await Permission.scheduleExactAlarm.request();
+              },
+              child: const Text('Open Settings'),
+            ),
+          ],
+        );
+      },
+    ) ?? false;
   }
 
   // Handle notification tap
@@ -367,7 +421,13 @@ class NotificationService {
     required DateTime scheduledTime,
     String? workoutType,
   }) async {
+    
     if (!await _isNotificationTypeEnabled(_workoutRemindersKey)) {
+      return;
+    }
+
+    // Check exact alarm permission for Android 12+
+    if (!await canScheduleExactAlarms()) {
       return;
     }
 
@@ -399,7 +459,23 @@ class NotificationService {
         'workoutType': workoutType,
       });
 
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      // Try multiple approaches to handle timezone properly
+      tz.TZDateTime tzScheduledTime;
+      try {
+        // First try: use local timezone
+        tzScheduledTime = tz.TZDateTime(
+          tz.local,
+          scheduledTime.year,
+          scheduledTime.month,
+          scheduledTime.day,
+          scheduledTime.hour,
+          scheduledTime.minute,
+        );
+      } catch (e) {
+        // Fallback: use from() method
+        tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      }
+      
       final notificationId = _generateNotificationId();
 
 
@@ -415,6 +491,7 @@ class NotificationService {
         payload: payload,
       );
 
+
     } catch (e) {
       rethrow;
     }
@@ -423,6 +500,11 @@ class NotificationService {
   // Schedule water reminder
   Future<void> scheduleWaterReminder() async {
     if (!await _isNotificationTypeEnabled(_waterRemindersKey)) {
+      return;
+    }
+
+    // Check exact alarm permission for Android 12+
+    if (!await canScheduleExactAlarms()) {
       return;
     }
 
@@ -460,6 +542,11 @@ class NotificationService {
     required String body,
   }) async {
     if (!await _isNotificationTypeEnabled(_waterRemindersKey)) {
+      return;
+    }
+
+    // Check exact alarm permission for Android 12+
+    if (!await canScheduleExactAlarms()) {
       return;
     }
 
@@ -601,13 +688,20 @@ class NotificationService {
     required DateTime scheduledTime,
     String? customMessage,
   }) async {
+    
     if (!await _isNotificationTypeEnabled(_mealRemindersKey)) {
+      return;
+    }
+
+    // Check exact alarm permission for Android 12+
+    if (!await canScheduleExactAlarms()) {
       return;
     }
 
     try {
       final title = _getMealReminderTitle(mealType);
       final body = customMessage ?? _getMealReminderBody(mealType);
+
 
       // Cancel any existing meal reminders for this type first
       await _cancelMealReminder(mealType);
@@ -639,7 +733,22 @@ class NotificationService {
         'mealType': mealType,
       });
 
-      final tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      // Try multiple approaches to handle timezone properly
+      tz.TZDateTime tzScheduledTime;
+      try {
+        // First try: use local timezone
+        tzScheduledTime = tz.TZDateTime(
+          tz.local,
+          scheduledTime.year,
+          scheduledTime.month,
+          scheduledTime.day,
+          scheduledTime.hour,
+          scheduledTime.minute,
+        );
+      } catch (e) {
+        // Fallback: use from() method
+        tzScheduledTime = tz.TZDateTime.from(scheduledTime, tz.local);
+      }
 
       // Use a consistent ID for each meal type so we can cancel/update them
       final notificationId = _getMealNotificationId(mealType);
@@ -658,6 +767,7 @@ class NotificationService {
         matchDateTimeComponents:
             DateTimeComponents.time, // This makes it repeat daily!
       );
+
 
     } catch (e) {
       rethrow;
@@ -1103,6 +1213,7 @@ class NotificationService {
       rethrow;
     }
   }
+
 
   /// Get random time within specified period
   DateTime _getRandomTimeInPeriod(String day, String period) {

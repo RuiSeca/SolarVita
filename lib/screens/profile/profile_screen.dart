@@ -7,9 +7,12 @@ import 'widgets/modern_weekly_summary.dart';
 import 'widgets/daily_goals_progress_widget.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
+import '../../providers/riverpod/user_progress_provider.dart';
+import '../../providers/riverpod/health_data_provider.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
 import 'supporter_requests_screen.dart';
+import '../../utils/translation_helper.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -28,6 +31,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _supporterRequestsStream = _socialService.getPendingSupporterRequests();
   }
 
+  Future<void> _refreshData() async {
+    // Refresh both user progress and health data
+    await Future.wait([
+      ref.read(userProgressNotifierProvider.notifier).refresh(),
+      ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
@@ -36,11 +47,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
         child: userProfileAsync.when(
-          data: (userProfile) => SingleChildScrollView(
-            physics: const BouncingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            child: Column(
+          data: (userProfile) => RefreshIndicator(
+            onRefresh: _refreshData,
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const ModernProfileHeader(),
@@ -55,6 +68,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const ModernAchievementsSection(),
                 const SizedBox(height: 32),
               ],
+            ),
             ),
           ),
           loading: () => const Center(
@@ -71,7 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Error loading profile',
+                  tr(context, 'error_loading_profile'),
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 8),
@@ -87,7 +101,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   onPressed: () {
                     ref.invalidate(userProfileNotifierProvider);
                   },
-                  child: const Text('Retry'),
+                  child: Text(tr(context, 'retry')),
                 ),
               ],
             ),
@@ -205,8 +219,8 @@ class _SupporterRequestCard extends StatelessWidget {
                     children: [
                       Text(
                         count == 1 
-                            ? 'You have 1 supporter request'
-                            : 'You have $count supporter requests',
+                            ? tr(context, 'you_have_one_supporter_request')
+                            : tr(context, 'you_have_supporter_requests').replaceAll('{count}', count.toString()),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.primaryColor,
@@ -214,7 +228,7 @@ class _SupporterRequestCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Tap to view and respond',
+                        tr(context, 'tap_to_view_and_respond'),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.primaryColor.withAlpha(179),
                         ),

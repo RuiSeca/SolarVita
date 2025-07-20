@@ -23,20 +23,26 @@ class HealthDataService {
       return [
         HealthDataType.STEPS,
         HealthDataType.ACTIVE_ENERGY_BURNED,
+        HealthDataType.TOTAL_CALORIES_BURNED,
         HealthDataType.HEART_RATE,
         HealthDataType.SLEEP_ASLEEP,
+        HealthDataType.SLEEP_DEEP,
+        HealthDataType.SLEEP_REM,
         HealthDataType.WATER,
         HealthDataType.WORKOUT,
+        HealthDataType.DISTANCE_DELTA,
       ];
     } else {
       // Android - using Health Connect compatible types
       return [
         HealthDataType.STEPS,
         HealthDataType.ACTIVE_ENERGY_BURNED,
+        HealthDataType.TOTAL_CALORIES_BURNED,
         HealthDataType.HEART_RATE,
         HealthDataType.SLEEP_ASLEEP,
         HealthDataType.WATER,
         HealthDataType.WORKOUT,
+        HealthDataType.DISTANCE_DELTA,
       ];
     }
   }
@@ -208,7 +214,7 @@ class HealthDataService {
       }
 
       // Process the health data
-      final healthData = _processHealthDataPoints(healthDataPoints);
+      final healthData = await _processHealthDataPoints(healthDataPoints);
       
       // Cache the data
       await _cacheHealthData(healthData);
@@ -222,7 +228,7 @@ class HealthDataService {
   }
 
   /// Process raw health data points into our HealthData model
-  HealthData _processHealthDataPoints(List<HealthDataPoint> dataPoints) {
+  Future<HealthData> _processHealthDataPoints(List<HealthDataPoint> dataPoints) async {
     int steps = 0;
     int activeMinutes = 0;
     int caloriesBurned = 0;
@@ -237,9 +243,11 @@ class HealthDataService {
 
     // Separate today's data from weekly averages
     int todaySteps = 0;
-    int todayCalories = 0;
+    int todayActiveCalories = 0;
+    int todayTotalCalories = 0;
     double todayWater = 0.0;
     int todayActiveMinutes = 0;
+    int todayMoveMinutes = 0;
 
     for (final point in dataPoints) {
       final pointDate = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
@@ -253,15 +261,23 @@ class HealthDataService {
             if (isToday) {
               todaySteps += stepValue;
             }
-            steps += stepValue; // Also accumulate weekly total
+            steps += stepValue;
             break;
             
           case HealthDataType.ACTIVE_ENERGY_BURNED:
             final calorieValue = (point.value as NumericHealthValue).numericValue.toInt();
             if (isToday) {
-              todayCalories += calorieValue;
+              todayActiveCalories += calorieValue;
             }
             caloriesBurned += calorieValue;
+            break;
+            
+          case HealthDataType.TOTAL_CALORIES_BURNED:
+            final totalCalorieValue = (point.value as NumericHealthValue).numericValue.toInt();
+            if (isToday) {
+              todayTotalCalories += totalCalorieValue;
+            }
+            caloriesBurned += totalCalorieValue;
             break;
             
           case HealthDataType.HEART_RATE:
@@ -271,9 +287,11 @@ class HealthDataService {
             break;
             
           case HealthDataType.SLEEP_ASLEEP:
+          case HealthDataType.SLEEP_DEEP:
+          case HealthDataType.SLEEP_REM:
             if (isToday || pointDate.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
               final duration = point.dateTo.difference(point.dateFrom);
-              sleepHours = duration.inMinutes / 60.0;
+              sleepHours += duration.inMinutes / 60.0;
             }
             break;
             
@@ -294,6 +312,21 @@ class HealthDataService {
             activeMinutes += minutes;
             break;
             
+            
+          case HealthDataType.DISTANCE_DELTA:
+            // For active minutes calculation based on movement
+            final distance = (point.value as NumericHealthValue).numericValue.toDouble();
+            final duration = point.dateTo.difference(point.dateFrom);
+            // If significant distance was covered, count as active time
+            if (distance > 100) { // 100 meters threshold
+              final minutes = duration.inMinutes;
+              if (isToday) {
+                todayActiveMinutes += minutes;
+              }
+              activeMinutes += minutes;
+            }
+            break;
+            
           default:
             break;
         }
@@ -305,17 +338,50 @@ class HealthDataService {
       heartRate = heartRate / heartRateCount;
     }
 
+    // Combine different active minutes sources
+    final totalTodayActiveMinutes = todayActiveMinutes + todayMoveMinutes;
+    final totalActiveMinutes = activeMinutes;
+
+    // Use best available calorie data (prefer total calories, fall back to active)
+    final todayBestCalories = todayTotalCalories > 0 ? todayTotalCalories : todayActiveCalories;
+    
+    // Combine health app water data with local tracking
+    final combinedWaterIntake = await _getCombinedWaterIntake(todayWater > 0 ? todayWater : waterIntake);
+    
     // Use today's data primarily, fall back to weekly averages if today is empty
     return HealthData(
       steps: todaySteps > 0 ? todaySteps : (steps / 7).round(),
-      activeMinutes: todayActiveMinutes > 0 ? todayActiveMinutes : (activeMinutes / 7).round(),
-      caloriesBurned: todayCalories > 0 ? todayCalories : (caloriesBurned / 7).round(),
+      activeMinutes: totalTodayActiveMinutes > 0 ? totalTodayActiveMinutes : (totalActiveMinutes / 7).round(),
+      caloriesBurned: todayBestCalories > 0 ? todayBestCalories : (caloriesBurned / 7).round(),
       sleepHours: sleepHours,
       heartRate: heartRate,
-      waterIntake: (todayWater > 0 ? todayWater : waterIntake) / 1000, // Convert ml to liters
+      waterIntake: combinedWaterIntake / 1000, // Convert ml to liters
       lastUpdated: DateTime.now(),
       isDataAvailable: dataPoints.isNotEmpty,
     );
+  }
+
+  /// Combine health app water data with local manual tracking
+  Future<double> _getCombinedWaterIntake(double healthAppWater) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      final lastDate = prefs.getString('water_last_date') ?? '';
+      
+      // Get local water intake for today
+      double localWaterIntake = 0.0;
+      if (lastDate == today) {
+        localWaterIntake = prefs.getDouble('water_intake') ?? 0.0;
+        localWaterIntake *= 1000; // Convert liters to ml
+      }
+      
+      // Use the higher value between health app and local tracking
+      // This handles cases where user manually tracks or health app tracks
+      return healthAppWater > localWaterIntake ? healthAppWater : localWaterIntake;
+    } catch (e) {
+      // If local water reading fails, use health app data
+      return healthAppWater;
+    }
   }
 
   /// Get cached health data or return empty data

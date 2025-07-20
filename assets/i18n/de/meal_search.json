@@ -1,4 +1,8 @@
 {
     "search_meals_hint": "Mahlzeiten suchen",
-    "discover_meals": "Mahlzeiten entdecken"
+    "discover_meals": "Mahlzeiten entdecken",
+    "loading_more_meals": "Lade mehr Mahlzeiten...",
+    "loading_meals": "Lade Mahlzeiten...",
+    "no_meals_found": "Keine Mahlzeiten gefunden",
+    "loading_details": "Lade Details..."
 }

@@ -92,7 +92,7 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Notification Receiver to handle alarms after reboot -->
+        <!-- Flutter Local Notifications receivers -->
         <receiver
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
             android:enabled="true"
@@ -104,6 +104,14 @@
                 <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
             </intent-filter>
         </receiver>
+
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+            
+        <receiver 
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver"
+            android:exported="false" />
 
         <!-- Required for Flutter engine -->
         <meta-data
