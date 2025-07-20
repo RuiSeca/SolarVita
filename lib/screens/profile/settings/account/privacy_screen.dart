@@ -10,6 +10,7 @@ import '../../../../widgets/common/lottie_loading_widget.dart';
 import '../../../../services/social_service.dart';
 import '../../../../models/privacy_settings.dart';
 import '../../../../models/social_activity.dart';
+import '../../../../services/supporter_profile_service.dart';
 
 class PrivacyScreen extends ConsumerStatefulWidget {
   const PrivacyScreen({super.key});
@@ -20,6 +21,7 @@ class PrivacyScreen extends ConsumerStatefulWidget {
 
 class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   final SocialService _socialService = SocialService();
+  final SupporterProfileService _supporterProfileService = SupporterProfileService();
   
   // Privacy settings state
   bool _dataCollection = true;
@@ -120,10 +122,22 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         allowChallengeInvites: allowChallengeInvites,
       );
 
+      // Update both old social service and new supporter profile service
       await _socialService.updatePrivacySettings(updatedSettings);
+      await _supporterProfileService.updatePrivacySettings(updatedSettings);
+      
       setState(() {
         _socialPrivacySettings = updatedSettings;
       });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Privacy settings updated successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -180,8 +194,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   Widget _buildSocialPrivacySection() {
     return _buildSection(
       context,
-      title: 'Social & Community Privacy',
-      subtitle: 'Control who can see your activities and profile',
+      title: 'Supporter Privacy Settings',
+      subtitle: 'Control what your supporters can see on your profile and in real-time',
       children: [
         _buildDefaultPostVisibilityTile(),
         _buildSwitchTile(
@@ -208,8 +222,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Show Workout Stats',
-          subtitle: 'Display workout metrics on your public profile',
+          title: 'Share Workout Stats with Supporters',
+          subtitle: 'Let supporters see your daily steps, calories, strikes, and fitness progress',
           value: _showWorkoutStats,
           onChanged: (value) {
             setState(() => _showWorkoutStats = value);
@@ -219,8 +233,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Show Nutrition Stats',
-          subtitle: 'Display meal and calorie information publicly',
+          title: 'Share Nutrition Stats with Supporters',
+          subtitle: 'Let supporters see your meal tracking and calorie information',
           value: _showNutritionStats,
           onChanged: (value) {
             setState(() => _showNutritionStats = value);
@@ -230,8 +244,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Show Eco Score',
-          subtitle: 'Display your sustainability score publicly',
+          title: 'Share Eco Score with Supporters',
+          subtitle: 'Let supporters see your sustainability score and eco-friendly actions',
           value: _showEcoScore,
           onChanged: (value) {
             setState(() => _showEcoScore = value);
@@ -241,8 +255,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Show Achievements',
-          subtitle: 'Display badges and milestones on profile',
+          title: 'Share Achievements with Supporters',
+          subtitle: 'Let supporters see your badges, milestones, and accomplishments',
           value: _showAchievements,
           onChanged: (value) {
             setState(() => _showAchievements = value);

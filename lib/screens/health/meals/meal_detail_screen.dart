@@ -22,6 +22,7 @@ class MealDetailScreen extends StatefulWidget {
   final bool isFavorite;
   final int? selectedDayIndex; // Add this
   final String? currentMealTime; // Add this
+  final bool isFromSupporter; // New field to identify supporter view
 
   const MealDetailScreen({
     super.key,
@@ -41,7 +42,30 @@ class MealDetailScreen extends StatefulWidget {
     this.isFavorite = false,
     this.selectedDayIndex,
     this.currentMealTime,
+    this.isFromSupporter = false,
   });
+
+  // Named constructor for supporter meal view
+  const MealDetailScreen.fromMeal({
+    super.key,
+    required Map<String, dynamic> meal,
+    this.isFromSupporter = false,
+  }) : mealId = '',
+       mealTitle = '',
+       imagePath = '',
+       calories = '',
+       nutritionFacts = const {},
+       ingredients = const [],
+       measures = const [],
+       instructions = const [],
+       area = null,
+       category = null,
+       isVegan = false,
+       youtubeUrl = null,
+       onFavoriteToggle = null,
+       isFavorite = false,
+       selectedDayIndex = null,
+       currentMealTime = null;
 
   @override
   State<MealDetailScreen> createState() => _MealDetailScreenState();

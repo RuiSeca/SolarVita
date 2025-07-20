@@ -43,6 +43,30 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == userId;
     }
     
+    // Allow reading user progress for supporters (privacy-aware)
+    match /user_progress/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow reading health data for supporters (privacy-aware)
+    match /health_data/{userId}/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow reading achievements for supporters (privacy-aware)
+    match /achievements/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow reading daily meals for supporters (privacy-aware)
+    match /daily_meals/{userId}/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
     // Allow reading social activities with privacy controls
     match /activities/{document} {
       allow read: if request.auth != null;

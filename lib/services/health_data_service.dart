@@ -4,6 +4,7 @@ import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/health_data.dart';
+import 'data_sync_service.dart';
 
 class HealthDataService {
   static final HealthDataService _instance = HealthDataService._internal();
@@ -219,6 +220,9 @@ class HealthDataService {
       // Cache the data
       await _cacheHealthData(healthData);
       await _updateLastSyncTime();
+      
+      // Sync to Firebase for supporters to see
+      await DataSyncService().syncHealthData(healthData);
       
       return healthData;
     } catch (e) {

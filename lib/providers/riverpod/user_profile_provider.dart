@@ -5,6 +5,7 @@ import '../../models/user_profile.dart';
 import '../../services/user_profile_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/social_service.dart';
+import '../../services/data_sync_service.dart';
 
 part 'user_profile_provider.g.dart';
 
@@ -81,9 +82,28 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       final userProfileService = ref.read(userProfileServiceProvider);
       final updatedProfile = await userProfileService.updateUserProfile(profile);
       
+      // Sync public profile data to Firebase for supporters
+      await _syncPublicProfileData(updatedProfile);
+      
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
       state = AsyncValue.error('Failed to update user profile: $e', StackTrace.current);
+    }
+  }
+
+  Future<void> _syncPublicProfileData(UserProfile profile) async {
+    try {
+      await DataSyncService().syncPublicProfile(
+        displayName: profile.displayName,
+        avatarUrl: profile.photoURL,
+        currentLevel: 1, // Default level - will be updated from UserProgress separately
+        currentStrikes: 0, // Default strikes - will be updated from UserProgress separately
+        ecoScore: 0.0, // Default eco score - will be calculated separately
+        supporterCount: profile.supportersCount,
+        supportingCount: 0, // Will be fetched from social service separately
+      );
+    } catch (e) {
+      // Don't throw - sync failures shouldn't block profile updates
     }
   }
 

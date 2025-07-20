@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 // Import Firebase options
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/data_sync_service.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -56,6 +57,17 @@ void main() async {
     await notificationService.initialize();
   } catch (e) {
     // Notification service initialization failed - continue without notifications
+  }
+
+  // Initialize data sync service for Firebase integration
+  if (isFirebaseAvailable) {
+    try {
+      final dataSyncService = DataSyncService();
+      await dataSyncService.initializePrivacySettings();
+      dataSyncService.startPeriodicSync();
+    } catch (e) {
+      // Data sync initialization failed - continue without sync
+    }
   }
 
   // Load environment variables (optional for CI/CD)
