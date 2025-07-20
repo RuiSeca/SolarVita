@@ -51,12 +51,14 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
 
   void _onSearchChanged() {
     _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () { // Reduced debounce time
-      final query = _searchController.text.trim();
-      if (query.isEmpty) {
-        ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
-      } else {
-        ref.read(mealNotifierProvider.notifier).searchMeals(query);
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        final query = _searchController.text.trim();
+        if (query.isEmpty) {
+          ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
+        } else {
+          ref.read(mealNotifierProvider.notifier).searchMeals(query);
+        }
       }
     });
   }
@@ -336,6 +338,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
       child: TextField(
         controller: _searchController,
         style: TextStyle(color: AppTheme.textColor(context)),
+        onChanged: (value) {
+          setState(() {}); // Trigger rebuild to show/hide clear button
+        },
         decoration: InputDecoration(
           hintText: tr(context, 'search_meals_hint'),
           hintStyle:
@@ -346,6 +351,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                   icon: Icon(Icons.clear, color: AppTheme.textColor(context)),
                   onPressed: () {
                     _searchController.clear();
+                    setState(() {}); // Trigger rebuild after clearing
                   },
                 )
               : null,
@@ -359,21 +365,22 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
 
   Widget _buildCategorySelector() {
     return Container(
-      height: 90,
+      height: 100, // Increased height to accommodate text
       margin: const EdgeInsets.only(top: 16),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: _categories.length,
-        itemExtent: 76.0, // Fixed width for horizontal category items (padding + icon/image width)
+        itemExtent: 80.0, // Increased width to accommodate longer category names
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = category['strCategory'] == _selectedCategory;
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: GestureDetector(
               onTap: () => _onCategorySelected(category['strCategory']!),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 60,
@@ -408,14 +415,19 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                           )
                         : null,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    category['strCategory']!,
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                  const SizedBox(height: 6),
+                  Flexible(
+                    child: Text(
+                      category['strCategory']!,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 11,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -569,25 +581,73 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
   Widget _buildMealCard(Map<String, dynamic> meal) {
     return GestureDetector(
       onTap: () async {
-        final formattedMeal = {
-          'id': meal['id'],
-          'titleKey': meal['titleKey'],
-          'imagePath': meal['imagePath'],
-          'calories': meal['calories'],
-          'nutritionFacts': {
-            'calories': meal['nutritionFacts']['calories'].toString(),
-            'protein': meal['nutritionFacts']['protein'],
-            'carbs': meal['nutritionFacts']['carbs'],
-            'fat': meal['nutritionFacts']['fat'],
-          },
-          'ingredients': meal['ingredients'],
-          'measures': meal['measures'],
-          'instructions': meal['instructions'],
-          'area': meal['area'],
-          'category': meal['category'],
-          'isVegan': meal['isVegan'] ?? false,
-          'isFavorite': meal['isFavorite'],
-        };
+        try {
+          // Get the meal ID
+          final mealId = meal['id'] ?? meal['idMeal'] ?? '';
+          
+          // Check if we have detailed data or just basic info
+          final hasDetailedData = meal['ingredients'] != null && 
+                                 meal['ingredients'] is List && 
+                                 (meal['ingredients'] as List).isNotEmpty &&
+                                 meal['nutritionFacts'] != null &&
+                                 meal['nutritionFacts']['calories'] != 'Loading...';
+          
+          Map<String, dynamic> formattedMeal;
+          
+          if (!hasDetailedData && mealId.isNotEmpty) {
+            // Show loading indicator while fetching details
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            );
+            
+            try {
+              // Fetch detailed meal data
+              final detailedMeal = await _mealService.getMealById(mealId);
+              if (mounted) {
+                Navigator.pop(context); // Close loading dialog
+              }
+              
+              formattedMeal = detailedMeal;
+            } catch (e) {
+              if (mounted) {
+                Navigator.pop(context); // Close loading dialog
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error loading meal details: ${e.toString()}'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+              return;
+            }
+          } else {
+            // Use existing data
+            formattedMeal = {
+              'id': meal['id'] ?? meal['idMeal'] ?? '',
+              'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
+              'imagePath': meal['imagePath'] ?? meal['strMealThumb'] ?? '',
+              'calories': meal['calories'] ?? 'Loading...',
+              'nutritionFacts': meal['nutritionFacts'] ?? {
+                'calories': 'Loading...',
+                'protein': 'Loading...',
+                'carbs': 'Loading...',
+                'fat': 'Loading...',
+              },
+              'ingredients': meal['ingredients'] ?? [],
+              'measures': meal['measures'] ?? [],
+              'instructions': meal['instructions'] ?? ['Loading...'],
+              'area': meal['area'] ?? meal['strArea'] ?? 'Unknown',
+              'category': meal['category'] ?? meal['strCategory'] ?? 'Unknown',
+              'isVegan': meal['isVegan'] ?? false,
+              'isFavorite': meal['isFavorite'] ?? false,
+            };
+          }
+
+          if (!mounted) return;
 
         final result = await Navigator.push<Map<String, dynamic>>(
           context,
@@ -605,7 +665,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               area: formattedMeal['area'],
               category: formattedMeal['category'],
               isVegan: formattedMeal['isVegan'],
-              youtubeUrl: meal['youtubeUrl'],
+              youtubeUrl: meal['youtubeUrl'] ?? meal['strYoutube'] ?? '',
               isFavorite: _favoriteMeals.contains(formattedMeal['id']),
               onFavoriteToggle: (id) => _toggleFavorite(id, formattedMeal),
               selectedDayIndex: widget.selectedDayIndex,
@@ -614,14 +674,25 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
           ),
         );
 
-        if (!mounted) return;
+          if (!mounted) return;
 
-        if (result != null) {
-          final mealPlanResult = {
-            ...result,
-            'meal': formattedMeal,
-          };
-          Navigator.of(context).pop(mealPlanResult);
+          if (result != null) {
+            final mealPlanResult = {
+              ...result,
+              'meal': formattedMeal,
+            };
+            Navigator.of(context).pop(mealPlanResult);
+          }
+        } catch (e) {
+          // Show error message to user
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error loading meal details: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       },
       child: Card(
@@ -629,9 +700,16 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: _buildMealCardContent(meal),
+      ),
+    );
+  }
+
+  Widget _buildMealCardContent(Map<String, dynamic> meal) {
+    try {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             Expanded(
               flex: 3,
               child: Stack(
@@ -640,9 +718,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(20),
                     ),
-                    child: _buildImageWidget(meal['imagePath']),
+                    child: _buildImageWidget(meal['imagePath'] ?? meal['strMealThumb'] ?? ''),
                   ),
-                  if (meal['isVegan'])
+                  if (meal['isVegan'] == true)
                     Positioned(
                       top: 8,
                       left: 8,
@@ -686,13 +764,13 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                       ),
                       child: IconButton(
                         icon: Icon(
-                          _favoriteMeals.contains(meal['id'])
+                          _favoriteMeals.contains(meal['id'] ?? meal['idMeal'])
                               ? Icons.favorite
                               : Icons.favorite_border,
-                          color: _favoriteMeals.contains(meal['id']) ? Colors.red : Colors.grey,
+                          color: _favoriteMeals.contains(meal['id'] ?? meal['idMeal']) ? Colors.red : Colors.grey,
                           size: 20,
                         ),
-                        onPressed: () => _toggleFavorite(meal['id'], meal),
+                        onPressed: () => _toggleFavorite(meal['id'] ?? meal['idMeal'], meal),
                         padding: const EdgeInsets.all(8),
                         constraints: const BoxConstraints(),
                       ),
@@ -709,7 +787,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      meal['titleKey'],
+                      meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
                       style: TextStyle(
                         color: AppTheme.textColor(context),
                         fontSize: 14,
@@ -742,7 +820,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                                 const SizedBox(width: 2),
                                 Flexible(
                                   child: Text(
-                                    meal['calories'],
+                                    meal['calories'] ?? 'Loading...',
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontSize: 10,
@@ -782,7 +860,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                                   const SizedBox(width: 2),
                                   Flexible(
                                     child: Text(
-                                      meal['area'],
+                                      meal['area'] ?? meal['strArea'] ?? 'Unknown',
                                       style: TextStyle(
                                         color: AppTheme.textColor(context),
                                         fontSize: 10,
@@ -802,9 +880,33 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               ),
             ),
           ],
+        );
+    } catch (e) {
+      // Return a fallback card
+      return SizedBox(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 32,
+                color: Colors.grey,
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Error loading meal',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override

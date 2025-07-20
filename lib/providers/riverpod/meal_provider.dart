@@ -20,6 +20,7 @@ class MealState {
   final String? errorMessage;
   final String? errorDetails;
   final bool isLoading;
+  final bool isLoadingDetails;
 
   const MealState({
     this.meals,
@@ -28,6 +29,7 @@ class MealState {
     this.errorMessage,
     this.errorDetails,
     this.isLoading = false,
+    this.isLoadingDetails = false,
   });
 
   MealState copyWith({
@@ -37,6 +39,7 @@ class MealState {
     String? errorMessage,
     String? errorDetails,
     bool? isLoading,
+    bool? isLoadingDetails,
   }) {
     return MealState(
       meals: meals ?? this.meals,
@@ -45,6 +48,7 @@ class MealState {
       errorMessage: errorMessage ?? this.errorMessage,
       errorDetails: errorDetails ?? this.errorDetails,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingDetails: isLoadingDetails ?? this.isLoadingDetails,
     );
   }
 
@@ -155,9 +159,13 @@ class MealNotifier extends _$MealNotifier {
         errorDetails: null,
       );
 
+      // Start loading detailed meal info in the background
+      _loadDetailedMealsInBackground(normalizedCategory, meals);
+
     } catch (e) {
       String errorMessage;
       String errorDetails;
+
 
       if (e is SocketException) {
         errorMessage = 'Network error';
@@ -165,6 +173,12 @@ class MealNotifier extends _$MealNotifier {
       } else if (e is TimeoutException) {
         errorMessage = 'Connection timeout';
         errorDetails = 'The server is taking too long to respond. Please try again later.';
+      } else if (e.toString().contains('Failed to load meal details')) {
+        errorMessage = 'Data loading error';
+        errorDetails = 'Some meals in this category could not be loaded. Please try again later.';
+      } else if (e.toString().contains('Failed to load category meals')) {
+        errorMessage = 'Category error';
+        errorDetails = 'Unable to load meals for this category. The category might be temporarily unavailable.';
       } else {
         errorMessage = 'Unexpected error';
         errorDetails = 'Something went wrong while loading meals. Please try again.';
@@ -176,6 +190,60 @@ class MealNotifier extends _$MealNotifier {
         errorMessage: errorMessage,
         errorDetails: errorDetails,
       );
+    }
+  }
+
+  // Load detailed meal information in the background
+  Future<void> _loadDetailedMealsInBackground(String category, List<Map<String, dynamic>> basicMeals) async {
+    try {
+      // Only load details for basic meals
+      final basicMealIds = basicMeals
+          .where((meal) => meal['isBasicInfo'] == true)
+          .map((meal) => meal['idMeal'] ?? meal['id'])
+          .where((id) => id != null)
+          .toList();
+
+      if (basicMealIds.isEmpty) return;
+
+      // Set loading details state
+      state = state.copyWith(isLoadingDetails: true);
+
+      final mealService = ref.read(mealServiceProvider);
+      final detailedMeals = await mealService.getMealsByCategoryDetailed(category);
+
+      // Only update if we're still on the same category
+      if (state.currentCategory == category && state.meals != null) {
+        // Merge detailed data with existing basic data
+        final updatedMeals = state.meals!.map((basicMeal) {
+          // Find corresponding detailed meal
+          final detailedMeal = detailedMeals.firstWhere(
+            (detailed) => detailed['id'] == (basicMeal['id'] ?? basicMeal['idMeal']),
+            orElse: () => <String, dynamic>{},
+          );
+
+          if (detailedMeal.isNotEmpty) {
+            // Replace basic meal with detailed meal data
+            return {
+              ...detailedMeal,
+              'isFavorite': basicMeal['isFavorite'] ?? false, // Preserve favorite status
+            };
+          }
+          return basicMeal; // Keep basic meal if no detailed version found
+        }).toList();
+
+        // Update state with detailed meals
+        state = state.copyWith(
+          meals: updatedMeals,
+          isLoadingDetails: false,
+        );
+
+        // Update cache with detailed meals
+        final cacheKey = 'category_${category.toLowerCase()}';
+        _cache[cacheKey] = updatedMeals;
+      }
+    } catch (e) {
+      // Just stop loading indicator, don't show error for background operation
+      state = state.copyWith(isLoadingDetails: false);
     }
   }
 
@@ -369,6 +437,7 @@ String? mealsErrorMessage(Ref ref) {
   return mealState.errorMessage;
 }
 
+
 @riverpod
 String? mealsErrorDetails(Ref ref) {
   final mealState = ref.watch(mealNotifierProvider);
@@ -391,4 +460,10 @@ String? currentMealQuery(Ref ref) {
 bool hasMealsData(Ref ref) {
   final mealState = ref.watch(mealNotifierProvider);
   return mealState.hasData;
+}
+
+@riverpod
+bool isMealsLoadingDetails(Ref ref) {
+  final mealState = ref.watch(mealNotifierProvider);
+  return mealState.isLoadingDetails;
 }

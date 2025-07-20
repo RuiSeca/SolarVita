@@ -143,14 +143,14 @@ class DailyGoals {
   final int stepsGoal;
   final int activeMinutesGoal;
   final int caloriesBurnGoal;
-  final int waterIntakeGoal; // in glasses
+  final double waterIntakeGoal; // in liters
   final int sleepHoursGoal;
 
   const DailyGoals({
     this.stepsGoal = 8000,
     this.activeMinutesGoal = 30,
     this.caloriesBurnGoal = 2000,
-    this.waterIntakeGoal = 8,
+    this.waterIntakeGoal = 2.0, // 8 glasses = 2 liters (250ml per glass)
     this.sleepHoursGoal = 8,
   });
 
@@ -158,7 +158,7 @@ class DailyGoals {
     int? stepsGoal,
     int? activeMinutesGoal,
     int? caloriesBurnGoal,
-    int? waterIntakeGoal,
+    double? waterIntakeGoal,
     int? sleepHoursGoal,
   }) {
     return DailyGoals(
@@ -175,7 +175,7 @@ class DailyGoals {
       stepsGoal: json['stepsGoal'] as int? ?? 8000,
       activeMinutesGoal: json['activeMinutesGoal'] as int? ?? 30,
       caloriesBurnGoal: json['caloriesBurnGoal'] as int? ?? 2000,
-      waterIntakeGoal: json['waterIntakeGoal'] as int? ?? 8,
+      waterIntakeGoal: (json['waterIntakeGoal'] as num?)?.toDouble() ?? 2.0,
       sleepHoursGoal: json['sleepHoursGoal'] as int? ?? 8,
     );
   }

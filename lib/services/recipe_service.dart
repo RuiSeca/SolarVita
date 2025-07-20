@@ -8,10 +8,47 @@ import '../config/mealdb_api_config.dart';
 class MealDBService {
   static String get baseUrl => MealDBApiConfig.baseUrl;
   static const int timeoutSeconds = 12; // Increased timeout for larger data loads
-  static const int maxRetries = 2; // Keep retries low for responsiveness
+  static const int maxRetries = 3; // Increased for 429 errors
   
   // Single persistent HTTP client for connection reuse
   static final http.Client _client = http.Client();
+  
+  // Rate limiting variables
+  static DateTime _lastRequestTime = DateTime.now();
+  static const int _minRequestInterval = 50; // Reduced to 50ms between requests for faster initial load
+  static final List<Completer<void>> _requestQueue = [];
+  static bool _isProcessingQueue = false;
+  
+  // Rate limiting method
+  static Future<void> _waitForRateLimit() async {
+    final completer = Completer<void>();
+    _requestQueue.add(completer);
+    
+    if (!_isProcessingQueue) {
+      _processRequestQueue();
+    }
+    
+    return completer.future;
+  }
+  
+  // Process the request queue with rate limiting
+  static Future<void> _processRequestQueue() async {
+    _isProcessingQueue = true;
+    
+    while (_requestQueue.isNotEmpty) {
+      final completer = _requestQueue.removeAt(0);
+      
+      final timeSinceLastRequest = DateTime.now().difference(_lastRequestTime).inMilliseconds;
+      if (timeSinceLastRequest < _minRequestInterval) {
+        await Future.delayed(Duration(milliseconds: _minRequestInterval - timeSinceLastRequest));
+      }
+      
+      _lastRequestTime = DateTime.now();
+      completer.complete();
+    }
+    
+    _isProcessingQueue = false;
+  }
   
   // Test method to verify API connection
   Future<bool> testApiConnection() async {
@@ -28,6 +65,9 @@ class MealDBService {
   }
 
   Future<http.Response> _makeRequest(String url, {int retryCount = 0}) async {
+    // Wait for rate limit before making request
+    await _waitForRateLimit();
+    
     try {
       final response = await _client.get(
         Uri.parse(url),
@@ -37,6 +77,17 @@ class MealDBService {
           'Connection': 'keep-alive', // Enable connection reuse
         },
       ).timeout(Duration(seconds: timeoutSeconds));
+      
+      // Handle 429 (Too Many Requests) with exponential backoff
+      if (response.statusCode == 429) {
+        if (retryCount < maxRetries) {
+          final backoffDelay = Duration(milliseconds: 1000 * (1 << retryCount)); // Exponential backoff: 1s, 2s, 4s
+          await Future.delayed(backoffDelay);
+          return _makeRequest(url, retryCount: retryCount + 1);
+        }
+        throw Exception('Rate limit exceeded. Please try again later.');
+      }
+      
       return response;
     } on SocketException catch (e) {
       if (retryCount < maxRetries) {
@@ -86,41 +137,95 @@ class MealDBService {
 
   Future<List<Map<String, dynamic>>> getMealsByCategory(String category) async {
     final response = await _makeRequest('$baseUrl/filter.php?c=$category');
+    
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
+      
+      if (data['meals'] != null) {
+        final mealList = data['meals'] as List;
+        
+        // Return basic meal info immediately for fast initial load
+        List<Map<String, dynamic>> basicMeals = mealList.map((meal) => {
+          'idMeal': meal['idMeal'] ?? '',
+          'strMeal': meal['strMeal'] ?? 'Unknown Meal',
+          'strMealThumb': meal['strMealThumb'] ?? '',
+          'isBasicInfo': true, // Flag to indicate this is basic info
+          'category': category,
+          // Add formatted data structure for compatibility
+          'id': meal['idMeal'] ?? '',
+          'titleKey': meal['strMeal'] ?? 'Unknown Meal',
+          'imagePath': meal['strMealThumb'] ?? '',
+          'calories': 'Loading...',
+          'nutritionFacts': {
+            'calories': 'Loading...',
+            'protein': 'Loading...',
+            'carbs': 'Loading...',
+            'fat': 'Loading...',
+          },
+          'ingredients': <String>[],
+          'measures': <String>[],
+          'instructions': <String>['Loading...'],
+          'area': 'Unknown',
+          'strArea': 'Unknown',
+          'strCategory': category,
+          'strTags': '',
+          'strYoutube': '',
+          'strSource': '',
+          'youtubeUrl': '',
+          'isVegan': false,
+          'isFavorite': false,
+        }).toList().cast<Map<String, dynamic>>();
+        
+        return basicMeals;
+      }
+      
+      // If data['meals'] is null, the category might not exist or be empty
+      return [];
+    }
+    
+    throw Exception('Failed to load category meals: Status ${response.statusCode}');
+  }
+
+  // Method to get full meal details for background loading
+  Future<List<Map<String, dynamic>>> getMealsByCategoryDetailed(String category) async {
+    final response = await _makeRequest('$baseUrl/filter.php?c=$category');
+    
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
       if (data['meals'] != null) {
         List<Map<String, dynamic>> meals = [];
-        final mealList = data['meals'] as List; // Get ALL meals, no artificial limit
+        final mealList = data['meals'] as List;
         
-        // Process meals in batches for better performance while loading all
-        const batchSize = 10;
+        // Process meals in smaller batches for background loading
+        const batchSize = 3; // Smaller batches for background processing
+        
         for (int i = 0; i < mealList.length; i += batchSize) {
           final batch = mealList.skip(i).take(batchSize).toList();
           
-          // Use parallel requests for each batch
-          final futures = batch.map((meal) async {
+          // Process batch sequentially to respect rate limits
+          for (var meal in batch) {
             try {
-              return await getMealById(meal['idMeal']);
+              final mealData = await getMealById(meal['idMeal']);
+              meals.add(mealData);
             } catch (e) {
-              return null; // Return null for failed requests
+              // Continue with next meal instead of giving up
             }
-          }).toList();
+          }
           
-          final results = await Future.wait(futures);
-          
-          // Filter out null results and add to meals list
-          for (var meal in results) {
-            if (meal != null) {
-              meals.add(meal);
-            }
+          // Longer delay between batches for background loading
+          if (i + batchSize < mealList.length) {
+            await Future.delayed(Duration(milliseconds: 200));
           }
         }
         
         return meals;
       }
+      
       return [];
     }
-    throw Exception('Failed to load category meals: Status ${response.statusCode}');
+    
+    throw Exception('Failed to load detailed category meals: Status ${response.statusCode}');
   }
 
   Future<List<Map<String, dynamic>>> getCategories() async {
@@ -157,7 +262,7 @@ class MealDBService {
   }
 
   /// Get all meals by fetching from multiple categories (for "All" tab)
-  Future<List<Map<String, dynamic>>> getAllMeals({int limit = 200}) async {
+  Future<List<Map<String, dynamic>>> getAllMeals({int limit = 50}) async {
     try {
       List<Map<String, dynamic>> allMeals = [];
       
@@ -178,7 +283,8 @@ class MealDBService {
         final futures = categoryBatch.map((category) async {
           try {
             final categoryMeals = await getMealsByCategory(category);
-            return categoryMeals; // Return ALL meals from each category
+            // Take only first 3 meals from each category to ensure variety and performance
+            return categoryMeals.take(3).toList();
           } catch (e) {
             return <Map<String, dynamic>>[];
           }
@@ -190,8 +296,14 @@ class MealDBService {
         for (var categoryMeals in results) {
           for (var meal in categoryMeals) {
             if (allMeals.length >= limit) break;
-            // Avoid duplicates
-            if (!allMeals.any((existing) => existing['id']?.toString() == meal['id']?.toString())) {
+            // Avoid duplicates - check both id and idMeal fields
+            final mealId = meal['id']?.toString() ?? meal['idMeal']?.toString();
+            
+            bool hasDuplicate(Map<String, dynamic> existing) => 
+                existing['id']?.toString() == mealId || 
+                existing['idMeal']?.toString() == mealId;
+            
+            if (mealId != null && !allMeals.any(hasDuplicate)) {
               allMeals.add(meal);
             }
           }

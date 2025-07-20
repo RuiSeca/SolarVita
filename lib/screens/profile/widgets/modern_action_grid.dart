@@ -4,6 +4,7 @@ import '../add_friend_screen.dart';
 import '../supporters_list_screen.dart';
 import '../friend_activity_feed_screen.dart';
 import 'dart:ui';
+import '../../../utils/translation_helper.dart';
 
 class ModernActionGrid extends StatelessWidget {
   const ModernActionGrid({super.key});
@@ -16,7 +17,7 @@ class ModernActionGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quick Actions',
+            tr(context, 'quick_actions'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 20,
@@ -35,8 +36,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.fitness_center_outlined,
-                title: 'Log Workout',
-                subtitle: 'Track your fitness',
+                title: tr(context, 'log_workout'),
+                subtitle: tr(context, 'track_your_fitness'),
                 gradient: [Colors.orange, Colors.deepOrange],
                 onTap: () {
                   // Navigate to workout logging
@@ -45,8 +46,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.restaurant_outlined,
-                title: 'Add Meal',
-                subtitle: 'Log your nutrition',
+                title: tr(context, 'add_meal'),
+                subtitle: tr(context, 'log_your_nutrition'),
                 gradient: [Colors.green, Colors.teal],
                 onTap: () {
                   // Navigate to meal logging
@@ -55,8 +56,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.person_add_outlined,
-                title: 'Add Supporter',
-                subtitle: 'Grow your network',
+                title: tr(context, 'add_supporter'),
+                subtitle: tr(context, 'grow_your_network'),
                 gradient: [Colors.blue, Colors.indigo],
                 onTap: () {
                   Navigator.push(
@@ -70,8 +71,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.groups_outlined,
-                title: 'View Supporters',
-                subtitle: 'See your community',
+                title: tr(context, 'view_supporters'),
+                subtitle: tr(context, 'see_your_community'),
                 gradient: [Colors.purple, Colors.deepPurple],
                 onTap: () {
                   Navigator.push(
@@ -85,8 +86,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.timeline_outlined,
-                title: 'Activity Feed',
-                subtitle: 'See updates',
+                title: tr(context, 'activity_feed'),
+                subtitle: tr(context, 'see_updates'),
                 gradient: [Colors.pink, Colors.red],
                 onTap: () {
                   Navigator.push(
@@ -100,8 +101,8 @@ class ModernActionGrid extends StatelessWidget {
               _buildModernActionCard(
                 context,
                 icon: Icons.eco_outlined,
-                title: 'Eco Impact',
-                subtitle: 'View your progress',
+                title: tr(context, 'eco_impact'),
+                subtitle: tr(context, 'view_your_progress'),
                 gradient: [AppColors.primary, Colors.lightGreen],
                 onTap: () {
                   // Navigate to eco impact screen

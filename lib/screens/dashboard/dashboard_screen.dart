@@ -34,7 +34,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         });
       }
     } catch (e) {
-      debugPrint('Error picking image: $e');
+      // Image picker failed - continue without updating profile image
     }
   }
 

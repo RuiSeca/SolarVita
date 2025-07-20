@@ -50,7 +50,6 @@ class AppLocalizations {
       }
       return true;
     } catch (e) {
-      debugPrint('❌ Error loading language files: $e');
       return false;
     }
   }
@@ -64,7 +63,6 @@ class AppLocalizations {
 
       return jsonMap.map((key, value) => MapEntry(key, value.toString()));
     } catch (e) {
-      debugPrint('⚠️ Warning: Missing translation file: $fileName.json');
       return {}; // Return an empty map instead of crashing
     }
   }
@@ -72,8 +70,6 @@ class AppLocalizations {
   String translate(String key) {
     final String? value = _localizedStrings[key];
     if (value == null) {
-      debugPrint(
-          '⚠️ Missing translation for key: $key in ${locale.languageCode}');
       return key; // Return the key itself if no translation is found
     }
     return value;

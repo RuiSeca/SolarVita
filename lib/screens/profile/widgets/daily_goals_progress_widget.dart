@@ -115,36 +115,36 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     final goals = [
       _GoalItem(
         type: GoalType.steps,
-        current: healthData.steps,
-        target: progress.dailyGoals.stepsGoal,
+        current: healthData.steps.toDouble(),
+        target: progress.dailyGoals.stepsGoal.toDouble(),
         unit: 'steps',
         isCompleted: ref.watch(isGoalCompletedProvider(GoalType.steps)),
       ),
       _GoalItem(
         type: GoalType.activeMinutes,
-        current: healthData.activeMinutes,
-        target: progress.dailyGoals.activeMinutesGoal,
+        current: healthData.activeMinutes.toDouble(),
+        target: progress.dailyGoals.activeMinutesGoal.toDouble(),
         unit: 'min',
         isCompleted: ref.watch(isGoalCompletedProvider(GoalType.activeMinutes)),
       ),
       _GoalItem(
         type: GoalType.caloriesBurn,
-        current: healthData.caloriesBurned,
-        target: progress.dailyGoals.caloriesBurnGoal,
+        current: healthData.caloriesBurned.toDouble(),
+        target: progress.dailyGoals.caloriesBurnGoal.toDouble(),
         unit: 'cal',
         isCompleted: ref.watch(isGoalCompletedProvider(GoalType.caloriesBurn)),
       ),
       _GoalItem(
         type: GoalType.waterIntake,
-        current: healthData.waterIntake.round(),
+        current: healthData.waterIntake,
         target: progress.dailyGoals.waterIntakeGoal,
-        unit: 'glasses',
+        unit: 'L',
         isCompleted: ref.watch(isGoalCompletedProvider(GoalType.waterIntake)),
       ),
       _GoalItem(
         type: GoalType.sleepQuality,
-        current: healthData.sleepHours.round(),
-        target: progress.dailyGoals.sleepHoursGoal,
+        current: healthData.sleepHours,
+        target: progress.dailyGoals.sleepHoursGoal.toDouble(),
         unit: 'hrs',
         isCompleted: ref.watch(isGoalCompletedProvider(GoalType.sleepQuality)),
       ),
@@ -262,7 +262,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      '${goal.current}/${goal.target} ${goal.unit}',
+                      _formatGoalProgress(goal),
                       style: TextStyle(
                         fontSize: 12,
                         color: AppColors.textSecondary,
@@ -337,6 +337,15 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     );
   }
 
+  String _formatGoalProgress(_GoalItem goal) {
+    // Format numbers based on type - water intake shows 1 decimal, others show whole numbers
+    if (goal.type == GoalType.waterIntake) {
+      return '${goal.current.toStringAsFixed(1)}/${goal.target.toStringAsFixed(1)} ${goal.unit}';
+    } else {
+      return '${goal.current.toInt()}/${goal.target.toInt()} ${goal.unit}';
+    }
+  }
+
   Color _getMultiplierColor(int multiplier) {
     switch (multiplier) {
       case 1: return Colors.grey;
@@ -351,8 +360,8 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
 
 class _GoalItem {
   final GoalType type;
-  final int current;
-  final int target;
+  final double current;
+  final double target;
   final String unit;
   final bool isCompleted;
 

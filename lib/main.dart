@@ -37,32 +37,25 @@ void main() async {
   // Initialize logging
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    debugPrint(
-        '[${record.level.name}] ${record.time}: ${record.loggerName}: ${record.message}');
+    // Logging configured - remove debugPrint for production
   });
 
   // Initialize Firebase (graceful handling for test/CI environments)
-  bool firebaseInitialized = false;
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    firebaseInitialized = true;
     isFirebaseAvailable = true;
-    debugPrint("Firebase initialized successfully");
   } catch (e) {
-    debugPrint("Firebase initialization failed (test environment): $e");
     // Continue without Firebase for testing
   }
-  
-  // Initialize notification service only if Firebase is working
-  if (firebaseInitialized) {
-    try {
-      final notificationService = NotificationService();
-      await notificationService.initialize();
-    } catch (e) {
-      debugPrint("Notification service initialization failed: $e");
-    }
+
+  // Initialize notification service (local notifications work without Firebase)
+  try {
+    final notificationService = NotificationService();
+    await notificationService.initialize();
+  } catch (e) {
+    // Notification service initialization failed - continue without notifications
   }
 
   // Load environment variables (optional for CI/CD)
@@ -70,7 +63,6 @@ void main() async {
     await dotenv.load(fileName: ".env");
   } catch (e) {
     // .env file not found, using environment variables from system
-    debugPrint("No .env file found, using system environment variables");
   }
 
   runApp(
@@ -101,9 +93,8 @@ class SolarVitaApp extends ConsumerWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           locale: locale,
-          supportedLocales: supportedLanguages
-              .map((lang) => Locale(lang.code))
-              .toList(),
+          supportedLocales:
+              supportedLanguages.map((lang) => Locale(lang.code)).toList(),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -130,7 +121,8 @@ class SolarVitaApp extends ConsumerWidget {
     );
   }
 
-  Widget _buildHomeScreen(WidgetRef ref, AsyncValue<User?> authState, AsyncValue<UserProfile?> userProfileAsync) {
+  Widget _buildHomeScreen(WidgetRef ref, AsyncValue<User?> authState,
+      AsyncValue<UserProfile?> userProfileAsync) {
     return authState.when(
       data: (user) {
         if (user == null) {
@@ -190,7 +182,8 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
   const MainNavigationScreen({super.key});
 
   @override
-  ConsumerState<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  ConsumerState<MainNavigationScreen> createState() =>
+      _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
@@ -252,7 +245,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.assistant),
-            label: 'AI Assistant',
+            label: 'Solar AI',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -263,4 +256,3 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 }
-

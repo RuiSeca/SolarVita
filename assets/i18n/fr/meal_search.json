@@ -1,4 +1,8 @@
 {
     "search_meals_hint": "Rechercher des Repas",
-    "discover_meals": "Découvrir des Repas"
+    "discover_meals": "Découvrir des Repas",
+    "loading_more_meals": "Chargement de plus de repas...",
+    "loading_meals": "Chargement des repas...",
+    "no_meals_found": "Aucun repas trouvé",
+    "loading_details": "Chargement des détails..."
 }

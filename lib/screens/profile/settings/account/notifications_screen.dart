@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
@@ -87,7 +88,21 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     }
   }
 
+  Future<void> _checkExactAlarmPermission() async {
+    if (Platform.isAndroid) {
+      final canSchedule = await _notificationService.canScheduleExactAlarms();
+      if (!canSchedule && mounted) {
+        await _notificationService.showExactAlarmPermissionDialog(context);
+      }
+    }
+  }
+
   Future<void> _scheduleNotifications() async {
+    
+    // Check exact alarm permission first
+    await _checkExactAlarmPermission();
+    
+    
     if (_preferences.workoutSettings.enabled) {
       await _scheduleWorkoutNotifications();
     }
@@ -99,6 +114,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _scheduleWorkoutNotifications() async {
     final userProfileProvider = ref.read(userProfileNotifierProvider);
     final workoutPrefs = userProfileProvider.value?.workoutPreferences;
+    
     
     if (workoutPrefs != null) {
       final settings = _preferences.workoutSettings;
@@ -115,20 +131,26 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           
           scheduledTime = scheduledTime.subtract(Duration(minutes: settings.advanceMinutes));
           
-          await _notificationService.scheduleWorkoutReminder(
-            title: '🏋️ Workout Reminder',
-            body: 'Time for your ${workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : "workout"} session!',
-            scheduledTime: scheduledTime,
-            workoutType: workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : 'general',
-          );
+          try {
+            await _notificationService.scheduleWorkoutReminder(
+              title: '🏋️ Workout Reminder',
+              body: 'Time for your ${workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : "workout"} session!',
+              scheduledTime: scheduledTime,
+              workoutType: workoutPrefs.preferredWorkoutTypes.isNotEmpty ? workoutPrefs.preferredWorkoutTypes.first : 'general',
+            );
+          } catch (e) {
+            // Failed to schedule workout notification, continue with others
+          }
         }
       }
+    } else {
     }
   }
 
   Future<void> _scheduleMealNotifications() async {
     final userProfileProvider = ref.read(userProfileNotifierProvider);
     final dietaryPrefs = userProfileProvider.value?.dietaryPreferences;
+    
     
     for (final meal in _preferences.mealSettings.mealConfigs.entries) {
       if (meal.value.enabled) {
@@ -146,6 +168,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             'snacks': dietaryPrefs.snackTime,
           };
           
+          
           if (mealTimes[meal.key] != null) {
             final timeOfDay = _parseTimeOfDay(mealTimes[meal.key]!);
             scheduledDateTime = _getNextOccurrenceOfTime('today', timeOfDay);
@@ -161,11 +184,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         // Apply advance notice
         scheduledDateTime = scheduledDateTime.subtract(Duration(minutes: meal.value.advanceMinutes));
         
-        await _notificationService.scheduleMealReminder(
-          mealType: meal.key,
-          scheduledTime: scheduledDateTime,
-          customMessage: meal.value.customMealName,
-        );
+        try {
+          await _notificationService.scheduleMealReminder(
+            mealType: meal.key,
+            scheduledTime: scheduledDateTime,
+            customMessage: meal.value.customMealName,
+          );
+        } catch (e) {
+          // Failed to schedule meal notification, continue with others
+        }
       }
     }
   }
@@ -182,11 +209,14 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   DateTime _getNextOccurrenceOfTime(String dayName, TimeOfDay time) {
     final now = DateTime.now();
     
+    
     if (dayName.toLowerCase() == 'today') {
       // For meal times, use today or tomorrow if time has passed
       final targetTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-      if (targetTime.isBefore(now)) {
-        return targetTime.add(const Duration(days: 1));
+      
+      if (targetTime.isBefore(now) || targetTime.isAtSameMomentAs(now)) {
+        final nextDay = targetTime.add(const Duration(days: 1));
+        return nextDay;
       }
       return targetTime;
     }
@@ -194,16 +224,25 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     final targetDay = weekdays.indexOf(dayName.toLowerCase());
     
-    if (targetDay == -1) return now;
+    if (targetDay == -1) {
+      return now;
+    }
     
-    final today = now.weekday - 1;
+    final today = now.weekday - 1; // Convert to 0-based index
     int daysUntilTarget = (targetDay - today) % 7;
-    if (daysUntilTarget == 0 && TimeOfDay.now().hour * 60 + TimeOfDay.now().minute >= time.hour * 60 + time.minute) {
-      daysUntilTarget = 7;
+    
+    // If it's the same day, check if the time has passed
+    if (daysUntilTarget == 0) {
+      final todayAtTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+      if (todayAtTime.isBefore(now) || todayAtTime.isAtSameMomentAs(now)) {
+        daysUntilTarget = 7; // Schedule for next week
+      }
     }
     
     final targetDate = now.add(Duration(days: daysUntilTarget));
-    return DateTime(targetDate.year, targetDate.month, targetDate.day, time.hour, time.minute);
+    final result = DateTime(targetDate.year, targetDate.month, targetDate.day, time.hour, time.minute);
+    
+    return result;
   }
 
   DateTime _getRandomTimeInPeriod(String dayName, String period) {
@@ -292,8 +331,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             _buildMealSection(),
             const SizedBox(height: 16),
             _buildOtherNotificationsSection(),
-            const SizedBox(height: 16),
-            _buildTestSection(),
             const SizedBox(height: 16),
             _buildHelpSection(),
             const SizedBox(height: 24),
@@ -692,23 +729,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     );
   }
 
-  Widget _buildTestSection() {
-    return _buildSection(
-      title: 'Notification Status',
-      icon: Icons.notifications_active,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          'Notification settings have been configured. Your personalized reminders will appear based on your preferences above.',
-          style: TextStyle(
-            color: AppTheme.textColor(context).withValues(alpha: 0.7),
-            fontSize: 14,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ),
-    );
-  }
 
   Widget _buildHelpSection() {
     return _buildSection(
