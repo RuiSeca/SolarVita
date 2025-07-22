@@ -104,11 +104,11 @@ class _RiveEmojiWidgetState extends State<RiveEmojiWidget> {
       debugPrint('🎬 Playing animation: ${widget.emojiType.animationName}');
     } catch (e) {
       debugPrint('❌ Animation "${widget.emojiType.animationName}" not found in Rive file: $e');
-      // For now, try to fallback to "Inspiring" if it exists
+      // Try fallback to "Animation 1" if the current name fails
       try {
-        _controller = SimpleAnimation('Inspiring');
+        _controller = SimpleAnimation('Animation 1');
         _artboard!.addController(_controller!);
-        debugPrint('🔄 Fallback to Inspiring animation');
+        debugPrint('🔄 Fallback to Animation 1');
       } catch (fallbackError) {
         debugPrint('❌ Fallback animation also failed: $fallbackError');
       }
@@ -141,21 +141,9 @@ enum EmojiType {
   relating;
 
   String get animationName {
-    // TODO: Create these animations in Rive Editor (odin_emojis.riv):
-    // - "Relating" for 1x strikes
-    // - "Neutral" for 2x strikes  
-    // - "Laughing" for 5x strikes
-    // Currently only "Inspiring" exists, so using it as fallback
-    switch (this) {
-      case EmojiType.relating:
-        return 'Inspiring'; // TODO: Change to 'Relating' when animation is created
-      case EmojiType.neutral:
-        return 'Inspiring'; // TODO: Change to 'Neutral' when animation is created
-      case EmojiType.inspiring:
-        return 'Inspiring'; // 3x-4x strikes - this animation exists
-      case EmojiType.laughing:
-        return 'Inspiring'; // TODO: Change to 'Laughing' when animation is created
-    }
+    // Odin Emojis pack uses "Animation 1" which cycles through different expressions
+    // All emoji types use the same animation name since it's a cycling animation
+    return 'Animation 1';
   }
 
   String get fallbackEmoji {

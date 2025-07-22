@@ -49,15 +49,11 @@ class SocialService {
       return Stream.value([]);
     }
 
+    // Simplified query to avoid complex index requirements
     return _firestore
         .collection('activities')
-        .where('visibility', whereIn: [
-          PostVisibility.supportersOnly.index,
-          PostVisibility.community.index,
-          PostVisibility.public.index
-        ])
         .orderBy('createdAt', descending: true)
-        .limit(limit)
+        .limit(limit * 2) // Get more to filter locally
         .snapshots()
         .asyncMap((snapshot) async {
           final activities = <SocialActivity>[];
@@ -77,18 +73,22 @@ class SocialService {
   }
 
   Stream<List<SocialActivity>> getCommunityFeed({int limit = 20}) {
+    // Simplified query to avoid complex index requirements  
     return _firestore
         .collection('activities')
-        .where('visibility', whereIn: [
-          PostVisibility.community.index,
-          PostVisibility.public.index
-        ])
         .orderBy('createdAt', descending: true)
-        .limit(limit)
+        .limit(limit * 2) // Get more to filter locally
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SocialActivity.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final activities = snapshot.docs
+              .map((doc) => SocialActivity.fromFirestore(doc))
+              .where((activity) => 
+                  activity.visibility == PostVisibility.community ||
+                  activity.visibility == PostVisibility.public)
+              .take(limit)
+              .toList();
+          return activities;
+        });
   }
 
   Future<void> likeActivity(String activityId) async {
@@ -499,15 +499,20 @@ class SocialService {
 
   // Challenge Methods
   Stream<List<CommunityChallenge>> getActiveChallenges() {
+    // Simplified query to avoid complex index requirements
     return _firestore
         .collection('challenges')
-        .where('status', isEqualTo: ChallengeStatus.active.index)
         .orderBy('startDate', descending: true)
-        .limit(10)
+        .limit(20) // Get more to filter locally
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => CommunityChallenge.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final challenges = snapshot.docs
+              .map((doc) => CommunityChallenge.fromFirestore(doc))
+              .where((challenge) => challenge.status == ChallengeStatus.active)
+              .take(10)
+              .toList();
+          return challenges;
+        });
   }
 
   Future<void> joinChallenge(String challengeId) async {

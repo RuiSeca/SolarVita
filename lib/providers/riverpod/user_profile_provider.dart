@@ -6,8 +6,24 @@ import '../../services/user_profile_service.dart';
 import '../../services/auth_service.dart';
 import '../../services/social_service.dart';
 import '../../services/data_sync_service.dart';
+import 'user_progress_provider.dart';
+import 'health_data_provider.dart';
+import '../../models/user_progress.dart';
+import '../../models/health_data.dart';
 
 part 'user_profile_provider.g.dart';
+
+// Combined profile data model for performance optimization
+class ProfileData {
+  final UserProfile? profile;
+  final UserProgress? progress;
+  final HealthData? healthData;
+
+  const ProfileData(this.profile, this.progress, this.healthData);
+
+  bool get isLoading => profile == null || progress == null;
+  bool get hasHealthData => healthData != null;
+}
 
 // Service providers
 @riverpod
@@ -211,6 +227,30 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       rethrow;
     }
   }
+}
+
+// Combined profile data provider - simple function-based approach
+@riverpod
+Future<ProfileData> profileData(Ref ref) async {
+  // Import the other providers
+  final profileFuture = ref.watch(userProfileNotifierProvider.future);
+  final progressFuture = ref.watch(userProgressNotifierProvider.future);
+  final healthDataFuture = ref.watch(healthDataNotifierProvider.future);
+  
+  // Get profile and progress data
+  final profile = await profileFuture;
+  final progress = await progressFuture;
+  
+  // Handle health data separately to allow null values
+  HealthData? healthData;
+  try {
+    healthData = await healthDataFuture;
+  } catch (e) {
+    // Health data can fail gracefully
+    healthData = null;
+  }
+  
+  return ProfileData(profile, progress, healthData);
 }
 
 // Convenience providers for common profile data

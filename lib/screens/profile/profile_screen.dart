@@ -29,12 +29,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _supporterRequestsStream = _socialService.getPendingSupporterRequests();
+    _initializeCachedStream();
     
     // Sync data to Firebase when profile loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncCurrentDataToFirebase();
     });
+  }
+
+  void _initializeCachedStream() {
+    _supporterRequestsStream = _socialService.getPendingSupporterRequests();
   }
 
   Future<void> _refreshData() async {
@@ -44,8 +48,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
     ]);
     
+    // Invalidate providers for refresh
+    
     // Sync current data to Firebase so supporters can see it
     await _syncCurrentDataToFirebase();
+    
+    // Refresh supporter requests cache
+    _initializeCachedStream();
   }
 
   Future<void> _syncCurrentDataToFirebase() async {
@@ -142,17 +151,48 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
 }
 
-class _SupporterRequestNotification extends StatelessWidget {
+class _SupporterRequestNotification extends StatefulWidget {
   const _SupporterRequestNotification({required this.stream});
   
   final Stream<List<SupporterRequest>> stream;
 
   @override
+  State<_SupporterRequestNotification> createState() => _SupporterRequestNotificationState();
+}
+
+class _SupporterRequestNotificationState extends State<_SupporterRequestNotification> {
+  List<SupporterRequest>? _cachedRequests;
+  DateTime? _lastUpdate;
+  
+  // Cache duration - only update every 30 seconds to reduce rebuilds
+  static const _cacheDuration = Duration(seconds: 30);
+
+  @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<SupporterRequest>>(
-      stream: stream,
+      stream: widget.stream,
       builder: (context, snapshot) {
-        final pendingRequests = snapshot.data ?? [];
+        final now = DateTime.now();
+        
+        // Use cached data if it's recent and valid
+        if (_cachedRequests != null && 
+            _lastUpdate != null && 
+            now.difference(_lastUpdate!) < _cacheDuration) {
+          final pendingRequests = _cachedRequests!;
+          
+          if (pendingRequests.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return _SupporterRequestCard(count: pendingRequests.length);
+        }
+        
+        // Update cache with new data
+        if (snapshot.hasData && snapshot.data != null) {
+          _cachedRequests = snapshot.data!;
+          _lastUpdate = now;
+        }
+        
+        final pendingRequests = snapshot.data ?? _cachedRequests ?? [];
         
         if (pendingRequests.isEmpty) {
           return const SizedBox.shrink();

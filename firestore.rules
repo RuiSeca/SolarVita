@@ -122,6 +122,40 @@ service cloud.firestore {
       allow write: if request.auth != null;
     }
     
+    // Allow authenticated users to manage tribes
+    match /tribes/{document} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.creatorId == request.auth.uid;
+      allow update: if request.auth != null 
+        && (resource.data.creatorId == request.auth.uid 
+            || resource.data.adminIds.hasAny([request.auth.uid]));
+      allow delete: if request.auth != null 
+        && resource.data.creatorId == request.auth.uid;
+    }
+    
+    // Allow tribe members to manage tribe memberships
+    match /tribeMembers/{document} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null 
+        && resource.data.userId == request.auth.uid;
+    }
+    
+    // Allow tribe members to manage tribe posts
+    match /tribePosts/{document} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null 
+        && request.resource.data.authorId == request.auth.uid;
+      allow update: if request.auth != null 
+        && resource.data.authorId == request.auth.uid;
+      allow delete: if request.auth != null 
+        && resource.data.authorId == request.auth.uid;
+    }
+    
     // Deny all other access
     match /{document=**} {
       allow read, write: if false;
