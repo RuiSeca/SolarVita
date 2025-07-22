@@ -32,6 +32,7 @@
     <uses-permission android:name="android.permission.health.READ_HYDRATION"/>
     <uses-permission android:name="android.permission.health.READ_EXERCISE"/>
     <uses-permission android:name="android.permission.health.READ_DISTANCE"/>
+    <uses-permission android:name="android.permission.health.READ_EXERCISE_ROUTE"/>
     
     <!-- Write permissions for logging user data -->
     <uses-permission android:name="android.permission.health.WRITE_STEPS"/>

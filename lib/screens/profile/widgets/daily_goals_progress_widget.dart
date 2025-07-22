@@ -4,6 +4,7 @@ import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
 import '../../../providers/riverpod/health_data_provider.dart';
 import '../../../models/user_progress.dart';
+import '../../../widgets/common/rive_emoji_widget.dart';
 
 class DailyGoalsProgressWidget extends ConsumerWidget {
   const DailyGoalsProgressWidget({super.key});
@@ -52,32 +53,30 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
                   ),
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getMultiplierColor(progress.todayMultiplier),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${progress.todayMultiplier}x',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getMultiplierColor(progress.todayMultiplier),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${progress.todayMultiplier}x',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              ref.watch(progressSummaryProvider),
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            _buildProgressSummaryWithEmoji(progress),
             const SizedBox(height: 20),
             _buildGoalsList(progress, healthDataAsync.value, ref),
             const SizedBox(height: 16),
@@ -308,12 +307,17 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
                 color: AppColors.textPrimary,
               ),
             ),
-            Text(
-              'Level ${progress.currentLevel} ${progress.levelIcon}',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Level ${progress.currentLevel}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -355,6 +359,60 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
       case 5: return Colors.red;
       default: return Colors.grey;
     }
+  }
+
+  Widget _buildProgressSummaryWithEmoji(UserProgress progress) {
+    final completedCount = progress.completedGoalsCount;
+    String text;
+    Widget? emojiWidget;
+
+    if (completedCount == 0) {
+      text = 'Getting started with daily goals!';
+      // No emoji for 0 goals
+    } else if (completedCount == 5) {
+      text = 'Perfect day! All goals completed!';
+      emojiWidget = RiveEmojiWidget(
+        emojiType: EmojiType.fromGoalCount(completedCount),
+        size: 24,
+        autoplay: true,
+        continuousPlay: true,
+      );
+    } else {
+      text = '$completedCount/5 goals completed today';
+      emojiWidget = RiveEmojiWidget(
+        emojiType: EmojiType.fromGoalCount(completedCount),
+        size: 24,
+        autoplay: true,
+        continuousPlay: true,
+      );
+    }
+
+    if (emojiWidget == null) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        emojiWidget,
+      ],
+    );
   }
 }
 

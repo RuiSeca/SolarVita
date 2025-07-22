@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import 'meal_edit_screen.dart';
@@ -8,7 +9,7 @@ import 'meal_edit_screen.dart';
 class MealDetailScreen extends StatefulWidget {
   final String mealId; // Unique identifier
   final String mealTitle;
-  final String imagePath;
+  final String? imagePath;
   final String calories;
   final Map<String, dynamic> nutritionFacts;
   final List<String> ingredients;
@@ -28,7 +29,7 @@ class MealDetailScreen extends StatefulWidget {
     super.key,
     required this.mealId,
     required this.mealTitle,
-    required this.imagePath,
+    this.imagePath,
     required this.calories,
     required this.nutritionFacts,
     required this.ingredients,
@@ -89,6 +90,55 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     }
   }
 
+  // Helper method to determine whether to use File or Network image
+  Widget _buildImageWidget(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return Container(
+        color: AppTheme.cardColor(context),
+        child: const Icon(Icons.restaurant, size: 40, color: Colors.grey),
+      );
+    }
+    
+    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
+    
+    if (isLocalFile) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: AppTheme.cardColor(context),
+            child: const Icon(Icons.restaurant, size: 40, color: Colors.grey),
+          ),
+        );
+      } else {
+        // File doesn't exist, show default icon
+        return Container(
+          color: AppTheme.cardColor(context),
+          child: const Icon(Icons.restaurant, size: 40, color: Colors.grey),
+        );
+      }
+    }
+    
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[300],
+        child: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      errorWidget: (context, url, error) {
+        return Container(
+          color: AppTheme.cardColor(context),
+          child: const Icon(Icons.restaurant, size: 40, color: Colors.grey),
+        );
+      },
+    );
+  }
+
   void _toggleFavorite() {
     setState(() {
       _isFavorite = !_isFavorite;
@@ -147,22 +197,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             Hero(
               // Use mealId as the hero tag for consistency
               tag: widget.mealId,
-              child: CachedNetworkImage(
-                imageUrl: widget.imagePath,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[300],
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-                errorWidget: (context, url, error) {
-                  return Container(
-                    color: AppTheme.cardColor(context),
-                    child: const Icon(Icons.broken_image, size: 40),
-                  );
-                },
-              ),
+              child: _buildImageWidget(widget.imagePath),
             ),
             Container(
               decoration: BoxDecoration(
@@ -402,13 +437,32 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   String _adjustNutritionForServings(String value) {
+    // Handle pure numbers (like "50" for calories)
+    final numberOnlyRegex = RegExp(r'^(\d+(?:\.\d+)?)$');
+    final numberOnlyMatch = numberOnlyRegex.firstMatch(value);
+    
+    if (numberOnlyMatch != null) {
+      final number = double.parse(numberOnlyMatch.group(1)!);
+      final adjustedNumber = number * _servings;
+      // Return as integer if it's a whole number, otherwise with decimals
+      return adjustedNumber == adjustedNumber.toInt() 
+          ? adjustedNumber.toInt().toString()
+          : adjustedNumber.toStringAsFixed(1);
+    }
+    
+    // Handle numbers with units (like "50g" for protein)
     final regex = RegExp(r'(\d+(?:\.\d+)?)\s*(\w+)');
     final match = regex.firstMatch(value);
 
     if (match != null) {
       final number = double.parse(match.group(1)!);
       final unit = match.group(2);
-      return '${(number * _servings).toStringAsFixed(1)}$unit';
+      final adjustedNumber = number * _servings;
+      // Return as integer if it's a whole number, otherwise with decimals
+      final formattedNumber = adjustedNumber == adjustedNumber.toInt() 
+          ? adjustedNumber.toInt().toString()
+          : adjustedNumber.toStringAsFixed(1);
+      return '$formattedNumber$unit';
     }
     return value;
   }
@@ -740,7 +794,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   void _showMealOptions(
-      BuildContext context, String titleKey, String imagePath) {
+      BuildContext context, String titleKey, String? imagePath) {
     showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,

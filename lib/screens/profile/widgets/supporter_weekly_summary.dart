@@ -18,7 +18,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      margin: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -30,12 +30,12 @@ class SupporterWeeklySummary extends ConsumerWidget {
               color: AppTheme.textColor(context),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           GridView.count(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 1.2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
@@ -92,7 +92,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
     required bool isVisible,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -153,7 +153,6 @@ class SupporterWeeklySummary extends ConsumerWidget {
                 color: color,
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               unit,
               style: TextStyle(
@@ -171,7 +170,6 @@ class SupporterWeeklySummary extends ConsumerWidget {
                 color: Colors.grey[600],
               ),
             ),
-            const SizedBox(height: 2),
             Text(
               'Shared privately',
               style: TextStyle(
@@ -180,7 +178,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
               ),
             ),
           ],
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             title,
             style: TextStyle(

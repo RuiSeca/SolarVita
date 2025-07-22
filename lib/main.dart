@@ -35,6 +35,8 @@ bool isFirebaseAvailable = false;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Rive initialization is handled automatically
+
   // Initialize logging
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {

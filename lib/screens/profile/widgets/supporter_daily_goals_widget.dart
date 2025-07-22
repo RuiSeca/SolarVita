@@ -4,6 +4,7 @@ import '../../../theme/app_theme.dart';
 import '../../../models/privacy_settings.dart';
 import '../../../models/user_progress.dart';
 import '../../../models/health_data.dart';
+import '../../../widgets/common/rive_emoji_widget.dart';
 
 class SupporterDailyGoalsWidget extends ConsumerWidget {
   final String supporterId;
@@ -60,20 +61,25 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
               ),
               const Spacer(),
               if (privacySettings.showWorkoutStats && supporterProgress != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getMultiplierColor(supporterProgress!.todayMultiplier),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${supporterProgress!.todayMultiplier}x',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getMultiplierColor(supporterProgress!.todayMultiplier),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '${supporterProgress!.todayMultiplier}x',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 )
               else
                 Container(
@@ -91,14 +97,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
-            _getProgressSummary(),
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          _buildProgressSummaryWithEmoji(),
           const SizedBox(height: 20),
           _buildGoalsList(),
           const SizedBox(height: 16),
@@ -350,12 +349,17 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
                 color: AppColors.textPrimary,
               ),
             ),
-            Text(
-              'Level ${supporterProgress!.currentLevel} ${supporterProgress!.levelIcon}',
-              style: TextStyle(
-                fontSize: 12,
-                color: AppColors.textSecondary,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Level ${supporterProgress!.currentLevel}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -379,23 +383,80 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  String _getProgressSummary() {
+  Widget _buildProgressSummaryWithEmoji() {
     if (!privacySettings.showWorkoutStats) {
-      return 'Working towards their daily goals privately 🔒';
+      return Text(
+        'Working towards their daily goals privately 🔒',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      );
     }
 
     if (supporterProgress == null) {
-      return 'No recent activity data available';
+      return Text(
+        'No recent activity data available',
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      );
     }
 
     final completedCount = supporterProgress!.completedGoalsCount;
+    String text;
+    Widget? emojiWidget;
+
     if (completedCount == 0) {
-      return 'Getting started with daily goals! 🎯';
+      text = 'Getting started with daily goals!';
+      // No emoji for 0 goals
     } else if (completedCount == 5) {
-      return 'Perfect day! All goals completed! 🌟';
+      text = 'Perfect day! All goals completed!';
+      emojiWidget = RiveEmojiWidget(
+        emojiType: EmojiType.fromGoalCount(completedCount),
+        size: 24,
+        autoplay: true,
+        continuousPlay: true,
+      );
     } else {
-      return '$completedCount/5 goals completed today 🔥';
+      text = '$completedCount/5 goals completed today';
+      emojiWidget = RiveEmojiWidget(
+        emojiType: EmojiType.fromGoalCount(completedCount),
+        size: 24,
+        autoplay: true,
+        continuousPlay: true,
+      );
     }
+
+    if (emojiWidget == null) {
+      return Text(
+        text,
+        style: TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+          fontWeight: FontWeight.w500,
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 8),
+        emojiWidget,
+      ],
+    );
   }
 
   String _formatGoalProgress(_GoalItem goal) {

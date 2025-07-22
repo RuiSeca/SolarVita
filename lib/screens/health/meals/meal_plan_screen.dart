@@ -72,9 +72,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final today = DateTime.now();
     _selectedDayIndex = today.weekday - 1; // Convert to 0-6 index
     
-    logger.d('=== MEAL PLAN INIT ===');
-    logger.d('Today is: ${_weekDays[_selectedDayIndex]} (index: $_selectedDayIndex)');
-    
     _pageController = PageController(
       viewportFraction: 0.8,
       initialPage: 1,
@@ -108,8 +105,34 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     });
   }
 
+  // Helper method to ensure nutrition values have units
+  String _ensureUnit(String value, String unit) {
+    if (value.isEmpty || value == '0') return '0$unit';
+    
+    // If the value already has the unit, return as is
+    if (value.endsWith(unit)) return value;
+    
+    // If it's just a number, add the unit
+    final numberMatch = RegExp(r'^(\d+(?:\.\d+)?)$').firstMatch(value);
+    if (numberMatch != null) {
+      return '$value$unit';
+    }
+    
+    // If it has a different unit or is malformed, return as is
+    return value;
+  }
+
   // Helper method to determine whether to use File or Network image
-  Widget _buildImageWidget(String imagePath) {
+  Widget _buildImageWidget(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return Container(
+        width: 70,
+        height: 70,
+        color: AppTheme.cardColor(context),
+        child: const Icon(Icons.restaurant, size: 30, color: Colors.grey),
+      );
+    }
+    
     final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
     
     if (isLocalFile) {
@@ -124,8 +147,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             width: 70,
             height: 70,
             color: AppTheme.cardColor(context),
-            child: const Icon(Icons.restaurant, size: 30),
+            child: const Icon(Icons.restaurant, size: 30, color: Colors.grey),
           ),
+        );
+      } else {
+        // File doesn't exist, show default icon
+        return Container(
+          width: 70,
+          height: 70,
+          color: AppTheme.cardColor(context),
+          child: const Icon(Icons.restaurant, size: 30, color: Colors.grey),
         );
       }
     }
@@ -153,7 +184,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         width: 70,
         height: 70,
         color: AppTheme.cardColor(context),
-        child: const Icon(Icons.restaurant, size: 30),
+        child: const Icon(Icons.restaurant, size: 30, color: Colors.grey),
       ),
     );
   }
@@ -241,8 +272,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       }
       
       // Debug logging
-      logger.d('Loaded favorites in meal plan: ${_favoriteMeals.length} IDs, ${_favoriteMealsList.length} meals');
-      logger.d('Favorite IDs: ${_favoriteMeals.toList()}');
     } catch (e) {
       logger.d('Error loading saved data: $e');
     }
@@ -251,7 +280,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 // Save meal data to SharedPreferences and sync to Firebase
   Future<void> _saveMealData() async {
     try {
-      logger.d('=== SAVE MEAL DATA START ===');
       final prefs = await SharedPreferences.getInstance();
 
       // Save current day's data to weekly data
@@ -269,14 +297,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       await prefs.setStringList(_favoriteMealsKey, _favoriteMeals.toList());
       await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
 
-      logger.d('Local data saved successfully, now syncing to Firebase...');
-      
       // Sync today's meals to Firebase for supporters to see
       await _syncTodaysMealsToFirebase();
-      
-      logger.d('=== SAVE MEAL DATA COMPLETE ===');
     } catch (e) {
-      logger.e('Error saving meal data: $e');
+      logger.d('Error saving meal data: $e');
     }
   }
 
@@ -286,25 +310,32 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       final today = DateTime.now();
       final currentDayIndex = today.weekday - 1; // Convert to 0-6 index
       
-      logger.d('=== MEAL SYNC DEBUG ===');
-      logger.d('Selected day index: $_selectedDayIndex');
-      logger.d('Current day index: $currentDayIndex');
-      logger.d('Meal data: $_mealData');
-      
-      // Always sync if we're viewing today's meals, regardless of when we navigate to them
-      // Also force sync for testing on any day
+      // Only sync if we're viewing today's meals
       if (_selectedDayIndex == currentDayIndex) {
-        logger.d('Syncing TODAY\'S meals to Firebase...');
-        await DataSyncService().syncDailyMealsForce(_mealData);
-        logger.d('Today\'s meals FORCE synced to Firebase successfully');
-      } else {
-        // For testing: sync any day's meals to today's Firebase entry
-        logger.d('TESTING: Force syncing selected day meals as today\'s meals...');
-        await DataSyncService().syncDailyMealsForce(_mealData);
-        logger.d('Selected day meals FORCE synced as today\'s meals for testing');
+        // Sync meals and get back the processed data with Firebase URLs
+        final processedMeals = await DataSyncService().syncDailyMealsWithReturn(_mealData);
+        
+        if (processedMeals != null) {
+          // Update local storage with Firebase URLs
+          setState(() {
+            _mealData = processedMeals;
+          });
+          
+          // Update weekly data
+          _weeklyMealData[_selectedDayIndex] = Map<String, List<Map<String, dynamic>>>.from(_mealData);
+          
+          // Save updated data locally
+          final prefs = await SharedPreferences.getInstance();
+          final dataToSave = {};
+          _weeklyMealData.forEach((key, value) {
+            dataToSave[key.toString()] = value;
+          });
+          await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
+          
+        }
       }
     } catch (e) {
-      logger.e('Error syncing meals to Firebase: $e');
+      logger.e('Failed to sync today\'s meals to Firebase: $e');
       // Don't throw - sync failures shouldn't block the app
     }
   }
@@ -324,9 +355,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       'description': meal['description'], // For supporter profile compatibility
       'nutritionFacts': {
         'calories': meal['nutritionFacts']?['calories']?.toString() ?? meal['calories']?.toString() ?? '0',
-        'protein': meal['nutritionFacts']?['protein'] ?? '0g',
-        'carbs': meal['nutritionFacts']?['carbs'] ?? '0g',
-        'fat': meal['nutritionFacts']?['fat'] ?? '0g',
+        'protein': _ensureUnit(meal['nutritionFacts']?['protein'] ?? '0', 'g'),
+        'carbs': _ensureUnit(meal['nutritionFacts']?['carbs'] ?? '0', 'g'),
+        'fat': _ensureUnit(meal['nutritionFacts']?['fat'] ?? '0', 'g'),
       },
       'nutrition': meal['nutritionFacts'] ?? {}, // For supporter profile compatibility
       'ingredients': meal['ingredients'] ?? [],
@@ -349,10 +380,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     // Save the updated data
     _saveMealData();
-
-    // Debug print to verify the data
-    logger.d('Added meal to $mealTime: ${formattedMeal['titleKey']}');
-    logger.d('Nutrition facts: ${formattedMeal['nutritionFacts']}');
   }
 
 // Remove a meal from the current day
@@ -541,8 +568,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         'id': newMeal['title'] ?? DateTime.now().toString(),
                         'titleKey': newMeal['title'],
                         'imagePath': newMeal['imagePath'],
-                        'calories':
-                            '${newMeal['nutritionFacts']?['calories'] ?? '0'} kcal',
+                        'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
                         'nutritionFacts': newMeal['nutritionFacts'],
                         'ingredients': newMeal['ingredients'],
                         'measures': List<String>.filled(
@@ -879,8 +905,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         'id': newMeal['title'] ?? DateTime.now().toString(),
                         'titleKey': newMeal['title'],
                         'imagePath': newMeal['imagePath'],
-                        'calories':
-                            '${newMeal['nutritionFacts']?['calories'] ?? '0'} kcal',
+                        'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
                         'nutritionFacts': newMeal['nutritionFacts'],
                         'ingredients': newMeal['ingredients'],
                         'measures': List<String>.filled(
@@ -1261,7 +1286,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    "${meal['nutritionFacts']?['calories'] ?? '0'} kcal",
+                                    "${meal['nutritionFacts']?['calories'] ?? meal['calories'] ?? '0'} kcal",
                                     style: TextStyle(
                                       color: AppColors.primary,
                                       fontSize: 13,

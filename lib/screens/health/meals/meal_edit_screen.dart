@@ -1,5 +1,6 @@
 // lib/screens/health/meal_edit_screen.dart
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
@@ -74,7 +75,7 @@ class _MealEditScreenState extends State<MealEditScreen> {
     // Here you would save the meal data to your storage/backend
     final meal = {
       'title': _titleController.text,
-      'imagePath': _selectedImage?.path ?? widget.imagePath,
+      'imagePath': _selectedImage?.path ?? widget.imagePath ?? '',
       'imageFile': _selectedImage,
       'nutritionFacts': _nutritionControllers.map(
         (key, controller) => MapEntry(key, controller.text),
@@ -271,6 +272,35 @@ class _MealEditScreenState extends State<MealEditScreen> {
     });
   }
 
+  ImageProvider _getImageProvider(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      // Create a simple 1x1 transparent image as a placeholder
+      return MemoryImage(
+        Uint8List.fromList([
+          0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+          0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+          0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00,
+          0x0D, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+          0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+          0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+        ]),
+      );
+    }
+    
+    // Check if it's a network URL
+    if (imagePath.startsWith('http')) {
+      return NetworkImage(imagePath);
+    }
+    
+    // Check if it's a local file path
+    if (imagePath.startsWith('/') || imagePath.startsWith('file://')) {
+      return FileImage(File(imagePath.replaceFirst('file://', '')));
+    }
+    
+    // Assume it's an asset
+    return AssetImage(imagePath);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -342,7 +372,7 @@ class _MealEditScreenState extends State<MealEditScreen> {
               ? DecorationImage(
                   image: _selectedImage != null
                       ? FileImage(_selectedImage!)
-                      : AssetImage(widget.imagePath!) as ImageProvider,
+                      : _getImageProvider(widget.imagePath),
                   fit: BoxFit.cover,
                 )
               : null,

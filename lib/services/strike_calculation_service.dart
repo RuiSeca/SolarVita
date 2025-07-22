@@ -43,8 +43,8 @@ class StrikeCalculationService {
       final daysDifference = todayDateOnly.difference(lastCheckDate).inDays;
       
       if (daysDifference > 1) {
-        log.warning('⚠️ Missed ${daysDifference - 1} days, resetting strikes');
-        await _resetStrikes();
+        log.warning('⚠️ Missed ${daysDifference - 1} days, resetting current strikes only');
+        await _resetStrikesKeepLevel();
       } else if (daysDifference == 1) {
         log.info('📅 New day detected, ready for goal checking');
       }
@@ -77,12 +77,14 @@ class StrikeCalculationService {
     // Check if any goals were completed yesterday
     final completedGoals = progress.todayGoalsCompleted.values.where((completed) => completed).length;
     
+    // IMPORTANT: Only reset strikes if EXACTLY 0 goals were completed
+    // If user achieved at least 1 goal, maintain their streak and carry over strikes
     if (completedGoals == 0) {
-      log.warning('❌ No goals completed yesterday, resetting strikes');
-      await _resetStrikes();
+      log.warning('❌ Zero goals completed yesterday - resetting current strikes only');
+      await _resetStrikesKeepLevel();
       await _sendStrikeResetNotification();
     } else {
-      log.info('✅ Goals completed yesterday, maintaining streak');
+      log.info('✅ At least $completedGoals goal(s) completed yesterday - streak maintained, strikes carry over');
     }
     
     // Reset daily goals for new day
@@ -132,8 +134,10 @@ class StrikeCalculationService {
       // Check if user leveled up
       final leveledUp = newLevel > currentProgress.currentLevel;
       
-      // Current strikes should always reflect daily strikes earned
-      final finalCurrentStrikes = newDailyStrikes.clamp(0, double.infinity).toInt();
+      // CRITICAL: Strikes ALWAYS carry over and accumulate, NEVER reset on level up
+      // This ensures users don't lose progress when they reach a new level
+      // The current strikes continue building toward the NEXT level
+      final finalCurrentStrikes = (currentProgress.currentStrikes + strikeDifference).clamp(0, double.infinity).toInt();
       
       final updatedProgress = currentProgress.copyWith(
         currentStrikes: finalCurrentStrikes,
@@ -156,7 +160,7 @@ class StrikeCalculationService {
         await _sendPerfectDayNotification();
       }
       
-      log.info('🎯 Updated progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes strikes, Level $newLevel ${leveledUp ? "(LEVEL UP!)" : ""}');
+      log.info('🎯 Progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes current strikes, $newTotalStrikes total strikes, Level $newLevel ${leveledUp ? "(🎉 LEVEL UP! Current strikes carried over to next level)" : ""}');
       
       return updatedProgress;
     }
@@ -178,19 +182,28 @@ class StrikeCalculationService {
     if (totalStrikes < 21) return 2;
     if (totalStrikes < 49) return 3;
     if (totalStrikes < 105) return 4;
-    return 5; // Max level
+    if (totalStrikes < 189) return 5; // 105 + 84
+    if (totalStrikes < 315) return 6; // 189 + 126
+    if (totalStrikes < 490) return 7; // 315 + 175
+    if (totalStrikes < 720) return 8; // 490 + 230
+    if (totalStrikes < 1015) return 9; // 720 + 295
+    return 10; // Max level
   }
 
-  // Reset strikes to 0
-  Future<void> _resetStrikes() async {
+  // Reset strikes only when user achieves ZERO goals 
+  // KEEPS: Current level, total strikes (lifetime achievement)
+  // RESETS: Only current strikes (daily streak progress) back to 0
+  Future<void> _resetStrikesKeepLevel() async {
     final currentProgress = await getUserProgress();
     final resetProgress = currentProgress.copyWith(
-      currentStrikes: 0,
+      currentStrikes: 0, // Reset current strikes to 0 - start rebuilding streak
+      // totalStrikes stays the same! - lifetime achievement preserved
+      // currentLevel stays the same! - user keeps their earned level
       todayGoalsCompleted: {},
       todayMultiplier: 1,
     );
     await _saveUserProgress(resetProgress);
-    log.info('🔄 Strikes reset to 0');
+    log.info('🔄 Zero goals achieved - current strikes reset to 0, Level ${currentProgress.currentLevel} maintained, ${currentProgress.totalStrikes} total strikes preserved');
   }
 
   // Reset daily goals for new day
@@ -447,7 +460,7 @@ class StrikeCalculationService {
     // Check if user leveled up
     final leveledUp = newLevel > currentProgress.currentLevel;
     
-    // Current strikes should always reflect daily strikes earned, not reset unless level up
+    // CRITICAL: Strikes always carry over and accumulate, never reset on level up
     final finalCurrentStrikes = newStrikes.clamp(0, double.infinity).toInt();
     
     final updatedProgress = currentProgress.copyWith(
@@ -462,7 +475,7 @@ class StrikeCalculationService {
     
     await _saveUserProgress(updatedProgress);
     
-    log.info('✅ Goal ${goalType.displayName} completed manually - ${leveledUp ? "Level up!" : "Strikes reset to 0"}');
+    log.info('✅ Goal ${goalType.displayName} completed manually - ${leveledUp ? "🎉 Level up! Current strikes carried over to next level" : "Strikes accumulated"}');
     
     return updatedProgress;
   }
