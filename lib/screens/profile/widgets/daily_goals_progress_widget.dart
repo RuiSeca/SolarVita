@@ -5,7 +5,6 @@ import '../../../providers/riverpod/user_progress_provider.dart';
 import '../../../providers/riverpod/health_data_provider.dart';
 import '../../../models/user_progress.dart';
 import '../../../widgets/common/rive_emoji_widget.dart';
-
 class DailyGoalsProgressWidget extends ConsumerWidget {
   const DailyGoalsProgressWidget({super.key});
 
