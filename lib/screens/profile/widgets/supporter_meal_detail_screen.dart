@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:io';
 import '../../../theme/app_theme.dart';
 
 class SupporterMealDetailScreen extends StatefulWidget {
@@ -23,6 +26,71 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
         _servings = newServings;
       });
     }
+  }
+
+  // Helper method to determine whether to use File or Network image
+  Widget _buildImageWidget(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return Container(
+        color: Colors.grey[300],
+        child: Icon(
+          Icons.restaurant,
+          size: 80,
+          color: Colors.grey[500],
+        ),
+      );
+    }
+    
+    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
+    
+    if (isLocalFile) {
+      final file = File(imagePath.replaceFirst('file://', ''));
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: Colors.grey[300],
+            child: Icon(
+              Icons.restaurant,
+              size: 80,
+              color: Colors.grey[500],
+            ),
+          ),
+        );
+      } else {
+        // File doesn't exist, show default icon
+        return Container(
+          color: Colors.grey[300],
+          child: Icon(
+            Icons.restaurant,
+            size: 80,
+            color: Colors.grey[500],
+          ),
+        );
+      }
+    }
+    
+    return CachedNetworkImage(
+      imageUrl: imagePath,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: Colors.grey[300],
+        child: Icon(
+          Icons.restaurant,
+          size: 80,
+          color: Colors.grey[500],
+        ),
+      ),
+      errorWidget: (context, url, error) => Container(
+        color: Colors.grey[300],
+        child: Icon(
+          Icons.restaurant,
+          size: 80,
+          color: Colors.grey[500],
+        ),
+      ),
+    );
   }
 
   @override
@@ -106,35 +174,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
         ),
       ],
       flexibleSpace: FlexibleSpaceBar(
-        background: meal['image'] != null
-            ? CachedNetworkImage(
-                imageUrl: meal['image'],
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.restaurant,
-                    size: 80,
-                    color: Colors.grey[500],
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[300],
-                  child: Icon(
-                    Icons.restaurant,
-                    size: 80,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              )
-            : Container(
-                color: Colors.grey[300],
-                child: Icon(
-                  Icons.restaurant,
-                  size: 80,
-                  color: Colors.grey[500],
-                ),
-              ),
+        background: _buildImageWidget(meal['image'] ?? meal['imagePath']),
       ),
     );
   }
@@ -626,7 +666,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
     return InkWell(
       onTap: () {
         Navigator.pop(context);
-        _addMealToMyPlan(context, meal, mealType);
+        _showDaySelectionDialog(context, meal, mealType);
       },
       borderRadius: BorderRadius.circular(12),
       child: Container(
@@ -661,31 +701,274 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
     );
   }
 
-  Future<void> _addMealToMyPlan(BuildContext context, Map<String, dynamic> meal, String mealType) async {
-    try {
-      // Integrate with existing meal plan service
-      // For now, show success message
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Added "${meal['name']}" to your $mealType!'),
-          backgroundColor: Colors.green,
-          action: SnackBarAction(
-            label: 'View Plan',
-            textColor: Colors.white,
-            onPressed: () {
-              Navigator.pushNamed(context, '/meal-plan');
-            },
+  void _showDaySelectionDialog(BuildContext context, Map<String, dynamic> meal, String mealType) {
+    final List<String> weekDays = [
+      'Monday',
+      'Tuesday', 
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ];
+    
+    final DateTime now = DateTime.now();
+    final int todayIndex = now.weekday - 1; // Convert to 0-6 index
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardColor(context),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.5,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (context, scrollController) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              Text(
+                'Choose Day',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor(context),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Add "${meal['name']}" to ${_getMealTypeTitle(mealType).toLowerCase()}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 16),
+              
+              Expanded(
+                child: ListView.builder(
+                  controller: scrollController,
+                  itemCount: weekDays.length,
+                  itemBuilder: (context, index) {
+                    final String dayName = weekDays[index];
+                    final bool isToday = index == todayIndex;
+                    
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _addMealToMyPlan(context, meal, mealType, index);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isToday 
+                                ? AppColors.primary.withValues(alpha: 0.1)
+                                : Colors.grey.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isToday 
+                                  ? AppColors.primary.withValues(alpha: 0.3)
+                                  : Colors.grey.withValues(alpha: 0.2),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                isToday ? Icons.today : Icons.calendar_today,
+                                color: isToday ? AppColors.primary : Colors.grey[600],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  dayName,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: isToday ? FontWeight.w600 : FontWeight.w500,
+                                    color: isToday ? AppColors.primary : AppTheme.textColor(context),
+                                  ),
+                                ),
+                              ),
+                              if (isToday)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    'Today',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
+
+  String _getMealTypeTitle(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return 'Breakfast';
+      case 'lunch':
+        return 'Lunch';
+      case 'dinner':
+        return 'Dinner';
+      case 'snacks':
+        return 'Snacks';
+      default:
+        return mealType.toUpperCase();
+    }
+  }
+
+  Future<void> _addMealToMyPlan(BuildContext context, Map<String, dynamic> meal, String mealType, int dayIndex) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Format the meal data consistently with meal plan screen
+      final formattedMeal = {
+        'id': meal['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        'titleKey': meal['name'],
+        'name': meal['name'] ?? 'Unnamed Meal',
+        'imagePath': meal['image'],
+        'image': meal['image'],
+        'calories': meal['calories']?.toString() ?? '0',
+        'servings': meal['servings'] ?? 1,
+        'prepTime': meal['prepTime'],
+        'description': meal['description'],
+        'nutritionFacts': {
+          'calories': meal['calories']?.toString() ?? '0',
+          'protein': meal['protein'] ?? '0g',
+          'carbs': meal['carbs'] ?? '0g',
+          'fat': meal['fat'] ?? '0g',
+        },
+        'nutrition': meal['nutrition'] ?? {},
+        'ingredients': meal['ingredients'] ?? [],
+        'measures': meal['measures'] ?? [],
+        'instructions': meal['instructions'] ?? [],
+        'area': meal['area'],
+        'category': meal['category'],
+        'isVegan': meal['isVegan'] ?? false,
+      };
+      
+      // Load existing weekly meal data
+      const String weeklyMealDataKey = 'weeklyMealData';
+      Map<String, dynamic> weeklyData = {};
+      
+      final savedData = prefs.getString(weeklyMealDataKey);
+      if (savedData != null) {
+        weeklyData = Map<String, dynamic>.from(json.decode(savedData));
+      }
+      
+      // Initialize day data if it doesn't exist
+      if (!weeklyData.containsKey(dayIndex.toString())) {
+        weeklyData[dayIndex.toString()] = {
+          'breakfast': [],
+          'lunch': [],
+          'dinner': [],
+          'snacks': [],
+        };
+      }
+      
+      // Get the day's data
+      final dayData = Map<String, dynamic>.from(weeklyData[dayIndex.toString()]);
+      
+      // Initialize meal type list if it doesn't exist
+      if (!dayData.containsKey(mealType)) {
+        dayData[mealType] = [];
+      }
+      
+      // Convert to list and check for duplicates
+      final meals = List<Map<String, dynamic>>.from(dayData[mealType]);
+      final mealId = formattedMeal['id']?.toString();
+      
+      // Prevent duplicate meals
+      if (!meals.any((m) => m['id']?.toString() == mealId)) {
+        meals.add(formattedMeal);
+        dayData[mealType] = meals;
+        weeklyData[dayIndex.toString()] = dayData;
+        
+        // Save back to SharedPreferences
+        await prefs.setString(weeklyMealDataKey, json.encode(weeklyData));
+        
+        final List<String> weekDays = [
+          'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+        ];
+        
+        // Check if context is still mounted before using it
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Added "${meal['name']}" to ${weekDays[dayIndex]} ${_getMealTypeTitle(mealType).toLowerCase()}!'),
+              backgroundColor: Colors.green,
+              action: SnackBarAction(
+                label: 'View Plan',
+                textColor: Colors.white,
+                onPressed: () {
+                  if (context.mounted) {
+                    Navigator.pushNamed(context, '/meal-plan');
+                  }
+                },
+              ),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('This meal is already in your plan'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add meal to your plan'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add meal to your plan'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

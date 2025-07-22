@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:logger/logger.dart';
+import 'dart:io';
 import '../models/user_progress.dart';
 import '../models/health_data.dart';
 import '../models/privacy_settings.dart';
@@ -11,6 +13,7 @@ import 'supporter_profile_service.dart';
 class DataSyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final SupporterProfileService _supporterProfileService = SupporterProfileService();
   final Logger _logger = Logger();
   
@@ -74,85 +77,105 @@ class DataSyncService {
     }
   }
 
-  /// Sync daily meals to Firebase (bypassing privacy for testing)
-  Future<void> syncDailyMealsForce(Map<String, List<Map<String, dynamic>>> dailyMeals) async {
+
+  /// Upload image to Firebase Storage and return the download URL
+  Future<String?> uploadMealImage(String? localImagePath) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) {
-        _logger.w('Daily meals sync skipped - user not authenticated');
-        return;
-      }
+      if (user == null || localImagePath == null || localImagePath.isEmpty) return null;
 
-      final today = DateTime.now();
-      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final file = File(localImagePath);
+      if (!file.existsSync()) return null;
 
-      _logger.d('FORCE syncing to collection: daily_meals/${user.uid}/meals/$dateKey');
-      _logger.d('Daily meals to force sync: $dailyMeals');
+      // Create a unique filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'meal_${user.uid}_$timestamp.jpg';
+      final storageRef = _storage.ref().child('meal_images').child(fileName);
 
-      final dataToWrite = {
-        'breakfast': dailyMeals['breakfast'] ?? [],
-        'lunch': dailyMeals['lunch'] ?? [],
-        'dinner': dailyMeals['dinner'] ?? [],
-        'snacks': dailyMeals['snacks'] ?? [],
-        'syncedAt': Timestamp.now(),
-        'date': Timestamp.fromDate(today),
-      };
+      // Upload the file
+      final uploadTask = await storageRef.putFile(file);
       
-      _logger.d('Writing data to Firebase: $dataToWrite');
-
-      await _firestore
-          .collection('daily_meals')
-          .doc(user.uid)
-          .collection('meals')
-          .doc(dateKey)
-          .set(dataToWrite);
-
-      _logger.d('✅ Daily meals FORCE synced successfully for $dateKey');
-      _logger.d('✅ Firebase collection: daily_meals/${user.uid}/meals/$dateKey should now exist!');
+      // Get the download URL
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      
+      return downloadUrl;
     } catch (e) {
-      _logger.e('Failed to FORCE sync daily meals: $e');
-      // Don't throw - sync failures shouldn't block the app
+      _logger.e('Failed to upload image: $e');
+      return null;
     }
   }
 
-  /// Sync daily meals to Firebase
-  Future<void> syncDailyMeals(Map<String, List<Map<String, dynamic>>> dailyMeals) async {
+  /// Process meals to upload images and replace local paths with Firebase URLs
+  Future<Map<String, List<Map<String, dynamic>>>> _processMealsForSync(
+    Map<String, List<Map<String, dynamic>>> dailyMeals,
+  ) async {
+    final processedMeals = <String, List<Map<String, dynamic>>>{};
+
+    for (final mealTimeEntry in dailyMeals.entries) {
+      final mealTime = mealTimeEntry.key;
+      final meals = mealTimeEntry.value;
+      
+      final processedMealsList = <Map<String, dynamic>>[];
+      
+      for (final meal in meals) {
+        final processedMeal = Map<String, dynamic>.from(meal);
+        
+        // Check if meal has a local image path
+        final imagePath = meal['imagePath'] ?? meal['image'];
+        if (imagePath != null && _isLocalPath(imagePath)) {
+          // Upload image and replace path with Firebase URL
+          final downloadUrl = await uploadMealImage(imagePath);
+          if (downloadUrl != null) {
+            processedMeal['imagePath'] = downloadUrl;
+            processedMeal['image'] = downloadUrl;
+          } else {
+            // Remove image path if upload failed
+            processedMeal.remove('imagePath');
+            processedMeal.remove('image');
+          }
+        }
+        
+        processedMealsList.add(processedMeal);
+      }
+      
+      processedMeals[mealTime] = processedMealsList;
+    }
+
+    return processedMeals;
+  }
+
+  /// Helper method to check if a path is local
+  bool _isLocalPath(String? path) {
+    if (path == null || path.isEmpty) return false;
+    return path.startsWith('/') || path.startsWith('file://');
+  }
+
+  /// Sync daily meals to Firebase and return processed meals with Firebase URLs
+  Future<Map<String, List<Map<String, dynamic>>>?> syncDailyMealsWithReturn(Map<String, List<Map<String, dynamic>>> dailyMeals) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) {
-        _logger.w('Daily meals sync skipped - user not authenticated');
-        return;
-      }
-
-      _logger.d('=== DATASYNC DEBUG ===');
-      _logger.d('User ID: ${user.uid}');
-      _logger.d('Daily meals to sync: $dailyMeals');
+      if (user == null) return null;
 
       // Check privacy settings before syncing
       final privacy = await _supporterProfileService.getSupporterPrivacySettings(user.uid);
-      _logger.d('Privacy settings: $privacy');
-      _logger.d('Show nutrition stats: ${privacy?.showNutritionStats}');
       
       // Initialize privacy settings if they don't exist
       if (privacy == null) {
-        _logger.w('Privacy settings not found, initializing defaults...');
         await initializePrivacySettings();
         // Try to get privacy settings again
         final newPrivacy = await _supporterProfileService.getSupporterPrivacySettings(user.uid);
-        _logger.d('New privacy settings: $newPrivacy');
         if (newPrivacy == null || !newPrivacy.showNutritionStats) {
-          _logger.w('Daily meals sync skipped - still no valid privacy settings');
-          return;
+          return null;
         }
       } else if (!privacy.showNutritionStats) {
-        _logger.w('Daily meals sync skipped due to privacy settings - showNutritionStats: false');
-        return;
+        return null;
       }
+
+      // Process meals to upload images before syncing
+      final processedMeals = await _processMealsForSync(dailyMeals);
 
       final today = DateTime.now();
       final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-
-      _logger.d('Syncing to collection: daily_meals/${user.uid}/meals/$dateKey');
 
       await _firestore
           .collection('daily_meals')
@@ -160,15 +183,63 @@ class DataSyncService {
           .collection('meals')
           .doc(dateKey)
           .set({
-        'breakfast': dailyMeals['breakfast'] ?? [],
-        'lunch': dailyMeals['lunch'] ?? [],
-        'dinner': dailyMeals['dinner'] ?? [],
-        'snacks': dailyMeals['snacks'] ?? [],
+        'breakfast': processedMeals['breakfast'] ?? [],
+        'lunch': processedMeals['lunch'] ?? [],
+        'dinner': processedMeals['dinner'] ?? [],
+        'snacks': processedMeals['snacks'] ?? [],
         'syncedAt': Timestamp.now(),
         'date': Timestamp.fromDate(today),
       });
+      
+      return processedMeals;
+    } catch (e) {
+      _logger.e('Failed to sync daily meals: $e');
+      return null;
+    }
+  }
 
-      _logger.d('Daily meals synced successfully for $dateKey');
+  /// Sync daily meals to Firebase
+  Future<void> syncDailyMeals(Map<String, List<Map<String, dynamic>>> dailyMeals) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // Check privacy settings before syncing
+      final privacy = await _supporterProfileService.getSupporterPrivacySettings(user.uid);
+      
+      // Initialize privacy settings if they don't exist
+      if (privacy == null) {
+        await initializePrivacySettings();
+        // Try to get privacy settings again
+        final newPrivacy = await _supporterProfileService.getSupporterPrivacySettings(user.uid);
+        if (newPrivacy == null || !newPrivacy.showNutritionStats) {
+          return;
+        }
+      } else if (!privacy.showNutritionStats) {
+        return;
+      }
+
+      // Process meals to upload images before syncing
+      final processedMeals = await _processMealsForSync(dailyMeals);
+
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      await _firestore
+          .collection('daily_meals')
+          .doc(user.uid)
+          .collection('meals')
+          .doc(dateKey)
+          .set({
+        'breakfast': processedMeals['breakfast'] ?? [],
+        'lunch': processedMeals['lunch'] ?? [],
+        'dinner': processedMeals['dinner'] ?? [],
+        'snacks': processedMeals['snacks'] ?? [],
+        'syncedAt': Timestamp.now(),
+        'date': Timestamp.fromDate(today),
+      });
+      
+      _logger.d('Daily meals synced successfully with images uploaded');
     } catch (e) {
       _logger.e('Failed to sync daily meals: $e');
       // Don't throw - sync failures shouldn't block the app

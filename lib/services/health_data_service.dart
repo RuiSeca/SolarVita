@@ -104,7 +104,7 @@ class HealthDataService {
           // If automatic permission request fails, guide user to manual setup
           return HealthPermissionStatus.denied(
             errorMessage: Platform.isAndroid
-              ? 'Health Connect permissions needed. Please:\n\n1. Open Health Connect app\n2. Go to "App permissions" or "Data sources and access"\n3. Find "SolarVita"\n4. Enable permissions for:\n   • Steps\n   • Active calories burned\n   • Heart rate\n   • Sleep\n   • Hydration\n   • Exercise\n\nThen restart SolarVita.'
+              ? 'Health Connect permissions needed. Please:\n\n1. Open Health Connect app\n2. Go to "App permissions" or "Data sources and access"\n3. Find "SolarVita"\n4. Enable permissions for:\n   • Steps\n   • Active minutes\n   • Active calories burned\n   • Heart rate\n   • Sleep\n   • Hydration\n   • Exercise\n\nThen restart SolarVita.'
               : 'Health permissions needed. Please enable permissions in Health app settings.'
           );
         }
@@ -316,18 +316,24 @@ class HealthDataService {
             activeMinutes += minutes;
             break;
             
-            
           case HealthDataType.DISTANCE_DELTA:
-            // For active minutes calculation based on movement
+            // Calculate active minutes based on movement (approximates "moved minutes")
             final distance = (point.value as NumericHealthValue).numericValue.toDouble();
             final duration = point.dateTo.difference(point.dateFrom);
-            // If significant distance was covered, count as active time
-            if (distance > 100) { // 100 meters threshold
-              final minutes = duration.inMinutes;
-              if (isToday) {
-                todayActiveMinutes += minutes;
+            
+            // More nuanced approach: consider pace and distance
+            if (distance > 50 && duration.inMinutes > 0) { // 50 meters minimum
+              final pace = distance / duration.inMinutes; // meters per minute
+              
+              // Count as active time if there's sustained movement
+              // Walking pace ~80m/min, so anything above 30m/min could be active
+              if (pace > 30) {
+                final minutes = duration.inMinutes;
+                if (isToday) {
+                  todayMoveMinutes += minutes; // Use moveMinutes for movement-based
+                }
+                activeMinutes += minutes;
               }
-              activeMinutes += minutes;
             }
             break;
             
@@ -342,7 +348,8 @@ class HealthDataService {
       heartRate = heartRate / heartRateCount;
     }
 
-    // Combine different active minutes sources
+    // Combine different active minutes sources (workouts + movement-based)
+    // This captures both structured workouts and general active movement
     final totalTodayActiveMinutes = todayActiveMinutes + todayMoveMinutes;
     final totalActiveMinutes = activeMinutes;
 
@@ -544,6 +551,7 @@ class HealthDataService {
             ? 'SolarVita would like to access your health data through Health Connect to provide personalized '
               'fitness insights and track your progress. This includes:\n\n'
               '• Steps and distance\n'
+              '• Active minutes (workouts & movement)\n'
               '• Calories burned\n'
               '• Heart rate\n'
               '• Sleep data\n'
@@ -553,6 +561,7 @@ class HealthDataService {
             : 'SolarVita would like to access your health data to provide personalized '
               'fitness insights and track your progress. This includes:\n\n'
               '• Steps and distance\n'
+              '• Active minutes (workouts & movement)\n'
               '• Calories burned\n'
               '• Heart rate\n'
               '• Sleep data\n'

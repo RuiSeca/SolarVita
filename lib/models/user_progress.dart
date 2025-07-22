@@ -48,7 +48,12 @@ class UserProgress {
       case 2: return 21 - totalStrikes;
       case 3: return 49 - totalStrikes;
       case 4: return 105 - totalStrikes;
-      case 5: return 0; // Max level
+      case 5: return 189 - totalStrikes;
+      case 6: return 315 - totalStrikes;
+      case 7: return 490 - totalStrikes;
+      case 8: return 720 - totalStrikes;
+      case 9: return 1015 - totalStrikes;
+      case 10: return 0; // Max level
       default: return 0;
     }
   }
@@ -60,6 +65,11 @@ class UserProgress {
       case 3: return 21;
       case 4: return 49;
       case 5: return 105;
+      case 6: return 189;
+      case 7: return 315;
+      case 8: return 490;
+      case 9: return 720;
+      case 10: return 1015;
       default: return 0;
     }
   }
@@ -70,13 +80,18 @@ class UserProgress {
       case 2: return 21;
       case 3: return 49;
       case 4: return 105;
-      case 5: return 105; // Max level
+      case 5: return 189;
+      case 6: return 315;
+      case 7: return 490;
+      case 8: return 720;
+      case 9: return 1015;
+      case 10: return 1015; // Max level
       default: return 0;
     }
   }
 
   double get levelProgress {
-    if (currentLevel >= 5) return 1.0;
+    if (currentLevel >= 10) return 1.0;
     
     final currentLevelStrikes = strikesForCurrentLevel;
     final nextLevelStrikes = strikesForNextLevel;
@@ -93,6 +108,11 @@ class UserProgress {
       case 3: return 'Eco Enthusiast';
       case 4: return 'Health Champion';
       case 5: return 'Eco Master';
+      case 6: return 'Solar Guardian';
+      case 7: return 'Vitality Legend';
+      case 8: return 'Eco Sage';
+      case 9: return 'Solar Titan';
+      case 10: return 'Ultimate Eco Warrior';
       default: return 'Health Rookie';
     }
   }
@@ -104,11 +124,16 @@ class UserProgress {
       case 3: return '🌿';
       case 4: return '🏆';
       case 5: return '👑';
+      case 6: return '🌞';
+      case 7: return '💫';
+      case 8: return '🔮';
+      case 9: return '⭐';
+      case 10: return '🏅';
       default: return '🌱';
     }
   }
 
-  bool get isMaxLevel => currentLevel >= 5;
+  bool get isMaxLevel => currentLevel >= 10;
 
   int get completedGoalsCount => todayGoalsCompleted.values.where((completed) => completed).length;
 
@@ -148,7 +173,7 @@ class DailyGoals {
 
   const DailyGoals({
     this.stepsGoal = 8000,
-    this.activeMinutesGoal = 30,
+    this.activeMinutesGoal = 45,
     this.caloriesBurnGoal = 2000,
     this.waterIntakeGoal = 2.0, // 8 glasses = 2 liters (250ml per glass)
     this.sleepHoursGoal = 8,
@@ -173,7 +198,7 @@ class DailyGoals {
   factory DailyGoals.fromJson(Map<String, dynamic> json) {
     return DailyGoals(
       stepsGoal: json['stepsGoal'] as int? ?? 8000,
-      activeMinutesGoal: json['activeMinutesGoal'] as int? ?? 30,
+      activeMinutesGoal: json['activeMinutesGoal'] as int? ?? 45,
       caloriesBurnGoal: json['caloriesBurnGoal'] as int? ?? 2000,
       waterIntakeGoal: (json['waterIntakeGoal'] as num?)?.toDouble() ?? 2.0,
       sleepHoursGoal: json['sleepHoursGoal'] as int? ?? 8,

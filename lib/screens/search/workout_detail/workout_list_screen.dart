@@ -34,7 +34,7 @@ class WorkoutListScreen extends StatelessWidget {
             sliver: SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, index) =>
-                    _buildWorkoutCard(context, exercises[index]),
+                    _buildWorkoutCard(context, exercises[index], index),
                 childCount: exercises.length,
               ),
             ),
@@ -134,9 +134,10 @@ class WorkoutListScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkoutCard(BuildContext context, WorkoutItem workout) {
+  Widget _buildWorkoutCard(BuildContext context, WorkoutItem workout, int index) {
     log.info('Rendering card for: ${workout.title}, image: ${workout.image}');
     return Padding(
+      key: ValueKey('workout_${workout.title}_$index'),
       padding: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => _navigateToDetail(context, workout),

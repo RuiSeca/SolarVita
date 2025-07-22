@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
-import '../../widgets/common/lottie_water_widget.dart';
+import '../../widgets/common/rive_water_widget.dart';
 import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
@@ -662,7 +662,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         // Calculate progress values using actual user goals
         final userProgress = userProgressAsync.value;
         final stepsGoal = userProgress?.dailyGoals.stepsGoal.toDouble() ?? 8000.0;
-        final activeGoal = userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 30.0;
+        final activeGoal = userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 45.0;
         final caloriesGoal = userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 2000.0;
         final sleepGoal = userProgress?.dailyGoals.sleepHoursGoal.toDouble() ?? 8.0;
         
@@ -1101,8 +1101,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
             child: Row(
               children: [
-                // Lottie water animation container
-                LottieWaterWidget(
+                // Rive water animation container
+                RiveWaterWidget(
                   width: 48,
                   height: 48,
                   waterLevel: waterPercentage.clamp(0.0, 1.0),
