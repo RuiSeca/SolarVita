@@ -11,6 +11,7 @@ import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/social_feed_tabs.dart';
 import '../../widgets/common/oriented_image.dart';
+import '../social/create_post_screen.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -291,6 +292,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           color: theme.primaryColor,
                         ),
                       ],
+                    ),
+                    // Plus button for creating posts
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CreatePostScreen(),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
                     ),
                   ],
                 ),
