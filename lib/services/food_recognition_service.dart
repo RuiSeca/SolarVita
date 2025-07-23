@@ -2,20 +2,28 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
 import '../config/vision_api_config.dart';
 
 class FoodRecognitionService {
+  final Logger _logger = Logger();
+  bool _isConfigured = false;
 
   // Constructor validates API key
   FoodRecognitionService() {
-    if (!VisionApiConfig.isConfigured()) {
-      throw Exception(
-          'Google Vision API is not properly configured. Set GOOGLE_VISION_API_KEY in .env file.');
+    _isConfigured = VisionApiConfig.isConfigured();
+    if (!_isConfigured) {
+      _logger.w('Google Vision API is not properly configured. Food recognition will not work.');
     }
   }
 
   // Identify food in an image using Google Vision API
   Future<List<String>> identifyFoodInImage(File imageFile) async {
+    if (!_isConfigured) {
+      _logger.w('Vision API not configured, returning generic food items');
+      return ['Food Item', 'Unknown Food'];
+    }
+    
     // Read file as bytes
     final List<int> imageBytes = await imageFile.readAsBytes();
 

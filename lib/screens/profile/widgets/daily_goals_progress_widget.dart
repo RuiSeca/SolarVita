@@ -5,6 +5,8 @@ import '../../../providers/riverpod/user_progress_provider.dart';
 import '../../../providers/riverpod/health_data_provider.dart';
 import '../../../models/user_progress.dart';
 import '../../../widgets/common/rive_emoji_widget.dart';
+import '../../../widgets/common/lottie_loading_widget.dart';
+import '../../../utils/translation_helper.dart';
 class DailyGoalsProgressWidget extends ConsumerWidget {
   const DailyGoalsProgressWidget({super.key});
 
@@ -83,7 +85,28 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
           ],
         ),
       ),
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primary.withValues(alpha: 0.1),
+              AppColors.secondary.withValues(alpha: 0.05),
+            ],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: const Center(
+          child: LottieLoadingWidget(width: 80, height: 80),
+        ),
+      ),
       error: (error, stack) => Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(20),
@@ -92,9 +115,45 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
         ),
-        child: Text(
-          'Error loading progress: $error',
-          style: const TextStyle(color: Colors.red),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Colors.red,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              tr(context, 'error_loading_progress'),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.red.shade700,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                ref.invalidate(userProgressNotifierProvider);
+                ref.invalidate(healthDataNotifierProvider);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(tr(context, 'try_again')),
+            ),
+          ],
         ),
       ),
     );

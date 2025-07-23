@@ -154,7 +154,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Dietary preferences updated successfully'),
-            backgroundColor: AppColors.primary,
+            backgroundColor: Colors.green,
           ),
         );
       }
@@ -234,7 +234,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: iconColor ?? AppColors.primary, size: 24),
+              Icon(icon, color: iconColor ?? Theme.of(context).primaryColor, size: 24),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -290,7 +290,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  activeColor: AppColors.primary,
+                  activeColor: Theme.of(context).primaryColor,
                 );
               }),
             ],
@@ -379,7 +379,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                   return FilterChip(
                     selected: isSelected,
                     label: Text(restriction),
-                    selectedColor: AppColors.primary,
+                    selectedColor: Theme.of(context).primaryColor,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.white : AppTheme.textColor(context),
@@ -415,35 +415,35 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
               style: TextStyle(color: AppTheme.textColor(context))),
           value: _preferOrganic,
           onChanged: (value) => setState(() => _preferOrganic = value),
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text('Prefer Local',
               style: TextStyle(color: AppTheme.textColor(context))),
           value: _preferLocal,
           onChanged: (value) => setState(() => _preferLocal = value),
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text('Prefer Seasonal',
               style: TextStyle(color: AppTheme.textColor(context))),
           value: _preferSeasonal,
           onChanged: (value) => setState(() => _preferSeasonal = value),
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text('Reduce Meat Consumption',
               style: TextStyle(color: AppTheme.textColor(context))),
           value: _reduceMeatConsumption,
           onChanged: (value) => setState(() => _reduceMeatConsumption = value),
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text('Sustainable Seafood',
               style: TextStyle(color: AppTheme.textColor(context))),
           value: _sustainableSeafood,
           onChanged: (value) => setState(() => _sustainableSeafood = value),
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
       ],
     );
@@ -527,14 +527,14 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                     style: TextStyle(color: AppTheme.textColor(context))),
                 value: _enableSnacks,
                 onChanged: (value) => setState(() => _enableSnacks = value),
-                activeColor: AppColors.primary,
+                activeColor: Theme.of(context).primaryColor,
               ),
               SwitchListTile(
                 title: Text('Intermittent Fasting',
                     style: TextStyle(color: AppTheme.textColor(context))),
                 value: _intermittentFasting,
                 onChanged: (value) => setState(() => _intermittentFasting = value),
-                activeColor: AppColors.primary,
+                activeColor: Theme.of(context).primaryColor,
               ),
             ],
           ),
@@ -562,13 +562,13 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.primary.withAlpha(26),
+                color: Theme.of(context).primaryColor.withAlpha(26),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 displayValue,
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -580,7 +580,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
           min: min,
           max: max,
           onChanged: onChanged,
-          activeColor: AppColors.primary,
+          activeColor: Theme.of(context).primaryColor,
         ),
       ],
     );

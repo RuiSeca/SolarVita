@@ -7,8 +7,9 @@ import '../config/gemini_api_config.dart';
 
 class AIService {
   final UserContext context;
-  late final GenerativeModel _fastModel;
-  late final GenerativeModel _standardModel;
+  late final GenerativeModel? _fastModel;
+  late final GenerativeModel? _standardModel;
+  bool _useGemini = true;
 
   // Rate limiting for free tier
   static const int _maxRequestsPerMinute = 15; // Free tier limit
@@ -72,12 +73,13 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
 
   void _initializeModels() {
     if (!GeminiApiConfig.isConfigured()) {
-      throw Exception(
-          'Gemini API key not configured. Please set GEMINI_API_KEY in .env file.');
+      _useGemini = false;
+      return;
     }
 
-    // Fast model for quick responses
-    _fastModel = GenerativeModel(
+    try {
+      // Fast model for quick responses
+      _fastModel = GenerativeModel(
       model: 'gemini-1.5-flash-8b', // Fastest free model
       apiKey: GeminiApiConfig.apiKey,
       systemInstruction: Content.system(_getPersonalizedSystemPrompt()),
@@ -113,7 +115,11 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
         SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.medium),
       ],
     );
-
+    } catch (e) {
+      _useGemini = false;
+      _fastModel = null;
+      _standardModel = null;
+    }
   }
 
   String _getPersonalizedSystemPrompt() {
@@ -172,6 +178,10 @@ CONVERSATION STATUS: This is a continuing conversation.
 
       // Select appropriate model based on query complexity
       final model = _selectModel(userMessage);
+      
+      if (model == null) {
+        return _getContextAwareFallback(userMessage);
+      }
 
       // Generate response with timeout
       final response = await _generateWithTimeout(model, contextualPrompt);
@@ -211,6 +221,11 @@ CONVERSATION STATUS: This is a continuing conversation.
       _addToHistory(userMessage, isUser: true);
       final contextualPrompt = _buildContextualPrompt(userMessage);
       final model = _selectModel(userMessage);
+      
+      if (model == null) {
+        yield _getContextAwareFallback(userMessage);
+        return;
+      }
 
       final stream =
           model.generateContentStream([Content.text(contextualPrompt)]);
@@ -240,7 +255,11 @@ CONVERSATION STATUS: This is a continuing conversation.
   }
 
   // Smart model selection based on query complexity
-  GenerativeModel _selectModel(String query) {
+  GenerativeModel? _selectModel(String query) {
+    if (!_useGemini || _fastModel == null || _standardModel == null) {
+      return null;
+    }
+    
     // Use fast model for simple queries and casual chat
     if (query.length < 50 || _isSimpleQuery(query)) {
       return _fastModel;
@@ -524,6 +543,10 @@ CONVERSATION STATUS: This is a continuing conversation.
         return false;
       }
 
+      if (_fastModel == null) {
+        return false;
+      }
+      
       final response = await _generateWithTimeout(_fastModel,
           'Hey! Just checking if you\'re working properly as our SolarVita fitness coach!');
 

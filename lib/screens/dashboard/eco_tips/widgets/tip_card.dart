@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../../../models/eco_tip.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../../../widgets/common/oriented_image.dart';
 
 class TipCard extends StatelessWidget {
   final EcoTip tip;
@@ -27,8 +28,8 @@ class TipCard extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  Image.asset(
-                    tip.imagePath,
+                  OrientedImage(
+                    imageUrl: tip.imagePath,
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,

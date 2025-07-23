@@ -4,7 +4,7 @@ publish_to: "none"
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.6.1 <4.0.0"
+  sdk: ">=3.8.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -81,7 +81,7 @@ flutter:
 
     # Translations
     # ==========
-    - assets/i18n/
+    - lib/i18n/
     - assets/i18n/en/
     - assets/i18n/es/
     - assets/i18n/pt/

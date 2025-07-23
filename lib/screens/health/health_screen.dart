@@ -7,6 +7,7 @@ import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
 import '../../widgets/common/rive_water_widget.dart';
+import '../../widgets/common/oriented_image.dart';
 import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
@@ -263,10 +264,13 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
-                  image: const DecorationImage(
-                    image: AssetImage(
-                        'assets/images/health/health_profile/profile.webp'),
+                ),
+                child: ClipOval(
+                  child: OrientedImage(
+                    imageUrl: 'assets/images/health/health_profile/profile.webp',
                     fit: BoxFit.cover,
+                    width: 60,
+                    height: 60,
                   ),
                 ),
               ),
@@ -1220,79 +1224,90 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
       width: double
           .infinity, // Makes the card expand to the full width of its parent
       height: 180,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/health/meals/meal.webp'),
-          fit: BoxFit.cover,
-        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            tr(context, 'meal_planning'),
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                  offset: Offset(0, 1),
-                  blurRadius: 2,
-                  color: Colors.black26,
-                ),
-              ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            OrientedImage(
+              imageUrl: 'assets/images/health/meals/meal.webp',
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: 180,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Plan healthy, eco-friendly meals that fuel your fitness journey and support sustainable living.',
-            style: const TextStyle(
-              color: AppColors.white,
-              fontSize: 14,
-              height: 1.3,
-              shadows: [
-                Shadow(
-                  offset: Offset(0, 1),
-                  blurRadius: 2,
-                  color: Colors.black26,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 36,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const MealPlanScreen(),
+            Container(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Text(
+                    tr(context, 'meal_planning'),
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                          color: Colors.black26,
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              child: Text(
-                tr(context, 'explore_meals'),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.white,
-                ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Plan healthy, eco-friendly meals that fuel your fitness journey and support sustainable living.',
+                    style: const TextStyle(
+                      color: AppColors.white,
+                      fontSize: 14,
+                      height: 1.3,
+                      shadows: [
+                        Shadow(
+                          offset: Offset(0, 1),
+                          blurRadius: 2,
+                          color: Colors.black26,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 36,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MealPlanScreen(),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        tr(context, 'explore_meals'),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
