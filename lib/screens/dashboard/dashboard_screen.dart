@@ -10,6 +10,7 @@ import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/social_feed_tabs.dart';
+import '../../widgets/common/oriented_image.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -164,7 +165,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
 
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 40),
 
                 // Popular Workouts Section
                 Row(
@@ -269,7 +270,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 32),
+                const SizedBox(height: 80),
 
                 // Social Feed Section with Tabs
                 Row(
@@ -315,91 +316,98 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       height: 160,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
-          image: AssetImage(imagePath),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withAlpha(77),
-            BlendMode.darken,
-          ),
-        ),
       ),
-      child: Stack(
-        children: [
-          if (isPremium)
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.black.withAlpha(77),
+                BlendMode.darken,
+              ),
+              child: OrientedImage(
+                imageUrl: imagePath,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 160,
+              ),
+            ),
+            if (isPremium)
+              Positioned(
+                top: 16,
+                left: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: FittedBox(
+                    // Added FittedBox
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      tr(context, 'upgrade'),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               top: 16,
-              left: 16,
+              right: 16,
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: FittedBox(
-                  // Added FittedBox
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    tr(context, 'upgrade'),
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                child: const Icon(Icons.star, size: 16, color: Colors.black),
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
+              child: SizedBox(
+                // Added Container with width constraint
+                width:
+                    MediaQuery.of(context).size.width - 64, // Account for padding
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min, // Added to minimize height
+                  children: [
+                    Text(
+                      tr(context, title),
+                      style: const TextStyle(
+                        fontSize: 14, // Reduced font size
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr(context, author),
+                      style: const TextStyle(
+                        fontSize: 12, // Reduced font size
+                        color: Colors.white70,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ),
-          Positioned(
-            top: 16,
-            right: 16,
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.star, size: 16, color: Colors.black),
-            ),
-          ),
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 16,
-            child: SizedBox(
-              // Added Container with width constraint
-              width:
-                  MediaQuery.of(context).size.width - 64, // Account for padding
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min, // Added to minimize height
-                children: [
-                  Text(
-                    tr(context, title),
-                    style: const TextStyle(
-                      fontSize: 14, // Reduced font size
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tr(context, author),
-                    style: const TextStyle(
-                      fontSize: 12, // Reduced font size
-                      color: Colors.white70,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -413,60 +421,67 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       height: 120,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(
-          image: AssetImage(imagePath),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withAlpha(77),
-            BlendMode.darken,
-          ),
-        ),
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                Colors.black.withAlpha(77),
+                BlendMode.darken,
               ),
-              child: const Icon(Icons.star, size: 14, color: Colors.black),
+              child: OrientedImage(
+                imageUrl: imagePath,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 120,
+              ),
             ),
-          ),
-          Positioned(
-            bottom: 12,
-            left: 12,
-            right: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  author,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white70,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                child: const Icon(Icons.star, size: 14, color: Colors.black),
+              ),
             ),
-          ),
-        ],
+            Positioned(
+              bottom: 12,
+              left: 12,
+              right: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    author,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white70,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

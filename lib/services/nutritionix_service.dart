@@ -93,10 +93,17 @@ class CombinedNutrition {
 }
 
 class NutritionixService {
-  final FoodRecognitionService _recognitionService = FoodRecognitionService();
+  late final FoodRecognitionService _recognitionService;
 
   // Constructor validates API credentials
   NutritionixService() {
+    try {
+      _recognitionService = FoodRecognitionService();
+    } catch (e) {
+      // If initialization fails, create a fallback service
+      _recognitionService = FoodRecognitionService();
+    }
+    
     if (!NutritionixApiConfig.isConfigured()) {
       // API not configured - handle silently
     }

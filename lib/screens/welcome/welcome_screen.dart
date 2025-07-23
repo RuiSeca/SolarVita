@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../login/login_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../widgets/common/oriented_image.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -82,13 +83,11 @@ class WelcomeScreenState extends State<WelcomeScreen> {
                   },
                 ),
                 items: images.map((imgPath) {
-                  return ClipRRect(
+                  return OrientedImage(
+                    imageUrl: imgPath,
+                    fit: BoxFit.cover,
+                    width: double.infinity,
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(
-                      imgPath,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
                   );
                 }).toList(),
               ),

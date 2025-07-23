@@ -9,6 +9,7 @@ import 'workout_detail/workout_detail_type.dart' as detail_types;
 import 'workout_detail/workout_list_screen.dart';
 import 'workout_detail/models/workout_item.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../widgets/common/oriented_image.dart';
 
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -586,23 +587,26 @@ class WorkoutCategoryCard extends StatelessWidget {
                       },
                 child: Stack(
                   children: [
-                    Container(
-                      height: 160,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(
-                          image: AssetImage(mainImage),
-                          fit: BoxFit.cover,
-                          colorFilter: isLoading
-                              ? ColorFilter.mode(
-                                  Colors.black.withAlpha(153),
-                                  BlendMode.darken,
-                                )
-                              : ColorFilter.mode(
-                                  Colors.black.withAlpha(77),
-                                  BlendMode.darken,
-                                ),
-                        ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Stack(
+                        children: [
+                          OrientedImage(
+                            imageUrl: mainImage,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: 160,
+                          ),
+                          Container(
+                            height: 160,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(16),
+                              color: isLoading
+                                  ? Colors.black.withAlpha(153)
+                                  : Colors.black.withAlpha(77),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Positioned(
@@ -655,23 +659,26 @@ class WorkoutCategoryCard extends StatelessWidget {
                           },
                     child: Stack(
                       children: [
-                        Container(
-                          height: 80,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: AssetImage(smallImages[0]),
-                              fit: BoxFit.cover,
-                              colorFilter: isLoading
-                                  ? ColorFilter.mode(
-                                      Colors.black.withAlpha(153),
-                                      BlendMode.darken,
-                                    )
-                                  : ColorFilter.mode(
-                                      Colors.black.withAlpha(77),
-                                      BlendMode.darken,
-                                    ),
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              OrientedImage(
+                                imageUrl: smallImages[0],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 80,
+                              ),
+                              Container(
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isLoading
+                                      ? Colors.black.withAlpha(153)
+                                      : Colors.black.withAlpha(77),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         Positioned(
@@ -726,20 +733,25 @@ class WorkoutCategoryCard extends StatelessWidget {
                           },
                     child: Stack(
                       children: [
-                        Container(
-                          height: 70,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: AssetImage(smallImages[1]),
-                              fit: BoxFit.cover,
-                              colorFilter: isLoading
-                                  ? ColorFilter.mode(
-                                      Colors.black.withAlpha(153),
-                                      BlendMode.darken,
-                                    )
-                                  : null,
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              OrientedImage(
+                                imageUrl: smallImages[1],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                                height: 70,
+                              ),
+                              if (isLoading)
+                                Container(
+                                  height: 70,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: Colors.black.withAlpha(153),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                         Container(

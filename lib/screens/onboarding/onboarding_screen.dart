@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../widgets/common/oriented_image.dart';
 import 'personal_info_preferences_screen.dart';
 
 final _logger = Logger('OnboardingScreen');
@@ -107,8 +108,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: Image.asset(
-              page.image,
+            child: OrientedImage(
+              imageUrl: page.image,
               fit: BoxFit.contain,
             ),
           ),
