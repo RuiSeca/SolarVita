@@ -17,6 +17,11 @@ class AppColors {
   static const gold = Color(0xFFFFD700); // Gold color added
   static const cream = Color(0xFFFFFDD0);
   
+  // Navigation and Dark UI colors
+  static const darkSurface = Color(0xFF121212);
+  static const navigationBackgroundDark = Color(0xFF121212);
+  static const navigationBackgroundLight = Color(0xFFFFFFFF);
+  
   // Text colors
   static const textPrimary = Color(0xFF333333);
   static const textSecondary = Color(0xFF666666);
@@ -52,6 +57,12 @@ class AppTheme {
 
   static Color cardColor(BuildContext context) {
     return isDarkMode(context) ? AppColors.cardDark : AppColors.cardLight;
+  }
+
+  static Color navigationBackground(BuildContext context) {
+    return isDarkMode(context) 
+        ? AppColors.navigationBackgroundDark 
+        : AppColors.navigationBackgroundLight;
   }
 
   static Color get primaryColor => AppColors.primary;

@@ -462,22 +462,35 @@ class TribeService {
 
   // Activity Feed Integration
   Stream<List<TribePost>> getAllTribesActivityFeed({int limit = 20}) {
-    if (currentUserId == null) return Stream.value([]);
+    if (currentUserId == null) {
+      return Stream.value([]);
+    }
     
-    return getMyTribes().asyncExpand((tribes) {
-      if (tribes.isEmpty) return Stream.value(<TribePost>[]);
+    return getMyTribes().asyncMap((tribes) async {
+      if (tribes.isEmpty) {
+        return <TribePost>[];
+      }
       
       final tribeIds = tribes.map((t) => t.id).toList();
       
-      return _firestore
-          .collection('tribePosts')
-          .where('tribeId', whereIn: tribeIds)
-          .orderBy('createdAt', descending: true)
-          .limit(limit)
-          .snapshots()
-          .map((snapshot) => snapshot.docs
-              .map((doc) => TribePost.fromFirestore(doc))
-              .toList());
+      try {
+        final snapshot = await _firestore
+            .collection('tribePosts')
+            .where('tribeId', whereIn: tribeIds)
+            .orderBy('createdAt', descending: true)
+            .limit(limit)
+            .get();
+        
+        final posts = snapshot.docs
+            .map((doc) => TribePost.fromFirestore(doc))
+            .toList();
+        
+        return posts;
+      } catch (e) {
+        return <TribePost>[];
+      }
+    }).handleError((error) {
+      return <TribePost>[];
     });
   }
 }

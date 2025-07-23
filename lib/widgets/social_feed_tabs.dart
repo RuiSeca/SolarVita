@@ -4,11 +4,11 @@ import '../services/social_service.dart';
 import '../services/tribe_service.dart';
 import '../models/social_activity.dart';
 import '../models/community_challenge.dart';
-import '../models/tribe.dart';
 import '../models/tribe_post.dart';
 import '../theme/app_theme.dart';
 import '../screens/tribes/tribe_discovery_screen.dart';
-import '../screens/tribes/tribe_detail_screen.dart';
+import '../screens/chat/conversations_screen.dart';
+import '../providers/riverpod/chat_provider.dart';
 
 enum SocialFeedTab {
   allPosts,
@@ -142,22 +142,15 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
   Widget _buildTribesTab() {
-    // Show user's tribes and tribe activity feed
+    // Always show Discover Button at top, then activity feed
     return Column(
       children: [
-        // Header with actions
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        // Discover Tribes Button - Always visible at top right
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Expanded(
-                child: Text(
-                  'My Tribes',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
               TextButton.icon(
                 onPressed: () {
                   Navigator.push(
@@ -167,88 +160,37 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                     ),
                   );
                 },
-                icon: const Icon(Icons.explore, size: 14),
-                label: const Text('Discover', style: TextStyle(fontSize: 12)),
+                icon: Icon(
+                  Icons.explore,
+                  color: Theme.of(context).primaryColor,
+                  size: 20,
+                ),
+                label: Text(
+                  'Discover Tribes',
+                  style: TextStyle(
+                    color: Theme.of(context).primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
+                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ],
           ),
         ),
         
-        // User's Tribes List
-        SizedBox(
-          height: 100,
-          child: StreamBuilder<List<Tribe>>(
-            stream: _tribeService.getMyTribes(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              final tribes = snapshot.data ?? [];
-              
-              if (tribes.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('🏛️', style: TextStyle(fontSize: 28)),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'No tribes joined yet',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(height: 4),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TribeDiscoveryScreen(),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                            minimumSize: Size.zero,
-                          ),
-                          child: const Text(
-                            'Discover Tribes',
-                            style: TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: tribes.length,
-                itemBuilder: (context, index) {
-                  final tribe = tribes[index];
-                  return _buildTribeCard(tribe);
-                },
-              );
-            },
-          ),
-        ),
-        
-        const Divider(),
-        
-        // Tribe Activity Feed
+        // Activity Feed
         Expanded(
           child: StreamBuilder<List<TribePost>>(
             stream: _tribeService.getAllTribesActivityFeed(),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -261,10 +203,32 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               final posts = snapshot.data ?? [];
               
               if (posts.isEmpty) {
-                return _buildEmptyState(
-                  icon: '💬',
-                  title: 'No tribe activity yet',
-                  subtitle: 'Join tribes and start sharing!',
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '💬',
+                        style: const TextStyle(fontSize: 48),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No tribe activity yet',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Join tribes and start sharing!',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Theme.of(context).textTheme.bodySmall?.color,
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               }
 
@@ -284,31 +248,190 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
   Widget _buildSupportersTab() {
-    return StreamBuilder<List<SocialActivity>>(
-      stream: _socialService.getSupportersActivityFeed(limit: 15),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-
-        final activities = snapshot.data ?? [];
+    // Instagram-like dual view: Activity Feed + Messages
+    return Column(
+      children: [
+        // Top Section: Messages Header with unread count
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                Icons.chat_bubble_outline,
+                color: Theme.of(context).primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Messages',
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              const SizedBox(width: 8),
+              Consumer(
+                builder: (context, ref, child) {
+                  final totalUnreadAsync = ref.watch(totalUnreadCountProvider);
+                  return totalUnreadAsync.when(
+                    data: (unreadCount) => Stack(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ConversationsScreen(),
+                              ),
+                            );
+                          },
+                          style: TextButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: Icon(
+                            Icons.message,
+                            size: 16,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                          label: Text(
+                            'Message',
+                            style: TextStyle(
+                              color: Theme.of(context).primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        if (unreadCount > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                unreadCount > 99 ? '99+' : unreadCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    loading: () => TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConversationsScreen(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.message,
+                        size: 16,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      label: Text(
+                        'Message',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => TextButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ConversationsScreen(),
+                          ),
+                        );
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.message,
+                        size: 16,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                      label: Text(
+                        'Message',
+                        style: TextStyle(
+                          color: Theme.of(context).primaryColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
         
-        if (activities.isEmpty) {
-          return _buildEmptyState(
-            icon: '👥',
-            title: 'No supporter activities',
-            subtitle: 'Connect with friends to see their activities here',
-          );
-        }
+        // Activity Feed Section
+        Expanded(
+          child: StreamBuilder<List<SocialActivity>>(
+            stream: _socialService.getSupportersActivityFeed(limit: 15),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        return _buildExpandedFeed(activities, showSupporterBadge: true);
-      },
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}'),
+                );
+              }
+
+              final activities = snapshot.data ?? [];
+              
+              if (activities.isEmpty) {
+                return _buildEmptyState(
+                  icon: '👥',
+                  title: 'No supporter activities',
+                  subtitle: 'Connect with supporters to see their activities and start chatting',
+                );
+              }
+
+              return _buildExpandedFeed(activities, showSupporterBadge: true);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -579,67 +702,6 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     }
   }
 
-  Widget _buildTribeCard(Tribe tribe) {
-    final theme = Theme.of(context);
-    
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 12),
-      child: InkWell(
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TribeDetailScreen(tribeId: tribe.id),
-          ),
-        ),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.textFieldBackground(context),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.primaryColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  tribe.getCategoryIcon(),
-                  style: const TextStyle(fontSize: 20),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                tribe.name,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
-              const Spacer(),
-              Text(
-                '${tribe.memberCount} members',
-                style: TextStyle(
-                  fontSize: 10,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildTribePostCard(TribePost post) {
     final theme = Theme.of(context);
