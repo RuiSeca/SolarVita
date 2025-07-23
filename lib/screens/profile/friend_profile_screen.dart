@@ -9,6 +9,8 @@ import '../../models/health_data.dart';
 import '../../services/social_service.dart';
 import '../../services/supporter_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
+import '../../providers/riverpod/chat_provider.dart';
+import '../../screens/chat/chat_screen.dart';
 import 'widgets/supporter_profile_header.dart';
 import 'widgets/supporter_daily_goals_widget.dart';
 import 'widgets/supporter_weekly_summary.dart';
@@ -402,14 +404,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
                   context,
                   icon: Icons.message_outlined,
                   label: 'Message',
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Messaging feature coming soon!'),
-                        backgroundColor: AppColors.primary,
-                      ),
-                    );
-                  },
+                  onPressed: () => _openChat(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -549,6 +544,37 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       _logger.d('Refreshed supporter count for ${widget.supporter.displayName}: $updatedCount');
     } catch (e) {
       _logger.e('Error refreshing supporter count for viewed user: $e');
+    }
+  }
+
+  Future<void> _openChat() async {
+    try {
+      final chatActions = ref.read(chatActionsProvider);
+      final conversationId = await chatActions.getOrCreateConversation(widget.supporter.userId);
+      
+      if (conversationId != null && mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(
+              conversationId: conversationId,
+              otherUserId: widget.supporter.userId,
+              otherUserName: widget.supporter.displayName,
+              otherUserPhotoURL: widget.supporter.photoURL,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      _logger.e('Error opening chat: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error opening chat: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

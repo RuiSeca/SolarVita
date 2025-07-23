@@ -6,11 +6,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:logging/logging.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Import Firebase options
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/data_sync_service.dart';
+import 'services/chat_notification_service.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -32,6 +34,21 @@ import 'models/user_profile.dart';
 // Global flag to track Firebase initialization
 bool isFirebaseAvailable = false;
 
+// Global navigator key for notification navigation
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Background message handler (must be top-level function)
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  // Handle background message processing if needed
+}
+
+void _setupNotificationNavigation(ChatNotificationService chatNotificationService) {
+  // This would be implemented to handle navigation from notifications
+  // For now, we'll just set up the basic structure
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -48,6 +65,10 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    
+    // Register background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    
     isFirebaseAvailable = true;
   } catch (e) {
     // Continue without Firebase for testing
@@ -59,6 +80,19 @@ void main() async {
     await notificationService.initialize();
   } catch (e) {
     // Notification service initialization failed - continue without notifications
+  }
+
+  // Initialize chat notification service
+  if (isFirebaseAvailable) {
+    try {
+      final chatNotificationService = ChatNotificationService();
+      await chatNotificationService.initialize();
+      
+      // Set up navigation for notification taps
+      _setupNotificationNavigation(chatNotificationService);
+    } catch (e) {
+      // Chat notification service initialization failed - continue without chat notifications
+    }
   }
 
   // Initialize data sync service for Firebase integration
@@ -103,6 +137,7 @@ class SolarVitaApp extends ConsumerWidget {
         return MaterialApp(
           title: 'SolarVita',
           debugShowCheckedModeBanner: false,
+          navigatorKey: navigatorKey,
           themeMode: themeMode,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
@@ -242,6 +277,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        backgroundColor: AppTheme.navigationBackground(context),
         selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey,
         items: const [

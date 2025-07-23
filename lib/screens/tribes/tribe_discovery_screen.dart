@@ -9,15 +9,14 @@ class TribeDiscoveryScreen extends ConsumerStatefulWidget {
   const TribeDiscoveryScreen({super.key});
 
   @override
-  ConsumerState<TribeDiscoveryScreen> createState() =>
-      _TribeDiscoveryScreenState();
+  ConsumerState<TribeDiscoveryScreen> createState() => _TribeDiscoveryScreenState();
 }
 
 class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
   final TribeService _tribeService = TribeService();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _inviteCodeController = TextEditingController();
-
+  
   TribeCategory? _selectedCategory;
   String _searchQuery = '';
 
@@ -78,7 +77,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
 
   Future<void> _joinByInviteCode() async {
     final inviteCode = _inviteCodeController.text.trim().toUpperCase();
-
+    
     if (inviteCode.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -91,7 +90,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
 
     try {
       final tribe = await _tribeService.findTribeByInviteCode(inviteCode);
-
+      
       if (tribe == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -107,7 +106,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
       if (mounted) {
         Navigator.pop(context); // Close dialog
         _inviteCodeController.clear();
-
+        
         // Navigate to tribe detail screen with join option
         Navigator.push(
           context,
@@ -154,8 +153,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
+    
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('Discover Tribes'),
         backgroundColor: theme.primaryColor,
@@ -175,7 +175,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   builder: (context) => const CreateTribeScreen(),
                 ),
               );
-
+              
               if (result != null && mounted) {
                 // Navigate to the newly created tribe
                 if (context.mounted) {
@@ -192,8 +192,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
+      body: SafeArea(
+        child: Column(
+          children: [
           // Search and Filter Section
           Container(
             padding: const EdgeInsets.all(16),
@@ -266,9 +267,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                     onChanged: _onSearchChanged,
                   ),
                 ),
-
+                
                 const SizedBox(height: 12),
-
+                
                 // Category Filter
                 SizedBox(
                   height: 50,
@@ -279,8 +280,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       Padding(
                         padding: const EdgeInsets.only(right: 8),
                         child: FilterChip(
-                          label:
-                              const Text('All', style: TextStyle(fontSize: 12)),
+                          label: const Text('All', style: TextStyle(fontSize: 12)),
                           selected: _selectedCategory == null,
                           onSelected: (selected) {
                             if (selected) {
@@ -288,16 +288,14 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                             }
                           },
                           backgroundColor: Colors.white,
-                          selectedColor:
-                              theme.primaryColor.withValues(alpha: 0.15),
+                          selectedColor: theme.primaryColor.withValues(alpha: 0.15),
                           checkmarkColor: theme.primaryColor,
                           elevation: _selectedCategory == null ? 2 : 0,
-                          shadowColor:
-                              theme.primaryColor.withValues(alpha: 0.3),
+                          shadowColor: theme.primaryColor.withValues(alpha: 0.3),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(
-                              color: _selectedCategory == null
+                              color: _selectedCategory == null 
                                   ? theme.primaryColor.withValues(alpha: 0.3)
                                   : Colors.transparent,
                               width: 1,
@@ -305,62 +303,57 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                           ),
                         ),
                       ),
-
+                      
                       // Category Chips
-                      ...TribeService.getAllCategories().map((category) =>
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FilterChip(
-                              label: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    Tribe(
-                                      id: '',
-                                      name: '',
-                                      description: '',
-                                      creatorId: '',
-                                      creatorName: '',
-                                      category: category,
-                                      createdAt: DateTime.now(),
-                                    ).getCategoryIcon(),
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    TribeService.getCategoryDisplayName(
-                                        category),
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                ],
+                      ...TribeService.getAllCategories().map((category) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                Tribe(
+                                  id: '', 
+                                  name: '', 
+                                  description: '', 
+                                  creatorId: '', 
+                                  creatorName: '',
+                                  category: category,
+                                  createdAt: DateTime.now(),
+                                ).getCategoryIcon(),
+                                style: const TextStyle(fontSize: 12),
                               ),
-                              selected: _selectedCategory == category,
-                              onSelected: (selected) {
-                                _onCategoryChanged(selected ? category : null);
-                              },
-                              backgroundColor: Colors.white,
-                              selectedColor:
-                                  theme.primaryColor.withValues(alpha: 0.15),
-                              checkmarkColor: theme.primaryColor,
-                              elevation: _selectedCategory == category ? 2 : 0,
-                              shadowColor:
-                                  theme.primaryColor.withValues(alpha: 0.3),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(
-                                  color: _selectedCategory == category
-                                      ? theme.primaryColor
-                                          .withValues(alpha: 0.3)
-                                      : Colors.transparent,
-                                  width: 1,
-                                ),
+                              const SizedBox(width: 4),
+                              Text(
+                                TribeService.getCategoryDisplayName(category),
+                                style: const TextStyle(fontSize: 11),
                               ),
+                            ],
+                          ),
+                          selected: _selectedCategory == category,
+                          onSelected: (selected) {
+                            _onCategoryChanged(selected ? category : null);
+                          },
+                          backgroundColor: Colors.white,
+                          selectedColor: theme.primaryColor.withValues(alpha: 0.15),
+                          checkmarkColor: theme.primaryColor,
+                          elevation: _selectedCategory == category ? 2 : 0,
+                          shadowColor: theme.primaryColor.withValues(alpha: 0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: _selectedCategory == category 
+                                  ? theme.primaryColor.withValues(alpha: 0.3)
+                                  : Colors.transparent,
+                              width: 1,
                             ),
-                          )),
+                          ),
+                        ),
+                      )),
                     ],
                   ),
                 ),
-
+                
                 // Active Filters Indicator
                 if (_selectedCategory != null || _searchQuery.isNotEmpty) ...[
                   const SizedBox(height: 8),
@@ -387,7 +380,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
               ],
             ),
           ),
-
+          
           // Tribes List
           Expanded(
             child: StreamBuilder<List<Tribe>>(
@@ -399,7 +392,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
+                
                 if (snapshot.hasError) {
                   return Center(
                     child: Column(
@@ -425,9 +418,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                     ),
                   );
                 }
-
+                
                 final tribes = snapshot.data ?? [];
-
+                
                 if (tribes.isEmpty) {
                   return Center(
                     child: Column(
@@ -467,7 +460,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                     ),
                   );
                 }
-
+                
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: tribes.length,
@@ -480,13 +473,14 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
 
   Widget _buildTribeCard(Tribe tribe) {
     final theme = Theme.of(context);
-
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
@@ -547,9 +541,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       style: const TextStyle(fontSize: 22),
                     ),
                   ),
-
+                  
                   const SizedBox(width: 12),
-
+                  
                   // Tribe Name and Category
                   Expanded(
                     child: Column(
@@ -573,7 +567,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       ],
                     ),
                   ),
-
+                  
                   // Visibility Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -581,7 +575,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: tribe.isPublic
+                      color: tribe.isPublic 
                           ? Colors.green.withValues(alpha: 0.1)
                           : Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -597,9 +591,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   ),
                 ],
               ),
-
+              
               const SizedBox(height: 12),
-
+              
               // Description
               Text(
                 tribe.description,
@@ -607,9 +601,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-
+              
               const SizedBox(height: 12),
-
+              
               // Stats and Tags
               Row(
                 children: [
@@ -628,9 +622,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       ),
                     ],
                   ),
-
+                  
                   const SizedBox(width: 16),
-
+                  
                   // Location
                   if (tribe.location != null) ...[
                     Row(
@@ -648,9 +642,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       ],
                     ),
                   ],
-
+                  
                   const Spacer(),
-
+                  
                   // Join Button
                   Container(
                     decoration: BoxDecoration(
@@ -675,16 +669,14 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              TribeDetailScreen(tribeId: tribe.id),
+                          builder: (context) => TribeDetailScreen(tribeId: tribe.id),
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
                         shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         minimumSize: Size.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -711,31 +703,27 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   ),
                 ],
               ),
-
+              
               // Tags
               if (tribe.tags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
-                  children: tribe.tags
-                      .take(3)
-                      .map((tag) => Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.primaryColor,
-                              ),
-                            ),
-                          ))
-                      .toList(),
+                  children: tribe.tags.take(3).map((tag) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '#$tag',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.primaryColor,
+                      ),
+                    ),
+                  )).toList(),
                 ),
               ],
             ],

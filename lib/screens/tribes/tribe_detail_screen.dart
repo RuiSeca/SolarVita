@@ -417,6 +417,10 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
           if (isMember) ...[
             TabBar(
               controller: _tabController,
+              labelColor: theme.primaryColor,
+              unselectedLabelColor: theme.textTheme.bodyMedium?.color,
+              indicatorColor: theme.primaryColor,
+              indicatorWeight: 3,
               tabs: const [
                 Tab(text: 'Posts', icon: Icon(Icons.forum)),
                 Tab(text: 'Members', icon: Icon(Icons.people)),
