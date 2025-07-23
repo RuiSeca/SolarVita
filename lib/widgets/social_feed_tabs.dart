@@ -5,10 +5,15 @@ import '../services/tribe_service.dart';
 import '../models/social_activity.dart';
 import '../models/community_challenge.dart';
 import '../models/tribe_post.dart';
+import '../models/social_post.dart' as social;
 import '../theme/app_theme.dart';
 import '../screens/tribes/tribe_discovery_screen.dart';
 import '../screens/chat/conversations_screen.dart';
+import '../screens/social/create_post_screen.dart';
+import '../screens/social/social_feed_screen.dart';
 import '../providers/riverpod/chat_provider.dart';
+import '../widgets/social/social_post_card.dart';
+import '../widgets/common/lottie_loading_widget.dart';
 
 enum SocialFeedTab {
   allPosts,
@@ -113,31 +118,61 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
   Widget _buildAllPostsTab() {
-    return StreamBuilder<List<SocialActivity>>(
-      stream: _socialService.getCommunityFeed(limit: 20),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Error: ${snapshot.error}'),
-          );
-        }
-
-        final activities = snapshot.data ?? [];
-        
-        if (activities.isEmpty) {
-          return _buildEmptyState(
-            icon: '🌍',
-            title: 'No community posts yet',
-            subtitle: 'Be the first to share with the community!',
-          );
-        }
-
-        return _buildExpandedFeed(activities);
-      },
+    // Navigate to full-screen social feed
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withAlpha(26),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.feed,
+              size: 48,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'View Full Social Feed',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap to explore the community',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textColor(context).withAlpha(153),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SocialFeedScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.explore),
+            label: const Text('Open Social Feed'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -840,6 +875,189 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           ],
         ),
       ),
+    );
+  }
+}
+
+// Embedded Social Feed Content for Instagram-style posts
+class SocialFeedContent extends StatefulWidget {
+  const SocialFeedContent({super.key});
+
+  @override
+  State<SocialFeedContent> createState() => _SocialFeedContentState();
+}
+
+class _SocialFeedContentState extends State<SocialFeedContent> {
+  final List<social.SocialPost> _posts = [];
+  bool _isLoading = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadPosts();
+  }
+
+  Future<void> _loadPosts() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Generate some mock posts for demo
+      final mockPosts = _generateMockPosts();
+      setState(() {
+        _posts.clear();
+        _posts.addAll(mockPosts);
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<social.SocialPost> _generateMockPosts() {
+    return [
+      social.SocialPost(
+        id: 'post_1',
+        userId: 'user_1',
+        userName: 'Alex Chen',
+        content: 'Just completed my morning workout! 💪 Feeling energized and ready to tackle the day. Nothing beats that post-exercise endorphin rush!',
+        type: social.PostType.fitnessProgress,
+        pillars: [social.PostPillar.fitness],
+        mediaUrls: ['https://picsum.photos/400/400?random=1'],
+        videoUrls: [],
+        visibility: social.PostVisibility.supporters,
+        autoGenerated: false,
+        reactions: {'user_2': social.ReactionType.like, 'user_3': social.ReactionType.celebrate},
+        commentCount: 3,
+        tags: [],
+        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      social.SocialPost(
+        id: 'post_2',
+        userId: 'user_2',
+        userName: 'Maria Garcia',
+        content: 'Made this delicious plant-based smoothie bowl! Perfect fuel for the afternoon. Recipe in the comments! 🥣✨',
+        type: social.PostType.nutritionUpdate,
+        pillars: [social.PostPillar.nutrition],
+        mediaUrls: ['https://picsum.photos/400/400?random=2'],
+        videoUrls: [],
+        visibility: social.PostVisibility.public,
+        autoGenerated: false,
+        reactions: {'user_1': social.ReactionType.boost, 'user_3': social.ReactionType.like},
+        commentCount: 7,
+        tags: [],
+        timestamp: DateTime.now().subtract(const Duration(hours: 4)),
+      ),
+      social.SocialPost(
+        id: 'post_3',
+        userId: 'user_3',
+        userName: 'David Kim',
+        content: 'Walked to work instead of driving today. Small steps toward a greener lifestyle! Every choice matters. 🌱🚶‍♂️',
+        type: social.PostType.ecoAchievement,
+        pillars: [social.PostPillar.eco],
+        mediaUrls: [],
+        videoUrls: [],
+        visibility: social.PostVisibility.supporters,
+        autoGenerated: true,
+        reactions: {'user_1': social.ReactionType.boost},
+        commentCount: 1,
+        tags: [],
+        timestamp: DateTime.now().subtract(const Duration(hours: 6)),
+      ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: LottieLoadingWidget(width: 60, height: 60),
+      );
+    }
+
+    if (_posts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor.withAlpha(26),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.celebration_outlined,
+                size: 48,
+                color: Theme.of(context).primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Welcome to SolarVita Social!',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Share your wellness journey',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textColor(context).withAlpha(153),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CreatePostScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Create Post'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: EdgeInsets.zero, // Edge-to-edge posts
+      itemCount: _posts.length,
+      itemBuilder: (context, index) {
+        final post = _posts[index];
+        return SocialPostCard(
+          post: post,
+          onReaction: (postId, reaction) {
+            print('Reaction: $reaction on post $postId');
+          },
+          onComment: (postId) {
+            print('Comment on post $postId');
+          },
+          onShare: (postId) {
+            print('Share post $postId');
+          },
+          onMoreOptions: (postId) {
+            print('More options for post $postId');
+          },
+        );
+      },
     );
   }
 }
