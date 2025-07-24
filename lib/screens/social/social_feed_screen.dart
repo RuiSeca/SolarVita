@@ -1,11 +1,16 @@
 // lib/screens/social/social_feed_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:async';
+import 'dart:ui';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'create_post_screen.dart';
+import 'post_templates_screen.dart';
 
 class SocialFeedScreen extends ConsumerStatefulWidget {
   const SocialFeedScreen({super.key});
@@ -23,6 +28,9 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   String _selectedFilter = 'all'; // all, supporters, public
   int _currentPage = 0;
   static const int _postsPerPage = 10;
+  bool _isBottomBarVisible = true;
+  bool _isScrolling = false;
+  Timer? _scrollTimer;
 
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
@@ -31,12 +39,14 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _setupScrollListener();
     _loadInitialPosts();
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
+    _scrollTimer?.cancel();
     super.dispose();
   }
 
@@ -46,6 +56,69 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       if (!_isLoading && _hasMorePosts) {
         _loadMorePosts();
       }
+    }
+  }
+
+  void _setupScrollListener() {
+    _scrollController.addListener(() {
+      if (_scrollController.hasClients) {
+        // Handle scroll-based visibility
+        final scrollDirection = _scrollController.position.userScrollDirection;
+        
+        if (scrollDirection == ScrollDirection.reverse) {
+          // Scrolling down - hide bottom bar
+          if (_isBottomBarVisible) {
+            setState(() {
+              _isBottomBarVisible = false;
+              _isScrolling = true;
+            });
+          }
+        } else if (scrollDirection == ScrollDirection.forward) {
+          // Scrolling up - show bottom bar
+          if (!_isBottomBarVisible) {
+            setState(() {
+              _isBottomBarVisible = true;
+              _isScrolling = false;
+            });
+          }
+        }
+        
+        // Cancel previous timer
+        _scrollTimer?.cancel();
+        
+        // Set timer to show bottom bar when scrolling stops
+        _scrollTimer = Timer(const Duration(milliseconds: 800), () {
+          if (mounted && _isScrolling) {
+            setState(() {
+              _isBottomBarVisible = true;
+              _isScrolling = false;
+            });
+          }
+        });
+      }
+    });
+  }
+
+  void _scrollToTop() {
+    if (_scrollController.hasClients) {
+      // Add haptic feedback
+      HapticFeedback.mediumImpact();
+      
+      // Cancel any existing scroll timer
+      _scrollTimer?.cancel();
+      
+      // Show bottom bar immediately when scrolling to top
+      setState(() {
+        _isBottomBarVisible = true;
+        _isScrolling = false;
+      });
+      
+      // Scroll to top with fast animation
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 
@@ -68,67 +141,90 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               _buildPostsList(),
               if (_isLoading) _buildLoadingIndicator(),
               if (!_hasMorePosts && _posts.isNotEmpty) _buildEndMessage(),
+              // Add extra padding at bottom for the floating bottom bar
+              SliverToBoxAdapter(
+                child: SizedBox(height: 100 + MediaQuery.of(context).viewPadding.bottom),
+              ),
             ],
           ),
         ),
       ),
+      bottomSheet: _buildGlassyBottomBar(),
     );
   }
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
       backgroundColor: AppTheme.surfaceColor(context),
+      surfaceTintColor: Colors.transparent,
+      shadowColor: Colors.transparent,
+      foregroundColor: AppTheme.textColor(context),
       elevation: 0,
       pinned: true,
       floating: true,
       snap: true,
-      title: Row(
-        children: [
-          Text(
-            'SolarVita',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textColor(context),
-            ),
+      title: GestureDetector(
+        onTap: _scrollToTop,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: Colors.transparent,
           ),
-          const SizedBox(width: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'SOCIAL',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'SolarVita',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor(context),
+                ),
               ),
-            ),
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'SOCIAL',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_arrow_up,
+                size: 16,
+                color: AppTheme.textColor(context).withAlpha(128),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       actions: [
         IconButton(
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const CreatePostScreen(),
+            // TODO: Navigate to favorite/saved posts screen
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Saved posts feature coming soon!'),
+                duration: Duration(seconds: 2),
               ),
-            ).then((result) {
-              if (result == true) {
-                _refreshFeed();
-              }
-            });
+            );
           },
           icon: Icon(
-            Icons.add_box_outlined,
+            Icons.bookmark_border,
             color: AppTheme.textColor(context),
             size: 28,
           ),
+          tooltip: 'Saved Posts',
         ),
       ],
     );
@@ -591,6 +687,129 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Widget _buildGlassyBottomBar() {
+    return AnimatedSlide(
+      offset: _isBottomBarVisible ? Offset.zero : const Offset(0, 1),
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+          child: Container(
+            width: double.infinity,
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 20,
+              bottom: MediaQuery.of(context).viewPadding.bottom + 20,
+            ),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.black.withAlpha(128)
+                : Colors.white.withAlpha(128),
+              border: Border(
+                top: BorderSide(
+                  color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withAlpha(77)
+                    : Colors.black.withAlpha(51),
+                  width: 0.5,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(51),
+                  blurRadius: 30,
+                  offset: const Offset(0, -10),
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Create Post Button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CreatePostScreen(),
+                        ),
+                      ).then((result) {
+                        if (result == true) {
+                          _refreshFeed();
+                        }
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.textColor(context).withAlpha(26),
+                      foregroundColor: AppTheme.textColor(context),
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: AppTheme.textColor(context).withAlpha(77),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.add_box_outlined,
+                      size: 18,
+                      color: AppTheme.textColor(context),
+                    ),
+                    label: Text(
+                      'Create Post',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textColor(context),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                // Templates Button
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const PostTemplatesScreen(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(context).primaryColor,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.auto_awesome,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Templates',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

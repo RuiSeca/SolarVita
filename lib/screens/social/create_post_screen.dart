@@ -4,8 +4,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:io';
 import '../../models/social_post.dart';
+import '../../models/user_mention.dart';
+import '../../models/post_template.dart';
+import '../../models/content_moderation.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../widgets/media/video_thumbnail_widget.dart';
+import '../../widgets/social/mention_text_field.dart';
+import '../../widgets/social/post_template_selector.dart';
+import 'template_variable_input_screen.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final PostType? initialPostType;
@@ -31,6 +38,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final List<File> _selectedImages = [];
   final List<File> _selectedVideos = [];
   final List<VideoPlayerController> _videoControllers = [];
+  List<MentionInfo> _mentions = [];
   bool _isLoading = false;
 
   @override
@@ -40,6 +48,29 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       _selectedPostType = widget.initialPostType!;
     }
     _initializePillarsFromPostType();
+    _handleSourceData();
+  }
+
+  void _handleSourceData() {
+    if (widget.sourceData != null) {
+      final data = widget.sourceData!;
+      
+      // Pre-fill content from template
+      if (data['pre_filled_content'] != null) {
+        _contentController.text = data['pre_filled_content'];
+      }
+      
+      // Set default pillars from template
+      if (data['default_pillars'] != null) {
+        final pillarStrings = List<String>.from(data['default_pillars']);
+        _selectedPillars = pillarStrings.map((pillarStr) {
+          return PostPillar.values.firstWhere(
+            (p) => p.toString() == pillarStr,
+            orElse: () => PostPillar.fitness,
+          );
+        }).toList();
+      }
+    }
   }
 
   @override
@@ -188,40 +219,79 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'What\'s on your mind?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textColor(context),
-          ),
+        Row(
+          children: [
+            Text(
+              'What\'s on your mind?',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: _showTemplateSelector,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor.withAlpha(51),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Theme.of(context).primaryColor.withAlpha(102),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.article,
+                      size: 16,
+                      color: Theme.of(context).primaryColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Templates',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.textColor(context).withAlpha(51),
-            ),
-          ),
-          child: TextField(
-            controller: _contentController,
-            maxLines: 6,
-            decoration: InputDecoration(
-              hintText: _getPostTypeHint(_selectedPostType),
-              hintStyle: TextStyle(
-                color: AppTheme.textColor(context).withAlpha(128),
-              ),
-              border: InputBorder.none,
-            ),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 16,
-            ),
+        MentionTextField(
+          controller: _contentController,
+          hintText: _getPostTypeHint(_selectedPostType),
+          maxLines: 6,
+          onMentionsChanged: (mentions) {
+            setState(() {
+              _mentions = mentions;
+            });
+          },
+          textStyle: TextStyle(
+            color: AppTheme.textColor(context),
+            fontSize: 16,
           ),
         ),
+        // Show mentions count if any
+        if (_mentions.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '${_mentions.length} ${_mentions.length == 1 ? 'person' : 'people'} mentioned',
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -244,13 +314,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             _buildMediaButton(
               icon: Icons.photo_library,
               label: 'Photos',
-              onTap: _pickImages,
+              onTap: _canAddMoreMedia() ? _pickImages : null,
+              isDisabled: !_canAddMoreMedia(),
             ),
             const SizedBox(width: 8),
             _buildMediaButton(
               icon: Icons.videocam,
               label: 'Videos',
-              onTap: _pickVideos,
+              onTap: _canAddMoreMedia() ? _pickVideos : null,
+              isDisabled: !_canAddMoreMedia(),
             ),
           ],
         ),
@@ -264,28 +336,41 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Widget _buildMediaButton({
     required IconData icon,
     required String label,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    bool isDisabled = false,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).primaryColor.withAlpha(51),
+          color: isDisabled 
+              ? AppTheme.textColor(context).withAlpha(26)
+              : Theme.of(context).primaryColor.withAlpha(51),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Theme.of(context).primaryColor.withAlpha(102),
+            color: isDisabled
+                ? AppTheme.textColor(context).withAlpha(51)
+                : Theme.of(context).primaryColor.withAlpha(102),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: Theme.of(context).primaryColor),
+            Icon(
+              icon, 
+              size: 16, 
+              color: isDisabled
+                  ? AppTheme.textColor(context).withAlpha(128)
+                  : Theme.of(context).primaryColor,
+            ),
             const SizedBox(width: 4),
             Text(
               label,
               style: TextStyle(
-                color: Theme.of(context).primaryColor,
+                color: isDisabled
+                    ? AppTheme.textColor(context).withAlpha(128)
+                    : Theme.of(context).primaryColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,
               ),
@@ -302,74 +387,225 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       ..._selectedVideos.map((file) => MediaPreviewItem(file: file, isVideo: true)),
     ];
 
-    return SizedBox(
-      height: 120,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: allMedia.length,
-        itemBuilder: (context, index) {
-          final media = allMedia[index];
-          return Container(
-            width: 120,
-            margin: const EdgeInsets.only(right: 8),
-            child: Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: media.isVideo
-                      ? _buildVideoThumbnail(media.file)
-                      : Image.file(
-                          media.file,
-                          width: 120,
-                          height: 120,
-                          fit: BoxFit.cover,
-                        ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Media count and reorder info
+        Row(
+          children: [
+            Text(
+              '${allMedia.length} ${allMedia.length == 1 ? 'file' : 'files'} selected',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textColor(context).withAlpha(153),
+              ),
+            ),
+            const Spacer(),
+            if (allMedia.length > 1)
+              Text(
+                'Tap and hold to reorder',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.textColor(context).withAlpha(128),
+                  fontStyle: FontStyle.italic,
                 ),
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: GestureDetector(
-                    onTap: () => _removeMedia(media.file, media.isVideo),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        color: Colors.white,
-                        size: 16,
-                      ),
-                    ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        
+        // Enhanced media grid with reordering
+        SizedBox(
+          height: allMedia.length > 3 ? 260 : 130, // Adjust height for multiple rows
+          child: ReorderableListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: allMedia.length,
+            onReorder: _reorderMedia,
+            proxyDecorator: (child, index, animation) {
+              return AnimatedBuilder(
+                animation: animation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: 1.1,
+                    child: child,
+                  );
+                },
+                child: child,
+              );
+            },
+            itemBuilder: (context, index) {
+              final media = allMedia[index];
+              return _buildEnhancedMediaItem(media, index, key: ValueKey(media.file.path));
+            },
+          ),
+        ),
+        
+        // Media limit indicator
+        if (allMedia.length >= 5)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Colors.orange,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Maximum 10 files per post',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+      ],
     );
   }
 
-  Widget _buildVideoThumbnail(File videoFile) {
+  Widget _buildEnhancedMediaItem(MediaPreviewItem media, int index, {required Key key}) {
     return Container(
+      key: key,
       width: 120,
       height: 120,
-      color: Colors.grey[300],
-      child: const Stack(
-        alignment: Alignment.center,
+      margin: const EdgeInsets.only(right: 8),
+      child: Stack(
         children: [
-          Icon(Icons.play_circle_outline, size: 40, color: Colors.grey),
-          Positioned(
-            bottom: 4,
-            right: 4,
-            child: Icon(Icons.videocam, size: 16, color: Colors.white),
+          // Main media content
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: AppTheme.textColor(context).withAlpha(26),
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: media.isVideo
+                  ? VideoThumbnailWidget(
+                      videoFile: media.file,
+                      width: 120,
+                      height: 120,
+                      showDuration: true,
+                      showPlayButton: true,
+                      onTap: () => _previewVideo(media.file),
+                    )
+                  : Image.file(
+                      media.file,
+                      width: 120,
+                      height: 120,
+                      fit: BoxFit.cover,
+                    ),
+            ),
           ),
+          
+          // Media type indicator
+          Positioned(
+            bottom: 6,
+            left: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(153),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    media.isVideo ? Icons.videocam : Icons.image,
+                    size: 10,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    media.isVideo ? 'VIDEO' : 'PHOTO',
+                    style: const TextStyle(
+                      fontSize: 8,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Order indicator
+          Positioned(
+            top: 6,
+            left: 6,
+            child: Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                color: Theme.of(context).primaryColor,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+              child: Center(
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // Remove button
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: () => _removeMedia(media.file, media.isVideo),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.red.withAlpha(204),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 1),
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+            ),
+          ),
+          
+          // Drag handle for reordering
+          if (index < _getMediaCount() - 1 || _getMediaCount() > 1)
+            Positioned(
+              bottom: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(128),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Icon(
+                  Icons.drag_indicator,
+                  size: 12,
+                  color: Colors.white,
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
+
 
   Widget _buildPillarSelector() {
     return Column(
@@ -601,21 +837,75 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
            _selectedVideos.isNotEmpty;
   }
 
+  bool _canAddMoreMedia() {
+    final totalMedia = _selectedImages.length + _selectedVideos.length;
+    return totalMedia < 10;
+  }
+
+  int _getMediaCount() {
+    return _selectedImages.length + _selectedVideos.length;
+  }
+
   Future<void> _pickImages() async {
-    final List<XFile> images = await _imagePicker.pickMultiImage();
-    if (images.isNotEmpty) {
-      setState(() {
-        _selectedImages.addAll(images.map((xfile) => File(xfile.path)));
-      });
+    try {
+      final List<XFile> images = await _imagePicker.pickMultiImage();
+      if (images.isNotEmpty) {
+        // Check media limit
+        final totalMedia = _selectedImages.length + _selectedVideos.length;
+        final availableSlots = 10 - totalMedia;
+        
+        if (availableSlots <= 0) {
+          _showErrorMessage('Maximum 10 files allowed per post');
+          return;
+        }
+        
+        final imagesToAdd = images.take(availableSlots).toList();
+        
+        setState(() {
+          _selectedImages.addAll(imagesToAdd.map((xfile) => File(xfile.path)));
+        });
+        
+        // Show warning if some images were not added
+        if (images.length > imagesToAdd.length) {
+          _showWarningMessage('Only ${imagesToAdd.length} images added due to limit');
+        }
+      }
+    } catch (e) {
+      _showErrorMessage('Failed to pick images: $e');
     }
   }
 
   Future<void> _pickVideos() async {
-    final XFile? video = await _imagePicker.pickVideo(source: ImageSource.gallery);
-    if (video != null) {
-      setState(() {
-        _selectedVideos.add(File(video.path));
-      });
+    try {
+      final XFile? video = await _imagePicker.pickVideo(
+        source: ImageSource.gallery,
+        maxDuration: const Duration(minutes: 5), // Limit video length
+      );
+      if (video != null) {
+        // Check media limit
+        final totalMedia = _selectedImages.length + _selectedVideos.length;
+        
+        if (totalMedia >= 10) {
+          _showErrorMessage('Maximum 10 files allowed per post');
+          return;
+        }
+        
+        // Check video file size (limit to 100MB)
+        final file = File(video.path);
+        final fileSize = await file.length();
+        const maxSize = 100 * 1024 * 1024; // 100MB in bytes
+        
+        if (fileSize > maxSize) {
+          _showErrorMessage('Video file too large. Maximum size is 100MB.');
+          return;
+        }
+        
+        setState(() {
+          _selectedVideos.add(file);
+        });
+      }
+    } catch (e) {
+      _showErrorMessage('Failed to pick video: $e');
     }
   }
 
@@ -629,27 +919,329 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     });
   }
 
+  void _reorderMedia(int oldIndex, int newIndex) {
+    setState(() {
+      // Create combined media list for reordering
+      final allMedia = [
+        ..._selectedImages.map((file) => MediaPreviewItem(file: file, isVideo: false)),
+        ..._selectedVideos.map((file) => MediaPreviewItem(file: file, isVideo: true)),
+      ];
+
+      // Perform reordering
+      if (newIndex > oldIndex) {
+        newIndex -= 1;
+      }
+      final item = allMedia.removeAt(oldIndex);
+      allMedia.insert(newIndex, item);
+
+      // Separate back to images and videos lists
+      _selectedImages.clear();
+      _selectedVideos.clear();
+      
+      for (final media in allMedia) {
+        if (media.isVideo) {
+          _selectedVideos.add(media.file);
+        } else {
+          _selectedImages.add(media.file);
+        }
+      }
+    });
+  }
+
+  void _showErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showWarningMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showTemplateSelector() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => PostTemplateSelectorSheet(
+        onTemplateSelected: (template) {
+          Navigator.pop(context); // Close the template selector
+          
+          if (template.hasVariables) {
+            // Navigate to variable input screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TemplateVariableInputScreen(template: template),
+              ),
+            );
+          } else {
+            // Use template directly
+            _useTemplate(template);
+          }
+        },
+      ),
+    );
+  }
+
+  void _useTemplate(PostTemplate template) {
+    setState(() {
+      _contentController.text = template.promptText;
+      _selectedPostType = template.postType;
+      _selectedPillars = template.defaultPillars;
+      _initializePillarsFromPostType();
+    });
+  }
+
+  void _previewVideo(File videoFile) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Stack(
+            children: [
+              VideoThumbnailWidget(
+                videoFile: videoFile,
+                width: double.infinity,
+                height: double.infinity,
+                showDuration: true,
+                showPlayButton: true,
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(128),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: 8,
+                left: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withAlpha(128),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Video Preview\nTap to close',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _createPost() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // Content moderation check
+      final content = _contentController.text.trim();
+      final moderationResult = ContentModerationService.analyzeContent(content);
+      
+      if (moderationResult.flagged) {
+        _showModerationWarning(moderationResult);
+        return;
+      }
+
       // TODO: Implement actual post creation with Firebase
       // This would include:
       // 1. Upload media files to Firebase Storage
-      // 2. Create post document in Firestore
-      // 3. Update user's feed and supporters' feeds
+      // 2. Create post document in Firestore with mentions
+      // 3. Create mention notifications for mentioned users
+      // 4. Update user's feed and supporters' feeds
+      // 5. Store moderation result for review if flagged
+
+      // Prepare mention data for storage
+      // TODO: Store mention data when implementing Firebase integration
+      
+      // Show success message with mention count
+      String successMessage = 'Post created successfully!';
+      if (_mentions.isNotEmpty) {
+        successMessage += ' ${_mentions.length} ${_mentions.length == 1 ? 'person' : 'people'} will be notified.';
+      }
+
+      // Add moderation notice if content requires review
+      if (moderationResult.requiresHumanReview) {
+        successMessage += ' Your post is being reviewed and will be visible once approved.';
+      }
 
       await Future.delayed(const Duration(seconds: 2)); // Mock delay
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(successMessage),
+            backgroundColor: moderationResult.requiresHumanReview ? Colors.orange : Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
         Navigator.pop(context, true); // Return success
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to create post: $e')),
+          SnackBar(
+            content: Text('Failed to create post: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showModerationWarning(AutoModerationResult result) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        title: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Colors.orange,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Content Review',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your post contains content that may violate our community guidelines.',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+              ),
+            ),
+            if (result.explanation != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                result.explanation!,
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withAlpha(153),
+                  fontSize: 14,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            Text(
+              'Please review and edit your content to ensure it follows our community guidelines.',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Edit Post',
+              style: TextStyle(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // Continue with post creation despite warning
+              _createPostAnyway();
+            },
+            child: Text(
+              'Submit Anyway',
+              style: TextStyle(
+                color: Colors.orange,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _createPostAnyway() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Create post but mark for review
+      // TODO: Store content and mentions when implementing Firebase integration
+      
+      await Future.delayed(const Duration(seconds: 2)); // Mock delay
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Post submitted for review. It will be visible once approved by our moderation team.'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create post: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } finally {

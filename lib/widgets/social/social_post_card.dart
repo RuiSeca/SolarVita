@@ -1,10 +1,15 @@
 // lib/widgets/social/social_post_card.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:video_player/video_player.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../common/lottie_loading_widget.dart';
+import '../../screens/social/post_comments_screen.dart';
+import '../../screens/social/edit_post_screen.dart';
+import '../media/enhanced_video_player.dart';
+import '../../screens/media/full_screen_video_player.dart';
+import 'mention_rich_text.dart';
+import 'report_content_dialog.dart';
 
 class SocialPostCard extends StatefulWidget {
   final SocialPost post;
@@ -29,7 +34,7 @@ class SocialPostCard extends StatefulWidget {
 class _SocialPostCardState extends State<SocialPostCard> {
   PageController? _mediaPageController;
   int _currentMediaIndex = 0;
-  List<VideoPlayerController> _videoControllers = [];
+  // TODO: Video controllers for enhanced video handling
 
   @override
   void initState() {
@@ -41,19 +46,13 @@ class _SocialPostCardState extends State<SocialPostCard> {
   }
 
   void _initializeVideoControllers() {
-    _videoControllers = widget.post.videoUrls.map((url) {
-      final controller = VideoPlayerController.networkUrl(Uri.parse(url));
-      controller.initialize();
-      return controller;
-    }).toList();
+    // TODO: Initialize video controllers for enhanced video handling
   }
 
   @override
   void dispose() {
     _mediaPageController?.dispose();
-    for (final controller in _videoControllers) {
-      controller.dispose();
-    }
+    // TODO: Dispose video controllers
     super.dispose();
   }
 
@@ -179,7 +178,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
           ),
           // More options button
           IconButton(
-            onPressed: () => widget.onMoreOptions?.call(widget.post.id),
+            onPressed: () => _showMoreOptions(),
             icon: Icon(
               Icons.more_horiz,
               color: AppTheme.textColor(context).withAlpha(153),
@@ -217,15 +216,34 @@ class _SocialPostCardState extends State<SocialPostCard> {
   }
 
   Widget _buildPostContent() {
+    // Parse mentions from the post content
+    final mentions = MentionUtils.parseMentions(widget.post.content);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Text(
-        widget.post.content,
-        style: TextStyle(
+      child: MentionRichText(
+        text: widget.post.content,
+        mentions: mentions,
+        baseStyle: TextStyle(
           fontSize: 16,
           height: 1.4,
           color: AppTheme.textColor(context),
         ),
+        mentionStyle: TextStyle(
+          fontSize: 16,
+          height: 1.4,
+          color: Theme.of(context).primaryColor,
+          fontWeight: FontWeight.w600,
+        ),
+        onMentionTap: (mention) {
+          // TODO: Navigate to user profile
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Tapped on ${mention.displayName}'),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        },
       ),
     );
   }
@@ -267,10 +285,19 @@ class _SocialPostCardState extends State<SocialPostCard> {
 
   Widget _buildMediaItem(MediaItem media, int index) {
     if (media.isVideo) {
-      final videoIndex = widget.post.videoUrls.indexOf(media.url);
-      if (videoIndex >= 0 && videoIndex < _videoControllers.length) {
-        return _buildVideoPlayer(_videoControllers[videoIndex]);
-      }
+      // Use enhanced video player for videos
+      return EnhancedVideoPlayer(
+        videoUrl: media.url,
+        width: double.infinity,
+        height: 400,
+        autoPlay: false,
+        showControls: true,
+        showDuration: true,
+        onVideoTap: () {
+          // Handle video tap - could open full screen player
+          _showFullScreenVideo(media.url);
+        },
+      );
     }
 
     return CachedNetworkImage(
@@ -292,38 +319,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
     );
   }
 
-  Widget _buildVideoPlayer(VideoPlayerController controller) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        AspectRatio(
-          aspectRatio: controller.value.aspectRatio,
-          child: VideoPlayer(controller),
-        ),
-        // Play/pause button
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.black.withAlpha(128),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            onPressed: () {
-              setState(() {
-                controller.value.isPlaying
-                    ? controller.pause()
-                    : controller.play();
-              });
-            },
-            icon: Icon(
-              controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-              color: Colors.white,
-              size: 32,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // TODO: Build video player widget when needed
 
   Widget _buildMediaIndicators(int mediaCount) {
     return Positioned(
@@ -405,7 +401,14 @@ class _SocialPostCardState extends State<SocialPostCard> {
             icon: Icons.chat_bubble_outline,
             activeIcon: Icons.chat_bubble_outline,
             isActive: false,
-            onTap: () => widget.onComment?.call(widget.post.id),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PostCommentsScreen(post: widget.post),
+                ),
+              );
+            },
           ),
           const Spacer(),
           // Share button
@@ -476,7 +479,14 @@ class _SocialPostCardState extends State<SocialPostCard> {
 
   Widget _buildCommentStats() {
     return GestureDetector(
-      onTap: () => widget.onComment?.call(widget.post.id),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PostCommentsScreen(post: widget.post),
+          ),
+        );
+      },
       child: Text(
         widget.post.commentCount == 1
             ? 'View 1 comment'
@@ -515,6 +525,163 @@ class _SocialPostCardState extends State<SocialPostCard> {
       case PostVisibility.private:
         return Icons.lock;
     }
+  }
+
+  void _showMoreOptions() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.cardColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildOptionTile(
+              icon: Icons.edit,
+              title: 'Edit Post',
+              subtitle: 'Make changes to your post',
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditPostScreen(post: widget.post),
+                  ),
+                );
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.history,
+              title: 'View History',
+              subtitle: 'See all changes made to this post',
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Navigate to revision history
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.bookmark_border,
+              title: 'Save Post',
+              subtitle: 'Save this post to your collection',
+              onTap: () {
+                Navigator.pop(context);
+                _handleSavePost();
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.share,
+              title: 'Share',
+              subtitle: 'Share this post with others',
+              onTap: () {
+                Navigator.pop(context);
+                widget.onShare?.call(widget.post.id);
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.copy,
+              title: 'Copy Link',
+              subtitle: 'Copy link to this post',
+              onTap: () {
+                Navigator.pop(context);
+                // TODO: Copy link functionality
+              },
+            ),
+            _buildOptionTile(
+              icon: Icons.report,
+              title: 'Report',
+              subtitle: 'Report this post',
+              onTap: () {
+                Navigator.pop(context);
+                _showReportDialog();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleSavePost() {
+    // TODO: Implement save post functionality with Firebase
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.bookmark, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            const Text('Post saved to your collection!'),
+          ],
+        ),
+        backgroundColor: Theme.of(context).primaryColor,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppTheme.textColor(context).withAlpha(26),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: AppTheme.textColor(context),
+          size: 20,
+        ),
+      ),
+      title: Text(
+        title,
+        style: TextStyle(
+          color: AppTheme.textColor(context),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          color: AppTheme.textColor(context).withAlpha(153),
+          fontSize: 12,
+        ),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  void _showFullScreenVideo(String videoUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FullScreenVideoPlayer(videoUrl: videoUrl),
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ReportContentDialog(
+        contentId: widget.post.id,
+        contentType: 'post',
+        contentOwnerId: widget.post.userId,
+        contentOwnerName: widget.post.userName,
+        onReportSubmitted: (report) {
+          // TODO: Submit report to Firebase
+          print('Report submitted: ${report.reason}');
+        },
+      ),
+    );
   }
 
   String _getPillarDisplayName(PostPillar pillar) {
