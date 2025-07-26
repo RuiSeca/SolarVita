@@ -1,6 +1,7 @@
 // lib/models/post_comment.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'social_post.dart';
+import 'user_mention.dart';
 
 class PostComment {
   final String id;
@@ -17,6 +18,8 @@ class PostComment {
   final DateTime? editedAt;
   final bool isEdited;
   final int replyCount;
+  final List<MentionInfo> mentions;
+  final bool isPinned;
 
   PostComment({
     required this.id,
@@ -33,6 +36,8 @@ class PostComment {
     this.editedAt,
     required this.isEdited,
     required this.replyCount,
+    this.mentions = const [],
+    this.isPinned = false,
   });
 
   factory PostComment.fromFirestore(DocumentSnapshot doc) {
@@ -59,12 +64,14 @@ class PostComment {
           ),
         ) ?? {},
       ),
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
-      editedAt: data['editedAt'] != null 
-          ? (data['editedAt'] as Timestamp).toDate() 
-          : null,
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      editedAt: (data['editedAt'] as Timestamp?)?.toDate(),
       isEdited: data['isEdited'] ?? false,
       replyCount: data['replyCount'] ?? 0,
+      mentions: (data['mentions'] as List<dynamic>?)
+          ?.map((m) => MentionInfo.fromMap(m))
+          .toList() ?? [],
+      isPinned: data['isPinned'] ?? false,
     );
   }
 
@@ -83,7 +90,69 @@ class PostComment {
       'editedAt': editedAt != null ? Timestamp.fromDate(editedAt!) : null,
       'isEdited': isEdited,
       'replyCount': replyCount,
+      'mentions': mentions.map((m) => m.toMap()).toList(),
+      'isPinned': isPinned,
     };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'postId': postId,
+      'userId': userId,
+      'userName': userName,
+      'userAvatarUrl': userAvatarUrl,
+      'content': content,
+      'mediaUrl': mediaUrl,
+      'parentCommentId': parentCommentId,
+      'childCommentIds': childCommentIds,
+      'reactions': reactions.map((key, value) => MapEntry(key, value.toString())),
+      'timestamp': timestamp.toIso8601String(),
+      'editedAt': editedAt?.toIso8601String(),
+      'isEdited': isEdited,
+      'replyCount': replyCount,
+      'mentions': mentions.map((m) => m.toMap()).toList(),
+      'isPinned': isPinned,
+    };
+  }
+
+  factory PostComment.fromMap(Map<String, dynamic> map) {
+    return PostComment(
+      id: map['id'] ?? '',
+      postId: map['postId'] ?? '',
+      userId: map['userId'] ?? '',
+      userName: map['userName'] ?? '',
+      userAvatarUrl: map['userAvatarUrl'],
+      content: map['content'] ?? '',
+      mediaUrl: map['mediaUrl'],
+      parentCommentId: map['parentCommentId'],
+      childCommentIds: List<String>.from(map['childCommentIds'] ?? []),
+      reactions: Map<String, ReactionType>.from(
+        (map['reactions'] as Map<String, dynamic>?)?.map(
+          (key, value) => MapEntry(
+            key,
+            ReactionType.values.firstWhere(
+              (e) => e.toString() == value,
+              orElse: () => ReactionType.like,
+            ),
+          ),
+        ) ?? {},
+      ),
+      timestamp: map['timestamp'] is String 
+          ? DateTime.parse(map['timestamp'])
+          : (map['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      editedAt: map['editedAt'] != null 
+          ? (map['editedAt'] is String 
+              ? DateTime.parse(map['editedAt'])
+              : (map['editedAt'] as Timestamp?)?.toDate())
+          : null,
+      isEdited: map['isEdited'] ?? false,
+      replyCount: map['replyCount'] ?? 0,
+      mentions: (map['mentions'] as List<dynamic>?)
+          ?.map((m) => MentionInfo.fromMap(m))
+          .toList() ?? [],
+      isPinned: map['isPinned'] ?? false,
+    );
   }
 
   // Helper methods
@@ -128,6 +197,8 @@ class PostComment {
     DateTime? editedAt,
     bool? isEdited,
     int? replyCount,
+    List<MentionInfo>? mentions,
+    bool? isPinned,
   }) {
     return PostComment(
       id: id ?? this.id,
@@ -144,6 +215,8 @@ class PostComment {
       editedAt: editedAt ?? this.editedAt,
       isEdited: isEdited ?? this.isEdited,
       replyCount: replyCount ?? this.replyCount,
+      mentions: mentions ?? this.mentions,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 }

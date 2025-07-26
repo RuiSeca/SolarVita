@@ -13,14 +13,14 @@ String _$userProfileServiceHash() =>
 @ProviderFor(userProfileService)
 final userProfileServiceProvider =
     AutoDisposeProvider<UserProfileService>.internal(
-  userProfileService,
-  name: r'userProfileServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$userProfileServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      userProfileService,
+      name: r'userProfileServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userProfileServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
@@ -32,8 +32,9 @@ String _$authServiceHash() => r'82398d9f38c720e4ddf6b218248f15089fd4f178';
 final authServiceProvider = AutoDisposeProvider<AuthService>.internal(
   authService,
   name: r'authServiceProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$authServiceHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$authServiceHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -75,6 +76,23 @@ final authStateChangesProvider = AutoDisposeStreamProvider<User?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef AuthStateChangesRef = AutoDisposeStreamProviderRef<User?>;
+String _$profileDataHash() => r'c884da44080356baeff0254e2c7cfe2c62eaf104';
+
+/// See also [profileData].
+@ProviderFor(profileData)
+final profileDataProvider = AutoDisposeFutureProvider<ProfileData>.internal(
+  profileData,
+  name: r'profileDataProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$profileDataHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef ProfileDataRef = AutoDisposeFutureProviderRef<ProfileData>;
 String _$isOnboardingCompleteHash() =>
     r'36c6857fd7dab7d2b80e5f998f603c6dd1a89f06';
 
@@ -100,14 +118,14 @@ String _$workoutPreferencesHash() =>
 @ProviderFor(workoutPreferences)
 final workoutPreferencesProvider =
     AutoDisposeProvider<WorkoutPreferences?>.internal(
-  workoutPreferences,
-  name: r'workoutPreferencesProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$workoutPreferencesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      workoutPreferences,
+      name: r'workoutPreferencesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$workoutPreferencesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
@@ -119,33 +137,33 @@ String _$sustainabilityPreferencesHash() =>
 @ProviderFor(sustainabilityPreferences)
 final sustainabilityPreferencesProvider =
     AutoDisposeProvider<SustainabilityPreferences?>.internal(
-  sustainabilityPreferences,
-  name: r'sustainabilityPreferencesProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$sustainabilityPreferencesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      sustainabilityPreferences,
+      name: r'sustainabilityPreferencesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$sustainabilityPreferencesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef SustainabilityPreferencesRef
-    = AutoDisposeProviderRef<SustainabilityPreferences?>;
+typedef SustainabilityPreferencesRef =
+    AutoDisposeProviderRef<SustainabilityPreferences?>;
 String _$diaryPreferencesHash() => r'52be767776ae8d98aa1b68e4632916d2b3170efa';
 
 /// See also [diaryPreferences].
 @ProviderFor(diaryPreferences)
 final diaryPreferencesProvider =
     AutoDisposeProvider<DiaryPreferences?>.internal(
-  diaryPreferences,
-  name: r'diaryPreferencesProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$diaryPreferencesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      diaryPreferences,
+      name: r'diaryPreferencesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$diaryPreferencesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
@@ -157,14 +175,14 @@ String _$dietaryPreferencesHash() =>
 @ProviderFor(dietaryPreferences)
 final dietaryPreferencesProvider =
     AutoDisposeProvider<DietaryPreferences?>.internal(
-  dietaryPreferences,
-  name: r'dietaryPreferencesProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$dietaryPreferencesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      dietaryPreferences,
+      name: r'dietaryPreferencesProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$dietaryPreferencesHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
@@ -176,8 +194,9 @@ String _$displayNameHash() => r'bfa1b040a0562af8f022bb90e0444024c1506c92';
 final displayNameProvider = AutoDisposeProvider<String?>.internal(
   displayName,
   name: r'displayNameProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$displayNameHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$displayNameHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -192,8 +211,9 @@ String _$emailHash() => r'db547951a1dd7684a75968adc1a61f1fd46a548c';
 final emailProvider = AutoDisposeProvider<String?>.internal(
   email,
   name: r'emailProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$emailHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$emailHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -208,8 +228,9 @@ String _$photoURLHash() => r'b13ac7c5579afe0b495f96b253dc02166a8af00a';
 final photoURLProvider = AutoDisposeProvider<String?>.internal(
   photoURL,
   name: r'photoURLProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$photoURLHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$photoURLHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -224,8 +245,9 @@ String _$createdAtHash() => r'66af425c1a96107cd3a7ec0071a0fa92097232e5';
 final createdAtProvider = AutoDisposeProvider<DateTime?>.internal(
   createdAt,
   name: r'createdAtProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$createdAtHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$createdAtHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -240,8 +262,9 @@ String _$lastUpdatedHash() => r'f154d63031c57bf25366cb4dafc97b72bd8e9c93';
 final lastUpdatedProvider = AutoDisposeProvider<DateTime?>.internal(
   lastUpdated,
   name: r'lastUpdatedProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$lastUpdatedHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$lastUpdatedHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -255,33 +278,36 @@ String _$userProfileStreamHash() => r'b72f6e43976b1f1323d8e34beb0dc78cc11509e1';
 @ProviderFor(userProfileStream)
 final userProfileStreamProvider =
     AutoDisposeStreamProvider<UserProfile?>.internal(
-  userProfileStream,
-  name: r'userProfileStreamProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$userProfileStreamHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      userProfileStream,
+      name: r'userProfileStreamProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userProfileStreamHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserProfileStreamRef = AutoDisposeStreamProviderRef<UserProfile?>;
 String _$userProfileNotifierHash() =>
-    r'33f6c19f1b79d2b6b00d507f76bd6d00960d95bc';
+    r'9560f6651943b94893c9d4fd3cd0b29b86cf1620';
 
 /// See also [UserProfileNotifier].
 @ProviderFor(UserProfileNotifier)
-final userProfileNotifierProvider = AutoDisposeAsyncNotifierProvider<
-    UserProfileNotifier, UserProfile?>.internal(
-  UserProfileNotifier.new,
-  name: r'userProfileNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$userProfileNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final userProfileNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<
+      UserProfileNotifier,
+      UserProfile?
+    >.internal(
+      UserProfileNotifier.new,
+      name: r'userProfileNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$userProfileNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$UserProfileNotifier = AutoDisposeAsyncNotifier<UserProfile?>;
 // ignore_for_file: type=lint

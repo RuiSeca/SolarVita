@@ -1,30 +1,21 @@
 // lib/screens/social/post_comments_screen.dart
+
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/social_post.dart';
-import '../../models/post_comment.dart' as pc;
+import '../../models/post_comment.dart';
 import '../../models/user_mention.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/social/comment_reaction_widget.dart';
 import '../../widgets/social/mention_text_field.dart';
 import '../../widgets/social/mention_rich_text.dart';
-
-// Helper class for organizing comments with their replies
-class CommentThread {
-  final pc.PostComment comment;
-  final List<pc.PostComment> replies;
-  final bool hasMoreReplies;
-  final int totalReplies;
-
-  CommentThread({
-    required this.comment,
-    required this.replies,
-    required this.hasMoreReplies,
-    required this.totalReplies,
-  });
-}
+import '../../providers/riverpod/firebase_social_provider.dart';
+import '../../providers/riverpod/auth_provider.dart';
 
 class PostCommentsScreen extends ConsumerStatefulWidget {
   final SocialPost post;
@@ -42,20 +33,14 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker();
   
-  List<CommentThread> _commentThreads = [];
-  List<MentionInfo> _commentMentions = []; // TODO: Use when implementing Firebase integration
-  bool _isLoading = false;
   bool _isPosting = false;
   String? _replyingToCommentId;
   String? _replyingToUserName;
+  File? _selectedMedia;
+  List<MentionInfo> _commentMentions = [];
   OverlayEntry? _reactionPickerOverlay;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadComments();
-  }
 
   @override
   void dispose() {
@@ -74,12 +59,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
       body: Column(
         children: [
           Expanded(
-            child: _isLoading
-                ? const Center(child: LottieLoadingWidget())
-                : RefreshIndicator(
-                    onRefresh: _loadComments,
-                    child: _buildCommentsList(),
-                  ),
+            child: _buildCommentsContent(),
           ),
           _buildCommentInput(),
         ],
@@ -106,31 +86,88 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
               fontSize: 18,
             ),
           ),
-          Text(
-            '${widget.post.commentCount} comments',
-            style: TextStyle(
-              color: AppTheme.textColor(context).withAlpha(153),
-              fontSize: 12,
-            ),
+          Consumer(
+            builder: (context, ref, child) {
+              final threadsAsync = ref.watch(commentThreadsProvider(widget.post.id));
+              
+              return threadsAsync.when(
+                data: (threads) {
+                  final totalComments = threads.fold<int>(
+                    0, 
+                    (sum, thread) => sum + 1 + thread.replies.length,
+                  );
+                  return Text(
+                    '$totalComments comments',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(153),
+                      fontSize: 12,
+                    ),
+                  );
+                },
+                loading: () => Text(
+                  'Loading...',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withAlpha(153),
+                    fontSize: 12,
+                  ),
+                ),
+                error: (_, __) => Text(
+                  'Error loading',
+                  style: TextStyle(
+                    color: Colors.red.withAlpha(153),
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.refresh, color: AppTheme.textColor(context)),
+          onPressed: () {
+            HapticFeedback.lightImpact();
+            ref.invalidate(commentThreadsProvider);
+          },
+        ),
+      ],
     );
   }
 
-  Widget _buildCommentsList() {
-    if (_commentThreads.isEmpty && !_isLoading) {
+  Widget _buildCommentsContent() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final threadsAsync = ref.watch(commentThreadsProvider(widget.post.id));
+
+        return threadsAsync.when(
+          data: (threads) => _buildCommentsList(threads),
+          loading: () => const Center(child: LottieLoadingWidget()),
+          error: (error, stackTrace) => _buildErrorState(error.toString()),
+        );
+      },
+    );
+  }
+
+  Widget _buildCommentsList(List<CommentThread> threads) {
+    if (threads.isEmpty) {
       return _buildEmptyState();
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.all(16),
-      itemCount: _commentThreads.length,
-      itemBuilder: (context, index) {
-        final thread = _commentThreads[index];
-        return _buildCommentThread(thread);
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.lightImpact();
+        ref.invalidate(commentThreadsProvider);
       },
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(16),
+        itemCount: threads.length,
+        itemBuilder: (context, index) {
+          final thread = threads[index];
+          return _buildCommentThread(thread);
+        },
+      ),
     );
   }
 
@@ -159,7 +196,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     );
   }
 
-  Widget _buildCommentCard(pc.PostComment comment, {bool isMainComment = false, bool isReply = false}) {
+  Widget _buildCommentCard(PostComment comment, {bool isMainComment = false, bool isReply = false}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -207,7 +244,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                             color: AppTheme.textColor(context),
                           ),
                         ),
-                        if (comment.isEdited) ...[
+                        if (comment.isEdited) ...[ 
                           const SizedBox(width: 6),
                           Text(
                             '(edited)',
@@ -216,6 +253,14 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                               color: AppTheme.textColor(context).withAlpha(128),
                               fontStyle: FontStyle.italic,
                             ),
+                          ),
+                        ],
+                        if (comment.isPinned) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.push_pin,
+                            size: 12,
+                            color: Theme.of(context).primaryColor,
                           ),
                         ],
                       ],
@@ -249,7 +294,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
           // Comment content with mention support
           MentionRichText(
             text: comment.content,
-            mentions: MentionUtils.parseMentions(comment.content),
+            mentions: comment.mentions,
             baseStyle: TextStyle(
               fontSize: isReply ? 13 : 14,
               height: 1.4,
@@ -262,18 +307,12 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
               fontWeight: FontWeight.w600,
             ),
             onMentionTap: (mention) {
-              // TODO: Navigate to user profile
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Tapped on ${mention.displayName}'),
-                  duration: const Duration(seconds: 1),
-                ),
-              );
+              _navigateToUserProfile(mention.userId);
             },
           ),
           
           // Comment media if any
-          if (comment.mediaUrl != null) ...[
+          if (comment.mediaUrl != null) ...[ 
             const SizedBox(height: 8),
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -282,6 +321,16 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 120,
+                  color: AppTheme.textFieldBackground(context),
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  height: 120,
+                  color: Colors.grey[300],
+                  child: const Icon(Icons.error),
+                ),
               ),
             ),
           ],
@@ -294,7 +343,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
               // Enhanced reaction widget
               CommentReactionWidget(
                 comment: comment,
-                currentUserId: 'current_user_id', // TODO: Get from auth provider
+                currentUserId: ref.watch(userUidProvider) ?? '',
                 onReactionTap: _reactToComment,
                 onReactionLongPress: (commentId) => _showReactionPicker(commentId, comment),
               ),
@@ -334,7 +383,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                 ? Theme.of(context).primaryColor
                 : AppTheme.textColor(context).withAlpha(153),
           ),
-          if (label.isNotEmpty) ...[
+          if (label.isNotEmpty) ...[ 
             const SizedBox(width: 4),
             Text(
               label,
@@ -401,12 +450,20 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
           // Reply indicator
           if (_replyingToCommentId != null) _buildReplyIndicator(),
           
+          // Media preview
+          if (_selectedMedia != null) _buildMediaPreview(),
+          
           Row(
             children: [
               CircleAvatar(
                 radius: 16,
+                backgroundImage: ref.watch(userPhotoURLProvider) != null
+                    ? CachedNetworkImageProvider(ref.watch(userPhotoURLProvider)!)
+                    : null,
                 backgroundColor: Theme.of(context).primaryColor,
-                child: const Icon(Icons.person, color: Colors.white, size: 16),
+                child: ref.watch(userPhotoURLProvider) == null
+                    ? const Icon(Icons.person, color: Colors.white, size: 16)
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -428,12 +485,24 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                 ),
               ),
               const SizedBox(width: 8),
+              // Media button
+              IconButton(
+                onPressed: _selectMedia,
+                icon: Icon(
+                  Icons.camera_alt,
+                  color: AppTheme.textColor(context).withAlpha(153),
+                  size: 20,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              ),
+              // Send button
               GestureDetector(
                 onTap: _isPosting ? null : _postComment,
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _commentController.text.trim().isNotEmpty
+                    color: _commentController.text.trim().isNotEmpty || _selectedMedia != null
                         ? Theme.of(context).primaryColor
                         : AppTheme.textColor(context).withAlpha(51),
                     shape: BoxShape.circle,
@@ -449,7 +518,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                         )
                       : Icon(
                           Icons.send,
-                          color: _commentController.text.trim().isNotEmpty
+                          color: _commentController.text.trim().isNotEmpty || _selectedMedia != null
                               ? Colors.white
                               : AppTheme.textColor(context).withAlpha(128),
                           size: 16,
@@ -502,6 +571,51 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     );
   }
 
+  Widget _buildMediaPreview() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      height: 80,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.textColor(context).withAlpha(51),
+        ),
+      ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(
+              _selectedMedia!,
+              width: double.infinity,
+              height: 80,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 4,
+            right: 4,
+            child: GestureDetector(
+              onTap: () => setState(() => _selectedMedia = null),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(128),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 12,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState() {
     return Center(
       child: Column(
@@ -534,44 +648,73 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     );
   }
 
-  // Event handlers
-  Future<void> _loadComments() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // TODO: Implement actual Firebase fetching
-      // For now, generate mock data
-      await Future.delayed(const Duration(milliseconds: 800));
-      _commentThreads = _generateMockComments();
-    } catch (e) {
-      _showErrorSnackBar('Failed to load comments: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Colors.red.withAlpha(128),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Something went wrong',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textColor(context).withAlpha(153),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref.invalidate(commentThreadsProvider);
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
   }
+
+  // EVENT HANDLERS
 
   Future<void> _postComment() async {
     final content = _commentController.text.trim();
-    if (content.isEmpty || _isPosting) return;
+    if (content.isEmpty && _selectedMedia == null || _isPosting) return;
 
-    setState(() {
-      _isPosting = true;
-    });
+    setState(() => _isPosting = true);
 
     try {
-      // TODO: Implement actual comment posting to Firebase
-      await Future.delayed(const Duration(milliseconds: 1000));
+      await ref.read(commentActionsProvider.notifier).createComment(
+        postId: widget.post.id,
+        content: content.isNotEmpty ? content : '',
+        parentCommentId: _replyingToCommentId,
+        mediaFile: _selectedMedia,
+        mentions: _commentMentions,
+      );
       
       // Clear input and reply state
       _commentController.clear();
       _cancelReply();
-      
-      // Reload comments
-      await _loadComments();
+      setState(() => _selectedMedia = null);
+      _commentMentions.clear();
       
       // Scroll to bottom to show new comment
       if (_scrollController.hasClients) {
@@ -581,16 +724,17 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
           curve: Curves.easeOut,
         );
       }
+
+      HapticFeedback.lightImpact();
+      _showSuccessSnackBar('Comment posted successfully!');
     } catch (e) {
       _showErrorSnackBar('Failed to post comment: $e');
     } finally {
-      setState(() {
-        _isPosting = false;
-      });
+      setState(() => _isPosting = false);
     }
   }
 
-  void _startReply(pc.PostComment comment) {
+  void _startReply(PostComment comment) {
     setState(() {
       _replyingToCommentId = comment.id;
       _replyingToUserName = comment.userName;
@@ -605,23 +749,17 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     });
   }
 
-  void _reactToComment(String commentId, ReactionType reaction) {
-    // TODO: Implement actual comment reactions with Firebase
-    // For now, show feedback
-    final reactionName = _getReactionDisplayName(reaction);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$reactionName reaction ${reaction == ReactionType.like ? 'added' : 'toggled'}'),
-        duration: const Duration(seconds: 1),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-    
-    // Remove reaction picker if visible
-    _removeReactionPicker();
+  void _reactToComment(String commentId, ReactionType reaction) async {
+    try {
+      await ref.read(commentActionsProvider.notifier).reactToComment(commentId, reaction);
+      HapticFeedback.lightImpact();
+      _removeReactionPicker();
+    } catch (e) {
+      _showErrorSnackBar('Failed to add reaction: $e');
+    }
   }
 
-  void _showReactionPicker(String commentId, pc.PostComment comment) {
+  void _showReactionPicker(String commentId, PostComment comment) {
     _removeReactionPicker();
     
     // Find the comment widget position for proper overlay positioning
@@ -653,25 +791,40 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     _reactionPickerOverlay = null;
   }
 
-  String _getReactionDisplayName(ReactionType reaction) {
-    switch (reaction) {
-      case ReactionType.like:
-        return 'Like';
-      case ReactionType.celebrate:
-        return 'Celebrate';
-      case ReactionType.boost:
-        return 'Boost';
-      case ReactionType.motivate:
-        return 'Motivate';
+  void _loadMoreReplies(String commentId) async {
+    try {
+      await ref.read(commentActionsProvider.notifier).loadMoreReplies(commentId);
+    } catch (e) {
+      _showErrorSnackBar('Failed to load more replies: $e');
     }
   }
 
-  void _loadMoreReplies(String commentId) {
-    // TODO: Implement loading more replies
-    print('Load more replies for comment $commentId');
+  void _selectMedia() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _selectedMedia = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showErrorSnackBar('Failed to select image: $e');
+    }
   }
 
-  void _showCommentOptions(pc.PostComment comment) {
+  void _showCommentOptions(PostComment comment) {
+    final currentUser = ref.read(currentUserProvider);
+    if (currentUser == null) return;
+
+    final bool isOwnComment = comment.userId == currentUser.uid;
+    final bool isPostAuthor = widget.post.userId == currentUser.uid;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardColor(context),
@@ -683,6 +836,35 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isOwnComment) ...[
+              _buildOptionTile(
+                icon: Icons.edit,
+                title: 'Edit Comment',
+                onTap: () {
+                  Navigator.pop(context);
+                  _editComment(comment);
+                },
+              ),
+              _buildOptionTile(
+                icon: Icons.delete,
+                title: 'Delete Comment',
+                isDestructive: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteComment(comment.id);
+                },
+              ),
+            ],
+            if (isPostAuthor && !isOwnComment) ...[
+              _buildOptionTile(
+                icon: comment.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                title: comment.isPinned ? 'Unpin Comment' : 'Pin Comment',
+                onTap: () {
+                  Navigator.pop(context);
+                  _togglePinComment(comment.id);
+                },
+              ),
+            ],
             _buildOptionTile(
               icon: Icons.reply,
               title: 'Reply',
@@ -693,20 +875,23 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
             ),
             _buildOptionTile(
               icon: Icons.copy,
-              title: 'Copy text',
+              title: 'Copy Text',
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Copy to clipboard
+                _copyCommentText(comment.content);
               },
             ),
-            _buildOptionTile(
-              icon: Icons.report,
-              title: 'Report',
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Report comment
-              },
-            ),
+            if (!isOwnComment) ...[
+              _buildOptionTile(
+                icon: Icons.report,
+                title: 'Report Comment',
+                isDestructive: true,
+                onTap: () {
+                  Navigator.pop(context);
+                  _reportComment(comment.id);
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -717,14 +902,69 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    bool isDestructive = false,
   }) {
     return ListTile(
-      leading: Icon(icon, color: AppTheme.textColor(context)),
+      leading: Icon(
+        icon, 
+        color: isDestructive ? Colors.red : AppTheme.textColor(context),
+      ),
       title: Text(
         title,
-        style: TextStyle(color: AppTheme.textColor(context)),
+        style: TextStyle(
+          color: isDestructive ? Colors.red : AppTheme.textColor(context),
+        ),
       ),
       onTap: onTap,
+    );
+  }
+
+  void _editComment(PostComment comment) {
+    // TODO: Implement edit comment functionality
+    _showInfoSnackBar('Edit comment functionality coming soon!');
+  }
+
+  void _deleteComment(String commentId) async {
+    try {
+      await ref.read(commentActionsProvider.notifier).deleteComment(commentId);
+      HapticFeedback.mediumImpact();
+      _showSuccessSnackBar('Comment deleted successfully');
+    } catch (e) {
+      _showErrorSnackBar('Failed to delete comment: $e');
+    }
+  }
+
+  void _togglePinComment(String commentId) async {
+    try {
+      await ref.read(commentActionsProvider.notifier).togglePinComment(commentId, widget.post.id);
+      HapticFeedback.lightImpact();
+      _showSuccessSnackBar('Comment pin status updated');
+    } catch (e) {
+      _showErrorSnackBar('Failed to update pin status: $e');
+    }
+  }
+
+  void _copyCommentText(String text) {
+    Clipboard.setData(ClipboardData(text: text));
+    _showSuccessSnackBar('Comment copied to clipboard');
+  }
+
+  void _reportComment(String commentId) {
+    // TODO: Implement report comment functionality
+    _showInfoSnackBar('Report functionality coming soon!');
+  }
+
+  void _navigateToUserProfile(String userId) {
+    _showInfoSnackBar('User profile functionality coming soon!');
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -733,81 +973,80 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  // Mock data for testing
-  List<CommentThread> _generateMockComments() {
-    final comments = [
-      pc.PostComment(
-        id: 'comment_1',
-        postId: widget.post.id,
-        userId: 'user_1',
-        userName: 'Sarah Johnson',
-        content: 'This is so inspiring! I love seeing your progress. Keep up the amazing work! 💪',
-        reactions: {'user_2': ReactionType.like, 'user_3': ReactionType.celebrate},
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        isEdited: false,
-        replyCount: 2,
-        childCommentIds: ['reply_1', 'reply_2'],
+  void _showInfoSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Theme.of(context).primaryColor,
+        behavior: SnackBarBehavior.floating,
       ),
-      pc.PostComment(
-        id: 'comment_2',
-        postId: widget.post.id,
-        userId: 'user_4',
-        userName: 'Mike Wilson',
-        content: 'Great job! What workout routine are you following?',
-        reactions: {'user_1': ReactionType.like},
-        timestamp: DateTime.now().subtract(const Duration(hours: 1)),
-        isEdited: false,
-        replyCount: 0,
-        childCommentIds: [],
-      ),
-    ];
+    );
+  }
+}
 
-    final replies = [
-      pc.PostComment(
-        id: 'reply_1',
-        postId: widget.post.id,
-        userId: 'user_current',
-        userName: 'You',
-        parentCommentId: 'comment_1',
-        content: 'Thank you so much! Your support means everything to me ❤️',
-        reactions: {},
-        timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
-        isEdited: false,
-        replyCount: 0,
-        childCommentIds: [],
-      ),
-      pc.PostComment(
-        id: 'reply_2',
-        postId: widget.post.id,
-        userId: 'user_2',
-        userName: 'Alex Chen',
-        parentCommentId: 'comment_1',
-        content: 'Absolutely! We\'re all cheering you on! 🎉',
-        reactions: {'user_1': ReactionType.like},
-        timestamp: DateTime.now().subtract(const Duration(minutes: 45)),
-        isEdited: false,
-        replyCount: 0,
-        childCommentIds: [],
-      ),
-    ];
+// Reaction Picker Widget (placeholder - implement based on your design)
+class ReactionPickerWidget extends StatelessWidget {
+  final Function(ReactionType) onReactionSelected;
+  final VoidCallback onDismiss;
 
-    return [
-      CommentThread(
-        comment: comments[0],
-        replies: replies.where((r) => r.parentCommentId == comments[0].id).toList(),
-        hasMoreReplies: false,
-        totalReplies: 2,
+  const ReactionPickerWidget({
+    super.key,
+    required this.onReactionSelected,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor(context),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(51),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: ReactionType.values.map((reaction) {
+            return GestureDetector(
+              onTap: () => onReactionSelected(reaction),
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.all(8),
+                child: Text(
+                  _getReactionEmoji(reaction),
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
       ),
-      CommentThread(
-        comment: comments[1],
-        replies: [],
-        hasMoreReplies: false,
-        totalReplies: 0,
-      ),
-    ];
+    );
+  }
+
+  String _getReactionEmoji(ReactionType reaction) {
+    switch (reaction) {
+      case ReactionType.like:
+        return '👍';
+      case ReactionType.celebrate:
+        return '🎉';
+      case ReactionType.boost:
+        return '🚀';
+      case ReactionType.motivate:
+        return '💪';
+    }
   }
 }

@@ -56,13 +56,13 @@ class TribePost {
       authorId: data['authorId'] ?? '',
       authorName: data['authorName'] ?? '',
       authorPhotoURL: data['authorPhotoURL'],
-      type: TribePostType.values[data['type'] ?? 0],
+      type: TribePostType.values[(data['type'] is int ? data['type'] : int.tryParse(data['type']?.toString() ?? '0')) ?? 0],
       content: data['content'] ?? '',
       title: data['title'],
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: data['updatedAt'] != null 
-          ? (data['updatedAt'] as Timestamp).toDate()
+          ? (data['updatedAt'] as Timestamp?)?.toDate()
           : null,
       likes: List<String>.from(data['likes'] ?? []),
       commentCount: data['commentCount'] ?? 0,

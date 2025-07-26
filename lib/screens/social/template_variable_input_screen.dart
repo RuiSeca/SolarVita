@@ -298,7 +298,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
     // Collect current values
     for (final placeholder in widget.template.placeholders) {
       final value = _dropdownValues[placeholder] ?? _controllers[placeholder]?.text ?? '';
-      userInputs[placeholder] = value.isNotEmpty ? value : '[${placeholder}]';
+      userInputs[placeholder] = value.isNotEmpty ? value : '[$placeholder]';
     }
 
     final previewText = widget.template.generateContent(userInputs);
@@ -406,12 +406,14 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
         ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to generate post: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate post: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isGenerating = false;

@@ -384,19 +384,4 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
     }
   }
 
-  static void show(
-    BuildContext context, {
-    required Function(PostTemplate) onTemplateSelected,
-    TemplateCategory? filterCategory,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => PostTemplateSelectorSheet(
-        onTemplateSelected: onTemplateSelected,
-        filterCategory: filterCategory,
-      ),
-    );
-  }
 }

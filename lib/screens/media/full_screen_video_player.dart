@@ -93,7 +93,7 @@ class _FullScreenVideoPlayerState extends State<FullScreenVideoPlayer> {
               right: 16,
               child: GestureDetector(
                 onTap: () {
-                  // TODO: Implement share functionality
+                  // Share functionality to be implemented
                 },
                 child: Container(
                   padding: const EdgeInsets.all(8),

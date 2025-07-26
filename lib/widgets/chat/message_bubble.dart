@@ -68,16 +68,21 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
-    // Show current user's photo for their messages, other user's photo for their messages
-    final photoURL = isCurrentUser ? currentUserPhotoURL : otherUserPhotoURL;
+    // Use the actual sender avatar from the message data, fallback to passed values for legacy messages
+    String? photoURL = message.senderAvatarUrl;
+    
+    // Fallback to static values if message doesn't have avatar data
+    if (photoURL == null || photoURL.isEmpty) {
+      photoURL = isCurrentUser ? currentUserPhotoURL : otherUserPhotoURL;
+    }
     
     return CircleAvatar(
       radius: 16,
       backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
-      backgroundImage: photoURL != null
+      backgroundImage: photoURL != null && photoURL.isNotEmpty
           ? CachedNetworkImageProvider(photoURL)
           : null,
-      child: photoURL == null
+      child: photoURL == null || photoURL.isEmpty
           ? Icon(
               Icons.person,
               size: 16,

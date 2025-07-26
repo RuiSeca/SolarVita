@@ -82,6 +82,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   @override
   void dispose() {
+    _contentController.removeListener(_onContentChanged);
     _contentController.dispose();
     _editReasonController.dispose();
     super.dispose();
@@ -884,7 +885,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
     // Content change revision
     if (_contentController.text.trim() != _originalContent) {
-      final revision = PostRevision.createContentEdit(
+      PostRevision.createContentEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -897,7 +898,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
     // Pillar changes revision
     if (!_listsEqual(_selectedPillars, _originalPillars)) {
-      final revision = PostRevision.createPillarEdit(
+      PostRevision.createPillarEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -910,7 +911,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
     // Visibility change revision
     if (_selectedVisibility != _originalVisibility) {
-      final revision = PostRevision.createVisibilityEdit(
+      PostRevision.createVisibilityEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -923,7 +924,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
     // Media changes revision
     if (_newImages.isNotEmpty || _removedMediaUrls.isNotEmpty) {
-      final revision = PostRevision.createMediaEdit(
+      PostRevision.createMediaEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,

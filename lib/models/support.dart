@@ -31,7 +31,7 @@ class Support {
       id: doc.id,
       supporterId: data['supporterId'] ?? '',
       supportedId: data['supportedId'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       supporterName: data['supporterName'],
       supporterUsername: data['supporterUsername'],
       supporterPhotoURL: data['supporterPhotoURL'],

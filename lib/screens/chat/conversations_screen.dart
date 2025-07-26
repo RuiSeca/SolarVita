@@ -211,8 +211,8 @@ class ConversationsScreen extends ConsumerWidget {
     
     if (otherParticipantId.isEmpty) return;
     
-    final otherParticipantName = conversation.participantNames[otherParticipantId] ?? 'Unknown';
-    final otherParticipantPhoto = conversation.participantPhotos[otherParticipantId];
+    final otherParticipantName = conversation.getOtherParticipantName(currentUser?.uid ?? '');
+    final otherParticipantPhoto = conversation.getOtherParticipantPhoto(currentUser?.uid ?? '');
 
     Navigator.push(
       context,

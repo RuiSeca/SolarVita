@@ -50,7 +50,7 @@ class PostRevision {
       postId: data['postId'] ?? '',
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       type: RevisionType.values.firstWhere(
         (e) => e.toString() == data['type'],
         orElse: () => RevisionType.contentEdit,

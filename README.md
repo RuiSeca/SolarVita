@@ -1,4 +1,4 @@
-# SolarVita - Sustainable Fitness & Wellness App
+# SolarVita - Sustainable Fitness & Wellness App -  ADD THIS DURING PRODUCTION DO NOT MOVE FORWARD WITHOUT AndroidProvider.playIntegrity (✅ recommended)
 
 ## 🌱 Overview
 

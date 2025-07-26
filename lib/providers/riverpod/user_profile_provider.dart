@@ -80,6 +80,9 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       final userProfileService = ref.read(userProfileServiceProvider);
       final newProfile = await userProfileService.getOrCreateUserProfile();
       
+      // Sync public profile data for new/existing profiles to ensure chat data is current
+      await _syncPublicProfileData(newProfile);
+      
       return newProfile;
     } catch (e) {
       throw Exception('Failed to load user profile: $e');

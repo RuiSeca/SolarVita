@@ -74,7 +74,7 @@ class ChatNotificationService {
     );
 
     if (kDebugMode) {
-      print('FCM Permission status: ${settings.authorizationStatus}');
+      debugPrint('FCM Permission status: ${settings.authorizationStatus}');
     }
 
     // Request local notification permission for Android 13+
@@ -112,12 +112,12 @@ class ChatNotificationService {
         });
 
         if (kDebugMode) {
-          print('FCM Token saved: $token');
+          debugPrint('FCM Token saved: $token');
         }
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error saving FCM token: $e');
+        debugPrint('Error saving FCM token: $e');
       }
     }
 

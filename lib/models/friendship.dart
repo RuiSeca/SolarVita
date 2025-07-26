@@ -41,10 +41,10 @@ class Friendship {
       id: doc.id,
       requesterId: data['requesterId'] ?? '',
       receiverId: data['receiverId'] ?? '',
-      status: FriendshipStatus.values[data['status'] ?? 0],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      status: FriendshipStatus.values[(data['status'] is int ? data['status'] : int.tryParse(data['status']?.toString() ?? '0')) ?? 0],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: data['updatedAt'] != null 
-          ? (data['updatedAt'] as Timestamp).toDate() 
+          ? (data['updatedAt'] as Timestamp?)?.toDate() 
           : null,
       requesterName: data['requesterName'],
       requesterUsername: data['requesterUsername'],

@@ -12,14 +12,14 @@ String _$healthDataServiceHash() => r'e4c391cde104bd9bae4fc2187980566f37c0a97a';
 @ProviderFor(healthDataService)
 final healthDataServiceProvider =
     AutoDisposeProvider<HealthDataService>.internal(
-  healthDataService,
-  name: r'healthDataServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$healthDataServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      healthDataService,
+      name: r'healthDataServiceProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$healthDataServiceHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
@@ -31,8 +31,9 @@ String _$lastSyncTimeHash() => r'8cfa75428b5a2cbe369f8160e723dd2df31bf863';
 final lastSyncTimeProvider = AutoDisposeFutureProvider<DateTime?>.internal(
   lastSyncTime,
   name: r'lastSyncTimeProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$lastSyncTimeHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$lastSyncTimeHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -65,8 +66,9 @@ String _$dailyStepsHash() => r'8a87b93ddc6c5950becf83a09666f094c7782eef';
 final dailyStepsProvider = AutoDisposeProvider<int>.internal(
   dailySteps,
   name: r'dailyStepsProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$dailyStepsHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$dailyStepsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -115,8 +117,9 @@ String _$sleepHoursHash() => r'938dd78a5d94e78c0551b1d7336d71c684b28137';
 final sleepHoursProvider = AutoDisposeProvider<double>.internal(
   sleepHours,
   name: r'sleepHoursProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$sleepHoursHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$sleepHoursHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -131,8 +134,9 @@ String _$heartRateHash() => r'e692ed7f39e7249143c46a623f51b558d11a5877';
 final heartRateProvider = AutoDisposeProvider<double>.internal(
   heartRate,
   name: r'heartRateProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$heartRateHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$heartRateHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -180,34 +184,37 @@ String _$healthPermissionsNotifierHash() =>
 
 /// See also [HealthPermissionsNotifier].
 @ProviderFor(HealthPermissionsNotifier)
-final healthPermissionsNotifierProvider = AutoDisposeAsyncNotifierProvider<
-    HealthPermissionsNotifier, HealthPermissionStatus>.internal(
-  HealthPermissionsNotifier.new,
-  name: r'healthPermissionsNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$healthPermissionsNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final healthPermissionsNotifierProvider =
+    AutoDisposeAsyncNotifierProvider<
+      HealthPermissionsNotifier,
+      HealthPermissionStatus
+    >.internal(
+      HealthPermissionsNotifier.new,
+      name: r'healthPermissionsNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$healthPermissionsNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
-typedef _$HealthPermissionsNotifier
-    = AutoDisposeAsyncNotifier<HealthPermissionStatus>;
+typedef _$HealthPermissionsNotifier =
+    AutoDisposeAsyncNotifier<HealthPermissionStatus>;
 String _$healthDataNotifierHash() =>
-    r'550ccced56543569eb41be70d0b97567cdf961f4';
+    r'02a5149a9587301a59c4acc70bcbb862f87d9f5c';
 
 /// See also [HealthDataNotifier].
 @ProviderFor(HealthDataNotifier)
 final healthDataNotifierProvider =
     AutoDisposeAsyncNotifierProvider<HealthDataNotifier, HealthData>.internal(
-  HealthDataNotifier.new,
-  name: r'healthDataNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$healthDataNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      HealthDataNotifier.new,
+      name: r'healthDataNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$healthDataNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$HealthDataNotifier = AutoDisposeAsyncNotifier<HealthData>;
 String _$healthSyncStatusNotifierHash() =>
@@ -215,16 +222,19 @@ String _$healthSyncStatusNotifierHash() =>
 
 /// See also [HealthSyncStatusNotifier].
 @ProviderFor(HealthSyncStatusNotifier)
-final healthSyncStatusNotifierProvider = AutoDisposeNotifierProvider<
-    HealthSyncStatusNotifier, HealthSyncStatus>.internal(
-  HealthSyncStatusNotifier.new,
-  name: r'healthSyncStatusNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$healthSyncStatusNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final healthSyncStatusNotifierProvider =
+    AutoDisposeNotifierProvider<
+      HealthSyncStatusNotifier,
+      HealthSyncStatus
+    >.internal(
+      HealthSyncStatusNotifier.new,
+      name: r'healthSyncStatusNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$healthSyncStatusNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$HealthSyncStatusNotifier = AutoDisposeNotifier<HealthSyncStatus>;
 // ignore_for_file: type=lint

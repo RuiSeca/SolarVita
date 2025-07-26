@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
-import '../../providers/riverpod/chat_provider.dart';
+import '../../providers/riverpod/firebase_chat_provider.dart';
 import '../../screens/chat/chat_screen.dart';
 import 'friend_profile_screen.dart';
 
@@ -222,33 +222,18 @@ class _SupportersListScreenState extends ConsumerState<SupportersListScreen> {
                 ),
               ),
               
-              // Message button
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(20),
+              // Chat navigation button
+              IconButton(
+                icon: Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: Colors.grey[400],
                 ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.chat_bubble_outline,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                  onPressed: () => _openChat(supporter),
-                  constraints: const BoxConstraints(
-                    minWidth: 36,
-                    minHeight: 36,
-                  ),
+                onPressed: () => _openChat(supporter),
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
                 ),
-              ),
-              
-              const SizedBox(width: 8),
-              
-              // Arrow indicator (everyone in supporters list is mutually following)
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Colors.grey[400],
               ),
             ],
           ),
@@ -259,15 +244,16 @@ class _SupportersListScreenState extends ConsumerState<SupportersListScreen> {
 
   Future<void> _openChat(Supporter supporter) async {
     try {
-      final chatActions = ref.read(chatActionsProvider);
-      final conversationId = await chatActions.getOrCreateConversation(supporter.userId);
+      final conversation = await ref.read(getOrCreateConversationProvider(
+        otherUserId: supporter.userId,
+      ).future);
       
-      if (conversationId != null && mounted) {
+      if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatScreen(
-              conversationId: conversationId,
+              conversationId: conversation.conversationId,
               otherUserId: supporter.userId,
               otherUserName: supporter.displayName,
               otherUserPhotoURL: supporter.photoURL,

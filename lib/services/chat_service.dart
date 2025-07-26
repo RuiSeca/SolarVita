@@ -115,6 +115,7 @@ class ChatService {
       conversationId: conversationId,
       content: content,
       timestamp: DateTime.now(),
+      senderName: 'Current User', // Gets actual name from UserProfile in notification
       messageType: messageType,
       metadata: metadata,
     );

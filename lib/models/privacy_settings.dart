@@ -30,7 +30,7 @@ class PrivacySettings {
     final data = doc.data() as Map<String, dynamic>? ?? {};
     return PrivacySettings(
       userId: doc.id,
-      defaultPostVisibility: PostVisibility.values[data['defaultPostVisibility'] ?? 0],
+      defaultPostVisibility: PostVisibility.values[(data['defaultPostVisibility'] is int ? data['defaultPostVisibility'] : int.tryParse(data['defaultPostVisibility']?.toString() ?? '0')) ?? 0],
       showProfileInSearch: data['showProfileInSearch'] ?? true,
       allowFriendRequests: data['allowFriendRequests'] ?? true,
       showWorkoutStats: data['showWorkoutStats'] ?? true,
@@ -38,9 +38,7 @@ class PrivacySettings {
       showEcoScore: data['showEcoScore'] ?? true,
       showAchievements: data['showAchievements'] ?? true,
       allowChallengeInvites: data['allowChallengeInvites'] ?? true,
-      updatedAt: data['updatedAt'] != null 
-          ? (data['updatedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 
@@ -120,9 +118,7 @@ class PublicProfile {
       totalWorkouts: data['totalWorkouts'],
       badges: List<String>.from(data['badges'] ?? []),
       isVerified: data['isVerified'] ?? false,
-      joinedAt: data['joinedAt'] != null 
-          ? (data['joinedAt'] as Timestamp).toDate()
-          : DateTime.now(),
+      joinedAt: (data['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
 

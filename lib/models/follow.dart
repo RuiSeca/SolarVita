@@ -31,7 +31,7 @@ class Follow {
       id: doc.id,
       followerId: data['followerId'] ?? '',
       followingId: data['followingId'] ?? '',
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       followerName: data['followerName'],
       followerUsername: data['followerUsername'],
       followerPhotoURL: data['followerPhotoURL'],

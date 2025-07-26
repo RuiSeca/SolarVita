@@ -176,9 +176,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
     final mentionEndIndex = _mentionStartIndex + 1 + _currentMentionQuery.length;
     
     // Replace the partial mention with the complete username
-    final newText = text.substring(0, _mentionStartIndex) +
-                   '@${user.userName}' +
-                   text.substring(mentionEndIndex);
+    final newText = '${text.substring(0, _mentionStartIndex)}@${user.userName}${text.substring(mentionEndIndex)}';
     
     // Create mention info
     final mentionInfo = MentionInfo(
