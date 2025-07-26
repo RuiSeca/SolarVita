@@ -31,7 +31,8 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
   Duration _duration = Duration.zero;
-  String? _thumbnailPath; // TODO: Use for local thumbnail caching
+  // TODO: Add local thumbnail caching functionality
+  // String? _thumbnailPath;
 
   @override
   void initState() {
@@ -65,7 +66,6 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         milliseconds: (_duration.inMilliseconds * 0.25).round(),
       ));
     } catch (e) {
-      // TODO: Replace with proper logging
       debugPrint('Error initializing video for thumbnail: $e');
     }
   }

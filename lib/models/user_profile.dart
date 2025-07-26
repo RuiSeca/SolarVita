@@ -6,14 +6,22 @@ class UserProfile {
   final String displayName;
   final String? username;
   final String? photoURL;
+  final String? bio;
   final DateTime createdAt;
   final DateTime lastUpdated;
+  final DateTime? lastActive;
   final bool isOnboardingComplete;
+  final bool isPublic;
+  final bool isVerified;
   final WorkoutPreferences workoutPreferences;
   final SustainabilityPreferences sustainabilityPreferences;
   final DiaryPreferences diaryPreferences;
   final DietaryPreferences dietaryPreferences;
   final int supportersCount;
+  final int followersCount;
+  final int followingCount;
+  final int postsCount;
+  final List<String> interests;
   final Map<String, dynamic> additionalData;
 
   UserProfile({
@@ -22,14 +30,22 @@ class UserProfile {
     required this.displayName,
     this.username,
     this.photoURL,
+    this.bio,
     required this.createdAt,
     required this.lastUpdated,
+    this.lastActive,
     this.isOnboardingComplete = false,
+    this.isPublic = true,
+    this.isVerified = false,
     required this.workoutPreferences,
     required this.sustainabilityPreferences,
     required this.diaryPreferences,
     required this.dietaryPreferences,
     this.supportersCount = 0,
+    this.followersCount = 0,
+    this.followingCount = 0,
+    this.postsCount = 0,
+    this.interests = const [],
     this.additionalData = const {},
   });
 
@@ -41,14 +57,22 @@ class UserProfile {
       displayName: data['displayName'] ?? '',
       username: data['username'],
       photoURL: data['photoURL'],
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
+      bio: data['bio'],
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastActive: data['lastActive'] != null ? (data['lastActive'] as Timestamp?)?.toDate() : null,
       isOnboardingComplete: data['isOnboardingComplete'] ?? false,
+      isPublic: data['isPublic'] ?? true,
+      isVerified: data['isVerified'] ?? false,
       workoutPreferences: WorkoutPreferences.fromMap(data['workoutPreferences'] ?? {}),
       sustainabilityPreferences: SustainabilityPreferences.fromMap(data['sustainabilityPreferences'] ?? {}),
       diaryPreferences: DiaryPreferences.fromMap(data['diaryPreferences'] ?? {}),
       dietaryPreferences: DietaryPreferences.fromMap(data['dietaryPreferences'] ?? {}),
       supportersCount: data['supportersCount'] ?? 0,
+      followersCount: data['followersCount'] ?? 0,
+      followingCount: data['followingCount'] ?? 0,
+      postsCount: data['postsCount'] ?? 0,
+      interests: List<String>.from(data['interests'] ?? []),
       additionalData: Map<String, dynamic>.from(data['additionalData'] ?? {}),
     );
   }
@@ -59,16 +83,86 @@ class UserProfile {
       'displayName': displayName,
       'username': username,
       'photoURL': photoURL,
+      'bio': bio,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastUpdated': Timestamp.fromDate(lastUpdated),
+      'lastActive': lastActive != null ? Timestamp.fromDate(lastActive!) : null,
       'isOnboardingComplete': isOnboardingComplete,
+      'isPublic': isPublic,
+      'isVerified': isVerified,
       'workoutPreferences': workoutPreferences.toMap(),
       'sustainabilityPreferences': sustainabilityPreferences.toMap(),
       'diaryPreferences': diaryPreferences.toMap(),
       'dietaryPreferences': dietaryPreferences.toMap(),
       'supportersCount': supportersCount,
+      'followersCount': followersCount,
+      'followingCount': followingCount,
+      'postsCount': postsCount,
+      'interests': interests,
       'additionalData': additionalData,
     };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'email': email,
+      'displayName': displayName,
+      'username': username,
+      'photoURL': photoURL,
+      'bio': bio,
+      'createdAt': createdAt.toIso8601String(),
+      'lastUpdated': lastUpdated.toIso8601String(),
+      'lastActive': lastActive?.toIso8601String(),
+      'isOnboardingComplete': isOnboardingComplete,
+      'isPublic': isPublic,
+      'isVerified': isVerified,
+      'workoutPreferences': workoutPreferences.toMap(),
+      'sustainabilityPreferences': sustainabilityPreferences.toMap(),
+      'diaryPreferences': diaryPreferences.toMap(),
+      'dietaryPreferences': dietaryPreferences.toMap(),
+      'supportersCount': supportersCount,
+      'followersCount': followersCount,
+      'followingCount': followingCount,
+      'postsCount': postsCount,
+      'interests': interests,
+      'additionalData': additionalData,
+    };
+  }
+
+  factory UserProfile.fromMap(Map<String, dynamic> map) {
+    return UserProfile(
+      uid: map['uid'] ?? '',
+      email: map['email'] ?? '',
+      displayName: map['displayName'] ?? '',
+      username: map['username'],
+      photoURL: map['photoURL'],
+      bio: map['bio'],
+      createdAt: map['createdAt'] is String 
+          ? DateTime.parse(map['createdAt'])
+          : (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastUpdated: map['lastUpdated'] is String 
+          ? DateTime.parse(map['lastUpdated'])
+          : (map['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastActive: map['lastActive'] != null 
+          ? (map['lastActive'] is String 
+              ? DateTime.parse(map['lastActive'])
+              : (map['lastActive'] as Timestamp?)?.toDate())
+          : null,
+      isOnboardingComplete: map['isOnboardingComplete'] ?? false,
+      isPublic: map['isPublic'] ?? true,
+      isVerified: map['isVerified'] ?? false,
+      workoutPreferences: WorkoutPreferences.fromMap(map['workoutPreferences'] ?? {}),
+      sustainabilityPreferences: SustainabilityPreferences.fromMap(map['sustainabilityPreferences'] ?? {}),
+      diaryPreferences: DiaryPreferences.fromMap(map['diaryPreferences'] ?? {}),
+      dietaryPreferences: DietaryPreferences.fromMap(map['dietaryPreferences'] ?? {}),
+      supportersCount: map['supportersCount'] ?? 0,
+      followersCount: map['followersCount'] ?? 0,
+      followingCount: map['followingCount'] ?? 0,
+      postsCount: map['postsCount'] ?? 0,
+      interests: List<String>.from(map['interests'] ?? []),
+      additionalData: Map<String, dynamic>.from(map['additionalData'] ?? {}),
+    );
   }
 
   UserProfile copyWith({
@@ -76,13 +170,21 @@ class UserProfile {
     String? displayName,
     String? username,
     String? photoURL,
+    String? bio,
     DateTime? lastUpdated,
+    DateTime? lastActive,
     bool? isOnboardingComplete,
+    bool? isPublic,
+    bool? isVerified,
     WorkoutPreferences? workoutPreferences,
     SustainabilityPreferences? sustainabilityPreferences,
     DiaryPreferences? diaryPreferences,
     DietaryPreferences? dietaryPreferences,
     int? supportersCount,
+    int? followersCount,
+    int? followingCount,
+    int? postsCount,
+    List<String>? interests,
     Map<String, dynamic>? additionalData,
   }) {
     return UserProfile(
@@ -91,14 +193,22 @@ class UserProfile {
       displayName: displayName ?? this.displayName,
       username: username ?? this.username,
       photoURL: photoURL ?? this.photoURL,
+      bio: bio ?? this.bio,
       createdAt: createdAt,
       lastUpdated: lastUpdated ?? DateTime.now(),
+      lastActive: lastActive ?? this.lastActive,
       isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
+      isPublic: isPublic ?? this.isPublic,
+      isVerified: isVerified ?? this.isVerified,
       workoutPreferences: workoutPreferences ?? this.workoutPreferences,
       sustainabilityPreferences: sustainabilityPreferences ?? this.sustainabilityPreferences,
       diaryPreferences: diaryPreferences ?? this.diaryPreferences,
       dietaryPreferences: dietaryPreferences ?? this.dietaryPreferences,
       supportersCount: supportersCount ?? this.supportersCount,
+      followersCount: followersCount ?? this.followersCount,
+      followingCount: followingCount ?? this.followingCount,
+      postsCount: postsCount ?? this.postsCount,
+      interests: interests ?? this.interests,
       additionalData: additionalData ?? this.additionalData,
     );
   }

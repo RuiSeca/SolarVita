@@ -13,6 +13,7 @@ import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/data_sync_service.dart';
 import 'services/chat_notification_service.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -44,7 +45,9 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Handle background message processing if needed
 }
 
-void _setupNotificationNavigation(ChatNotificationService chatNotificationService) {
+void _setupNotificationNavigation(
+  ChatNotificationService chatNotificationService,
+) {
   // This would be implemented to handle navigation from notifications
   // For now, we'll just set up the basic structure
 }
@@ -52,57 +55,69 @@ void _setupNotificationNavigation(ChatNotificationService chatNotificationServic
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Rive initialization is handled automatically
-
-  // Initialize logging
+  // Initialize logging first
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
-    // Logging configured - remove debugPrint for production
+    debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  // Initialize Firebase (graceful handling for test/CI environments)
   try {
+    // Initialize Firebase once
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    
+
+    // Activate Firebase App Check with debug providers
+    await FirebaseAppCheck.instance.activate(
+      androidProvider: AndroidProvider.debug,
+      appleProvider: AppleProvider.debug,
+    );
+
+    // Get and print App Check debug token
+    final token = await FirebaseAppCheck.instance.getToken();
+    assert(() {
+      debugPrint('[FirebaseAppCheck] Debug token: $token');
+      return true;
+    }());
+
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-    
+
     isFirebaseAvailable = true;
-  } catch (e) {
-    // Continue without Firebase for testing
+  } catch (e, st) {
+    debugPrint('Firebase initialization error: $e\n$st');
+    // Continue without Firebase for testing environments
   }
 
   // Initialize notification service (local notifications work without Firebase)
   try {
     final notificationService = NotificationService();
     await notificationService.initialize();
-  } catch (e) {
-    // Notification service initialization failed - continue without notifications
+  } catch (e, st) {
+    debugPrint('Notification service initialization failed: $e\n$st');
   }
 
-  // Initialize chat notification service
+  // Initialize chat notification service if Firebase available
   if (isFirebaseAvailable) {
     try {
       final chatNotificationService = ChatNotificationService();
       await chatNotificationService.initialize();
-      
-      // Set up navigation for notification taps
+
+      // Setup navigation for notification taps
       _setupNotificationNavigation(chatNotificationService);
-    } catch (e) {
-      // Chat notification service initialization failed - continue without chat notifications
+    } catch (e, st) {
+      debugPrint('Chat notification service init failed: $e\n$st');
     }
   }
 
-  // Initialize data sync service for Firebase integration
+  // Initialize data sync service if Firebase available
   if (isFirebaseAvailable) {
     try {
       final dataSyncService = DataSyncService();
       await dataSyncService.initializePrivacySettings();
       dataSyncService.startPeriodicSync();
-    } catch (e) {
-      // Data sync initialization failed - continue without sync
+    } catch (e, st) {
+      debugPrint('Data sync service init failed: $e\n$st');
     }
   }
 
@@ -110,14 +125,10 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    // .env file not found, using environment variables from system
+    debugPrint('.env file not found, using system environment variables.');
   }
 
-  runApp(
-    ProviderScope(
-      child: const SolarVitaApp(),
-    ),
-  );
+  runApp(ProviderScope(child: const SolarVitaApp()));
 }
 
 class SolarVitaApp extends ConsumerWidget {
@@ -142,8 +153,9 @@ class SolarVitaApp extends ConsumerWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           locale: locale,
-          supportedLocales:
-              supportedLanguages.map((lang) => Locale(lang.code)).toList(),
+          supportedLocales: supportedLanguages
+              .map((lang) => Locale(lang.code))
+              .toList(),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -154,24 +166,19 @@ class SolarVitaApp extends ConsumerWidget {
         );
       },
       loading: () => const MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: CircularProgressIndicator(),
-          ),
-        ),
+        home: Scaffold(body: Center(child: CircularProgressIndicator())),
       ),
       error: (error, stack) => MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Text('Error loading app: $error'),
-          ),
-        ),
+        home: Scaffold(body: Center(child: Text('Error loading app: $error'))),
       ),
     );
   }
 
-  Widget _buildHomeScreen(WidgetRef ref, AsyncValue<User?> authState,
-      AsyncValue<UserProfile?> userProfileAsync) {
+  Widget _buildHomeScreen(
+    WidgetRef ref,
+    AsyncValue<User?> authState,
+    AsyncValue<UserProfile?> userProfileAsync,
+  ) {
     return authState.when(
       data: (user) {
         if (user == null) {
@@ -190,11 +197,8 @@ class SolarVitaApp extends ConsumerWidget {
 
             return const MainNavigationScreen();
           },
-          loading: () => const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          ),
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (error, stack) => Scaffold(
             body: Center(
               child: Column(
@@ -213,16 +217,10 @@ class SolarVitaApp extends ConsumerWidget {
           ),
         );
       },
-      loading: () => const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (error, stack) => Scaffold(
-        body: Center(
-          child: Text('Authentication error: $error'),
-        ),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stack) =>
+          Scaffold(body: Center(child: Text('Authentication error: $error'))),
     );
   }
 }
@@ -285,10 +283,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             icon: Icon(Icons.dashboard),
             label: 'Dashboard',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
           BottomNavigationBarItem(
             icon: Icon(Icons.health_and_safety),
             label: 'Health',
@@ -297,10 +292,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             icon: Icon(Icons.assistant),
             label: 'Solar AI',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );

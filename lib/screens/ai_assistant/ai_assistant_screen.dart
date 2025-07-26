@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../services/ai_service.dart';
 import '../../services/nutritionix_service.dart';
 import '../../models/user_context.dart';
@@ -20,20 +22,53 @@ class AIAssistantScreen extends StatefulWidget {
   State<AIAssistantScreen> createState() => _AIAssistantScreenState();
 }
 
-class _AIAssistantScreenState extends State<AIAssistantScreen> {
+class _AIAssistantScreenState extends State<AIAssistantScreen>
+    with TickerProviderStateMixin {
   final Logger _logger = Logger();
   final TextEditingController _messageController = TextEditingController();
   final List<Widget> _messages = [];
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
   bool _isTyping = false;
   bool _isAnalyzingFood = false;
   bool _userHasInteracted = false; // Track user interaction
   late final AIService _aiService;
   late final NutritionixService _nutritionixService;
+  late AnimationController _sendButtonController;
+  late Animation<double> _sendButtonAnimation;
+
+  // Speech recognition
+  final SpeechToText _speechToText = SpeechToText();
+  bool _speechEnabled = false;
+  bool _speechListening = false;
+  String _recognizedText = '';
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize animation controllers
+    _sendButtonController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _sendButtonAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _sendButtonController, curve: Curves.easeOutBack),
+    );
+
+    // Listen to text changes
+    _messageController.addListener(() {
+      final hasText = _messageController.text.trim().isNotEmpty;
+      if (hasText &&
+          !_sendButtonController.isAnimating &&
+          _sendButtonController.status != AnimationStatus.completed) {
+        _sendButtonController.forward();
+      } else if (!hasText &&
+          !_sendButtonController.isAnimating &&
+          _sendButtonController.status != AnimationStatus.dismissed) {
+        _sendButtonController.reverse();
+      }
+    });
     try {
       _aiService = AIService(
         context: UserContext(
@@ -60,16 +95,16 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     }
     _nutritionixService = NutritionixService();
 
+    // Initialize speech recognition
+    _initializeSpeech();
+
     // Add initial greeting message
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
           _messages.insert(
             0,
-            ChatMessage(
-              text: tr(context, 'assistant_greeting'),
-              isUser: false,
-            ),
+            ChatMessage(text: tr(context, 'assistant_greeting'), isUser: false),
           );
         });
       }
@@ -80,6 +115,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
+    _sendButtonController.dispose();
+    
+    // Stop speech recognition if it's running
+    if (_speechToText.isListening) {
+      _speechToText.stop();
+    }
+    
     super.dispose();
   }
 
@@ -90,13 +133,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       setState(() {
         _userHasInteracted = true;
         try {
-          _messages.insert(
-            0,
-            ChatMessage(
-              text: text,
-              isUser: true,
-            ),
-          );
+          _messages.insert(0, ChatMessage(text: text, isUser: true));
         } catch (e) {
           _logger.e('Error inserting message: $e');
         }
@@ -124,13 +161,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       if (mounted) {
         setState(() {
           _isTyping = false;
-          _messages.insert(
-            0,
-            ChatMessage(
-              text: response,
-              isUser: false,
-            ),
-          );
+          _messages.insert(0, ChatMessage(text: response, isUser: false));
         });
       }
     } catch (e) {
@@ -184,8 +215,12 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       'look at',
     ];
 
-    final hasExerciseWord = exerciseWords.any((word) => text.contains(word.toString()));
-    final hasIntentWord = intentWords.any((word) => text.contains(word.toString()));
+    final hasExerciseWord = exerciseWords.any(
+      (word) => text.contains(word.toString()),
+    );
+    final hasIntentWord = intentWords.any(
+      (word) => text.contains(word.toString()),
+    );
 
     return hasExerciseWord && hasIntentWord;
   }
@@ -225,7 +260,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     ];
 
     final hasMealWord = mealWords.any((word) => text.contains(word.toString()));
-    final hasIntentWord = intentWords.any((word) => text.contains(word.toString()));
+    final hasIntentWord = intentWords.any(
+      (word) => text.contains(word.toString()),
+    );
 
     return hasMealWord && hasIntentWord;
   }
@@ -272,9 +309,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const MealPlanScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const MealPlanScreen()),
         );
       }
     });
@@ -288,8 +323,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     try {
       // Use the existing service with the correct method name
-      final MultiIngredientAnalysis analysis =
-          await _nutritionixService.analyzeFoodImageAdvanced(image);
+      final MultiIngredientAnalysis analysis = await _nutritionixService
+          .analyzeFoodImageAdvanced(image);
 
       if (mounted) {
         setState(() {
@@ -314,9 +349,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             errorMessage = tr(context, 'no_food_detected');
           } else if (e.toString().contains('API key not valid')) {
             errorMessage = tr(context, 'api_key_invalid');
-          } else if (e
-              .toString()
-              .contains('Failed to get FatSecret access token')) {
+          } else if (e.toString().contains(
+            'Failed to get FatSecret access token',
+          )) {
             errorMessage = tr(context, 'fatsecret_auth_error');
           } else if (e.toString().contains('No nutritional data found')) {
             errorMessage = tr(context, 'no_nutritional_data');
@@ -325,13 +360,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
                 "${tr(context, 'food_analysis_error')}: ${e.toString()}";
           }
 
-          _messages.insert(
-            0,
-            ChatMessage(
-              text: errorMessage,
-              isUser: false,
-            ),
-          );
+          _messages.insert(0, ChatMessage(text: errorMessage, isUser: false));
         });
       }
     }
@@ -341,9 +370,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     // Implementation for toggling favorites
     // Show feedback to user
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(tr(context, 'favorite_toggled'))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr(context, 'favorite_toggled'))));
     }
   }
 
@@ -356,8 +385,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           children: [
             _buildHeader(),
             if (!_userHasInteracted)
-              Flexible(child: _buildActionButtons()), // Show buttons until user interacts
-            Expanded(child: _buildChatArea()),
+              Expanded(
+                child: _buildActionButtons(),
+              ), // Show buttons until user interacts
+            if (_userHasInteracted) Expanded(child: _buildChatArea()),
             _buildMessageInput(),
           ],
         ),
@@ -368,9 +399,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceColor(context),
-      ),
+      decoration: BoxDecoration(color: AppTheme.surfaceColor(context)),
       child: Row(
         children: [
           Container(
@@ -436,25 +465,33 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     // Check if device is tablet (screen width > 600)
     final isTablet = MediaQuery.of(context).size.width > 600;
-    
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 16, 
-        vertical: isTablet ? 12 : 24,
-      ),
-      child: GridView.count(
-        shrinkWrap: true,
-        crossAxisCount: isTablet ? 4 : 2, // 4 columns on tablet, 2 on phone
-        mainAxisSpacing: isTablet ? 8 : 16,
-        crossAxisSpacing: isTablet ? 8 : 16,
-        childAspectRatio: isTablet ? 2.0 : 2.5, // Smaller aspect ratio on tablet
-        children: actions
-            .map((action) => _buildActionButton(
+
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600),
+        padding: EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: isTablet ? 12 : 24,
+        ),
+        child: GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: isTablet ? 4 : 2, // 4 columns on tablet, 2 on phone
+          mainAxisSpacing: isTablet ? 8 : 16,
+          crossAxisSpacing: isTablet ? 8 : 16,
+          childAspectRatio: isTablet
+              ? 2.0
+              : 2.5, // Smaller aspect ratio on tablet
+          children: actions
+              .map(
+                (action) => _buildActionButton(
                   icon: action['icon'] as IconData,
                   label: action['label'] as String,
                   color: action['color'] as Color,
-                ))
-            .toList(),
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }
@@ -467,9 +504,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -482,11 +517,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  color: color,
-                  size: 24,
-                ),
+                Icon(icon, color: color, size: 24),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -508,35 +539,46 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
   Widget _buildChatArea() {
     // Create a stable list of widgets to display
     final List<Widget> displayItems = [];
-    
-    // Add typing/analyzing indicator at the top (first item when reversed)
-    if (_isTyping || _isAnalyzingFood) {
-      displayItems.add(_isAnalyzingFood
-          ? const FoodAnalyzingIndicator()
-          : const TypingIndicator());
+
+    // Add typing/analyzing/listening indicator at the top (first item when reversed)
+    if (_isTyping || _isAnalyzingFood || _speechListening) {
+      if (_speechListening) {
+        displayItems.add(VoiceListeningIndicator(recognizedText: _recognizedText));
+      } else if (_isAnalyzingFood) {
+        displayItems.add(const FoodAnalyzingIndicator());
+      } else {
+        displayItems.add(const TypingIndicator());
+      }
     }
-    
+
     // Add messages in reverse order for chat display
     displayItems.addAll(_messages);
-    
+
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: ListView(
+      child: ListView.builder(
         key: ValueKey(_messages.length),
         controller: _scrollController,
         reverse: true,
-        children: displayItems,
+        physics: const AlwaysScrollableScrollPhysics(),
+        itemCount: displayItems.length,
+        itemBuilder: (context, index) {
+          return displayItems[index];
+        },
       ),
     );
   }
 
   Widget _buildMessageInput() {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+
     return Container(
-      padding: const EdgeInsets.only(
-        top: 16,
-        bottom: 16,
+      padding: EdgeInsets.only(
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom > 0 ? 8 : 16,
+        left: 16,
         right: 16,
-        left: 8,
       ),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
@@ -544,98 +586,397 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           top: BorderSide(color: AppTheme.textColor(context).withAlpha(26)),
         ),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
-            color: Colors.transparent,
-            child: Container(
-              width: 34,
-              height: 34,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppTheme.textColor(context).withAlpha(51),
-                ),
-              ),
-              child: PopupMenuButton<String>(
-                padding: EdgeInsets.zero,
-                offset: const Offset(0, -160),
-                position: PopupMenuPosition.over,
-                icon: Icon(
-                  Icons.add,
-                  color: AppTheme.textColor(context),
-                  size: 20,
-                ),
-                onSelected: _handleAttachmentSelection,
-                itemBuilder: (context) => <PopupMenuEntry<String>>[
-                  PopupMenuItem<String>(
-                    value: 'photos',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.photo_library),
-                        const SizedBox(width: 8),
-                        Text(tr(context, 'attach_photos')),
+          // Input row with attachment button
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              // Attachment button outside input
+              Container(
+                margin: const EdgeInsets.only(right: 8, bottom: 8),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppTheme.textFieldBackground(context),
+                      border: Border.all(
+                        color: AppTheme.textColor(context).withAlpha(26),
+                        width: 1,
+                      ),
+                    ),
+                    child: PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      offset: const Offset(0, -180),
+                      position: PopupMenuPosition.over,
+                      icon: Icon(
+                        Icons.add,
+                        color: AppTheme.textColor(context).withAlpha(128),
+                        size: 20,
+                      ),
+                      onSelected: _handleAttachmentSelection,
+                      itemBuilder: (context) => <PopupMenuEntry<String>>[
+                        PopupMenuItem<String>(
+                          value: 'photos',
+                          child: Row(
+                            children: [
+                              Icon(Icons.photo_library, color: Colors.blue),
+                              const SizedBox(width: 12),
+                              Text(tr(context, 'attach_photos')),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'camera',
+                          child: Row(
+                            children: [
+                              Icon(Icons.camera_alt, color: Colors.green),
+                              const SizedBox(width: 12),
+                              Text(tr(context, 'attach_camera')),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem<String>(
+                          value: 'files',
+                          child: Row(
+                            children: [
+                              Icon(Icons.attach_file, color: Colors.orange),
+                              const SizedBox(width: 12),
+                              Text(tr(context, 'attach_files')),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  PopupMenuItem<String>(
-                    value: 'camera',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.camera_alt),
-                        const SizedBox(width: 8),
-                        Text(tr(context, 'attach_camera')),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem<String>(
-                    value: 'files',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.attach_file),
-                        const SizedBox(width: 8),
-                        Text(tr(context, 'attach_files')),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: TextField(
-              controller: _messageController,
-              style: TextStyle(color: AppTheme.textColor(context)),
-              decoration: InputDecoration(
-                hintText: tr(context, 'input_placeholder'),
-                hintStyle: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(128),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: AppTheme.textFieldBackground(context),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 12,
                 ),
               ),
-              onSubmitted: _handleSubmitted,
-            ),
-          ),
-          const SizedBox(width: 8),
-          FloatingActionButton(
-            mini: true,
-            onPressed: () => _handleSubmitted(_messageController.text),
-            backgroundColor: AppColors.primary,
-            child: const Icon(Icons.send, color: AppColors.white),
+
+              // Main input container
+              Expanded(
+                child: Container(
+                  constraints: BoxConstraints(
+                    minHeight: 50,
+                    maxHeight: isTablet ? 120 : 100,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textFieldBackground(context),
+                    borderRadius: BorderRadius.circular(25),
+                    border: Border.all(
+                      color: AppTheme.textColor(context).withAlpha(26),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Text input
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: TextField(
+                            controller: _messageController,
+                            focusNode: _focusNode,
+                            style: TextStyle(
+                              color: AppTheme.textColor(context),
+                              fontSize: 16,
+                            ),
+                            maxLines: isTablet ? 4 : 3,
+                            minLines: 1,
+                            textInputAction: TextInputAction.send,
+                            decoration: InputDecoration(
+                              hintText: tr(context, 'input_placeholder'),
+                              hintStyle: TextStyle(
+                                color: AppTheme.textColor(
+                                  context,
+                                ).withAlpha(128),
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 0,
+                                vertical: 12,
+                              ),
+                            ),
+                            onSubmitted: _handleSubmitted,
+                          ),
+                        ),
+                      ),
+
+                      // Microphone and Send buttons
+                      Container(
+                        margin: const EdgeInsets.only(right: 8, bottom: 8),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            // Microphone button (shown when no text)
+                            AnimatedBuilder(
+                              animation: _sendButtonAnimation,
+                              builder: (context, child) {
+                                final microphoneOpacity =
+                                    (1.0 - _sendButtonAnimation.value).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                final microphoneScale =
+                                    (1.0 - _sendButtonAnimation.value).clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                return Transform.scale(
+                                  scale: microphoneScale,
+                                  child: Opacity(
+                                    opacity: microphoneOpacity,
+                                    child:
+                                        _messageController.text.trim().isEmpty
+                                        ? Container(
+                                            width: 32,
+                                            height: 32,
+                                            margin: const EdgeInsets.only(
+                                              right: 2,
+                                            ),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                onTap: _handleVoiceInput,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: _speechListening
+                                                        ? AppColors.primary.withAlpha(51)
+                                                        : AppTheme.textColor(context).withAlpha(26),
+                                                  ),
+                                                  child: Icon(
+                                                    _speechListening ? Icons.stop : Icons.mic,
+                                                    color: _speechListening
+                                                        ? AppColors.primary
+                                                        : AppTheme.textColor(context).withAlpha(128),
+                                                    size: 18,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                );
+                              },
+                            ),
+
+                            // Send button (shown when there's text)
+                            AnimatedBuilder(
+                              animation: _sendButtonAnimation,
+                              builder: (context, child) {
+                                final sendOpacity = _sendButtonAnimation.value
+                                    .clamp(0.0, 1.0);
+                                final sendScale = _sendButtonAnimation.value
+                                    .clamp(0.0, 1.0);
+                                return Transform.scale(
+                                  scale: sendScale,
+                                  child: Opacity(
+                                    opacity: sendOpacity,
+                                    child:
+                                        _messageController.text
+                                            .trim()
+                                            .isNotEmpty
+                                        ? SizedBox(
+                                            width: 32,
+                                            height: 32,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                onTap: () => _handleSubmitted(
+                                                  _messageController.text,
+                                                ),
+                                                child: Container(
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color:
+                                                            AppColors.primary,
+                                                      ),
+                                                  child: const Icon(
+                                                    Icons.send,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : const SizedBox.shrink(),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  void _initializeSpeech() async {
+    try {
+      _speechEnabled = await _speechToText.initialize(
+        onStatus: (status) {
+          setState(() {
+            _speechListening = status == 'listening';
+          });
+        },
+        onError: (error) {
+          _logger.e('Speech recognition error: $error');
+          setState(() {
+            _speechListening = false;
+          });
+          
+          // Handle specific error cases
+          if (error.errorMsg == 'error_busy') {
+            _logger.w('Speech recognition was busy, stopping and resetting');
+            _speechToText.stop();
+          }
+        },
+      );
+    } catch (e) {
+      _logger.e('Failed to initialize speech recognition: $e');
+      _speechEnabled = false;
+    }
+  }
+
+  void _handleVoiceInput() async {
+    try {
+      // Check microphone permission
+      final permissionStatus = await Permission.microphone.request();
+
+      if (permissionStatus != PermissionStatus.granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Microphone permission is required for voice input',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!_speechEnabled) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Speech recognition not available'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Toggle listening state
+      if (_speechListening) {
+        _stopListening();
+        if (_recognizedText.isNotEmpty) {
+          _useRecognizedText();
+        }
+      } else {
+        _startInlineListening();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Voice input not available: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Dialog removed - using inline listening instead
+
+  void _startInlineListening() async {
+    if (!_speechEnabled) return;
+    
+    // Check if already listening to avoid error_busy
+    if (_speechToText.isListening) {
+      _logger.w('Speech recognition is already listening');
+      return;
+    }
+
+    setState(() {
+      _userHasInteracted = true;
+      _recognizedText = '';
+    });
+
+    try {
+      await _speechToText.listen(
+        onResult: (result) {
+          setState(() {
+            _recognizedText = result.recognizedWords;
+          });
+        },
+        listenFor: const Duration(seconds: 30),
+        pauseFor: const Duration(seconds: 5),
+        listenOptions: SpeechListenOptions(partialResults: true),
+        localeId: 'en_US',
+        onSoundLevelChange: (level) {
+          // Optional: Use sound level for visual feedback
+        },
+      );
+    } catch (e) {
+      _logger.e('Error starting speech recognition: $e');
+      if (mounted) {
+        setState(() {
+          _speechListening = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error starting voice recognition: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _stopListening() {
+    if (_speechListening) {
+      _speechToText.stop();
+      setState(() {
+        _speechListening = false;
+      });
+    }
+  }
+
+  void _useRecognizedText() {
+    if (_recognizedText.isNotEmpty) {
+      setState(() {
+        _messageController.text = _recognizedText;
+        _recognizedText = ''; // Clear the recognized text
+      });
+      
+      // Focus the text field so user can edit if needed
+      _focusNode.requestFocus();
+    }
   }
 
   void _handleQuickAction(String action) async {
@@ -646,16 +987,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
 
     try {
       // Try Gemini first for more personalized responses
-      final response = await _aiService
-          .generateResponseAsync('Give me a quick response about: $action');
+      final response = await _aiService.generateResponseAsync(
+        'Give me a quick response about: $action',
+      );
 
       if (mounted) {
         setState(() {
           _isTyping = false;
-          _messages.insert(
-            0,
-            ChatMessage(text: response, isUser: false),
-          );
+          _messages.insert(0, ChatMessage(text: response, isUser: false));
         });
       }
     } catch (e) {
@@ -668,7 +1007,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
           _messages.insert(
             0,
             ChatMessage(
-                text: _aiService.generateQuickResponse(action), isUser: false),
+              text: _aiService.generateQuickResponse(action),
+              isUser: false,
+            ),
           );
         });
       }
@@ -700,9 +1041,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     } catch (e) {
       _logger.e('Error taking photo', e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(tr(context, 'camera_error'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(tr(context, 'camera_error'))));
       }
     }
   }
@@ -718,9 +1059,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
     } catch (e) {
       _logger.e('Error picking image from gallery', e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(tr(context, 'gallery_error'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(tr(context, 'gallery_error'))));
       }
     }
   }
@@ -734,33 +1075,26 @@ class ChatMessage extends StatelessWidget {
   final String text;
   final bool isUser;
 
-  const ChatMessage({
-    super.key,
-    required this.text,
-    required this.isUser,
-  });
+  const ChatMessage({super.key, required this.text, required this.isUser});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment:
-            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!isUser) ...[
             const CircleAvatar(
               backgroundColor: AppColors.primary,
               radius: 16,
-              child: Icon(
-                Icons.eco,
-                color: AppColors.white,
-                size: 16,
-              ),
+              child: Icon(Icons.eco, color: AppColors.white, size: 16),
             ),
             const SizedBox(width: 8),
+          ] else ...[
+            const SizedBox(width: 40),
           ],
-          Flexible(
+          Expanded(
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -778,7 +1112,16 @@ class ChatMessage extends StatelessWidget {
               ),
             ),
           ),
-          if (isUser) const SizedBox(width: 40),
+          if (isUser) ...[
+            const SizedBox(width: 8),
+            const CircleAvatar(
+              backgroundColor: AppColors.primary,
+              radius: 16,
+              child: Icon(Icons.person, color: AppColors.white, size: 16),
+            ),
+          ] else ...[
+            const SizedBox(width: 40),
+          ],
         ],
       ),
     );
@@ -968,18 +1311,11 @@ class MultiIngredientFoodAnalysisMessage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 4),
           Text(
             '$label: ',
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppTheme.textColor(context), fontSize: 14),
           ),
           Text(
             value,
@@ -1121,14 +1457,14 @@ class FoodAnalysisMessage extends StatelessWidget {
                     analysis.healthRating >= 4
                         ? tr(context, 'healthy_food_rating')
                         : analysis.healthRating >= 2
-                            ? tr(context, 'moderate_food_rating')
-                            : tr(context, 'unhealthy_food_rating'),
+                        ? tr(context, 'moderate_food_rating')
+                        : tr(context, 'unhealthy_food_rating'),
                     style: TextStyle(
                       color: analysis.healthRating >= 4
                           ? Colors.green
                           : analysis.healthRating >= 2
-                              ? Colors.orange
-                              : Colors.red,
+                          ? Colors.orange
+                          : Colors.red,
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                     ),
@@ -1153,18 +1489,11 @@ class FoodAnalysisMessage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: color,
-          ),
+          Icon(icon, size: 16, color: color),
           const SizedBox(width: 4),
           Text(
             '$label: ',
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppTheme.textColor(context), fontSize: 14),
           ),
           Text(
             value,
@@ -1192,18 +1521,12 @@ class TypingIndicator extends StatelessWidget {
           const CircleAvatar(
             backgroundColor: AppColors.primary,
             radius: 16,
-            child: Icon(
-              Icons.eco,
-              color: AppColors.white,
-              size: 16,
-            ),
+            child: Icon(Icons.eco, color: AppColors.white, size: 16),
           ),
           const SizedBox(width: 8),
           Text(
             tr(context, 'typing_indicator'),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-            ),
+            style: TextStyle(color: AppTheme.textColor(context)),
           ),
         ],
       ),
@@ -1235,17 +1558,105 @@ class FoodAnalyzingIndicator extends StatelessWidget {
             children: [
               Text(
                 tr(context, 'analyzing_food_indicator'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                ),
+                style: TextStyle(color: AppTheme.textColor(context)),
               ),
               const SizedBox(height: 4),
-              const LottieLoadingWidget(
-                width: 60,
-                height: 20,
-              ),
+              const LottieLoadingWidget(width: 60, height: 20),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class VoiceListeningIndicator extends StatelessWidget {
+  final String recognizedText;
+
+  const VoiceListeningIndicator({super.key, required this.recognizedText});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.primary,
+            radius: 16,
+            child: AnimatedScale(
+              scale: 1.2,
+              duration: const Duration(milliseconds: 500),
+              child: const Icon(
+                Icons.mic,
+                color: AppColors.white,
+                size: 16,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.messageBubbleAI(context),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.mic,
+                        color: AppColors.primary,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Listening...',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (recognizedText.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.textFieldBackground(context),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        recognizedText,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 14,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Speak now...',
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withAlpha(128),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 40),
         ],
       ),
     );

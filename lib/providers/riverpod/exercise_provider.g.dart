@@ -30,8 +30,9 @@ String _$exercisesHash() => r'27563ee93961283c136afef2fb7384e6c8807459';
 final exercisesProvider = AutoDisposeProvider<List<WorkoutItem>>.internal(
   exercises,
   name: r'exercisesProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$exercisesHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$exercisesHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -145,20 +146,20 @@ final hasExercisesDataProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HasExercisesDataRef = AutoDisposeProviderRef<bool>;
-String _$exerciseNotifierHash() => r'bef520a85b88244136bc8d81c12674fef779ad41';
+String _$exerciseNotifierHash() => r'ec62452ab9a69fccd0759a61db513be6e2dd7543';
 
 /// See also [ExerciseNotifier].
 @ProviderFor(ExerciseNotifier)
 final exerciseNotifierProvider =
     NotifierProvider<ExerciseNotifier, ExerciseState>.internal(
-  ExerciseNotifier.new,
-  name: r'exerciseNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$exerciseNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      ExerciseNotifier.new,
+      name: r'exerciseNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$exerciseNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$ExerciseNotifier = Notifier<ExerciseState>;
 // ignore_for_file: type=lint

@@ -1,5 +1,6 @@
 // lib/widgets/social/social_post_card.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
@@ -10,8 +11,10 @@ import '../media/enhanced_video_player.dart';
 import '../../screens/media/full_screen_video_player.dart';
 import 'mention_rich_text.dart';
 import 'report_content_dialog.dart';
+import '../../providers/riverpod/auth_provider.dart';
+import '../../providers/riverpod/firebase_social_provider.dart';
 
-class SocialPostCard extends StatefulWidget {
+class SocialPostCard extends ConsumerStatefulWidget {
   final SocialPost post;
   final Function(String postId, ReactionType reaction)? onReaction;
   final Function(String postId)? onComment;
@@ -28,10 +31,10 @@ class SocialPostCard extends StatefulWidget {
   });
 
   @override
-  State<SocialPostCard> createState() => _SocialPostCardState();
+  ConsumerState<SocialPostCard> createState() => _SocialPostCardState();
 }
 
-class _SocialPostCardState extends State<SocialPostCard> {
+class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   PageController? _mediaPageController;
   int _currentMediaIndex = 0;
   // TODO: Video controllers for enhanced video handling
@@ -236,7 +239,6 @@ class _SocialPostCardState extends State<SocialPostCard> {
           fontWeight: FontWeight.w600,
         ),
         onMentionTap: (mention) {
-          // TODO: Navigate to user profile
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Tapped on ${mention.displayName}'),
@@ -370,55 +372,78 @@ class _SocialPostCardState extends State<SocialPostCard> {
   Widget _buildPostActions() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          // Like button
-          _buildActionButton(
-            icon: Icons.favorite_border,
-            activeIcon: Icons.favorite,
-            isActive: false, // TODO: Check if user has reacted
-            onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.like),
-          ),
-          const SizedBox(width: 16),
-          // Celebrate button
-          _buildActionButton(
-            icon: Icons.celebration_outlined,
-            activeIcon: Icons.celebration,
-            isActive: false,
-            onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.celebrate),
-          ),
-          const SizedBox(width: 16),
-          // Boost button (SolarVita unique)
-          _buildActionButton(
-            icon: Icons.eco_outlined,
-            activeIcon: Icons.eco,
-            isActive: false,
-            onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.boost),
-          ),
-          const SizedBox(width: 16),
-          // Comment button
-          _buildActionButton(
-            icon: Icons.chat_bubble_outline,
-            activeIcon: Icons.chat_bubble_outline,
-            isActive: false,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PostCommentsScreen(post: widget.post),
-                ),
-              );
-            },
-          ),
-          const Spacer(),
-          // Share button
-          _buildActionButton(
-            icon: Icons.share_outlined,
-            activeIcon: Icons.share_outlined,
-            isActive: false,
-            onTap: () => widget.onShare?.call(widget.post.id),
-          ),
-        ],
+      child: Consumer(
+        builder: (context, ref, child) {
+          final currentUser = ref.watch(currentUserProvider);
+          
+          // Get user's reaction on this post
+          final userReaction = currentUser != null 
+            ? widget.post.getUserReaction(currentUser.uid)
+            : null;
+          
+          return Row(
+            children: [
+              // Like button
+              _buildActionButton(
+                icon: Icons.favorite_border,
+                activeIcon: Icons.favorite,
+                isActive: userReaction == ReactionType.like,
+                onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.like),
+              ),
+              const SizedBox(width: 16),
+              // Celebrate button
+              _buildActionButton(
+                icon: Icons.celebration_outlined,
+                activeIcon: Icons.celebration,
+                isActive: userReaction == ReactionType.celebrate,
+                onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.celebrate),
+              ),
+              const SizedBox(width: 16),
+              // Boost button (SolarVita unique)
+              _buildActionButton(
+                icon: Icons.eco_outlined,
+                activeIcon: Icons.eco,
+                isActive: userReaction == ReactionType.boost,
+                onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.boost),
+              ),
+              const SizedBox(width: 16),
+              // Motivate button
+              _buildActionButton(
+                icon: Icons.fitness_center_outlined,
+                activeIcon: Icons.fitness_center,
+                isActive: userReaction == ReactionType.motivate,
+                onTap: () => widget.onReaction?.call(widget.post.id, ReactionType.motivate),
+              ),
+              const SizedBox(width: 16),
+              // Comment button
+              _buildActionButton(
+                icon: Icons.chat_bubble_outline,
+                activeIcon: Icons.chat_bubble_outline,
+                isActive: false,
+                onTap: () {
+                  if (widget.onComment != null) {
+                    widget.onComment!(widget.post.id);
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostCommentsScreen(post: widget.post),
+                      ),
+                    );
+                  }
+                },
+              ),
+              const Spacer(),
+              // Share button
+              _buildActionButton(
+                icon: Icons.share_outlined,
+                activeIcon: Icons.share_outlined,
+                isActive: false,
+                onTap: () => widget.onShare?.call(widget.post.id),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -528,6 +553,9 @@ class _SocialPostCardState extends State<SocialPostCard> {
   }
 
   void _showMoreOptions() {
+    final currentUser = ref.read(currentUserProvider);
+    final isOwner = currentUser?.uid == widget.post.userId;
+    
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardColor(context),
@@ -535,68 +563,104 @@ class _SocialPostCardState extends State<SocialPostCard> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) => Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildOptionTile(
-              icon: Icons.edit,
-              title: 'Edit Post',
-              subtitle: 'Make changes to your post',
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditPostScreen(post: widget.post),
-                  ),
-                );
-              },
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: AppTheme.textColor(context).withAlpha(102),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            _buildOptionTile(
-              icon: Icons.history,
-              title: 'View History',
-              subtitle: 'See all changes made to this post',
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Navigate to revision history
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.bookmark_border,
-              title: 'Save Post',
-              subtitle: 'Save this post to your collection',
-              onTap: () {
-                Navigator.pop(context);
-                _handleSavePost();
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.share,
-              title: 'Share',
-              subtitle: 'Share this post with others',
-              onTap: () {
-                Navigator.pop(context);
-                widget.onShare?.call(widget.post.id);
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.copy,
-              title: 'Copy Link',
-              subtitle: 'Copy link to this post',
-              onTap: () {
-                Navigator.pop(context);
-                // TODO: Copy link functionality
-              },
-            ),
-            _buildOptionTile(
-              icon: Icons.report,
-              title: 'Report',
-              subtitle: 'Report this post',
-              onTap: () {
-                Navigator.pop(context);
-                _showReportDialog();
-              },
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Owner-only options
+                    if (isOwner) ...[
+                      _buildOptionTile(
+                        icon: Icons.edit,
+                        title: 'Edit Post',
+                        subtitle: 'Make changes to your post',
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EditPostScreen(post: widget.post),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildOptionTile(
+                        icon: Icons.delete_outline,
+                        title: 'Delete Post',
+                        subtitle: 'Permanently delete this post',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showDeleteConfirmation();
+                        },
+                      ),
+                      _buildOptionTile(
+                        icon: Icons.history,
+                        title: 'View History',
+                        subtitle: 'See all changes made to this post',
+                        onTap: () {
+                          Navigator.pop(context);
+                          // TODO: Navigate to revision history
+                        },
+                      ),
+                    ],
+                    // Common options for all users
+                    _buildOptionTile(
+                      icon: Icons.bookmark_border,
+                      title: 'Save Post',
+                      subtitle: 'Save this post to your collection',
+                      onTap: () {
+                        Navigator.pop(context);
+                        _handleSavePost();
+                      },
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.share,
+                      title: 'Share',
+                      subtitle: 'Share this post with others',
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onShare?.call(widget.post.id);
+                      },
+                    ),
+                    _buildOptionTile(
+                      icon: Icons.copy,
+                      title: 'Copy Link',
+                      subtitle: 'Copy link to this post',
+                      onTap: () {
+                        Navigator.pop(context);
+                        // Copy link functionality to be implemented
+                      },
+                    ),
+                    if (!isOwner)
+                      _buildOptionTile(
+                        icon: Icons.report,
+                        title: 'Report',
+                        subtitle: 'Report this post',
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showReportDialog();
+                        },
+                      ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -678,10 +742,123 @@ class _SocialPostCardState extends State<SocialPostCard> {
         contentOwnerName: widget.post.userName,
         onReportSubmitted: (report) {
           // TODO: Submit report to Firebase
-          print('Report submitted: ${report.reason}');
+          debugPrint('Report submitted: ${report.reason}');
         },
       ),
     );
+  }
+
+  void _showDeleteConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        title: Text(
+          'Delete Post',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete this post? This action cannot be undone.',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppTheme.textColor(context).withAlpha(153),
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deletePost();
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.red,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deletePost() async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text('Deleting post...'),
+            ],
+          ),
+          backgroundColor: AppTheme.textColor(context),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Delete the post using the social posts provider
+      await ref.read(firebaseSocialPostsServiceProvider).deletePost(widget.post.id);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text('Post deleted successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text('Failed to delete post: ${e.toString()}'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   String _getPillarDisplayName(PostPillar pillar) {

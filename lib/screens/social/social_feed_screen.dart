@@ -9,6 +9,7 @@ import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../providers/riverpod/firebase_social_provider.dart';
 import 'create_post_screen.dart';
 import 'post_templates_screen.dart';
 
@@ -22,15 +23,11 @@ class SocialFeedScreen extends ConsumerStatefulWidget {
 class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
-  final List<SocialPost> _posts = [];
-  bool _isLoading = false;
-  bool _hasMorePosts = true;
   String _selectedFilter = 'all'; // all, supporters, public
-  int _currentPage = 0;
-  static const int _postsPerPage = 10;
   bool _isBottomBarVisible = true;
   bool _isScrolling = false;
   Timer? _scrollTimer;
+  List<PostPillar>? _selectedPillars;
 
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
@@ -40,7 +37,6 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     super.initState();
     _scrollController.addListener(_onScroll);
     _setupScrollListener();
-    _loadInitialPosts();
   }
 
   @override
@@ -50,767 +46,628 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     super.dispose();
   }
 
-  void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      if (!_isLoading && _hasMorePosts) {
-        _loadMorePosts();
-      }
-    }
-  }
-
   void _setupScrollListener() {
     _scrollController.addListener(() {
-      if (_scrollController.hasClients) {
-        // Handle scroll-based visibility
-        final scrollDirection = _scrollController.position.userScrollDirection;
-        
-        if (scrollDirection == ScrollDirection.reverse) {
-          // Scrolling down - hide bottom bar
-          if (_isBottomBarVisible) {
-            setState(() {
-              _isBottomBarVisible = false;
-              _isScrolling = true;
-            });
-          }
-        } else if (scrollDirection == ScrollDirection.forward) {
-          // Scrolling up - show bottom bar
-          if (!_isBottomBarVisible) {
-            setState(() {
-              _isBottomBarVisible = true;
-              _isScrolling = false;
-            });
-          }
+      if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+        if (_isBottomBarVisible) {
+          setState(() => _isBottomBarVisible = false);
         }
-        
-        // Cancel previous timer
-        _scrollTimer?.cancel();
-        
-        // Set timer to show bottom bar when scrolling stops
-        _scrollTimer = Timer(const Duration(milliseconds: 800), () {
-          if (mounted && _isScrolling) {
-            setState(() {
-              _isBottomBarVisible = true;
-              _isScrolling = false;
-            });
-          }
-        });
+      } else if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
+        if (!_isBottomBarVisible) {
+          setState(() => _isBottomBarVisible = true);
+        }
       }
     });
   }
 
-  void _scrollToTop() {
-    if (_scrollController.hasClients) {
-      // Add haptic feedback
-      HapticFeedback.mediumImpact();
-      
-      // Cancel any existing scroll timer
+  void _onScroll() {
+    if (!_isScrolling) {
+      setState(() => _isScrolling = true);
       _scrollTimer?.cancel();
-      
-      // Show bottom bar immediately when scrolling to top
-      setState(() {
-        _isBottomBarVisible = true;
-        _isScrolling = false;
+      _scrollTimer = Timer(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          setState(() => _isScrolling = false);
+        }
       });
-      
-      // Scroll to top with fast animation
-      _scrollController.animateTo(
-        0,
-        duration: const Duration(milliseconds: 800),
-        curve: Curves.easeOutCubic,
-      );
+    }
+  }
+
+  void _scrollToTop() {
+    HapticFeedback.lightImpact();
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  PostVisibility? get _filterVisibility {
+    switch (_selectedFilter) {
+      case 'supporters':
+        return PostVisibility.supporters;
+      case 'public':
+        return PostVisibility.public;
+      default:
+        return null; // Show all posts
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) => [
-          _buildSliverAppBar(),
+      appBar: _buildAppBar(),
+      body: Stack(
+        children: [
+          _buildFeedContent(),
+          if (_isBottomBarVisible) _buildGlassyBottomBar(),
+          if (_isScrolling && !_isBottomBarVisible) _buildScrollToTopButton(),
         ],
-        body: RefreshIndicator(
-          onRefresh: _refreshFeed,
-          child: CustomScrollView(
-            controller: _scrollController,
-            slivers: [
-              _buildFilterTabs(),
-              _buildPostsList(),
-              if (_isLoading) _buildLoadingIndicator(),
-              if (!_hasMorePosts && _posts.isNotEmpty) _buildEndMessage(),
-              // Add extra padding at bottom for the floating bottom bar
-              SliverToBoxAdapter(
-                child: SizedBox(height: 100 + MediaQuery.of(context).viewPadding.bottom),
-              ),
-            ],
-          ),
-        ),
       ),
-      bottomSheet: _buildGlassyBottomBar(),
     );
   }
 
-  Widget _buildSliverAppBar() {
-    return SliverAppBar(
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
       backgroundColor: AppTheme.surfaceColor(context),
-      surfaceTintColor: Colors.transparent,
-      shadowColor: Colors.transparent,
-      foregroundColor: AppTheme.textColor(context),
       elevation: 0,
-      pinned: true,
-      floating: true,
-      snap: true,
-      title: GestureDetector(
-        onTap: _scrollToTop,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            color: Colors.transparent,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+        onPressed: () => Navigator.pop(context),
+      ),
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Social Feed',
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'SolarVita',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor(context),
-                ),
-              ),
-              const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'SOCIAL',
+          Consumer(
+            builder: (context, ref, child) {
+              final postsAsync = ref.watch(socialPostsFeedProvider(
+                visibility: _filterVisibility,
+                pillars: _selectedPillars,
+                limit: 50,
+              ));
+              
+              return postsAsync.when(
+                data: (posts) => Text(
+                  '${posts.length} posts',
                   style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppTheme.textColor(context).withAlpha(153),
+                    fontSize: 12,
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                Icons.keyboard_arrow_up,
-                size: 16,
-                color: AppTheme.textColor(context).withAlpha(128),
-              ),
-            ],
+                loading: () => Text(
+                  'Loading...',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withAlpha(153),
+                    fontSize: 12,
+                  ),
+                ),
+                error: (_, __) => Text(
+                  'Error loading',
+                  style: TextStyle(
+                    color: Colors.red.withAlpha(153),
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            },
           ),
-        ),
+        ],
       ),
       actions: [
+        _buildFilterButton(),
         IconButton(
+          icon: Icon(Icons.refresh, color: AppTheme.textColor(context)),
           onPressed: () {
-            // TODO: Navigate to favorite/saved posts screen
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Saved posts feature coming soon!'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            HapticFeedback.lightImpact();
+            ref.invalidate(socialPostsFeedProvider);
           },
-          icon: Icon(
-            Icons.bookmark_border,
-            color: AppTheme.textColor(context),
-            size: 28,
-          ),
-          tooltip: 'Saved Posts',
         ),
       ],
     );
   }
 
-  Widget _buildFilterTabs() {
-    return SliverToBoxAdapter(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildFilterChip('all', 'All Posts', Icons.feed),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('supporters', 'Supporters', Icons.people),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('public', 'Discover', Icons.explore),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: _showFilterOptions,
-              icon: Icon(
-                Icons.tune,
-                color: AppTheme.textColor(context).withAlpha(153),
-                size: 20,
-              ),
-            ),
-          ],
-        ),
+  Widget _buildFilterButton() {
+    return PopupMenuButton<String>(
+      icon: Icon(
+        Icons.filter_list,
+        color: _selectedFilter != 'all' 
+            ? Colors.white 
+            : AppTheme.textColor(context),
       ),
-    );
-  }
-
-  Widget _buildFilterChip(String filter, String label, IconData icon) {
-    final isSelected = _selectedFilter == filter;
-    return GestureDetector(
-      onTap: () => _changeFilter(filter),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? Theme.of(context).primaryColor
-              : AppTheme.cardColor(context),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? Theme.of(context).primaryColor
-                : AppTheme.textColor(context).withAlpha(51),
+      onSelected: (value) {
+        setState(() => _selectedFilter = value);
+        HapticFeedback.selectionClick();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'all',
+          child: Row(
+            children: [
+              Icon(
+                Icons.public,
+                size: 20,
+                color: _selectedFilter == 'all' 
+                    ? Theme.of(context).primaryColor 
+                    : AppTheme.textColor(context),
+              ),
+              const SizedBox(width: 8),
+              Text('All Posts'),
+            ],
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected
-                  ? Colors.white
-                  : AppTheme.textColor(context).withAlpha(153),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? Colors.white
+        PopupMenuItem(
+          value: 'supporters',
+          child: Row(
+            children: [
+              Icon(
+                Icons.people,
+                size: 20,
+                color: _selectedFilter == 'supporters' 
+                    ? Theme.of(context).primaryColor 
                     : AppTheme.textColor(context),
-                fontWeight: FontWeight.w600,
-                fontSize: 14,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text('Supporters Only'),
+            ],
+          ),
         ),
-      ),
+        PopupMenuItem(
+          value: 'public',
+          child: Row(
+            children: [
+              Icon(
+                Icons.public,
+                size: 20,
+                color: _selectedFilter == 'public' 
+                    ? Theme.of(context).primaryColor 
+                    : AppTheme.textColor(context),
+              ),
+              const SizedBox(width: 8),
+              Text('Public Only'),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
+  Widget _buildFeedContent() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final postsAsync = ref.watch(socialPostsFeedProvider(
+          visibility: _filterVisibility,
+          pillars: _selectedPillars,
+          limit: 50,
+        ));
 
-  Widget _buildPostsList() {
-    if (_posts.isEmpty && !_isLoading) {
+        return postsAsync.when(
+          data: (posts) => _buildPostsList(posts),
+          loading: () => const Center(child: LottieLoadingWidget()),
+          error: (error, stackTrace) => _buildErrorState(error.toString()),
+        );
+      },
+    );
+  }
+
+  Widget _buildPostsList(List<SocialPost> posts) {
+    if (posts.isEmpty) {
       return _buildEmptyState();
     }
 
-    return SliverList(
-      delegate: SliverChildBuilderDelegate(
-        (context, index) {
-          if (index >= _posts.length) return null;
-          
-          final post = _posts[index];
-          return SocialPostCard(
-            post: post,
-            onReaction: _handleReaction,
-            onComment: _handleComment,
-            onShare: _handleShare,
-            onMoreOptions: _handleMoreOptions,
+    return RefreshIndicator(
+      onRefresh: () async {
+        HapticFeedback.lightImpact();
+        ref.invalidate(socialPostsFeedProvider);
+      },
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.only(
+          top: 8,
+          bottom: _isBottomBarVisible ? 120 : 8, // Space for bottom bar
+          left: 8,
+          right: 8,
+        ),
+        itemCount: posts.length,
+        itemBuilder: (context, index) {
+          final post = posts[index];
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: SocialPostCard(
+              post: post,
+              onReaction: (postId, reaction) => _handleReaction(postId, reaction),
+            ),
           );
         },
-        childCount: _posts.length,
       ),
     );
   }
 
   Widget _buildEmptyState() {
-    String title;
-    String subtitle;
-    IconData icon;
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withAlpha(26),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.feed,
+              size: 48,
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _getEmptyStateTitle(),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _getEmptyStateSubtitle(),
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textColor(context).withAlpha(153),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              HapticFeedback.mediumImpact();
+              Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (context, animation, secondaryAnimation) => const CreatePostScreen(),
+                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    const begin = Offset(0.0, 1.0);
+                    const end = Offset.zero;
+                    const curve = Curves.easeOutCubic;
 
-    switch (_selectedFilter) {
-      case 'supporters':
-        title = 'No supporter posts yet';
-        subtitle = 'Connect with supporters to see their wellness journey';
-        icon = Icons.people_outline;
-        break;
-      case 'public':
-        title = 'Discover the community';
-        subtitle = 'Explore public posts from the SolarVita community';
-        icon = Icons.explore_outlined;
-        break;
-      default:
-        title = 'Welcome to SolarVita Social!';
-        subtitle = 'Share your wellness journey and connect with supporters';
-        icon = Icons.celebration_outlined;
-    }
+                    var tween = Tween(begin: begin, end: end).chain(
+                      CurveTween(curve: curve),
+                    );
 
-    return SliverFillRemaining(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withAlpha(26),
-                  shape: BoxShape.circle,
+                    return SlideTransition(
+                      position: animation.drive(tween),
+                      child: child,
+                    );
+                  },
+                  transitionDuration: const Duration(milliseconds: 400),
+                  reverseTransitionDuration: const Duration(milliseconds: 300),
                 ),
-                child: Icon(
-                  icon,
-                  size: 48,
-                  color: Theme.of(context).primaryColor,
+              );
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Create First Post'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 64,
+            color: Colors.red.withAlpha(128),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Something went wrong',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor(context),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textColor(context).withAlpha(153),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () {
+              ref.invalidate(socialPostsFeedProvider);
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Try Again'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassyBottomBar() {
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: AnimatedSlide(
+        offset: _isBottomBarVisible ? Offset.zero : const Offset(0, 1),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor(context).withAlpha(200),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                border: Border.all(
+                  color: AppTheme.textColor(context).withAlpha(26),
+                  width: 1,
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor(context),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textColor(context).withAlpha(153),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreatePostScreen(),
-                    ),
-                  ).then((result) {
-                    if (result == true) {
-                      _refreshFeed();
-                    }
-                  });
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Create Your First Post'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildCreatePostButton(),
+                      ),
+                      const SizedBox(width: 12),
+                      _buildTemplatesButton(),
+                    ],
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return const SliverToBoxAdapter(
-      child: Padding(
-        padding: EdgeInsets.all(32),
-        child: Center(
-          child: LottieLoadingWidget(width: 60, height: 60),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEndMessage() {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 32,
-              color: AppTheme.textColor(context).withAlpha(128),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'You\'re all caught up!',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textColor(context).withAlpha(153),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Check back later for new posts',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppTheme.textColor(context).withAlpha(128),
-              ),
-            ),
+  Widget _buildCreatePostButton() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor,
+            Theme.of(context).primaryColor.withAlpha(200),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).primaryColor.withAlpha(77),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-    );
-  }
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const CreatePostScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.elasticOut;
 
-  // Event handlers
-  Future<void> _loadInitialPosts() async {
-    if (_isLoading) return;
+                  var tween = Tween(begin: begin, end: end).chain(
+                    CurveTween(curve: curve),
+                  );
 
-    setState(() {
-      _isLoading = true;
-      _currentPage = 0;
-    });
-
-    try {
-      final newPosts = await _fetchPosts(_currentPage);
-      setState(() {
-        _posts.clear();
-        _posts.addAll(newPosts);
-        _hasMorePosts = newPosts.length == _postsPerPage;
-        _currentPage++;
-      });
-    } catch (e) {
-      _showErrorSnackBar('Failed to load posts: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadMorePosts() async {
-    if (_isLoading) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final newPosts = await _fetchPosts(_currentPage);
-      setState(() {
-        _posts.addAll(newPosts);
-        _hasMorePosts = newPosts.length == _postsPerPage;
-        _currentPage++;
-      });
-    } catch (e) {
-      _showErrorSnackBar('Failed to load more posts: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _refreshFeed() async {
-    await _loadInitialPosts();
-  }
-
-  void _changeFilter(String filter) {
-    if (_selectedFilter != filter) {
-      setState(() {
-        _selectedFilter = filter;
-      });
-      _loadInitialPosts();
-    }
-  }
-
-
-  void _showFilterOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.cardColor(context),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Filter Options',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textColor(context),
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 800),
+                reverseTransitionDuration: const Duration(milliseconds: 500),
               ),
-            ),
-            const SizedBox(height: 16),
-            _buildFilterOption('All Content', 'all'),
-            _buildFilterOption('Fitness Posts', 'fitness'),
-            _buildFilterOption('Nutrition Posts', 'nutrition'),
-            _buildFilterOption('Eco Posts', 'eco'),
-            _buildFilterOption('Recent Posts', 'recent'),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
+            );
+          },
+          child: const Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add, color: Colors.white, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Create Post',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                 ),
-                child: const Text('Done'),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFilterOption(String label, String value) {
-    return ListTile(
-      title: Text(
-        label,
-        style: TextStyle(color: AppTheme.textColor(context)),
+  Widget _buildTemplatesButton() {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: Theme.of(context).primaryColor,
+          width: 2,
+        ),
       ),
-      trailing: _selectedFilter == value
-          ? Icon(Icons.check, color: Theme.of(context).primaryColor)
-          : null,
-      onTap: () {
-        _changeFilter(value);
-        Navigator.pop(context);
-      },
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(24),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) => const PostTemplatesScreen(),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.elasticOut;
+
+                  var tween = Tween(begin: begin, end: end).chain(
+                    CurveTween(curve: curve),
+                  );
+
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 800),
+                reverseTransitionDuration: const Duration(milliseconds: 500),
+              ),
+            );
+          },
+          child: Icon(
+            Icons.auto_awesome,
+            color: Theme.of(context).primaryColor,
+            size: 24,
+          ),
+        ),
+      ),
     );
   }
 
-  // Mock data fetching - replace with actual Firebase calls
-  Future<List<SocialPost>> _fetchPosts(int page) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 800));
-
-    // Generate mock posts based on filter
-    return _generateMockPosts(page);
+  Widget _buildScrollToTopButton() {
+    return Positioned(
+      right: 20,
+      bottom: 20,
+      child: AnimatedOpacity(
+        opacity: _isScrolling ? 1.0 : 0.0,
+        duration: const Duration(milliseconds: 300),
+        child: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).primaryColor.withAlpha(77),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(24),
+              onTap: _scrollToTop,
+              child: const Icon(
+                Icons.keyboard_arrow_up,
+                color: Colors.white,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  List<SocialPost> _generateMockPosts(int page) {
-    final mockPosts = <SocialPost>[];
-    final startIndex = page * _postsPerPage;
-
-    for (int i = 0; i < _postsPerPage; i++) {
-      final postIndex = startIndex + i;
-      if (postIndex >= 50) break; // Limit total posts for demo
-
-      mockPosts.add(SocialPost(
-        id: 'post_$postIndex',
-        userId: 'user_${postIndex % 5}',
-        userName: _getMockUserName(postIndex % 5),
-        userAvatarUrl: null,
-        content: _getMockPostContent(postIndex),
-        type: PostType.values[postIndex % PostType.values.length],
-        pillars: _getMockPillars(postIndex),
-        mediaUrls: postIndex % 3 == 0 ? ['https://picsum.photos/400/400?random=$postIndex'] : [],
-        videoUrls: [],
-        visibility: PostVisibility.values[postIndex % PostVisibility.values.length],
-        autoGenerated: postIndex % 5 == 0,
-        reactions: {},
-        commentCount: postIndex % 4,
-        tags: [],
-        timestamp: DateTime.now().subtract(Duration(hours: postIndex)),
-      ));
+  String _getEmptyStateTitle() {
+    switch (_selectedFilter) {
+      case 'supporters':
+        return 'No supporter posts yet';
+      case 'public':
+        return 'No public posts yet';
+      default:
+        return 'Welcome to SolarVita Social!';
     }
-
-    return mockPosts;
   }
 
-  String _getMockUserName(int index) {
-    final names = ['Alex Chen', 'Maria Garcia', 'David Kim', 'Sarah Johnson', 'Ryan Patel'];
-    return names[index % names.length];
+  String _getEmptyStateSubtitle() {
+    switch (_selectedFilter) {
+      case 'supporters':
+        return 'Connect with supporters to see their posts here';
+      case 'public':
+        return 'Be the first to share a public post';
+      default:
+        return 'Share your wellness journey with the community';
+    }
   }
 
-  String _getMockPostContent(int index) {
-    final contents = [
-      'Just completed my morning workout! 💪 Feeling energized and ready to tackle the day.',
-      'Made this delicious plant-based smoothie bowl. Perfect fuel for the afternoon!',
-      'Walked to work instead of driving today. Small steps toward a greener lifestyle! 🌱',
-      'Grateful for this beautiful sunrise during my meditation session. Starting the day with mindfulness.',
-      'Hit my step goal for the 7th day in a row! Consistency is key to building healthy habits.',
-      'Tried a new yoga class today. My flexibility is slowly improving! 🧘‍♀️',
-      'Meal prep Sunday complete! Ready for a week of nutritious meals.',
-      'Swapped single-use plastics for reusable alternatives. Every small change matters!',
-    ];
-    return contents[index % contents.length];
+  // EVENT HANDLERS
+
+  void _handleReaction(String postId, ReactionType reaction) async {
+    try {
+      await ref.read(socialPostActionsProvider.notifier).reactToPost(postId, reaction);
+      HapticFeedback.lightImpact();
+    } catch (e) {
+      _showErrorSnackBar('Failed to add reaction: $e');
+    }
   }
 
-  List<PostPillar> _getMockPillars(int index) {
-    final pillarSets = [
-      [PostPillar.fitness],
-      [PostPillar.nutrition],
-      [PostPillar.eco],
-      [PostPillar.fitness, PostPillar.nutrition],
-      [PostPillar.eco, PostPillar.fitness],
-    ];
-    return pillarSets[index % pillarSets.length];
-  }
 
-  // Action handlers
-  void _handleReaction(String postId, ReactionType reaction) {
-    // TODO: Implement reaction handling with Firebase
-    print('Reaction: $reaction on post $postId');
-  }
 
-  void _handleComment(String postId) {
-    // TODO: Navigate to comments screen
-    print('Comment on post $postId');
-  }
 
-  void _handleShare(String postId) {
-    // TODO: Implement sharing functionality
-    print('Share post $postId');
-  }
 
-  void _handleMoreOptions(String postId) {
-    // TODO: Show more options (edit, delete, report, etc.)
-    print('More options for post $postId');
-  }
+
+
+
+
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
 
-  Widget _buildGlassyBottomBar() {
-    return AnimatedSlide(
-      offset: _isBottomBarVisible ? Offset.zero : const Offset(0, 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-          child: Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 20,
-              bottom: MediaQuery.of(context).viewPadding.bottom + 20,
-            ),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.black.withAlpha(128)
-                : Colors.white.withAlpha(128),
-              border: Border(
-                top: BorderSide(
-                  color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withAlpha(77)
-                    : Colors.black.withAlpha(51),
-                  width: 0.5,
-                ),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(51),
-                  blurRadius: 30,
-                  offset: const Offset(0, -10),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                // Create Post Button
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CreatePostScreen(),
-                        ),
-                      ).then((result) {
-                        if (result == true) {
-                          _refreshFeed();
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.textColor(context).withAlpha(26),
-                      foregroundColor: AppTheme.textColor(context),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: AppTheme.textColor(context).withAlpha(77),
-                          width: 0.5,
-                        ),
-                      ),
-                    ),
-                    icon: Icon(
-                      Icons.add_box_outlined,
-                      size: 18,
-                      color: AppTheme.textColor(context),
-                    ),
-                    label: Text(
-                      'Create Post',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textColor(context),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Templates Button
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const PostTemplatesScreen(),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Theme.of(context).primaryColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(
-                      Icons.auto_awesome,
-                      size: 18,
-                    ),
-                    label: const Text(
-                      'Templates',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }

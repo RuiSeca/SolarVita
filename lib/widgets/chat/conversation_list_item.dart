@@ -24,10 +24,8 @@ class ConversationListItem extends StatelessWidget {
     final hasUnread = unreadCount > 0;
     
     // Get other participant info
-    final otherParticipantId = conversation.participantIds
-        .firstWhere((id) => id != currentUserId, orElse: () => '');
-    final otherParticipantName = conversation.participantNames[otherParticipantId] ?? 'Unknown';
-    final otherParticipantPhoto = conversation.participantPhotos[otherParticipantId];
+    final otherParticipantName = conversation.getOtherParticipantName(currentUserId);
+    final otherParticipantPhoto = conversation.getOtherParticipantPhoto(currentUserId);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

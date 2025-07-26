@@ -34,12 +34,12 @@ class TribeMember {
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
       userPhotoURL: data['userPhotoURL'],
-      role: TribeMemberRole.values[data['role'] ?? 0],
-      joinedAt: (data['joinedAt'] as Timestamp).toDate(),
+      role: TribeMemberRole.values[(data['role'] is int ? data['role'] : int.tryParse(data['role']?.toString() ?? '0')) ?? 0],
+      joinedAt: (data['joinedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isActive: data['isActive'] ?? true,
       stats: Map<String, dynamic>.from(data['stats'] ?? {}),
       lastActivityAt: data['lastActivityAt'] != null 
-          ? (data['lastActivityAt'] as Timestamp).toDate()
+          ? (data['lastActivityAt'] as Timestamp?)?.toDate()
           : null,
     );
   }

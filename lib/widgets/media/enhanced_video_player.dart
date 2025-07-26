@@ -45,6 +45,7 @@ class _EnhancedVideoPlayerState extends State<EnhancedVideoPlayer> {
 
   @override
   void dispose() {
+    _controller?.removeListener(_videoListener);
     _controller?.dispose();
     super.dispose();
   }
@@ -71,7 +72,7 @@ class _EnhancedVideoPlayerState extends State<EnhancedVideoPlayer> {
         _playPause();
       }
     } catch (e) {
-      print('Error initializing video: $e');
+      debugPrint('Error initializing video: $e');
     }
   }
 

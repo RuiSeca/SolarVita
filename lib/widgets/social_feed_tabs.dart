@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/social_service.dart';
 import '../services/tribe_service.dart';
@@ -46,6 +47,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -1018,10 +1020,27 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
             const SizedBox(height: 16),
             ElevatedButton.icon(
               onPressed: () {
+                HapticFeedback.mediumImpact();
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const CreatePostScreen(),
+                  PageRouteBuilder(
+                    pageBuilder: (context, animation, secondaryAnimation) => const CreatePostScreen(),
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.easeOutCubic;
+
+                      var tween = Tween(begin: begin, end: end).chain(
+                        CurveTween(curve: curve),
+                      );
+
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
+                    transitionDuration: const Duration(milliseconds: 400),
+                    reverseTransitionDuration: const Duration(milliseconds: 300),
                   ),
                 );
               },
@@ -1045,16 +1064,16 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
         return SocialPostCard(
           post: post,
           onReaction: (postId, reaction) {
-            print('Reaction: $reaction on post $postId');
+            debugPrint('Reaction: $reaction on post $postId');
           },
           onComment: (postId) {
-            print('Comment on post $postId');
+            debugPrint('Comment on post $postId');
           },
           onShare: (postId) {
-            print('Share post $postId');
+            debugPrint('Share post $postId');
           },
           onMoreOptions: (postId) {
-            print('More options for post $postId');
+            debugPrint('More options for post $postId');
           },
         );
       },

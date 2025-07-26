@@ -222,9 +222,21 @@ class SocialService {
           final supporterDoc = await _firestore.collection('users').doc(supporterId).get();
           if (supporterDoc.exists) {
             final userData = supporterDoc.data() as Map<String, dynamic>;
+            
+            // Try to get displayName, fall back to email username, then username, then fallback
+            String? displayNameNullable = userData['displayName'] as String?;
+            String displayName;
+            if (displayNameNullable == null || displayNameNullable.trim().isEmpty) {
+              displayName = userData['email']?.toString().split('@').first ?? 
+                           userData['username'] as String? ?? 
+                           'User ${supporterId.substring(0, 8)}';
+            } else {
+              displayName = displayNameNullable;
+            }
+            
             final supporter = Supporter(
               userId: supporterId,
-              displayName: userData['displayName'] ?? 'Unknown User',
+              displayName: displayName,
               username: userData['username'],
               photoURL: userData['photoURL'],
             );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../providers/riverpod/chat_provider.dart';
+import '../../providers/riverpod/firebase_chat_provider.dart';
+import '../../providers/riverpod/offline_cache_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/chat/message_bubble.dart';
 import '../../theme/app_theme.dart';
@@ -32,11 +33,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    // Mark conversation as read and refresh participant data when entering
+    // Mark conversation as read when entering
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final chatActions = ref.read(chatActionsProvider);
-      chatActions.markAsRead(widget.conversationId);
-      chatActions.refreshParticipantData(widget.conversationId);
+      ref.read(conversationReadTrackerProvider.notifier)
+          .markConversationAsViewed(widget.conversationId);
       
       // Set current conversation for notification service
       ChatNotificationService().setCurrentChatConversation(widget.conversationId);
@@ -56,12 +56,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_scrollController.hasClients) {
       if (animate) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0.0, // With reverse: true, 0.0 is the bottom (newest messages)
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       } else {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+        _scrollController.jumpTo(0.0); // With reverse: true, 0.0 is the bottom
       }
     }
   }
@@ -71,8 +71,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final theme = Theme.of(context);
     final currentUser = ref.watch(currentUserProvider);
     final messagesAsync = ref.watch(conversationMessagesProvider(widget.conversationId));
-    final chatUIState = ref.watch(chatUIStateProvider);
-    final chatActions = ref.read(chatActionsProvider);
+    final isOnline = ref.watch(connectivityStatusProvider);
+    final pendingSyncCount = ref.watch(pendingSyncItemsCountProvider);
+    final chatActions = ref.read(chatActionsProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -104,17 +105,37 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                widget.otherUserName,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: AppTheme.textColor(context),
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.otherUserName,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: AppTheme.textColor(context),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (!isOnline)
+                    Text(
+                      'Offline',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.orange,
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
         ),
         actions: [
+          // Connection status indicator
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            child: CircleAvatar(
+              radius: 6,
+              backgroundColor: isOnline ? Colors.green : Colors.orange,
+            ),
+          ),
           IconButton(
             icon: Icon(
               Icons.info_outline,
@@ -138,6 +159,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
       body: Column(
         children: [
+          // Offline indicator
+          if (!isOnline) 
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              color: Colors.orange.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  Icon(Icons.cloud_off, size: 16, color: Colors.orange[700]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'You\'re offline',
+                    style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                  ),
+                  const Spacer(),
+                  pendingSyncCount.when(
+                    data: (count) => count > 0 
+                        ? Text(
+                            '$count pending',
+                            style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                          )
+                        : const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+
           // Messages List
           Expanded(
             child: messagesAsync.when(
@@ -155,9 +205,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   itemCount: messages.length,
+                  reverse: true, // Show oldest messages first (reverse the descending order)
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isCurrentUser = message.senderId == currentUser?.uid;
+                    
+                    // Show avatar for the first message from each sender (accounting for reverse order)
                     final showAvatar = index == messages.length - 1 ||
                         messages[index + 1].senderId != message.senderId;
 
@@ -206,24 +259,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
 
-          // Error Display
-          if (chatUIState.error != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              color: Colors.red.withValues(alpha: 0.1),
-              child: Text(
-                chatUIState.error!,
-                style: TextStyle(
-                  color: Colors.red[700],
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-
           // Message Input
-          _buildMessageInput(chatActions, chatUIState.isLoading),
+          _buildMessageInput(chatActions),
         ],
       ),
     );
@@ -258,8 +295,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  Widget _buildMessageInput(ChatActions chatActions, bool isLoading) {
+  Widget _buildMessageInput(ChatActions chatActions) {
     final theme = Theme.of(context);
+    final chatState = ref.watch(chatActionsProvider);
     
     return Container(
       padding: const EdgeInsets.all(16),
@@ -329,20 +367,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                icon: isLoading
-                    ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.send,
-                        color: Colors.white,
-                      ),
-                onPressed: isLoading ? null : () => _sendMessage(chatActions),
+                icon: chatState.maybeWhen(
+                  loading: () => const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  orElse: () => const Icon(
+                    Icons.send,
+                    color: Colors.white,
+                  ),
+                ),
+                onPressed: chatState.maybeWhen(
+                  loading: () => null,
+                  orElse: () => () => _sendMessage(chatActions),
+                ),
               ),
             ),
           ],
@@ -357,9 +399,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     _messageController.clear();
     
-    final success = await chatActions.sendMessage(widget.conversationId, widget.otherUserId, content);
-    if (success) {
+    try {
+      await chatActions.sendTextMessage(
+        conversationId: widget.conversationId,
+        content: content,
+      );
       _scrollToBottom();
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to send message: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

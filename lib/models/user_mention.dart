@@ -35,7 +35,7 @@ class UserMention {
       displayName: data['displayName'] ?? '',
       postId: data['postId'] ?? '',
       commentId: data['commentId'],
-      timestamp: (data['timestamp'] as Timestamp).toDate(),
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isRead: data['isRead'] ?? false,
     );
   }
@@ -151,6 +151,26 @@ class MentionInfo {
       userId: json['userId'],
       userName: json['userName'],
       displayName: json['displayName'],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'startIndex': startIndex,
+      'endIndex': endIndex,
+      'userId': userId,
+      'userName': userName,
+      'displayName': displayName,
+    };
+  }
+
+  factory MentionInfo.fromMap(Map<String, dynamic> map) {
+    return MentionInfo(
+      startIndex: map['startIndex'] ?? 0,
+      endIndex: map['endIndex'] ?? 0,
+      userId: map['userId'] ?? '',
+      userName: map['userName'] ?? '',
+      displayName: map['displayName'] ?? '',
     );
   }
 }

@@ -6,7 +6,7 @@ part of 'meal_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$mealServiceHash() => r'5f2e147a093be1a1b412b8e10ff2fae960b6ea';
+String _$mealServiceHash() => r'66271a71a4e2b63556566544c4e73f781981ebdf';
 
 /// See also [mealService].
 @ProviderFor(mealService)
@@ -23,15 +23,16 @@ final mealServiceProvider = AutoDisposeProvider<MealDBService>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MealServiceRef = AutoDisposeProviderRef<MealDBService>;
-String _$mealsHash() => r'37563ee93961283c136afef2fb7384e6c8807459';
+String _$mealsHash() => r'968a713490b7043130c752e7a30167f2b1cf0597';
 
 /// See also [meals].
 @ProviderFor(meals)
 final mealsProvider = AutoDisposeProvider<List<Map<String, dynamic>>>.internal(
   meals,
   name: r'mealsProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$mealsHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$mealsHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -39,8 +40,7 @@ final mealsProvider = AutoDisposeProvider<List<Map<String, dynamic>>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MealsRef = AutoDisposeProviderRef<List<Map<String, dynamic>>>;
-String _$isMealsLoadingHash() =>
-    r'c70ac32d0cb6280e622cebc59b06330b27b11cc5';
+String _$isMealsLoadingHash() => r'acfb2fb34d3ae4d9838ae311f53a61107261ef17';
 
 /// See also [isMealsLoading].
 @ProviderFor(isMealsLoading)
@@ -57,7 +57,7 @@ final isMealsLoadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsMealsLoadingRef = AutoDisposeProviderRef<bool>;
-String _$hasMealsErrorHash() => r'd11d5ec4a09c1d888a7d140ec71212ba11f17f6f';
+String _$hasMealsErrorHash() => r'0618f244bc9fbeb44bf31ac1955ced59acde45a9';
 
 /// See also [hasMealsError].
 @ProviderFor(hasMealsError)
@@ -74,8 +74,7 @@ final hasMealsErrorProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HasMealsErrorRef = AutoDisposeProviderRef<bool>;
-String _$mealsErrorMessageHash() =>
-    r'5cf90bff25e235d38ef0c82550361a544b635b24';
+String _$mealsErrorMessageHash() => r'44b75fe942b16dfeeb9f1cc67c3d2151d5af06f2';
 
 /// See also [mealsErrorMessage].
 @ProviderFor(mealsErrorMessage)
@@ -92,8 +91,7 @@ final mealsErrorMessageProvider = AutoDisposeProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef MealsErrorMessageRef = AutoDisposeProviderRef<String?>;
-String _$mealsErrorDetailsHash() =>
-    r'436ada5af07bf26a1221ea90d62f49c7eb6abd4b';
+String _$mealsErrorDetailsHash() => r'5569f97c9d714cfb6d275af1cf0c59151cbcffb6';
 
 /// See also [mealsErrorDetails].
 @ProviderFor(mealsErrorDetails)
@@ -111,7 +109,7 @@ final mealsErrorDetailsProvider = AutoDisposeProvider<String?>.internal(
 // ignore: unused_element
 typedef MealsErrorDetailsRef = AutoDisposeProviderRef<String?>;
 String _$currentMealCategoryHash() =>
-    r'2ef0740683d71be22b3aee1e4a1bf2863b7713f2';
+    r'f5aa1e55cc5ecdfbf732d01a851105b2a130beeb';
 
 /// See also [currentMealCategory].
 @ProviderFor(currentMealCategory)
@@ -128,8 +126,7 @@ final currentMealCategoryProvider = AutoDisposeProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentMealCategoryRef = AutoDisposeProviderRef<String?>;
-String _$currentMealQueryHash() =>
-    r'3ef0740683d71be22b3aee1e4a1bf2863b7713f3';
+String _$currentMealQueryHash() => r'af99ca05f8fae8e3cfeea6b63abef745fbe79bbb';
 
 /// See also [currentMealQuery].
 @ProviderFor(currentMealQuery)
@@ -146,7 +143,7 @@ final currentMealQueryProvider = AutoDisposeProvider<String?>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentMealQueryRef = AutoDisposeProviderRef<String?>;
-String _$hasMealsDataHash() => r'8793f8dd2342fb665fad16436f36ec2fb2624b99';
+String _$hasMealsDataHash() => r'dfd417440337fd58ceb795a2743722c9ef18a3fc';
 
 /// See also [hasMealsData].
 @ProviderFor(hasMealsData)
@@ -163,12 +160,29 @@ final hasMealsDataProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HasMealsDataRef = AutoDisposeProviderRef<bool>;
-String _$mealNotifierHash() => r'def520a85b88244136bc8d81c12674fef779ad41';
+String _$isMealsLoadingDetailsHash() =>
+    r'd2ffcd61ba6466de53ec134dfe32d03aba15e121';
+
+/// See also [isMealsLoadingDetails].
+@ProviderFor(isMealsLoadingDetails)
+final isMealsLoadingDetailsProvider = AutoDisposeProvider<bool>.internal(
+  isMealsLoadingDetails,
+  name: r'isMealsLoadingDetailsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$isMealsLoadingDetailsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef IsMealsLoadingDetailsRef = AutoDisposeProviderRef<bool>;
+String _$mealNotifierHash() => r'c3d975af1be0ce33dddcbb3f4733f7f6c3ee883b';
 
 /// See also [MealNotifier].
 @ProviderFor(MealNotifier)
-final mealNotifierProvider =
-    NotifierProvider<MealNotifier, MealState>.internal(
+final mealNotifierProvider = NotifierProvider<MealNotifier, MealState>.internal(
   MealNotifier.new,
   name: r'mealNotifierProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')

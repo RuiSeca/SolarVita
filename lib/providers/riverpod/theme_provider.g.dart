@@ -13,8 +13,9 @@ String _$isDarkThemeHash() => r'fe84e8c7d40fbd7a9d8215d79988ae17f9bf7327';
 final isDarkThemeProvider = AutoDisposeProvider<bool>.internal(
   isDarkTheme,
   name: r'isDarkThemeProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$isDarkThemeHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$isDarkThemeHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -29,8 +30,9 @@ String _$isLightThemeHash() => r'f8f6026a0be72665ed38a82acf7874ee41b34faf';
 final isLightThemeProvider = AutoDisposeProvider<bool>.internal(
   isLightTheme,
   name: r'isLightThemeProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$isLightThemeHash,
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$isLightThemeHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
@@ -61,14 +63,14 @@ String _$themeNotifierHash() => r'f8751c7770eaa685e2140fd6755e3f88c07f4033';
 @ProviderFor(ThemeNotifier)
 final themeNotifierProvider =
     AutoDisposeNotifierProvider<ThemeNotifier, ThemeMode>.internal(
-  ThemeNotifier.new,
-  name: r'themeNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$themeNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+      ThemeNotifier.new,
+      name: r'themeNotifierProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$themeNotifierHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
 
 typedef _$ThemeNotifier = AutoDisposeNotifier<ThemeMode>;
 // ignore_for_file: type=lint

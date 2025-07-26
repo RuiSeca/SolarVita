@@ -80,16 +80,14 @@ class ContentReport {
       ),
       customReason: data['customReason'],
       description: data['description'],
-      reportedAt: (data['reportedAt'] as Timestamp).toDate(),
+      reportedAt: (data['reportedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       status: ModerationStatus.values.firstWhere(
         (e) => e.toString() == data['status'],
         orElse: () => ModerationStatus.pending,
       ),
       moderatorId: data['moderatorId'],
       moderatorNotes: data['moderatorNotes'],
-      reviewedAt: data['reviewedAt'] != null 
-          ? (data['reviewedAt'] as Timestamp).toDate() 
-          : null,
+      reviewedAt: (data['reviewedAt'] as Timestamp?)?.toDate(),
       action: ModerationAction.values.firstWhere(
         (e) => e.toString() == data['action'],
         orElse: () => ModerationAction.none,

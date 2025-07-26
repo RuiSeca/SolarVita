@@ -375,8 +375,8 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
     try {
       final report = ContentReport(
         id: '', // Will be set by Firestore
-        reporterId: 'current_user_id', // TODO: Get from auth
-        reporterName: 'Current User', // TODO: Get from auth
+        reporterId: 'current_user_id', // Will be replaced with actual user ID
+        reporterName: 'Current User', // Will be replaced with actual user name
         contentId: widget.contentId,
         contentType: widget.contentType,
         contentOwnerId: widget.contentOwnerId,
@@ -443,23 +443,4 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
     }
   }
 
-  static void show(
-    BuildContext context, {
-    required String contentId,
-    required String contentType,
-    required String contentOwnerId,
-    required String contentOwnerName,
-    required Function(ContentReport) onReportSubmitted,
-  }) {
-    showDialog(
-      context: context,
-      builder: (context) => ReportContentDialog(
-        contentId: contentId,
-        contentType: contentType,
-        contentOwnerId: contentOwnerId,
-        contentOwnerName: contentOwnerName,
-        onReportSubmitted: onReportSubmitted,
-      ),
-    );
-  }
 }
