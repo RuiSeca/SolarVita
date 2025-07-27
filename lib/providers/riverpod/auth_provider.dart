@@ -103,11 +103,11 @@ class AuthNotifier extends _$AuthNotifier {
     });
   }
 
-  // Sign in with Facebook
-  Future<bool> signInWithFacebook() async {
+  // Sign in with Apple
+  Future<bool> signInWithApple() async {
     return _executeAuthOperation(() async {
       final authService = ref.read(authServiceProvider);
-      final result = await authService.signInWithFacebook();
+      final result = await authService.signInWithApple();
       return result != null;
     });
   }

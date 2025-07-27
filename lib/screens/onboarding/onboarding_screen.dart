@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/oriented_image.dart';
+import '../../providers/riverpod/auth_provider.dart';
 import 'personal_info_preferences_screen.dart';
 
 final _logger = Logger('OnboardingScreen');
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final bool _isLoading = false;
@@ -21,17 +23,20 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<OnboardingPage> _pages = [
     OnboardingPage(
       title: 'Welcome to SolarVita',
-      description: 'Your personal companion for fitness, health, and sustainable living.',
-      image: 'assets/images/welcome_illustration.png',
+      description:
+          'Your personal companion for fitness, health, and sustainable living.',
+      image: 'assets/images/welcome_illustration.webp',
     ),
     OnboardingPage(
       title: 'Track Your Fitness Journey',
-      description: 'Monitor your workouts, set goals, and achieve your fitness objectives.',
+      description:
+          'Monitor your workouts, set goals, and achieve your fitness objectives.',
       image: 'assets/images/fitness1.webp',
     ),
     OnboardingPage(
       title: 'Live Sustainably',
-      description: 'Reduce your carbon footprint and make eco-friendly choices.',
+      description:
+          'Reduce your carbon footprint and make eco-friendly choices.',
       image: 'assets/images/fitness2.webp',
     ),
     OnboardingPage(
@@ -63,7 +68,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _startPreferencesSetup() {
-    _logger.info('🚀 Starting preferences setup - navigating to PersonalInfoPreferencesScreen');
+    _logger.info(
+      '🚀 Starting preferences setup - navigating to PersonalInfoPreferencesScreen',
+    );
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
         builder: (context) => const PersonalInfoPreferencesScreen(),
@@ -71,31 +78,92 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  Future<void> _handleLogout() async {
+    try {
+      final authNotifier = ref.read(authNotifierProvider.notifier);
+      await authNotifier.signOut();
+      // Navigation will be handled automatically by the main app routing
+    } catch (e) {
+      _logger.severe('Logout failed: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to sign out. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Sign Out'),
+          content: const Text(
+            'Are you sure you want to sign out? You can complete onboarding later.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _handleLogout();
+              },
+              child: const Text('Sign Out'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    _logger.info('🎯 OnboardingScreen build() called - current page: $_currentPage');
+    _logger.info(
+      '🎯 OnboardingScreen build() called - current page: $_currentPage',
+    );
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentPage = index;
-                  });
-                },
-                itemCount: _pages.length,
-                itemBuilder: (context, index) {
-                  return _buildPage(_pages[index]);
-                },
-              ),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+        actions: [
+          TextButton.icon(
+            onPressed: _showLogoutConfirmation,
+            icon: const Icon(Icons.logout, size: 18),
+            label: const Text('Sign Out'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).textTheme.bodyMedium?.color,
             ),
-            _buildBottomSection(),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentPage = index;
+                });
+              },
+              itemCount: _pages.length,
+              itemBuilder: (context, index) {
+                return _buildPage(_pages[index]);
+              },
+            ),
+          ),
+          _buildBottomSection(),
+        ],
       ),
     );
   }
@@ -108,17 +176,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           Expanded(
             flex: 3,
-            child: OrientedImage(
-              imageUrl: page.image,
-              fit: BoxFit.contain,
-            ),
+            child: OrientedImage(imageUrl: page.image, fit: BoxFit.contain),
           ),
           const SizedBox(height: 32),
           Text(
             page.title,
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
@@ -183,7 +248,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         child: LottieLoadingWidget(width: 20, height: 20),
                       )
                     : Text(
-                        _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
+                        _currentPage == _pages.length - 1
+                            ? 'Get Started'
+                            : 'Next',
                       ),
               ),
             ],

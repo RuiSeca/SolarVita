@@ -35,6 +35,7 @@ class NotificationService {
   // Getter for initialization status
   bool get isInitialized => _isInitialized;
 
+
   // Initialize the notification service
   Future<void> initialize() async {
     if (_isInitialized) {
@@ -132,6 +133,9 @@ class NotificationService {
       if (initialized == true) {
         // Register Android notification channels
         await _createNotificationChannels();
+        
+        // Request notification permissions (important for Android 13+)
+        await _requestNotificationPermissions();
       } else {
         throw Exception('Local notifications initialization returned false');
       }

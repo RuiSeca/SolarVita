@@ -4,6 +4,7 @@ import '../../widgets/common/lottie_loading_widget.dart';
 import '../../models/user_profile.dart';
 import '../../services/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
+import '../../main.dart';
 
 class DiaryPreferencesScreen extends ConsumerStatefulWidget {
   const DiaryPreferencesScreen({super.key});
@@ -368,14 +369,19 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       await _userProfileService.updateUserProfile(updatedProfile);
 
       if (mounted) {
-        // Update the provider so the main app can handle navigation
+        // Update the provider first
         final userProfileProvider = ref.read(userProfileNotifierProvider.notifier);
         await userProfileProvider.refreshUserProfile();
         
         // Check mounted again after async operation
         if (mounted) {
-          // Navigate to main app route instead of directly to dashboard
-          Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+          // Navigate to main app, clearing all previous routes
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => const MainNavigationScreen(),
+            ),
+            (route) => false,
+          );
         }
       }
     } catch (e) {

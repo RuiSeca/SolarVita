@@ -1,9 +1,14 @@
 // lib/services/auth_service.dart
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:crypto/crypto.dart';
+import 'package:logging/logging.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -11,11 +16,19 @@ class AuthService {
   AuthService._internal();
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Logger _logger = Logger('AuthService');
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     signInOption: SignInOption.standard,
   );
   static const Duration _signInTimeout = Duration(seconds: 30);
+  
+  // Helper method to handle App Check related errors
+  bool _isAppCheckError(String errorMessage) {
+    return errorMessage.toLowerCase().contains('app check') ||
+           errorMessage.toLowerCase().contains('too many attempts') ||
+           errorMessage.toLowerCase().contains('recaptcha');
+  }
 
   // Current user info
   User? get currentUser => _auth.currentUser;
@@ -44,6 +57,10 @@ class AuthService {
       throw Exception(
           'Sign up timed out. Check your connection and try again.');
     } catch (e) {
+      final errorMessage = e.toString();
+      if (_isAppCheckError(errorMessage)) {
+        throw Exception('Security verification failed. Please wait a few minutes and try again, or restart the app.');
+      }
       throw Exception('An unexpected error occurred. Please try again.');
     }
   }
@@ -65,6 +82,10 @@ class AuthService {
       throw Exception(
           'Sign in timed out. Check your connection and try again.');
     } catch (e) {
+      final errorMessage = e.toString();
+      if (_isAppCheckError(errorMessage)) {
+        throw Exception('Security verification failed. Please wait a few minutes and try again, or restart the app.');
+      }
       throw Exception('An unexpected error occurred. Please try again.');
     }
   }
@@ -135,52 +156,91 @@ class AuthService {
     }
   }
 
-  // Facebook signin
-  Future<UserCredential?> signInWithFacebook() async {
-    try {
-      await FacebookAuth.instance.logOut();
+  // Apple signin (iOS only)
+  Future<UserCredential?> signInWithApple() async {
+    if (!Platform.isIOS) {
+      throw Exception('Apple Sign-In is only available on iOS');
+    }
 
-      final loginResult = await FacebookAuth.instance.login(
-        permissions: ['email', 'public_profile'],
+    try {
+      // Check if Apple Sign-In is available
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        throw Exception('Apple Sign-In is not available on this device');
+      }
+
+      // Generate a random nonce for security
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      // Request Apple Sign-In
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
       ).timeout(
         _signInTimeout,
         onTimeout: () => throw TimeoutException(
-            'Facebook sign in timed out', _signInTimeout),
+            'Apple sign in timed out', _signInTimeout),
       );
 
-      if (loginResult.status == LoginStatus.cancelled) {
-        return null;
-      }
+      // Create Firebase credential
+      final oauthCredential = OAuthProvider("apple.com").credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
 
-      if (loginResult.status != LoginStatus.success ||
-          loginResult.accessToken == null) {
-        throw Exception('Facebook sign-in failed: ${loginResult.status}');
-      }
-
-      final credential =
-          FacebookAuthProvider.credential(loginResult.accessToken!.token);
-      final result = await _auth.signInWithCredential(credential).timeout(
+      // Sign in to Firebase
+      final result = await _auth.signInWithCredential(oauthCredential).timeout(
             _signInTimeout,
             onTimeout: () => throw TimeoutException(
                 'Firebase credential sign in timed out', _signInTimeout),
           );
 
+      // Update display name if provided and not already set
+      if (result.user != null && 
+          result.user!.displayName == null && 
+          appleCredential.givenName != null) {
+        final displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
+        if (displayName.isNotEmpty) {
+          await result.user!.updateDisplayName(displayName);
+          await result.user!.reload();
+        }
+      }
+
       return result;
     } on FirebaseAuthException catch (e) {
-      await FacebookAuth.instance.logOut();
       throw _handleAuthException(e);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return null; // User canceled
+      }
+      throw Exception('Apple Sign-In failed: ${e.code}');
     } on TimeoutException {
-      await FacebookAuth.instance.logOut();
-      throw Exception('Facebook sign-in timed out. Please try again.');
+      throw Exception('Apple sign-in timed out. Please try again.');
     } catch (e) {
-      await FacebookAuth.instance.logOut();
-
       if (e.toString().contains('cancelled') ||
           e.toString().contains('canceled')) {
         return null;
       }
-      throw Exception('Facebook sign-in failed. Please try again.');
+      throw Exception('Apple sign-in failed. Please try again.');
     }
+  }
+
+  // Generate a cryptographically secure random nonce
+  String _generateNonce([int length = 32]) {
+    const charset = '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)]).join();
+  }
+
+  // Generate SHA256 hash of input string
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   // Password reset
@@ -206,7 +266,6 @@ class AuthService {
       await Future.wait([
         _auth.signOut(),
         _googleSignIn.signOut(),
-        FacebookAuth.instance.logOut(),
       ]);
     } catch (e) {
       // Ignore sign out errors
@@ -224,7 +283,6 @@ class AuthService {
                   'Account deletion timeout', _signInTimeout),
             );
         await _cleanupGoogleSignIn();
-        await FacebookAuth.instance.logOut();
       }
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -238,34 +296,77 @@ class AuthService {
   Exception _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return Exception('The password provided is too weak.');
+        return Exception('Password is too weak. Please use at least 6 characters with a mix of letters and numbers.');
       case 'email-already-in-use':
-        return Exception('An account already exists for that email.');
+        return Exception('An account with this email already exists. Try signing in instead.');
       case 'user-not-found':
-        return Exception('No user found for that email.');
+        return Exception('No account found with this email address. Please check your email or create a new account.');
       case 'wrong-password':
-        return Exception('Wrong password provided.');
+        return Exception('Incorrect password. Please try again or use "Forgot Password" to reset it.');
       case 'invalid-email':
-        return Exception('The email address is not valid.');
+        return Exception('Please enter a valid email address.');
       case 'user-disabled':
-        return Exception('This account has been disabled.');
+        return Exception('This account has been temporarily disabled. Please contact support.');
       case 'too-many-requests':
-        return Exception('Too many requests. Try again later.');
+        return Exception('Too many failed attempts. Please wait a few minutes before trying again.');
       case 'operation-not-allowed':
-        return Exception('This sign-in method is not allowed.');
+        return Exception('Email/password sign-in is currently disabled. Please try a different method.');
       case 'requires-recent-login':
-        return Exception('Please sign in again to continue.');
+        return Exception('For security reasons, please sign in again to continue.');
       case 'invalid-credential':
-        return Exception('The credential is malformed or has expired.');
+        return Exception('Your login credentials are invalid or have expired. Please try signing in again.');
       case 'account-exists-with-different-credential':
-        return Exception(
-            'An account already exists with a different sign-in method.');
+        return Exception('An account with this email exists but uses a different sign-in method (Google/Apple). Try signing in with that method.');
       case 'network-request-failed':
-        return Exception(
-            'Network error. Please check your connection and try again.');
+        return Exception('Network connection failed. Please check your internet and try again.');
+      case 'invalid-action-code':
+        return Exception('The action code is invalid. This may happen if the code is malformed or expired.');
+      case 'expired-action-code':
+        return Exception('The action code has expired. Please request a new one.');
+      case 'missing-android-pkg-name':
+        return Exception('An Android package name must be provided.');
+      case 'missing-continue-uri':
+        return Exception('A continue URL must be provided in the request.');
+      case 'missing-ios-bundle-id':
+        return Exception('An iOS bundle ID must be provided.');
+      case 'unauthorized-continue-uri':
+        return Exception('The continue URL provided is not authorized.');
+      case 'invalid-continue-uri':
+        return Exception('The continue URL provided is invalid.');
+      case 'quota-exceeded':
+        return Exception('SMS quota exceeded. Please try again later.');
+      case 'credential-already-in-use':
+        return Exception('This credential is already associated with a different user account.');
+      case 'custom-token-mismatch':
+        return Exception('The custom token corresponds to a different audience.');
+      case 'invalid-custom-token':
+        return Exception('The custom token format is incorrect.');
+      case 'invalid-user-token':
+        return Exception('The user\'s credential is no longer valid. Please sign in again.');
+      case 'user-token-expired':
+        return Exception('Your session has expired. Please sign in again.');
+      case 'null-user':
+        return Exception('User session is invalid. Please sign in again.');
+      case 'app-deleted':
+        return Exception('This Firebase app instance has been deleted.');
+      case 'captcha-check-failed':
+        return Exception('reCAPTCHA verification failed. Please try again.');
+      case 'invalid-app-credential':
+        return Exception('Invalid app credential. Please contact support.');
+      case 'app-not-authorized':
+        return Exception('This app is not authorized to use Firebase Authentication.');
+      case 'keychain-error':
+        return Exception('Keychain access error. Please try again.');
+      case 'internal-error':
+        return Exception('An internal error occurred. Please try again later.');
+      case 'invalid-api-key':
+        return Exception('Invalid API key. Please contact support.');
+      case 'web-storage-unsupported':
+        return Exception('Web storage is not supported on this device.');
       default:
-        return Exception(
-            'Authentication failed: ${e.message ?? 'Unknown error'}');
+        // Log the unknown error for debugging
+        _logger.warning('Unknown Firebase Auth error: ${e.code} - ${e.message}');
+        return Exception('Sign-in failed. Please check your credentials and try again.');
     }
   }
 

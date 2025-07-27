@@ -98,9 +98,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     // Initialize speech recognition
     _initializeSpeech();
 
-    // Add initial greeting message
+    // Add initial greeting message only if user hasn't interacted
     Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
+      if (mounted && !_userHasInteracted && _messages.isEmpty) {
         setState(() {
           _messages.insert(
             0,
@@ -117,12 +117,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _sendButtonController.dispose();
-    
-    // Stop speech recognition if it's running
-    if (_speechToText.isListening) {
-      _speechToText.stop();
+
+    // Enhanced cleanup for speech recognition (especially for Huawei devices)
+    try {
+      if (_speechToText.isListening) {
+        _speechToText.stop();
+      }
+      // Add a small delay for Huawei device cleanup
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _speechToText.cancel();
+      });
+    } catch (e) {
+      _logger.w('Error during speech recognition cleanup: $e');
     }
-    
+
     super.dispose();
   }
 
@@ -440,16 +448,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   }
 
   Widget _buildActionButtons() {
-    final List<Map<String, dynamic>> actions = [
+    final List<Map<String, dynamic>> otherActions = [
       {
         'icon': Icons.directions_run,
         'label': tr(context, 'quick_action_workout'),
         'color': const Color(0xFF2196F3), // Material Blue
-      },
-      {
-        'icon': Icons.eco,
-        'label': tr(context, 'quick_action_eco'),
-        'color': AppColors.primary,
       },
       {
         'icon': Icons.restaurant_menu,
@@ -461,36 +464,76 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
         'label': tr(context, 'quick_action_schedule'),
         'color': AppColors.gold,
       },
+      {
+        'icon': Icons.food_bank,
+        'label': tr(context, 'quick_action_food_recognizer'),
+        'color': AppColors.beige,
+      },
     ];
 
     // Check if device is tablet (screen width > 600)
     final isTablet = MediaQuery.of(context).size.width > 600;
 
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
-        padding: EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: isTablet ? 12 : 24,
-        ),
-        child: GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: isTablet ? 4 : 2, // 4 columns on tablet, 2 on phone
-          mainAxisSpacing: isTablet ? 8 : 16,
-          crossAxisSpacing: isTablet ? 8 : 16,
-          childAspectRatio: isTablet
-              ? 2.0
-              : 2.5, // Smaller aspect ratio on tablet
-          children: actions
-              .map(
-                (action) => _buildActionButton(
-                  icon: action['icon'] as IconData,
-                  label: action['label'] as String,
-                  color: action['color'] as Color,
-                ),
-              )
-              .toList(),
+    return Expanded(
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600),
+          padding: EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: isTablet ? 12 : 24,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Eco button centered on top - same width as individual grid buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Expanded(
+                    flex: 1,
+                    child: Container(),
+                  ),
+                  Expanded(
+                    flex: isTablet ? 1 : 2,
+                    child: AspectRatio(
+                      aspectRatio: isTablet ? 2.0 : 2.5,
+                      child: _buildActionButton(
+                        icon: Icons.eco,
+                        label: tr(context, 'quick_action_eco'),
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 1,
+                    child: Container(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              
+              // Other action buttons in grid
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: isTablet ? 4 : 2, // 4 columns on tablet, 2 on phone
+                mainAxisSpacing: isTablet ? 8 : 16,
+                crossAxisSpacing: isTablet ? 8 : 16,
+                childAspectRatio: isTablet
+                    ? 2.0
+                    : 2.5, // Smaller aspect ratio on tablet
+                children: otherActions
+                    .map(
+                      (action) => _buildActionButton(
+                        icon: action['icon'] as IconData,
+                        label: action['label'] as String,
+                        color: action['color'] as Color,
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -503,13 +546,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   }) {
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(24),
           onTap: () {
             _handleQuickAction(label);
           },
@@ -543,7 +586,9 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     // Add typing/analyzing/listening indicator at the top (first item when reversed)
     if (_isTyping || _isAnalyzingFood || _speechListening) {
       if (_speechListening) {
-        displayItems.add(VoiceListeningIndicator(recognizedText: _recognizedText));
+        displayItems.add(
+          VoiceListeningIndicator(recognizedText: _recognizedText),
+        );
       } else if (_isAnalyzingFood) {
         displayItems.add(const FoodAnalyzingIndicator());
       } else {
@@ -750,14 +795,21 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                                                   decoration: BoxDecoration(
                                                     shape: BoxShape.circle,
                                                     color: _speechListening
-                                                        ? AppColors.primary.withAlpha(51)
-                                                        : AppTheme.textColor(context).withAlpha(26),
+                                                        ? AppColors.primary
+                                                              .withAlpha(51)
+                                                        : AppTheme.textColor(
+                                                            context,
+                                                          ).withAlpha(26),
                                                   ),
                                                   child: Icon(
-                                                    _speechListening ? Icons.stop : Icons.mic,
+                                                    _speechListening
+                                                        ? Icons.stop
+                                                        : Icons.mic,
                                                     color: _speechListening
                                                         ? AppColors.primary
-                                                        : AppTheme.textColor(context).withAlpha(128),
+                                                        : AppTheme.textColor(
+                                                            context,
+                                                          ).withAlpha(128),
                                                     size: 18,
                                                   ),
                                                 ),
@@ -836,20 +888,43 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     try {
       _speechEnabled = await _speechToText.initialize(
         onStatus: (status) {
+          _logger.d('Speech status: $status');
           setState(() {
             _speechListening = status == 'listening';
           });
+
+          // Auto-transfer text when speech recognition pauses or completes
+          if (status == 'done' || status == 'notListening') {
+            if (_recognizedText.isNotEmpty) {
+              _logger.d(
+                'Speech stopped, auto-transferring text: "$_recognizedText"',
+              );
+              _useRecognizedText();
+            }
+          }
         },
         onError: (error) {
           _logger.e('Speech recognition error: $error');
           setState(() {
             _speechListening = false;
           });
-          
-          // Handle specific error cases
+
+          // Handle specific error cases for different devices
           if (error.errorMsg == 'error_busy') {
             _logger.w('Speech recognition was busy, stopping and resetting');
             _speechToText.stop();
+
+            // Show user-friendly message for Huawei tablets
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Voice recognition is busy. Please wait and try again.',
+                  ),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
           }
         },
       );
@@ -915,11 +990,15 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
   void _startInlineListening() async {
     if (!_speechEnabled) return;
-    
-    // Check if already listening to avoid error_busy
+
+    // Enhanced check for Huawei devices - force stop if busy
     if (_speechToText.isListening) {
-      _logger.w('Speech recognition is already listening');
-      return;
+      _logger.w(
+        'Speech recognition is already listening, forcing stop for Huawei compatibility',
+      );
+      await _speechToText.stop();
+      // Wait a moment for cleanup on Huawei devices
+      await Future.delayed(const Duration(milliseconds: 500));
     }
 
     setState(() {
@@ -934,8 +1013,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             _recognizedText = result.recognizedWords;
           });
         },
-        listenFor: const Duration(seconds: 30),
-        pauseFor: const Duration(seconds: 5),
+        listenFor: const Duration(minutes: 2),
+        pauseFor: const Duration(seconds: 8),
         listenOptions: SpeechListenOptions(partialResults: true),
         localeId: 'en_US',
         onSoundLevelChange: (level) {
@@ -944,15 +1023,45 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       );
     } catch (e) {
       _logger.e('Error starting speech recognition: $e');
+
+      // Handle Huawei-specific error_busy with retry
+      if (e.toString().contains('error_busy') && mounted) {
+        _logger.w('Detected error_busy, attempting recovery for Huawei device');
+        await _speechToText.stop();
+        await Future.delayed(const Duration(seconds: 1));
+
+        // Single retry attempt
+        try {
+          await _speechToText.listen(
+            onResult: (result) {
+              setState(() {
+                _recognizedText = result.recognizedWords;
+              });
+            },
+            listenFor: const Duration(minutes: 2),
+            pauseFor: const Duration(seconds: 8),
+            listenOptions: SpeechListenOptions(partialResults: true),
+            localeId: 'en_US',
+          );
+          return; // Success on retry
+        } catch (retryError) {
+          _logger.e('Retry also failed: $retryError');
+        }
+      }
+
       if (mounted) {
         setState(() {
           _speechListening = false;
         });
+
+        String errorMessage = 'Error starting voice recognition';
+        if (e.toString().contains('error_busy')) {
+          errorMessage =
+              'Voice recognition is busy. Please wait a moment and try again.';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error starting voice recognition: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     }
@@ -969,13 +1078,20 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
   void _useRecognizedText() {
     if (_recognizedText.isNotEmpty) {
+      final textToAdd = _recognizedText;
+      _logger.d('Adding recognized text to input: "$textToAdd"');
+
       setState(() {
-        _messageController.text = _recognizedText;
-        _recognizedText = ''; // Clear the recognized text
+        _messageController.text = textToAdd;
       });
-      
+
+      // Clear recognized text after setting it
+      _recognizedText = '';
+
       // Focus the text field so user can edit if needed
       _focusNode.requestFocus();
+    } else {
+      _logger.d('No recognized text to add');
     }
   }
 
@@ -1588,11 +1704,7 @@ class VoiceListeningIndicator extends StatelessWidget {
             child: AnimatedScale(
               scale: 1.2,
               duration: const Duration(milliseconds: 500),
-              child: const Icon(
-                Icons.mic,
-                color: AppColors.white,
-                size: 16,
-              ),
+              child: const Icon(Icons.mic, color: AppColors.white, size: 16),
             ),
           ),
           const SizedBox(width: 8),
@@ -1608,11 +1720,7 @@ class VoiceListeningIndicator extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.mic,
-                        color: AppColors.primary,
-                        size: 16,
-                      ),
+                      Icon(Icons.mic, color: AppColors.primary, size: 16),
                       const SizedBox(width: 8),
                       Text(
                         'Listening...',

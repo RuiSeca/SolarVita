@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import '../models/health_data.dart';
 import 'data_sync_service.dart';
 
@@ -457,42 +459,158 @@ class HealthDataService {
     }
   }
 
-  /// Open health app settings
+  /// Open health app settings with enhanced platform-specific handling
   Future<void> openHealthAppSettings() async {
     try {
       if (Platform.isIOS) {
         await launchUrl(Uri.parse('App-prefs:HEALTH'));
       } else if (Platform.isAndroid) {
-        // Try to open Health Connect app directly
-        const healthConnectPackage = 'com.google.android.apps.healthdata';
-        final healthConnectUri = Uri.parse('package:$healthConnectPackage');
-        
-        if (await canLaunchUrl(healthConnectUri)) {
-          await launchUrl(healthConnectUri);
-        } else {
-          // Fallback to Play Store
-          await launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=$healthConnectPackage'));
-        }
+        await _openHealthConnectWithFallbacks();
       }
     } catch (e) {
       // Failed to open health app settings
     }
   }
 
-  /// Show health app installation dialog
+  /// Enhanced Health Connect access with multiple fallback strategies
+  Future<void> _openHealthConnectWithFallbacks() async {
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+    
+    // Strategy 1: Try version-specific intent actions
+    if (await _tryVersionSpecificIntents(sdkInt)) return;
+    
+    // Strategy 2: Try direct package launch
+    if (await _tryDirectPackageLaunch()) return;
+    
+    // Strategy 3: Try system settings approach
+    if (await _trySystemSettingsApproach()) return;
+    
+    // Strategy 4: Fallback to Play Store
+    await _fallbackToPlayStore();
+  }
+  
+  /// Try version-specific intent actions
+  Future<bool> _tryVersionSpecificIntents(int sdkInt) async {
+    try {
+      if (sdkInt >= 34) { // Android 14+
+        return await _launchIntentAction('android.health.connect.action.HEALTH_HOME_SETTINGS');
+      } else if (sdkInt >= 33) { // Android 13
+        return await _launchIntentAction('androidx.health.ACTION_HEALTH_CONNECT_SETTINGS');
+      } else {
+        return await _launchIntentAction('com.google.android.apps.healthdata.MAIN');
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  /// Launch intent action using platform channel
+  Future<bool> _launchIntentAction(String action) async {
+    try {
+      const platform = MethodChannel('solar_vitas/health_connect');
+      final result = await platform.invokeMethod('launchHealthConnectIntent', {'action': action});
+      return result == true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  /// Try direct package launch
+  Future<bool> _tryDirectPackageLaunch() async {
+    try {
+      const healthConnectPackage = 'com.google.android.apps.healthdata';
+      final healthConnectUri = Uri.parse('package:$healthConnectPackage');
+      
+      if (await canLaunchUrl(healthConnectUri)) {
+        await launchUrl(healthConnectUri);
+        return true;
+      }
+    } catch (e) {
+      // Continue to next strategy
+    }
+    return false;
+  }
+  
+  /// Try system settings approach
+  Future<bool> _trySystemSettingsApproach() async {
+    try {
+      // Try opening Android settings with Health Connect deep link
+      final settingsUri = Uri.parse('android-app://com.android.settings/.Settings\$HealthConnectSettingsActivity');
+      if (await canLaunchUrl(settingsUri)) {
+        await launchUrl(settingsUri);
+        return true;
+      }
+      
+      // Try generic app settings
+      final appSettingsUri = Uri.parse('package:com.google.android.apps.healthdata');
+      if (await canLaunchUrl(appSettingsUri)) {
+        await launchUrl(appSettingsUri);
+        return true;
+      }
+    } catch (e) {
+      // Continue to fallback
+    }
+    return false;
+  }
+  
+  /// Fallback to Play Store
+  Future<void> _fallbackToPlayStore() async {
+    try {
+      const healthConnectPackage = 'com.google.android.apps.healthdata';
+      await launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=$healthConnectPackage'));
+    } catch (e) {
+      // Final fallback failed
+    }
+  }
+
+  /// Show enhanced health app installation dialog with version-specific guidance
   Future<bool> showHealthAppInstallDialog(BuildContext context) async {
     if (Platform.isIOS) {
       // iOS always has Health app
       return true;
     }
 
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    final sdkInt = androidInfo.version.sdkInt;
+    final manufacturer = androidInfo.manufacturer.toLowerCase();
+    
+    // Check if context is still valid after async operation
+    if (!context.mounted) return false;
+    
     return await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Install Health Connect'),
-        content: const Text(
-          'To access your health data, please install Health Connect from the Play Store. '
-          'Health Connect is Google\'s unified health platform that allows SolarVita to sync your steps, calories, and other health metrics safely.'
+        title: const Text('Health Connect Setup'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (sdkInt >= 34) ..._buildAndroid14Instructions(manufacturer)
+              else ..._buildPreAndroid14Instructions(),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.blue, size: 16),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Health Connect is Google\'s secure platform for health data.',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -502,41 +620,112 @@ class HealthDataService {
           ElevatedButton(
             onPressed: () async {
               Navigator.of(context).pop(true);
-              await launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata'));
+              if (sdkInt >= 34) {
+                await _openHealthConnectWithFallbacks();
+              } else {
+                await launchUrl(Uri.parse('https://play.google.com/store/apps/details?id=com.google.android.apps.healthdata'));
+              }
             },
-            child: const Text('Install Health Connect'),
+            child: Text(sdkInt >= 34 ? 'Open Health Connect' : 'Install Health Connect'),
           ),
         ],
       ),
     ) ?? false;
   }
+  
+  /// Build Android 14+ instructions
+  List<Widget> _buildAndroid14Instructions(String manufacturer) {
+    return [
+      const Text(
+        'Health Connect is built into Android 14+. To access it:\n',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      Text(
+        _getManufacturerSpecificPath(manufacturer),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        'Or tap "Open Health Connect" below to go directly there.',
+        style: TextStyle(fontStyle: FontStyle.italic),
+      ),
+    ];
+  }
+  
+  /// Build pre-Android 14 instructions
+  List<Widget> _buildPreAndroid14Instructions() {
+    return [
+      const Text(
+        'Health Connect needs to be installed from the Play Store:\n',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      const Text('1. Tap "Install Health Connect" below\n'),
+      const Text('2. Install the app from Play Store\n'),
+      const Text('3. Open Health Connect and complete setup\n'),
+      const Text('4. Return to SolarVita to grant permissions'),
+    ];
+  }
+  
+  /// Get manufacturer-specific settings path
+  String _getManufacturerSpecificPath(String manufacturer) {
+    switch (manufacturer) {
+      case 'samsung':
+        return 'Settings → Security and Privacy → More privacy settings → Health Connect';
+      case 'google':
+      case 'pixel':
+        return 'Settings → Security & Privacy → Privacy → Health Connect';
+      case 'oneplus':
+        return 'Settings → Privacy → Health Connect';
+      case 'xiaomi':
+      case 'redmi':
+        return 'Settings → Apps → Manage apps → Health Connect';
+      case 'huawei':
+        return 'Settings → Privacy → Health Connect (if available)';
+      default:
+        return 'Settings → Security & Privacy → Privacy → Health Connect\n(Path may vary by device manufacturer)';
+    }
+  }
 
-  /// Open Health Connect settings for permissions
+  /// Open Health Connect settings for permissions with enhanced targeting
   Future<void> openHealthConnectSettings() async {
+    if (Platform.isAndroid) {
+      await _openHealthConnectWithFallbacks();
+    }
+  }
+  
+  /// Open Health Connect permissions specifically
+  Future<void> openHealthPermissions({String? packageName}) async {
+    if (!Platform.isAndroid) return;
+    
     try {
-      if (Platform.isAndroid) {
-        // Try Health Connect permission settings first
-        const healthConnectPermissionsUrl = 'content://com.android.healthconnect.controller/permissions';
-        if (await canLaunchUrl(Uri.parse(healthConnectPermissionsUrl))) {
-          await launchUrl(Uri.parse(healthConnectPermissionsUrl));
-          return;
-        }
-        
-        // Fallback to main Health Connect app
-        const healthConnectUrl = 'content://com.android.healthconnect.controller/home';
-        if (await canLaunchUrl(Uri.parse(healthConnectUrl))) {
-          await launchUrl(Uri.parse(healthConnectUrl));
-          return;
-        }
-        
-        // Final fallback to app settings
-        const packageUrl = 'package:com.google.android.apps.healthdata';
-        if (await canLaunchUrl(Uri.parse(packageUrl))) {
-          await launchUrl(Uri.parse(packageUrl));
-        }
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+      final sdkInt = androidInfo.version.sdkInt;
+      final appPackage = packageName ?? 'com.solarvitadev.solarvita';
+      
+      // Try permission-specific intents first
+      if (sdkInt >= 34) {
+        // Android 14+ - direct to permission management
+        if (await _launchPermissionIntent(appPackage)) return;
       }
+      
+      // Fallback to general Health Connect settings
+      await openHealthConnectSettings();
     } catch (e) {
-      // Failed to open Health Connect settings
+      // Fallback to general settings
+      await openHealthConnectSettings();
+    }
+  }
+  
+  /// Launch permission-specific intent
+  Future<bool> _launchPermissionIntent(String packageName) async {
+    try {
+      const platform = MethodChannel('solar_vitas/health_connect');
+      final result = await platform.invokeMethod('launchHealthPermissionIntent', {
+        'action': 'android.health.connect.action.MANAGE_HEALTH_PERMISSIONS',
+        'packageName': packageName,
+      });
+      return result == true;
+    } catch (e) {
+      return false;
     }
   }
 

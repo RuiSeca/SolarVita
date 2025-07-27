@@ -19,6 +19,7 @@ class SupporterRequest {
   final String? receiverName;
   final String? receiverUsername;
   final String? receiverPhotoURL;
+  final String? message;
 
   SupporterRequest({
     required this.id,
@@ -33,6 +34,7 @@ class SupporterRequest {
     this.receiverName,
     this.receiverUsername,
     this.receiverPhotoURL,
+    this.message,
   });
 
   factory SupporterRequest.fromFirestore(DocumentSnapshot doc) {
@@ -52,6 +54,7 @@ class SupporterRequest {
       receiverName: data['receiverName'],
       receiverUsername: data['receiverUsername'],
       receiverPhotoURL: data['receiverPhotoURL'],
+      message: data['message'],
     );
   }
 
@@ -68,6 +71,7 @@ class SupporterRequest {
       'receiverName': receiverName,
       'receiverUsername': receiverUsername,
       'receiverPhotoURL': receiverPhotoURL,
+      'message': message,
     };
   }
 }

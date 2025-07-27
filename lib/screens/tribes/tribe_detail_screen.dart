@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+// import 'package:share_plus/share_plus.dart';
 import '../../models/tribe.dart';
 import '../../models/tribe_member.dart';
 import '../../models/tribe_post.dart';
@@ -25,22 +28,33 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     with SingleTickerProviderStateMixin {
   final TribeService _tribeService = TribeService();
   late TabController _tabController;
+  final ScrollController _scrollController = ScrollController();
   
   bool _isJoining = false;
-  bool _isLeaving = false;
+  bool _showFloatingButton = false;
   TribeMember? _currentUserMember;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _scrollController.addListener(_onScroll);
     _loadMembershipStatus();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.offset > 200 && !_showFloatingButton) {
+      setState(() => _showFloatingButton = true);
+    } else if (_scrollController.offset <= 200 && _showFloatingButton) {
+      setState(() => _showFloatingButton = false);
+    }
   }
 
   Future<void> _loadMembershipStatus() async {
@@ -48,446 +62,245 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     if (currentUserId == null) return;
     
     final isMember = await _tribeService.isUserTribeMember(widget.tribeId, currentUserId);
-    if (isMember) {
-      // Load full member details if needed
+    if (isMember && mounted) {
+      final member = await _tribeService.getTribeMember(widget.tribeId, currentUserId);
       setState(() {
-        _currentUserMember = TribeMember(
-          id: '',
-          tribeId: widget.tribeId,
-          userId: currentUserId,
-          userName: '',
-          role: TribeMemberRole.member,
-          joinedAt: DateTime.now(),
-        );
+        _currentUserMember = member;
       });
-    }
-  }
-
-  Future<void> _joinTribe(Tribe tribe) async {
-    setState(() {
-      _isJoining = true;
-    });
-
-    try {
-      await _tribeService.joinTribe(
-        widget.tribeId,
-        inviteCode: tribe.isPrivate ? widget.inviteCode : null,
-      );
-      
-      await _loadMembershipStatus();
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome to ${tribe.name}! 🎉'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error joining tribe: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isJoining = false;
-        });
-      }
-    }
-  }
-
-  Future<void> _leaveTribe(Tribe tribe) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Leave Tribe'),
-        content: Text('Are you sure you want to leave "${tribe.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Leave'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {
-      _isLeaving = true;
-    });
-
-    try {
-      await _tribeService.leaveTribe(widget.tribeId);
-      
-      setState(() {
-        _currentUserMember = null;
-      });
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Left ${tribe.name}'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error leaving tribe: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLeaving = false;
-        });
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Tribe?>(
-      stream: _tribeService.getTribeStream(widget.tribeId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Loading...')),
-            body: const Center(child: CircularProgressIndicator()),
+      stream: _tribeService.getTribeById(widget.tribeId),
+      builder: (context, tribeSnapshot) {
+        if (tribeSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        if (snapshot.hasError) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: ${snapshot.error}'),
-                ],
-              ),
-            ),
-          );
+        if (tribeSnapshot.hasError || !tribeSnapshot.hasData) {
+          return _buildErrorScaffold();
         }
 
-        final tribe = snapshot.data;
-        if (tribe == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Not Found')),
-            body: const Center(
-              child: Text('Tribe not found'),
-            ),
-          );
-        }
-
-        return _buildTribeDetailScreen(tribe);
+        final tribe = tribeSnapshot.data!;
+        return _buildTribeScaffold(tribe);
       },
     );
   }
 
-  Widget _buildTribeDetailScreen(Tribe tribe) {
+  Widget _buildTribeScaffold(Tribe tribe) {
     final theme = Theme.of(context);
     final isMember = _currentUserMember != null;
-
+    
     return Scaffold(
-      appBar: AppBar(
-        title: Text(tribe.name),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          if (isMember)
-            PopupMenuButton(
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  onTap: () => _leaveTribe(tribe),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.exit_to_app, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Leave Tribe'),
-                    ],
-                  ),
+      body: NestedScrollView(
+        controller: _scrollController,
+        headerSliverBuilder: (context, innerBoxIsScrolled) {
+          return [
+            SliverAppBar(
+              expandedHeight: 300,
+              pinned: true,
+              elevation: 0,
+              backgroundColor: theme.scaffoldBackgroundColor,
+              foregroundColor: Colors.white,
+              flexibleSpace: FlexibleSpaceBar(
+                background: _buildTribeHeader(tribe),
+              ),
+              actions: [
+                IconButton(
+                  onPressed: () => _shareInvite(tribe),
+                  icon: const Icon(Icons.share),
+                ),
+                IconButton(
+                  onPressed: () => _showTribeOptions(tribe),
+                  icon: const Icon(Icons.more_vert),
                 ),
               ],
             ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Tribe Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.textFieldBackground(context),
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.dividerColor.withValues(alpha: 0.2),
+          ];
+        },
+        body: Column(
+          children: [
+            // Tab Bar
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor(context),
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.dividerColor.withValues(alpha: 0.2),
+                  ),
                 ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    // Category Icon
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        tribe.getCategoryIcon(),
-                        style: const TextStyle(fontSize: 24),
-                      ),
-                    ),
-                    
-                    const SizedBox(width: 16),
-                    
-                    // Tribe Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tribe.name,
-                            style: theme.textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            tribe.getCategoryName(),
-                            style: TextStyle(
-                              color: theme.textTheme.bodySmall?.color,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.people,
-                                size: 16,
-                                color: theme.textTheme.bodySmall?.color,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${tribe.memberCount} members',
-                                style: theme.textTheme.bodySmall,
-                              ),
-                              const SizedBox(width: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: tribe.isPublic 
-                                      ? Colors.green.withValues(alpha: 0.1)
-                                      : Colors.orange.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  tribe.getVisibilityText(),
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: tribe.isPublic ? Colors.green : Colors.orange,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 16),
-                
-                Text(
-                  tribe.description,
-                  style: theme.textTheme.bodyMedium,
-                ),
-                
-                if (tribe.location != null) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 16,
-                        color: theme.textTheme.bodySmall?.color,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        tribe.location!,
-                        style: theme.textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: theme.primaryColor,
+                labelColor: theme.primaryColor,
+                unselectedLabelColor: theme.textTheme.bodyMedium?.color,
+                tabs: const [
+                  Tab(text: 'Posts'),
+                  Tab(text: 'Members'),
+                  Tab(text: 'About'),
                 ],
-                
-                if (tribe.tags.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children: tribe.tags.map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.primaryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '#$tag',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.primaryColor,
-                        ),
-                      ),
-                    )).toList(),
-                  ),
-                ],
-                
-                const SizedBox(height: 16),
-                
-                // Join/Leave Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (_isJoining || _isLeaving) 
-                        ? null 
-                        : () => isMember ? _leaveTribe(tribe) : _joinTribe(tribe),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isMember ? Colors.red : theme.primaryColor,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: (_isJoining || _isLeaving)
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                            ),
-                          )
-                        : Text(
-                            isMember ? 'Leave Tribe' : 'Join Tribe',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Tabs (only show if member)
-          if (isMember) ...[
-            TabBar(
-              controller: _tabController,
-              labelColor: theme.primaryColor,
-              unselectedLabelColor: theme.textTheme.bodyMedium?.color,
-              indicatorColor: theme.primaryColor,
-              indicatorWeight: 3,
-              tabs: const [
-                Tab(text: 'Posts', icon: Icon(Icons.forum)),
-                Tab(text: 'Members', icon: Icon(Icons.people)),
-              ],
+              ),
             ),
             
+            // Tab Content
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
                   _buildPostsTab(tribe),
                   _buildMembersTab(tribe),
+                  _buildAboutTab(tribe),
                 ],
               ),
             ),
-          ] else ...[
-            // Non-member view
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '🏛️',
-                      style: const TextStyle(fontSize: 64),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Join to see posts and members',
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Connect with like-minded people and share your journey',
-                      style: theme.textTheme.bodySmall,
-                      textAlign: TextAlign.center,
-                    ),
+          ],
+        ),
+      ),
+      floatingActionButton: isMember && _showFloatingButton
+          ? FloatingActionButton(
+              onPressed: () => _createPost(tribe),
+              backgroundColor: theme.primaryColor,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
+      bottomNavigationBar: isMember ? null : _buildJoinBar(tribe),
+    );
+  }
+
+  Widget _buildTribeHeader(Tribe tribe) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            theme.primaryColor.withValues(alpha: 0.8),
+            theme.primaryColor.withValues(alpha: 0.6),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Cover Image
+          if (tribe.coverImage != null)
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: tribe.coverImage!,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(color: theme.primaryColor.withValues(alpha: 0.2)),
+                errorWidget: (context, url, error) => Container(color: theme.primaryColor.withValues(alpha: 0.2)),
+              ),
+            ),
+          
+          // Gradient Overlay
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.3),
+                    Colors.black.withValues(alpha: 0.6),
                   ],
                 ),
               ),
             ),
-          ],
+          ),
+          
+          // Content
+          Positioned(
+            bottom: 24,
+            left: 16,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Category Icon
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    tribe.getCategoryIcon(),
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                ),
+                
+                const SizedBox(height: 12),
+                
+                // Tribe Name
+                Text(
+                  tribe.name,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Quick Stats
+                Row(
+                  children: [
+                    _buildStatChip(
+                      icon: Icons.people,
+                      text: '${tribe.memberCount} members',
+                    ),
+                    const SizedBox(width: 12),
+                    _buildStatChip(
+                      icon: tribe.isPrivate ? Icons.lock : Icons.public,
+                      text: tribe.getVisibilityText(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ],
       ),
-      floatingActionButton: isMember ? FloatingActionButton(
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CreateTribePostScreen(tribe: tribe),
+    );
+  }
+
+  Widget _buildStatChip({required IconData icon, required String text}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: Colors.white,
             ),
-          );
-          
-          // Refresh posts if a new post was created
-          if (result == true && mounted) {
-            setState(() {
-              // This will trigger a rebuild and refresh the posts
-            });
-          }
-        },
-        backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.add, color: Colors.white),
-      ) : null,
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildPostsTab(Tribe tribe) {
+    final isMember = _currentUserMember != null;
+    
     return StreamBuilder<List<TribePost>>(
       stream: _tribeService.getTribePosts(tribe.id),
       builder: (context, snapshot) {
@@ -496,29 +309,52 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return _buildErrorState('Failed to load posts');
         }
 
         final posts = snapshot.data ?? [];
-        
-        if (posts.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text('💬', style: TextStyle(fontSize: 48)),
-                SizedBox(height: 16),
-                Text('No posts yet'),
-                Text('Be the first to share something!'),
-              ],
-            ),
-          );
-        }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: posts.length,
-          itemBuilder: (context, index) => _buildPostCard(posts[index]),
+        return CustomScrollView(
+          slivers: [
+            // Create Post Button (for members)
+            if (isMember)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      child: Icon(
+                        Icons.add,
+                        color: Theme.of(context).primaryColor,
+                      ),
+                    ),
+                    title: const Text('Share something with the tribe...'),
+                    onTap: () => _createPost(tribe),
+                  ),
+                ),
+              ),
+            
+            // Posts List
+            if (posts.isEmpty)
+              SliverFillRemaining(
+                child: _buildEmptyPostsState(isMember),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildPostCard(posts[index]),
+                  childCount: posts.length,
+                ),
+              ),
+          ],
         );
       },
     );
@@ -533,10 +369,14 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return _buildErrorState('Failed to load members');
         }
 
         final members = snapshot.data ?? [];
+
+        if (members.isEmpty) {
+          return _buildEmptyMembersState();
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
@@ -547,94 +387,371 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     );
   }
 
-  Widget _buildPostCard(TribePost post) {
+  Widget _buildAboutTab(Tribe tribe) {
     final theme = Theme.of(context);
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Post Header
-            Row(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Description
+          _buildInfoCard(
+            title: 'Description',
+            icon: Icons.description,
+            child: Text(
+              tribe.description,
+              style: theme.textTheme.bodyMedium,
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Category
+          _buildInfoCard(
+            title: 'Category',
+            icon: Icons.category,
+            child: Chip(
+              label: Text(tribe.getCategoryName()),
+              avatar: Text(tribe.getCategoryIcon()),
+            ),
+          ),
+          
+          const SizedBox(height: 16),
+          
+          // Created Info
+          _buildInfoCard(
+            title: 'Tribe Info',
+            icon: Icons.info,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: post.authorPhotoURL != null
-                      ? NetworkImage(post.authorPhotoURL!)
-                      : null,
-                  child: post.authorPhotoURL == null
-                      ? Text(post.authorName.isNotEmpty ? post.authorName[0] : 'U')
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        post.authorName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        post.getTimeAgo(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                Text('Created by ${tribe.creatorName}'),
+                const SizedBox(height: 4),
                 Text(
-                  post.getPostTypeIcon(),
-                  style: const TextStyle(fontSize: 20),
+                  'Created ${_formatDate(tribe.createdAt)}',
+                  style: theme.textTheme.bodySmall,
                 ),
               ],
             ),
-            
-            const SizedBox(height: 12),
-            
-            // Post Content
-            if (post.title != null) ...[
+          ),
+          
+          if (tribe.tags.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            _buildInfoCard(
+              title: 'Tags',
+              icon: Icons.tag,
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: tribe.tags.map((tag) => Chip(
+                  label: Text('#$tag'),
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                )).toList(),
+              ),
+            ),
+          ],
+          
+          if (tribe.location != null) ...[
+            const SizedBox(height: 16),
+            _buildInfoCard(
+              title: 'Location',
+              icon: Icons.location_on,
+              child: Text(tribe.location!),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 20, color: theme.primaryColor),
+              const SizedBox(width: 8),
               Text(
+                title,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPostCard(TribePost post) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Post Header
+          ListTile(
+            leading: CircleAvatar(
+              backgroundImage: post.authorPhotoURL != null
+                  ? CachedNetworkImageProvider(post.authorPhotoURL!)
+                  : null,
+              child: post.authorPhotoURL == null
+                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : 'U')
+                  : null,
+            ),
+            title: Text(
+              post.authorName,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(post.getTimeAgo()),
+            trailing: post.isAnnouncement
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Announcement',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  )
+                : null,
+          ),
+          
+          // Post Content
+          if (post.title != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
                 post.title!,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
-            ],
-            
-            Text(post.content),
-            
-            const SizedBox(height: 12),
-            
-            // Post Actions
-            Row(
+            ),
+          ],
+          
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Text(post.content),
+          ),
+          
+          // Post Actions
+          Padding(
+            padding: const EdgeInsets.all(8),
+            child: Row(
               children: [
                 IconButton(
-                  onPressed: () => _tribeService.likeTribePost(post.id),
+                  onPressed: () => _likePost(post),
                   icon: Icon(
-                    post.isLikedBy(_tribeService.currentUserId ?? '')
-                        ? Icons.favorite
-                        : Icons.favorite_border,
-                    color: post.isLikedBy(_tribeService.currentUserId ?? '')
+                    Icons.favorite,
+                    color: post.likes.contains(_tribeService.currentUserId)
                         ? Colors.red
-                        : null,
+                        : theme.iconTheme.color,
                   ),
                 ),
                 Text('${post.likes.length}'),
-                
                 const SizedBox(width: 16),
-                
-                Icon(Icons.comment_outlined, size: 20),
-                const SizedBox(width: 4),
+                IconButton(
+                  onPressed: () => _commentOnPost(post),
+                  icon: const Icon(Icons.comment),
+                ),
                 Text('${post.commentCount}'),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMemberCard(TribeMember member) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundImage: member.userPhotoURL != null
+                ? CachedNetworkImageProvider(member.userPhotoURL!)
+                : null,
+            child: member.userPhotoURL == null
+                ? Text(member.userName.isNotEmpty ? member.userName[0] : 'U')
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  member.userName,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Joined ${_formatDate(member.joinedAt)}',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          if (member.role != TribeMemberRole.member)
+            Chip(
+              label: Text(member.role.name.toUpperCase()),
+              backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
+              labelStyle: TextStyle(
+                fontSize: 10,
+                color: theme.primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildJoinBar(Tribe tribe) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        border: Border(
+          top: BorderSide(
+            color: theme.dividerColor.withValues(alpha: 0.2),
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isJoining ? null : () => _joinTribe(tribe),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.primaryColor,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+            child: _isJoining
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text(
+                    tribe.isPrivate ? 'Request to Join' : 'Join Tribe',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyPostsState(bool isMember) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.forum_outlined,
+              size: 64,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No posts yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isMember
+                  ? 'Be the first to share something!'
+                  : 'Join the tribe to see posts',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            if (isMember) ...[
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => _createPost(null),
+                child: const Text('Create First Post'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyMembersState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.people_outline,
+              size: 64,
+              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No members yet',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
           ],
         ),
@@ -642,34 +759,225 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     );
   }
 
-  Widget _buildMemberCard(TribeMember member) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundImage: member.userPhotoURL != null
-              ? NetworkImage(member.userPhotoURL!)
-              : null,
-          child: member.userPhotoURL == null
-              ? Text(member.userName.isNotEmpty ? member.userName[0] : 'U')
-              : null,
-        ),
-        title: Row(
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(member.userName),
-            const SizedBox(width: 8),
-            if (member.isCreator || member.isAdmin)
-              Text(
-                member.getRoleIcon(),
-                style: const TextStyle(fontSize: 16),
+            Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Something went wrong',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                color: Theme.of(context).colorScheme.error,
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(message),
+            const SizedBox(height: 16),
+            TextButton(
+              onPressed: () => setState(() {}),
+              child: const Text('Retry'),
+            ),
           ],
-        ),
-        subtitle: Text(
-          '${member.getRoleText()} • ${member.getJoinedTimeAgo()}',
-          style: const TextStyle(fontSize: 12),
         ),
       ),
     );
+  }
+
+  Widget _buildErrorScaffold() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tribe')),
+      body: _buildErrorState('Failed to load tribe'),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()} year${difference.inDays > 730 ? 's' : ''} ago';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()} month${difference.inDays > 60 ? 's' : ''} ago';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays} day${difference.inDays > 1 ? 's' : ''} ago';
+    } else {
+      return 'Today';
+    }
+  }
+
+  Future<void> _joinTribe(Tribe tribe) async {
+    setState(() => _isJoining = true);
+    
+    try {
+      await _tribeService.joinTribe(tribe.id, inviteCode: widget.inviteCode);
+      await _loadMembershipStatus();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully joined ${tribe.name}!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to join tribe: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isJoining = false);
+      }
+    }
+  }
+
+  void _createPost(Tribe? tribe) {
+    if (tribe != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CreateTribePostScreen(tribe: tribe),
+        ),
+      );
+    }
+  }
+
+  Future<void> _likePost(TribePost post) async {
+    try {
+      await _tribeService.likeTribePost(post.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  void _commentOnPost(TribePost post) {
+    // TODO: Navigate to comments screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Comments feature coming soon!')),
+    );
+  }
+
+  void _shareInvite(Tribe tribe) {
+    final message = tribe.isPrivate && tribe.inviteCode != null
+        ? 'Join our tribe "${tribe.name}" on SolarVita with invite code: ${tribe.inviteCode}'
+        : 'Check out the "${tribe.name}" tribe on SolarVita!';
+    
+    Clipboard.setData(ClipboardData(text: message));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invite message copied to clipboard!')),
+    );
+  }
+
+  void _showTribeOptions(Tribe tribe) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (tribe.inviteCode != null) ...[
+              ListTile(
+                leading: const Icon(Icons.copy),
+                title: const Text('Copy Invite Code'),
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: tribe.inviteCode!));
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Invite code copied!')),
+                  );
+                },
+              ),
+            ],
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share Tribe'),
+              onTap: () {
+                Navigator.pop(context);
+                _shareInvite(tribe);
+              },
+            ),
+            if (_currentUserMember != null) ...[
+              ListTile(
+                leading: const Icon(Icons.exit_to_app),
+                title: const Text('Leave Tribe'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showLeaveConfirmation(tribe);
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLeaveConfirmation(Tribe tribe) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Leave Tribe'),
+        content: Text('Are you sure you want to leave "${tribe.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _leaveTribe(tribe);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Leave'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _leaveTribe(Tribe tribe) async {
+    try {
+      await _tribeService.leaveTribe(tribe.id);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Left ${tribe.name}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to leave tribe: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

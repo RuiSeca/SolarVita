@@ -12,6 +12,7 @@ final log = Logger('StrikeCalculationService');
 class StrikeCalculationService {
   static const String _userProgressKey = 'user_progress';
   static const String _lastCheckDateKey = 'last_check_date';
+  static const String _yesterdayGoalsKey = 'yesterday_goals_completed';
   
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
   Timer? _midnightTimer;
@@ -73,9 +74,27 @@ class StrikeCalculationService {
   // Perform midnight reset and check previous day completion
   Future<void> _performMidnightReset() async {
     final progress = await getUserProgress();
+    final prefs = await SharedPreferences.getInstance();
+    
+    // Get yesterday's goals from saved state, not current progress
+    final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+    Map<String, bool> yesterdayGoals = {};
+    
+    if (yesterdayGoalsJson != null) {
+      try {
+        yesterdayGoals = Map<String, bool>.from(json.decode(yesterdayGoalsJson));
+      } catch (e) {
+        log.warning('⚠️ Error parsing yesterday goals: $e');
+        // Fallback to current progress goals (might be inaccurate but better than nothing)
+        yesterdayGoals = progress.todayGoalsCompleted;
+      }
+    } else {
+      // First time running or no saved data - use current progress
+      yesterdayGoals = progress.todayGoalsCompleted;
+    }
     
     // Check if any goals were completed yesterday
-    final completedGoals = progress.todayGoalsCompleted.values.where((completed) => completed).length;
+    final completedGoals = yesterdayGoals.values.where((completed) => completed).length;
     
     // IMPORTANT: Only reset strikes if EXACTLY 0 goals were completed
     // If user achieved at least 1 goal, maintain their streak and carry over strikes
@@ -86,6 +105,9 @@ class StrikeCalculationService {
     } else {
       log.info('✅ At least $completedGoals goal(s) completed yesterday - streak maintained, strikes carry over');
     }
+    
+    // Save today's goals as yesterday's goals for tomorrow's check
+    await prefs.setString(_yesterdayGoalsKey, json.encode(progress.todayGoalsCompleted));
     
     // Reset daily goals for new day
     await _resetDailyGoals();

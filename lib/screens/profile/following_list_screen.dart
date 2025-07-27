@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../theme/app_theme.dart';
 import '../../services/social_service.dart';
 import '../../models/supporter.dart';
-import 'friend_profile_screen.dart';
+import 'supporter_profile_screen.dart';
 
 class FollowingListScreen extends StatefulWidget {
   const FollowingListScreen({super.key});

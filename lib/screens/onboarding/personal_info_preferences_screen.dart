@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../services/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
@@ -15,9 +18,11 @@ class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
 class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final _formKey = GlobalKey<FormState>();
+  final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
   // Form controllers
+  late TextEditingController _displayNameController;
   late TextEditingController _usernameController;
   late TextEditingController _phoneController;
   late TextEditingController _heightController;
@@ -27,6 +32,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
   String _activityLevel = 'Intermediate';
   String _weeklyActivity = '3-4 times';
   String _gender = 'prefer_not_to_say';
+  File? _imageFile;
 
   final List<String> _activityLevelOptions = [
     'Beginner',
@@ -49,6 +55,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
   @override
   void initState() {
     super.initState();
+    _displayNameController = TextEditingController();
     _usernameController = TextEditingController();
     _phoneController = TextEditingController();
     _heightController = TextEditingController();
@@ -58,12 +65,72 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
 
   @override
   void dispose() {
+    _displayNameController.dispose();
     _usernameController.dispose();
     _phoneController.dispose();
     _heightController.dispose();
     _weightController.dispose();
     _ageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _imageFile = File(pickedFile.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String?> _uploadProfileImage() async {
+    if (_imageFile == null) return null;
+    
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
+      
+      final uploadTask = storageRef.putFile(_imageFile!);
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      return downloadUrl;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return null;
+    }
+  }
+
+  void _removeProfileImage() {
+    setState(() {
+      _imageFile = null;
+    });
   }
 
   @override
@@ -82,6 +149,8 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
+              const SizedBox(height: 24),
+              _buildProfilePictureSection(),
               const SizedBox(height: 24),
               _buildBasicInfoSection(),
               const SizedBox(height: 24),
@@ -118,6 +187,72 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
     );
   }
 
+  Widget _buildProfilePictureSection() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: Stack(
+            children: [
+              CircleAvatar(
+                radius: 60,
+                backgroundImage: _imageFile != null
+                    ? FileImage(_imageFile!)
+                    : null,
+                backgroundColor: Colors.grey[300],
+                child: _imageFile == null
+                    ? Icon(
+                        Icons.person,
+                        size: 60,
+                        color: Colors.grey[600],
+                      )
+                    : null,
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      width: 3,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Add a profile picture (optional)',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Colors.grey[600],
+          ),
+        ),
+        if (_imageFile != null)
+          const SizedBox(height: 8),
+        if (_imageFile != null)
+          TextButton.icon(
+            onPressed: _removeProfileImage,
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: const Text('Remove picture'),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red[600],
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildBasicInfoSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -127,6 +262,29 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
+        ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _displayNameController,
+          decoration: const InputDecoration(
+            labelText: 'Display Name',
+            hintText: 'John Doe',
+            helperText: 'This name will appear on your profile and dashboard',
+            prefixIcon: Icon(Icons.person),
+            border: OutlineInputBorder(),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your display name';
+            }
+            if (value.length < 2) {
+              return 'Display name must be at least 2 characters';
+            }
+            if (value.length > 50) {
+              return 'Display name must be less than 50 characters';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -384,6 +542,9 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
           return;
         }
 
+        // Upload profile image if one was selected
+        final imageUrl = await _uploadProfileImage();
+
         final profile = await _userProfileService.getOrCreateUserProfile();
         final updatedAdditionalData = Map<String, dynamic>.from(profile.additionalData);
         
@@ -398,7 +559,9 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
         });
 
         final updatedProfile = profile.copyWith(
+          displayName: _displayNameController.text.trim(),
           username: _usernameController.text.trim(),
+          photoURL: imageUrl,
           additionalData: updatedAdditionalData,
         );
         

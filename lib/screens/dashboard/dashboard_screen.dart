@@ -1,9 +1,7 @@
 // lib/screens/dashboard/dashboard_screen.dart
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:io';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
@@ -21,25 +19,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  File? imageFile;
-  final ImagePicker _picker = ImagePicker();
-
-  Future<void> _pickImage() async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxWidth: 1800,
-        maxHeight: 1800,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          imageFile = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      // Image picker failed - continue without updating profile image
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,46 +53,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         Expanded(
                           child: Row(
                             children: [
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Stack(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundImage: imageFile != null
-                                          ? FileImage(imageFile!)
-                                          : profileImageUrl != null
-                                              ? CachedNetworkImageProvider(profileImageUrl)
-                                              : null,
-                                      backgroundColor:
-                                          AppTheme.textFieldBackground(context),
-                                      child: imageFile == null && profileImageUrl == null
-                                          ? Icon(Icons.person,
-                                              color: theme.iconTheme.color)
-                                          : null,
-                                    ),
-                                    Positioned(
-                                      right: -2,
-                                      bottom: -2,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(2),
-                                        decoration: BoxDecoration(
-                                          color: theme.primaryColor,
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color: theme.scaffoldBackgroundColor,
-                                            width: 1.5,
-                                          ),
-                                        ),
-                                        child: const Icon(
-                                          Icons.add,
-                                          size: 10,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundImage: profileImageUrl != null
+                                    ? CachedNetworkImageProvider(profileImageUrl)
+                                    : null,
+                                backgroundColor:
+                                    AppTheme.textFieldBackground(context),
+                                child: profileImageUrl == null
+                                    ? Icon(Icons.person,
+                                        color: theme.iconTheme.color)
+                                    : null,
                               ),
                               const SizedBox(width: 8),
                               Flexible(

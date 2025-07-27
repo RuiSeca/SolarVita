@@ -79,32 +79,45 @@ class ModernProfileHeader extends ConsumerWidget {
                               ),
                               padding: const EdgeInsets.all(3),
                               child: photoURL != null 
-                                ? ClipOval(
-                                    child: CachedNetworkImage(
-                                      imageUrl: photoURL,
-                                      width: 70,
-                                      height: 70,
-                                      fit: BoxFit.cover,
-                                      memCacheWidth: 140,
-                                      memCacheHeight: 140,
-                                      placeholder: (context, url) => Container(
+                                ? Container(
+                                    width: 70,
+                                    height: 70,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: ClipOval(
+                                      child: CachedNetworkImage(
+                                        imageUrl: photoURL,
                                         width: 70,
                                         height: 70,
-                                        color: AppTheme.cardColor(context),
-                                        child: const Icon(
-                                          Icons.person,
-                                          size: 40,
-                                          color: AppColors.primary,
+                                        fit: BoxFit.cover,
+                                        memCacheWidth: 140,
+                                        memCacheHeight: 140,
+                                        placeholder: (context, url) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.cardColor(context),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            size: 40,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
-                                      ),
-                                      errorWidget: (context, url, error) => Container(
-                                        width: 70,
-                                        height: 70,
-                                        color: AppTheme.cardColor(context),
-                                        child: const Icon(
-                                          Icons.person,
-                                          size: 40,
-                                          color: AppColors.primary,
+                                        errorWidget: (context, url, error) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.cardColor(context),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.person,
+                                            size: 40,
+                                            color: AppColors.primary,
+                                          ),
                                         ),
                                       ),
                                     ),

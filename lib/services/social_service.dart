@@ -113,7 +113,7 @@ class SocialService {
   }
 
   // Supporter Management Methods
-  Future<void> sendSupporterRequest(String receiverId) async {
+  Future<void> sendSupporterRequest(String receiverId, {String? message}) async {
     if (currentUserId == null || currentUserId == receiverId) return;
 
     // Check if active supporterRequest already exists (supporterRequest + mutual supports)
@@ -126,6 +126,11 @@ class SocialService {
     final existingSupporterRequest = await _checkExistingSupporterRequest(receiverId);
     if (existingSupporterRequest?.status == SupporterRequestStatus.pending) {
       throw Exception('Supporter request already sent');
+    }
+
+    // Validate message length if provided
+    if (message != null && message.length > 250) {
+      throw Exception('Message cannot exceed 250 characters');
     }
 
     // Get user data for the supporterRequest
@@ -150,6 +155,7 @@ class SocialService {
       'receiverName': receiverData['displayName'] ?? '',
       'receiverUsername': receiverData['username'],
       'receiverPhotoURL': receiverData['photoURL'],
+      'message': message?.isNotEmpty == true ? message : null,
     };
 
     await _firestore.collection('supporterRequests').add(supporterRequest);
@@ -358,18 +364,29 @@ class SocialService {
     }
 
     try {
+      // MUTUAL DISCONNECTION: When one user removes support, both connections are broken
+      // This ensures support relationships are always mutual and intentional
+      
+      // Remove current user's support of the target user
       final existingSupport = await _checkExistingSupport(userId);
       if (existingSupport != null) {
         await _firestore.collection('supporters').doc(existingSupport.id).delete();
-        
-        // Update supporter count for the user being unsupported
         await _decrementSupporterCount(userId);
-        
-        // Notify UI to refresh (if available)
-        _notifyUIRefresh();
-      } else {
-        throw Exception('Not supporting this user');
       }
+      
+      // Remove target user's support of the current user (mutual disconnection)
+      final reverseSupport = await _checkSupportFromUser(userId, currentUserId!);
+      if (reverseSupport != null) {
+        await _firestore.collection('supporters').doc(reverseSupport.id).delete();
+        await _decrementSupporterCount(currentUserId!);
+      }
+      
+      // Silent removal - no notification sent to the other user
+      // This maintains privacy and avoids potential conflicts
+      
+      // Notify UI to refresh (if available)
+      _notifyUIRefresh();
+      
     } catch (e) {
       rethrow;
     }

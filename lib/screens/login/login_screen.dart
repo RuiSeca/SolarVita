@@ -1,10 +1,10 @@
 // lib/screens/login/login_screen.dart
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
-import '../../main.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -47,10 +47,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     if (success && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        (route) => false,
-      );
+      // Close login screen and let the main app routing handle navigation
+      Navigator.of(context).pop();
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
@@ -69,10 +67,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final success = await authNotifier.signInWithGoogle();
 
     if (success && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        (route) => false,
-      );
+      // Close login screen and let the main app routing handle navigation
+      Navigator.of(context).pop();
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
@@ -86,15 +82,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  Future<void> _handleFacebookSignIn() async {
+  Future<void> _handleAppleSignIn() async {
     final authNotifier = ref.read(authNotifierProvider.notifier);
-    final success = await authNotifier.signInWithFacebook();
+    final success = await authNotifier.signInWithApple();
 
     if (success && mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-        (route) => false,
-      );
+      // Close login screen and let the main app routing handle navigation
+      Navigator.of(context).pop();
     } else {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
@@ -225,29 +219,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    OutlinedButton.icon(
-                      onPressed:
-                          authState.isLoading ? null : _handleFacebookSignIn,
-                      icon: const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Image(
-                            image:
-                                AssetImage('assets/images/facebook_logo.jpg')),
-                      ),
-                      label: Text(
-                        tr(context, 'continue_facebook'),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Apple Sign-In (iOS only)
+                    if (Platform.isIOS)
+                      OutlinedButton.icon(
+                        onPressed:
+                            authState.isLoading ? null : _handleAppleSignIn,
+                        icon: const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: Icon(
+                            Icons.apple,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        label: Text(
+                          tr(context, 'continue_apple'),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                          backgroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
+                    if (Platform.isIOS) const SizedBox(height: 16),
 
                     // Divider
                     Row(
