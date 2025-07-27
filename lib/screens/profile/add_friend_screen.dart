@@ -1,24 +1,107 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
 import 'supporter_profile_screen.dart';
 
-class AddSupporterScreen extends StatefulWidget {
+// Provider for user search functionality
+final userSearchProvider = StateNotifierProvider<UserSearchNotifier, UserSearchState>((ref) {
+  return UserSearchNotifier();
+});
+
+class UserSearchState {
+  final List<Supporter> results;
+  final bool isLoading;
+  final String query;
+  final String? error;
+
+  const UserSearchState({
+    this.results = const [],
+    this.isLoading = false,
+    this.query = '',
+    this.error,
+  });
+
+  UserSearchState copyWith({
+    List<Supporter>? results,
+    bool? isLoading,
+    String? query,
+    String? error,
+  }) {
+    return UserSearchState(
+      results: results ?? this.results,
+      isLoading: isLoading ?? this.isLoading,
+      query: query ?? this.query,
+      error: error ?? this.error,
+    );
+  }
+}
+
+class UserSearchNotifier extends StateNotifier<UserSearchState> {
+  UserSearchNotifier() : super(const UserSearchState());
+  
+  final SocialService _socialService = SocialService();
+
+  Future<void> searchUsers(String query) async {
+    if (query.trim().isEmpty) {
+      state = state.copyWith(results: [], query: query);
+      return;
+    }
+
+    state = state.copyWith(isLoading: true, query: query, error: null);
+
+    try {
+      final results = await _socialService.searchUsers(query);
+      state = state.copyWith(
+        results: results,
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        results: [],
+      );
+    }
+  }
+
+  Future<void> findUserByUsername(String username) async {
+    if (username.trim().isEmpty) return;
+
+    state = state.copyWith(isLoading: true, query: username, error: null);
+
+    try {
+      final user = await _socialService.findUserByUsername(username.trim());
+      state = state.copyWith(
+        results: user != null ? [user] : [],
+        isLoading: false,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        results: [],
+      );
+    }
+  }
+
+  void clearSearch() {
+    state = const UserSearchState();
+  }
+}
+
+class AddSupporterScreen extends ConsumerStatefulWidget {
   const AddSupporterScreen({super.key});
 
   @override
-  State<AddSupporterScreen> createState() => _AddSupporterScreenState();
+  ConsumerState<AddSupporterScreen> createState() => _AddSupporterScreenState();
 }
 
-class _AddSupporterScreenState extends State<AddSupporterScreen> {
+class _AddSupporterScreenState extends ConsumerState<AddSupporterScreen> {
   final SocialService _socialService = SocialService();
   final TextEditingController _searchController = TextEditingController();
-  
-  List<Supporter> _searchResults = [];
-  bool _isSearching = false;
-  String _searchQuery = '';
 
   @override
   void dispose() {
@@ -26,82 +109,12 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
     super.dispose();
   }
 
-  Future<void> _searchUsers(String query) async {
-    if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _searchQuery = '';
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _searchQuery = query.trim();
-    });
-
-    try {
-      final results = await _socialService.searchUsers(query.trim());
-      if (mounted) {
-        setState(() {
-          _searchResults = results;
-          _isSearching = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _searchResults = [];
-          _isSearching = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error searching users: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  void _searchUsers(String query) {
+    ref.read(userSearchProvider.notifier).searchUsers(query);
   }
 
-  Future<void> _findUserByUsername(String username) async {
-    if (username.trim().isEmpty) return;
-
-    setState(() {
-      _isSearching = true;
-    });
-
-    try {
-      final user = await _socialService.findUserByUsername(username.trim());
-      if (mounted) {
-        setState(() {
-          _searchResults = user != null ? [user] : [];
-          _isSearching = false;
-        });
-        
-        if (user == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('User not found'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _searchResults = [];
-          _isSearching = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error finding user: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+  void _findUserByUsername(String username) {
+    ref.read(userSearchProvider.notifier).findUserByUsername(username);
   }
 
   void _sendSupporterRequest(String userId, String userName) {
@@ -270,10 +283,7 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
                     icon: const Icon(Icons.clear),
                     onPressed: () {
                       _searchController.clear();
-                      setState(() {
-                        _searchResults = [];
-                        _searchQuery = '';
-                      });
+                      ref.read(userSearchProvider.notifier).clearSearch();
                     },
                   )
                 : null,
@@ -286,7 +296,6 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
             ),
           ),
           onChanged: (value) {
-            setState(() {});
             // Debounce search to avoid too many API calls
             Future.delayed(const Duration(milliseconds: 500), () {
               if (_searchController.text == value && value.isNotEmpty) {
@@ -317,7 +326,9 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
   }
 
   Widget _buildSearchResults(ThemeData theme) {
-    if (_isSearching) {
+    final searchState = ref.watch(userSearchProvider);
+    
+    if (searchState.isLoading) {
       return const Expanded(
         child: Center(
           child: CircularProgressIndicator(),
@@ -325,7 +336,7 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
       );
     }
 
-    if (_searchQuery.isEmpty) {
+    if (searchState.query.isEmpty) {
       return Expanded(
         child: Center(
           child: Column(
@@ -349,31 +360,33 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
       );
     }
 
-    if (_searchResults.isEmpty) {
+    if (searchState.results.isEmpty) {
       return Expanded(
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                Icons.person_off,
+                searchState.query.isEmpty ? Icons.search : Icons.person_off,
                 size: 64,
                 color: theme.hintColor,
               ),
               const SizedBox(height: 16),
               Text(
-                'No users found',
+                searchState.query.isEmpty ? 'Search for supporters' : 'No users found',
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.hintColor,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Try a different username',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.hintColor,
+              if (searchState.query.isNotEmpty)
+                const SizedBox(height: 8),
+              if (searchState.query.isNotEmpty)
+                Text(
+                  'Try a different username',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.hintColor,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -385,7 +398,7 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Search Results',
+            'Search Results (${searchState.results.length})',
             style: theme.textTheme.titleMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: AppTheme.textColor(context),
@@ -394,10 +407,10 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
           const SizedBox(height: 12),
           Expanded(
             child: ListView.separated(
-              itemCount: _searchResults.length,
+              itemCount: searchState.results.length,
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final user = _searchResults[index];
+                final user = searchState.results[index];
                 return _buildUserCard(user, theme);
               },
             ),

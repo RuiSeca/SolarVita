@@ -1,3 +1,10 @@
+// Meal Plan Screen with carryover functionality
+// Features:
+// - Visual highlighting of currently selected day
+// - Automatic meal suggestions from previous day when day has no meals
+// - Accept/reject buttons for suggested meals (✅/❌)
+// - Suggested meals shown with faded styling and italic text
+// - Automatic suggestions when navigating between days
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -208,6 +215,109 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     );
   }
 
+  // Get suggested meals from previous day
+  Map<String, List<Map<String, dynamic>>> _getSuggestedMealsFromPreviousDay(int dayIndex) {
+    final previousDayIndex = dayIndex == 0 ? 6 : dayIndex - 1;
+    final previousDayMeals = _weeklyMealData[previousDayIndex];
+    
+    if (previousDayMeals == null || previousDayMeals.isEmpty) {
+      return {
+        'breakfast': [],
+        'lunch': [],
+        'dinner': [],
+        'snacks': [],
+      };
+    }
+    
+    // Create suggested meals with isSuggested flag
+    final suggestedMeals = <String, List<Map<String, dynamic>>>{};
+    
+    for (final mealTime in _mealTimes) {
+      suggestedMeals[mealTime] = [];
+      final previousMeals = previousDayMeals[mealTime] ?? [];
+      final currentMeals = _mealData[mealTime] ?? [];
+      
+      // Only suggest if the current meal time slot is completely empty
+      if (currentMeals.isEmpty) {
+        for (final meal in previousMeals) {
+          final suggestedMeal = Map<String, dynamic>.from(meal);
+          suggestedMeal['isSuggested'] = true;
+          suggestedMeal['originalId'] = meal['id']; // Keep track of original ID
+          suggestedMeal['id'] = '${meal['id']}_suggested_${dayIndex}_$mealTime'; // Unique ID for suggestion
+          suggestedMeals[mealTime]!.add(suggestedMeal);
+        }
+      }
+    }
+    
+    return suggestedMeals;
+  }
+
+  // Accept a suggested meal (convert to regular meal)
+  void _acceptSuggestedMeal(String mealTime, Map<String, dynamic> suggestedMeal) {
+    setState(() {
+      // Remove the suggested meal
+      _mealData[mealTime]?.removeWhere((meal) => meal['id'] == suggestedMeal['id']);
+      
+      // Create a regular meal from the suggestion
+      final acceptedMeal = Map<String, dynamic>.from(suggestedMeal);
+      acceptedMeal.remove('isSuggested');
+      acceptedMeal['id'] = acceptedMeal['originalId'] ?? DateTime.now().toString();
+      acceptedMeal.remove('originalId');
+      
+      // Add as regular meal
+      _mealData[mealTime]!.add(acceptedMeal);
+    });
+    
+    _saveMealData();
+  }
+
+  // Reject a suggested meal (remove it)
+  void _rejectSuggestedMeal(String mealTime, String suggestedMealId) {
+    setState(() {
+      _mealData[mealTime]?.removeWhere((meal) => meal['id'] == suggestedMealId);
+    });
+    
+    _saveMealData();
+  }
+
+  // Check if current day has any regular (non-suggested) meals
+  bool _hasRegularMeals() {
+    for (final mealList in _mealData.values) {
+      if (mealList.any((meal) => meal['isSuggested'] != true)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Check if a meal can be added to a specific meal time slot
+  bool _canAddMealToSlot(String mealTime) {
+    final meals = _mealData[mealTime] ?? [];
+    return meals.isEmpty;
+  }
+
+  // Show conflict message when trying to add meal to occupied slot
+  void _showMealConflictMessage(BuildContext context, String mealTime) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Cannot add meal to ${mealTime.toLowerCase()}. Please remove the current meal first or choose another meal time.',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'OK',
+          textColor: Colors.white,
+          onPressed: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          },
+        ),
+      ),
+    );
+  }
+
   // Add these methods to the _MealPlanScreenState class
 
 // Load saved data from SharedPreferences
@@ -239,6 +349,17 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 'dinner': [],
                 'snacks': [],
               };
+          
+          // Check if the current day has no regular meals and add suggestions
+          if (!_hasRegularMeals()) {
+            final suggestedMeals = _getSuggestedMealsFromPreviousDay(_selectedDayIndex);
+            
+            // Add suggested meals to current day data
+            for (final mealTime in _mealTimes) {
+              final suggestions = suggestedMeals[mealTime] ?? [];
+              _mealData[mealTime]!.addAll(suggestions);
+            }
+          }
         });
       }
 
@@ -340,8 +461,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     }
   }
 
-// Add a meal to the current day
-  void _addMealToDay(String mealTime, Map<String, dynamic> meal) {
+// Add a meal to the current day with validation
+  bool _addMealToDay(String mealTime, Map<String, dynamic> meal, {bool showConflictMessage = true}) {
+    // Check if the slot is available
+    if (!_canAddMealToSlot(mealTime)) {
+      if (showConflictMessage && mounted) {
+        _showMealConflictMessage(context, mealTime);
+      }
+      return false;
+    }
+
     // Format the meal data consistently for both local storage and supporter sharing
     final formattedMeal = {
       'id': meal['id'],
@@ -380,6 +509,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     // Save the updated data
     _saveMealData();
+    return true;
   }
 
 // Remove a meal from the current day
@@ -507,16 +637,18 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     if (result != null && mounted) {
       if (result['action'] == 'add_meal') {
-        _addMealToDay(result['mealTime'], result['meal']);
+        final success = _addMealToDay(result['mealTime'], result['meal']);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr(context, 'meal_added_to_plan')),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
-        );
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(tr(context, 'meal_added_to_plan')),
+              backgroundColor: AppColors.primary,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     }
   }
@@ -562,25 +694,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   ),
                 );
                 if (newMeal != null && mounted) {
-                  setState(() {
-                    if (newMeal is Map<String, dynamic>) {
-                      final formattedMeal = {
-                        'id': newMeal['title'] ?? DateTime.now().toString(),
-                        'titleKey': newMeal['title'],
-                        'imagePath': newMeal['imagePath'],
-                        'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
-                        'nutritionFacts': newMeal['nutritionFacts'],
-                        'ingredients': newMeal['ingredients'],
-                        'measures': List<String>.filled(
-                            (newMeal['ingredients'] as List).length, '1'),
-                        'instructions': newMeal['instructions'],
-                        'area': '',
-                        'category': '',
-                        'isVegan': false,
-                      };
-                      _addMealToDay(_currentMealTime, formattedMeal);
-                    }
-                  });
+                  if (newMeal is Map<String, dynamic>) {
+                    final formattedMeal = {
+                      'id': newMeal['title'] ?? DateTime.now().toString(),
+                      'titleKey': newMeal['title'],
+                      'imagePath': newMeal['imagePath'],
+                      'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
+                      'nutritionFacts': newMeal['nutritionFacts'],
+                      'ingredients': newMeal['ingredients'],
+                      'measures': List<String>.filled(
+                          (newMeal['ingredients'] as List).length, '1'),
+                      'instructions': newMeal['instructions'],
+                      'area': '',
+                      'category': '',
+                      'isVegan': false,
+                    };
+                    _addMealToDay(_currentMealTime, formattedMeal);
+                  }
                 }
               },
             ),
@@ -803,6 +933,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         itemExtent: 72.0, // Fixed width for horizontal day selector items (width + margin)
         itemBuilder: (context, index) {
           final isSelected = _selectedDayIndex == index;
+          final today = DateTime.now();
+          final todayIndex = today.weekday - 1; // Convert to 0-6 index
+          final isToday = index == todayIndex;
+          
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -821,6 +955,17 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       'dinner': [],
                       'snacks': [],
                     };
+                
+                // Check if the selected day has no regular meals and add suggestions
+                if (!_hasRegularMeals()) {
+                  final suggestedMeals = _getSuggestedMealsFromPreviousDay(index);
+                  
+                  // Add suggested meals to current day data
+                  for (final mealTime in _mealTimes) {
+                    final suggestions = suggestedMeals[mealTime] ?? [];
+                    _mealData[mealTime]!.addAll(suggestions);
+                  }
+                }
               });
               _saveMealData();
             },
@@ -832,28 +977,57 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     ? AppColors.primary
                     : AppTheme.cardColor(context),
                 borderRadius: BorderRadius.circular(12),
+                border: isSelected
+                    ? Border.all(color: AppColors.primary.withValues(alpha: 0.8), width: 2)
+                    : Border.all(color: Colors.transparent, width: 2),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Today indicator
+                  if (isToday)
+                    Text(
+                      'Today',
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.primary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  if (isToday) const SizedBox(height: 2),
+                  
+                  // Day name
                   Text(
                     tr(context, _weekDays[index]).substring(0, 3).toUpperCase(),
                     style: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context),
-                      fontSize: 14,
+                      fontSize: isToday ? 13 : 14,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
+                  
+                  // Day number
                   Text(
                     '${index + 1}',
                     style: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context).withAlpha(179),
-                      fontSize: 12,
+                      fontSize: isToday ? 11 : 12,
                     ),
                   ),
                 ],
@@ -899,25 +1073,23 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   if (!mounted || newMeal == null) return;
 
-                  setState(() {
-                    if (newMeal is Map<String, dynamic>) {
-                      final formattedMeal = {
-                        'id': newMeal['title'] ?? DateTime.now().toString(),
-                        'titleKey': newMeal['title'],
-                        'imagePath': newMeal['imagePath'],
-                        'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
-                        'nutritionFacts': newMeal['nutritionFacts'],
-                        'ingredients': newMeal['ingredients'],
-                        'measures': List<String>.filled(
-                            (newMeal['ingredients'] as List).length, '1'),
-                        'instructions': newMeal['instructions'],
-                        'area': '',
-                        'category': '',
-                        'isVegan': false,
-                      };
-                      _addMealToDay(_currentMealTime, formattedMeal);
-                    }
-                  });
+                  if (newMeal is Map<String, dynamic>) {
+                    final formattedMeal = {
+                      'id': newMeal['title'] ?? DateTime.now().toString(),
+                      'titleKey': newMeal['title'],
+                      'imagePath': newMeal['imagePath'],
+                      'calories': newMeal['nutritionFacts']?['calories'] ?? '0',
+                      'nutritionFacts': newMeal['nutritionFacts'],
+                      'ingredients': newMeal['ingredients'],
+                      'measures': List<String>.filled(
+                          (newMeal['ingredients'] as List).length, '1'),
+                      'instructions': newMeal['instructions'],
+                      'area': '',
+                      'category': '',
+                      'isVegan': false,
+                    };
+                    _addMealToDay(_currentMealTime, formattedMeal);
+                  }
                 } else if (index == 1) {
                   final navigator = Navigator.of(context);
                   final scaffoldMessenger =
@@ -941,18 +1113,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   if (result is Map<String, dynamic> &&
                       result['action'] == 'add_meal') {
-                    _addMealToDay(result['mealTime'], result['meal']);
+                    final success = _addMealToDay(result['mealTime'], result['meal']);
 
                     if (!mounted) return;
 
-                    scaffoldMessenger.showSnackBar(
-                      // Usa a variável guardada
-                      SnackBar(
-                        content: Text('Meal added to ${result['mealTime']}'),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                    if (success) {
+                      scaffoldMessenger.showSnackBar(
+                        // Usa a variável guardada
+                        SnackBar(
+                          content: Text('Meal added to ${result['mealTime']}'),
+                          backgroundColor: AppColors.primary,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
                   }
                 }
               },
@@ -1061,7 +1235,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _mealTimes.length,
-      itemExtent: 200.0, // Fixed height for meal time cards (base height without dynamic content)
       itemBuilder: (context, index) =>
           _buildMealCard(context, _mealTimes[index]),
     );
@@ -1127,6 +1300,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   Widget _buildMealItem(BuildContext context, Map<String, dynamic> meal) {
     final bool isFavorite = _favoriteMeals.contains(meal['id']?.toString());
+    final bool isSuggested = meal['isSuggested'] == true;
 
     // Helper function to build meal image
     Widget buildMealImage() {
@@ -1220,15 +1394,28 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: AppTheme.cardColor(context),
+          color: isSuggested 
+              ? AppTheme.cardColor(context).withValues(alpha: 0.6)
+              : AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(13),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: isSuggested 
+              ? Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1)
+              : null,
+          boxShadow: isSuggested
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(8),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withAlpha(13),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: InkWell(
           onTap: () => _handleShowMealDetail(meal),
@@ -1252,13 +1439,43 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       Text(
                         meal['titleKey']?.toString() ?? 'Unnamed Meal',
                         style: TextStyle(
-                          color: AppTheme.textColor(context),
+                          color: isSuggested 
+                              ? AppTheme.textColor(context).withValues(alpha: 0.7)
+                              : AppTheme.textColor(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
+                          fontStyle: isSuggested ? FontStyle.italic : FontStyle.normal,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      
+                      // Suggested meal indicator
+                      if (isSuggested) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lightbulb_outline,
+                              size: 12,
+                              color: AppColors.primary.withValues(alpha: 0.7),
+                            ),
+                            const SizedBox(width: 2),
+                            Flexible(
+                              child: Text(
+                                'From yesterday',
+                                style: TextStyle(
+                                  color: AppColors.primary.withValues(alpha: 0.7),
+                                  fontSize: 11,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 8),
 
                       // Nutritional Information Row
@@ -1345,36 +1562,96 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Favorite Button
-                    IconButton(
-                      icon: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        transitionBuilder: (child, animation) {
-                          return RotationTransition(
-                            turns: animation,
-                            child: ScaleTransition(
-                              scale: animation,
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          key: ValueKey(isFavorite),
-                          color: isFavorite ? Colors.red : Colors.grey,
+                    if (isSuggested) ...[
+                      // Accept suggested meal button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: IconButton(
+                          iconSize: 20,
+                          icon: const Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                          ),
+                          onPressed: () {
+                            // Find which meal time this meal belongs to
+                            String? mealTime;
+                            for (final time in _mealTimes) {
+                              if (_mealData[time]?.any((m) => m['id'] == meal['id']) == true) {
+                                mealTime = time;
+                                break;
+                              }
+                            }
+                            if (mealTime != null) {
+                              _acceptSuggestedMeal(mealTime, meal);
+                            }
+                          },
+                          tooltip: 'Accept meal',
                         ),
                       ),
-                      onPressed: () =>
-                          _toggleFavorite(meal['id']?.toString() ?? ''),
-                    ),
-                    // More Options Button
-                    IconButton(
-                      icon: Icon(
-                        Icons.more_vert,
-                        color: AppTheme.textColor(context).withAlpha(179),
+                      const SizedBox(width: 2),
+                      // Reject suggested meal button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: IconButton(
+                          iconSize: 20,
+                          icon: const Icon(
+                            Icons.cancel,
+                            color: Colors.red,
+                          ),
+                          onPressed: () {
+                            // Find which meal time this meal belongs to
+                            String? mealTime;
+                            for (final time in _mealTimes) {
+                              if (_mealData[time]?.any((m) => m['id'] == meal['id']) == true) {
+                                mealTime = time;
+                                break;
+                              }
+                            }
+                            if (mealTime != null) {
+                              _rejectSuggestedMeal(mealTime, meal['id']);
+                            }
+                          },
+                          tooltip: 'Reject meal',
+                        ),
                       ),
-                      onPressed: () => _showMealOptions(context, meal),
-                    ),
+                    ] else ...[
+                      // Favorite Button (for regular meals)
+                      IconButton(
+                        icon: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          transitionBuilder: (child, animation) {
+                            return RotationTransition(
+                              turns: animation,
+                              child: ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            key: ValueKey(isFavorite),
+                            color: isFavorite ? Colors.red : Colors.grey,
+                          ),
+                        ),
+                        onPressed: () =>
+                            _toggleFavorite(meal['id']?.toString() ?? ''),
+                      ),
+                      // More Options Button (for regular meals)
+                      IconButton(
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: AppTheme.textColor(context).withAlpha(179),
+                        ),
+                        onPressed: () => _showMealOptions(context, meal),
+                      ),
+                    ],
                   ],
                 ),
               ],

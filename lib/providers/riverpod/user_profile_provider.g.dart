@@ -290,8 +290,26 @@ final userProfileStreamProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef UserProfileStreamRef = AutoDisposeStreamProviderRef<UserProfile?>;
+String _$supporterCountStreamHash() =>
+    r'2f429ec4e51ce8a40c41ee84b634c3e6fa62b7f1';
+
+/// See also [supporterCountStream].
+@ProviderFor(supporterCountStream)
+final supporterCountStreamProvider = AutoDisposeStreamProvider<int>.internal(
+  supporterCountStream,
+  name: r'supporterCountStreamProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$supporterCountStreamHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SupporterCountStreamRef = AutoDisposeStreamProviderRef<int>;
 String _$userProfileNotifierHash() =>
-    r'9560f6651943b94893c9d4fd3cd0b29b86cf1620';
+    r'72c4757a243041d937c8f3d64797a52ecd04a83a';
 
 /// See also [UserProfileNotifier].
 @ProviderFor(UserProfileNotifier)

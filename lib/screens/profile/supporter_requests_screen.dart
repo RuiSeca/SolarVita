@@ -1,23 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
-import '../../services/social_service.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 import 'supporter_profile_screen.dart';
 
-class SupporterRequestsScreen extends StatefulWidget {
+part 'supporter_requests_screen.g.dart';
+
+// Provider for supporter requests stream
+@riverpod
+Stream<List<SupporterRequest>> supporterRequestsList(Ref ref) {
+  final socialService = ref.watch(socialServiceProvider);
+  return socialService.getPendingSupporterRequests();
+}
+
+class SupporterRequestsScreen extends ConsumerStatefulWidget {
   const SupporterRequestsScreen({super.key});
 
   @override
-  State<SupporterRequestsScreen> createState() => _SupporterRequestsScreenState();
+  ConsumerState<SupporterRequestsScreen> createState() => _SupporterRequestsScreenState();
 }
 
-class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
-  final SocialService _socialService = SocialService();
-
+class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final requestsAsync = ref.watch(supporterRequestsListProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -30,40 +40,9 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: StreamBuilder<List<SupporterRequest>>(
-        stream: _socialService.getPendingSupporterRequests(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: theme.hintColor,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Error loading supporter requests',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.hintColor,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          final friendRequests = snapshot.data ?? [];
-
-          if (friendRequests.isEmpty) {
+      body: requestsAsync.when(
+        data: (requests) {
+          if (requests.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -94,14 +73,34 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: friendRequests.length,
+            itemCount: requests.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final request = friendRequests[index];
+              final request = requests[index];
               return _buildSupporterRequestCard(request);
             },
           );
         },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: theme.hintColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading supporter requests',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -307,11 +306,13 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
 
   Future<void> _acceptRequest(String supporterRequestId) async {
     try {
-      await _socialService.acceptSupporterRequest(supporterRequestId);
+      final socialService = ref.read(socialServiceProvider);
+      await socialService.acceptSupporterRequest(supporterRequestId);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Supporter request accepted!'),
+            content: Text('Supporter request accepted! ✨'),
             backgroundColor: Colors.green,
           ),
         );
@@ -330,7 +331,8 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
 
   Future<void> _rejectRequest(String supporterRequestId) async {
     try {
-      await _socialService.rejectSupporterRequest(supporterRequestId);
+      final socialService = ref.read(socialServiceProvider);
+      await socialService.rejectSupporterRequest(supporterRequestId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

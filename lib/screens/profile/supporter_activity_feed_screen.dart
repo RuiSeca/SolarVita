@@ -5,14 +5,14 @@ import '../../services/social_service.dart';
 import '../../models/social_activity.dart';
 import '../../utils/translation_helper.dart';
 
-class FriendActivityFeedScreen extends StatefulWidget {
-  const FriendActivityFeedScreen({super.key});
+class SupporterActivityFeedScreen extends StatefulWidget {
+  const SupporterActivityFeedScreen({super.key});
 
   @override
-  State<FriendActivityFeedScreen> createState() => _FriendActivityFeedScreenState();
+  State<SupporterActivityFeedScreen> createState() => _SupporterActivityFeedScreenState();
 }
 
-class _FriendActivityFeedScreenState extends State<FriendActivityFeedScreen> {
+class _SupporterActivityFeedScreenState extends State<SupporterActivityFeedScreen> {
   final SocialService _socialService = SocialService();
 
   @override
@@ -23,7 +23,7 @@ class _FriendActivityFeedScreenState extends State<FriendActivityFeedScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         title: Text(
-          tr(context, 'profile.friends_activities'),
+          tr(context, 'profile.supporters_activities'),
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
             color: AppTheme.textColor(context),
@@ -89,7 +89,7 @@ class _FriendActivityFeedScreenState extends State<FriendActivityFeedScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    tr(context, 'profile.friends_activities_help'),
+                    tr(context, 'profile.supporters_activities_help'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[500],
                     ),

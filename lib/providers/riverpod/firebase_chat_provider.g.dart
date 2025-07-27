@@ -25,7 +25,7 @@ final firebaseChatServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FirebaseChatServiceRef = AutoDisposeProviderRef<FirebaseChatService>;
-String _$userConversationsHash() => r'd9181980cbe31122baeaf961d05d436fb97bdcb8';
+String _$userConversationsHash() => r'ab80179bb4768cef73bfb0ec79814af10d676abf';
 
 /// See also [userConversations].
 @ProviderFor(userConversations)
@@ -45,7 +45,7 @@ final userConversationsProvider =
 typedef UserConversationsRef =
     AutoDisposeStreamProviderRef<List<ChatConversation>>;
 String _$conversationMessagesHash() =>
-    r'c19611ef4ee110e9d8aa991bb97a556d8735a8da';
+    r'8f355b56519d9ba2ce60b9a6ff10ca49f8a295cf';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -1002,7 +1002,7 @@ final hasUnreadMessagesProvider = AutoDisposeFutureProvider<bool>.internal(
 // ignore: unused_element
 typedef HasUnreadMessagesRef = AutoDisposeFutureProviderRef<bool>;
 String _$conversationParticipantsHash() =>
-    r'b0c666cb590fc1b372d6463639c47b9a5eed6375';
+    r'031719ef5b21c9ed79f31273791d833c74e297cf';
 
 /// Get conversation participants info
 ///
@@ -1281,7 +1281,7 @@ class _TypingIndicatorTextProviderElement
       (origin as TypingIndicatorTextProvider).conversationId;
 }
 
-String _$chatActionsHash() => r'51471e0de4169a86743935bc3b7c665dec451d87';
+String _$chatActionsHash() => r'69ed7fbeee8ca61413713f39aa4b4a6c1b311715';
 
 /// Chat Actions State Notifier
 ///

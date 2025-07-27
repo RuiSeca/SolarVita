@@ -34,6 +34,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Sync data to Firebase when profile loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncCurrentDataToFirebase();
+      _autoSyncSupporterCount();
     });
   }
 
@@ -42,19 +43,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _refreshData() async {
-    // Refresh both user progress and health data
-    await Future.wait([
-      ref.read(userProgressNotifierProvider.notifier).refresh(),
-      ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
-    ]);
-    
-    // Invalidate providers for refresh
-    
-    // Sync current data to Firebase so supporters can see it
-    await _syncCurrentDataToFirebase();
-    
-    // Refresh supporter requests cache
-    _initializeCachedStream();
+    try {
+      // First, sync supporter count to ensure accuracy (silent background sync)
+      await _autoSyncSupporterCount();
+      
+      // Small delay to prevent jarring refresh
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Refresh other data in parallel to speed things up
+      await Future.wait([
+        ref.read(userProgressNotifierProvider.notifier).refresh(),
+        ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
+        _syncCurrentDataToFirebase(),
+      ]);
+      
+      // Refresh supporter requests cache
+      _initializeCachedStream();
+      
+    } catch (e) {
+      // Don't block refresh on individual failures
+      debugPrint('Refresh error: $e');
+    }
   }
 
   Future<void> _syncCurrentDataToFirebase() async {
@@ -74,6 +83,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } catch (e) {
       // Don't block UI on sync failures
+    }
+  }
+
+  Future<void> _autoSyncSupporterCount() async {
+    try {
+      final wasFixed = await _socialService.autoSyncSupporterCount();
+      if (wasFixed) {
+        // Silently refresh the user profile without triggering loading state
+        await ref.read(userProfileNotifierProvider.notifier).silentRefreshSupporterCount();
+      }
+    } catch (e) {
+      // Silent fail for auto-sync
     }
   }
 

@@ -148,7 +148,7 @@
         <!-- Firebase Messaging default channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="chat_channel" />
+            android:value="social_notifications" />
 
         <!-- Required for Flutter engine -->
         <meta-data

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 
-class ModernAchievementsSection extends StatelessWidget {
+class ModernAchievementsSection extends ConsumerWidget {
   const ModernAchievementsSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(

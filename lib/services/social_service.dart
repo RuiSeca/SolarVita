@@ -1,17 +1,40 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/social_activity.dart';
 import '../models/supporter.dart';
 import '../models/support.dart';
 import '../models/community_challenge.dart';
 import '../models/privacy_settings.dart';
+import 'firebase_push_notification_service.dart';
+
+// Global callback to notify UI when supporter count changes
+typedef SupporterCountChangeCallback = Future<void> Function();
+SupporterCountChangeCallback? _globalSupporterCountCallback;
 
 class SocialService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebasePushNotificationService _notificationService = FirebasePushNotificationService();
 
   String? get currentUserId => _auth.currentUser?.uid;
+
+  // Static method to register UI refresh callback
+  static void setSupporterCountChangeCallback(SupporterCountChangeCallback callback) {
+    _globalSupporterCountCallback = callback;
+  }
+
+  // Method to trigger UI refresh when supporter count changes
+  Future<void> _triggerSupporterCountRefresh() async {
+    if (_globalSupporterCountCallback != null) {
+      try {
+        await _globalSupporterCountCallback!();
+      } catch (e) {
+        // Silent fail for UI refresh
+      }
+    }
+  }
 
   // Activity Feed Methods
   Future<void> createActivity({
@@ -21,7 +44,9 @@ class SocialService {
     PostVisibility? visibility,
     Map<String, dynamic>? metadata,
   }) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     final user = _auth.currentUser!;
     
@@ -92,13 +117,17 @@ class SocialService {
   }
 
   Future<void> likeActivity(String activityId) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     final activityRef = _firestore.collection('activities').doc(activityId);
     
     await _firestore.runTransaction((transaction) async {
       final doc = await transaction.get(activityRef);
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        return;
+      }
 
       final likes = List<String>.from(doc.data()?['likes'] ?? []);
       
@@ -114,7 +143,9 @@ class SocialService {
 
   // Supporter Management Methods
   Future<void> sendSupporterRequest(String receiverId, {String? message}) async {
-    if (currentUserId == null || currentUserId == receiverId) return;
+    if (currentUserId == null || currentUserId == receiverId) {
+      return;
+    }
 
     // Check if active supporterRequest already exists (supporterRequest + mutual supports)
     final hasActiveSupporter = await hasActiveSupporterRequest(receiverId);
@@ -159,6 +190,17 @@ class SocialService {
     };
 
     await _firestore.collection('supporterRequests').add(supporterRequest);
+    
+    // Send notification to receiver
+    try {
+      await _notificationService.sendSupportRequestNotification(
+        receiverId: receiverId,
+        requesterName: requesterData['displayName'] ?? 'Someone',
+        message: message,
+      );
+    } catch (e) {
+      // Continue even if notification fails
+    }
   }
 
   Future<void> acceptSupporterRequest(String supporterRequestId) async {
@@ -185,25 +227,58 @@ class SocialService {
     
     // Automatically create mutual support relationships between supporters
     try {
-      // Create support: current user → requester (if not exists)
-      final existingSupport1 = await _checkExistingSupport(requesterId);
-      if (existingSupport1 == null) {
-        await supportUser(requesterId);
+      // Create mutual support relationship (supportUser now handles both directions)
+      final existingSupport = await _checkExistingSupport(requesterId);
+      if (existingSupport == null) {
+        await supportUser(requesterId); // This now creates BOTH relationships and updates BOTH counts
       }
       
-      // Create support: requester → current user (if not exists)
-      // We need to check from the requester's perspective
-      final requesterSupportsMe = await _checkSupportFromUser(requesterId, currentUserId!);
-      if (requesterSupportsMe == null) {
-        await _createSupportRelationship(requesterId, currentUserId!);
-      }
+      // Trigger UI refresh after supporter count changes
+      await _triggerSupporterCountRefresh();
     } catch (e) {
       // If support creation fails, don't fail the entire supporter acceptance
+    }
+    
+    // Send notification to requester
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        await _notificationService.sendSupportAcceptedNotification(
+          requesterId: requesterId,
+          acceptorName: currentUser.displayName ?? 'Someone',
+        );
+      }
+    } catch (e) {
+      // Continue even if notification fails
     }
   }
 
   Future<void> rejectSupporterRequest(String supporterRequestId) async {
+    // Get requester info before deleting
+    final supporterRequestDoc = await _firestore.collection('supporterRequests').doc(supporterRequestId).get();
+    String? requesterId;
+    
+    if (supporterRequestDoc.exists) {
+      final data = supporterRequestDoc.data()!;
+      requesterId = data['requesterId'] as String?;
+    }
+    
     await _firestore.collection('supporterRequests').doc(supporterRequestId).delete();
+    
+    // Send notification to requester
+    if (requesterId != null) {
+      try {
+        final currentUser = _auth.currentUser;
+        if (currentUser != null) {
+          await _notificationService.sendSupportRejectedNotification(
+            requesterId: requesterId,
+            rejectorName: currentUser.displayName ?? 'Someone',
+          );
+        }
+      } catch (e) {
+        // Continue even if notification fails
+      }
+    }
   }
 
   Stream<List<Supporter>> getSupporters() {
@@ -311,9 +386,11 @@ class SocialService {
             .toList());
   }
 
-  // Support Management Methods
+  // Support Management Methods - Creates MUTUAL support relationship
   Future<void> supportUser(String userId) async {
-    if (currentUserId == null || currentUserId == userId) return;
+    if (currentUserId == null || currentUserId == userId) {
+      return;
+    }
 
     try {
       // Check if already supporting
@@ -333,7 +410,8 @@ class SocialService {
       final supporterData = supporterDoc.data()!;
       final supportingData = supportingDoc.data()!;
 
-      final support = {
+      // Create support: current user → target user
+      final support1 = {
         'supporterId': currentUserId!,
         'supportedId': userId,
         'createdAt': Timestamp.now(),
@@ -345,13 +423,37 @@ class SocialService {
         'supportedPhotoURL': supportingData['photoURL'],
       };
 
-      await _firestore.collection('supporters').add(support);
+      await _firestore.collection('supporters').add(support1);
       
       // Update supporter count for the user being supported
       await _incrementSupporterCount(userId);
       
+      // Create MUTUAL support: target user → current user (if not exists)
+      final reverseSupport = await _checkSupportFromUser(userId, currentUserId!);
+      if (reverseSupport == null) {
+        final support2 = {
+          'supporterId': userId,
+          'supportedId': currentUserId!,
+          'createdAt': Timestamp.now(),
+          'supporterName': supportingData['displayName'] ?? '',
+          'supporterUsername': supportingData['username'],
+          'supporterPhotoURL': supportingData['photoURL'],
+          'supportedName': supporterData['displayName'] ?? '',
+          'supportedUsername': supporterData['username'],
+          'supportedPhotoURL': supporterData['photoURL'],
+        };
+
+        await _firestore.collection('supporters').add(support2);
+        
+        // Update supporter count for current user (they now have target user as supporter)
+        await _incrementSupporterCount(currentUserId!);
+      }
+      
       // Notify UI to refresh (if available)
       _notifyUIRefresh();
+      
+      // Trigger UI refresh after supporter count changes
+      await _triggerSupporterCountRefresh();
       
     } catch (e) {
       rethrow;
@@ -371,6 +473,7 @@ class SocialService {
       final existingSupport = await _checkExistingSupport(userId);
       if (existingSupport != null) {
         await _firestore.collection('supporters').doc(existingSupport.id).delete();
+        // Decrement the target user's supporter count (they lose current user as supporter)
         await _decrementSupporterCount(userId);
       }
       
@@ -378,6 +481,7 @@ class SocialService {
       final reverseSupport = await _checkSupportFromUser(userId, currentUserId!);
       if (reverseSupport != null) {
         await _firestore.collection('supporters').doc(reverseSupport.id).delete();
+        // Decrement current user's supporter count (they lose target user as supporter)
         await _decrementSupporterCount(currentUserId!);
       }
       
@@ -387,13 +491,18 @@ class SocialService {
       // Notify UI to refresh (if available)
       _notifyUIRefresh();
       
+      // Trigger UI refresh after supporter count changes
+      await _triggerSupporterCountRefresh();
+      
     } catch (e) {
       rethrow;
     }
   }
 
   Future<bool> isSupporting(String userId) async {
-    if (currentUserId == null || currentUserId == userId) return false;
+    if (currentUserId == null || currentUserId == userId) {
+      return false;
+    }
     
     final existingSupport = await _checkExistingSupport(userId);
     return existingSupport != null;
@@ -545,13 +654,17 @@ class SocialService {
   }
 
   Future<void> joinChallenge(String challengeId) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     final challengeRef = _firestore.collection('challenges').doc(challengeId);
     
     await _firestore.runTransaction((transaction) async {
       final doc = await transaction.get(challengeRef);
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        return;
+      }
 
       final participants = List<String>.from(doc.data()?['participants'] ?? []);
       
@@ -563,13 +676,17 @@ class SocialService {
   }
 
   Future<void> leaveChallenge(String challengeId) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     final challengeRef = _firestore.collection('challenges').doc(challengeId);
     
     await _firestore.runTransaction((transaction) async {
       final doc = await transaction.get(challengeRef);
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        return;
+      }
 
       final participants = List<String>.from(doc.data()?['participants'] ?? []);
       participants.remove(currentUserId);
@@ -579,13 +696,17 @@ class SocialService {
   }
 
   Future<void> updateChallengeProgress(String challengeId, int progress) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     final challengeRef = _firestore.collection('challenges').doc(challengeId);
     
     await _firestore.runTransaction((transaction) async {
       final doc = await transaction.get(challengeRef);
-      if (!doc.exists) return;
+      if (!doc.exists) {
+        return;
+      }
 
       final leaderboard = Map<String, int>.from(doc.data()?['leaderboard'] ?? {});
       leaderboard[currentUserId!] = progress;
@@ -596,7 +717,9 @@ class SocialService {
 
   // Search Users
   Future<List<Supporter>> searchUsers(String query) async {
-    if (query.isEmpty) return [];
+    if (query.isEmpty) {
+      return [];
+    }
 
     final results = <Supporter>[];
     final addedUserIds = <String>{};
@@ -651,7 +774,9 @@ class SocialService {
   }
 
   Future<Supporter?> findUserByUsername(String username) async {
-    if (username.isEmpty) return null;
+    if (username.isEmpty) {
+      return null;
+    }
 
     try {
       final snapshot = await _firestore
@@ -660,7 +785,9 @@ class SocialService {
           .limit(1)
           .get();
 
-      if (snapshot.docs.isEmpty) return null;
+      if (snapshot.docs.isEmpty) {
+        return null;
+      }
 
       final supporter = Supporter.fromFirestore(snapshot.docs.first);
       return supporter.userId != currentUserId ? supporter : null;
@@ -803,7 +930,9 @@ class SocialService {
   }
 
   Future<void> updatePrivacySettings(PrivacySettings settings) async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
 
     await _firestore
         .collection('privacy_settings')
@@ -812,7 +941,9 @@ class SocialService {
   }
 
   Future<List<PublicProfile>> searchPublicProfiles(String query) async {
-    if (query.isEmpty) return [];
+    if (query.isEmpty) {
+      return [];
+    }
 
     final snapshot = await _firestore
         .collection('public_profiles')
@@ -850,7 +981,9 @@ class SocialService {
   }
 
   Future<List<String>> _getSupporterIds() async {
-    if (currentUserId == null) return [];
+    if (currentUserId == null) {
+      return [];
+    }
 
     final snapshot = await _firestore
         .collection('supporterRequests')
@@ -872,7 +1005,9 @@ class SocialService {
 
   bool _canViewActivity(SocialActivity activity, List<String> supporterIds) {
     // User can always see their own posts
-    if (activity.userId == currentUserId) return true;
+    if (activity.userId == currentUserId) {
+      return true;
+    }
 
     switch (activity.visibility) {
       case PostVisibility.public:
@@ -930,7 +1065,9 @@ class SocialService {
 
   // Debug method to check the current state of supporterRequests and supports
   Future<Map<String, dynamic>> debugRelationshipState() async {
-    if (currentUserId == null) return {'error': 'Not authenticated'};
+    if (currentUserId == null) {
+      return {'error': 'Not authenticated'};
+    }
 
     try {
       // Get supporterRequests
@@ -1082,7 +1219,9 @@ class SocialService {
   
   // Method to refresh supporter count for current user
   Future<void> refreshCurrentUserSupporterCount() async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
     
     try {
       // Get actual supporter count (people supporting current user)
@@ -1152,7 +1291,9 @@ class SocialService {
 
   // Method to clean up broken supporterRequests (optional - can be called periodically)
   Future<void> cleanupBrokenSupporterRequests() async {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      return;
+    }
     
     try {
       // Get all accepted supporterRequests for current user
@@ -1178,6 +1319,88 @@ class SocialService {
       }
     } catch (e) {
       // Error cleaning up broken supporterRequests
+    }
+  }
+
+  // Method to fix supporter count for any specific user (admin/debug use)
+  Future<void> fixSupporterCountForUser(String userId) async {
+    try {
+      // Count actual supporters for the specified user
+      final supportersSnapshot = await _firestore
+          .collection('supporters')
+          .where('supportedId', isEqualTo: userId)
+          .get();
+      
+      final actualCount = supportersSnapshot.docs.length;
+      
+      // Update the user document with correct count
+      await _firestore.collection('users').doc(userId).update({
+        'supportersCount': actualCount,
+      });
+      
+      debugPrint('✅ Fixed supporter count for user $userId: $actualCount');
+    } catch (e) {
+      debugPrint('❌ Error fixing supporter count for user $userId: $e');
+      rethrow;
+    }
+  }
+
+  // Method to check and fix supporter count for current user (safe to call anytime)
+  Future<Map<String, dynamic>> checkAndFixMySuppoterCount() async {
+    if (currentUserId == null) {
+      throw Exception('User not authenticated');
+    }
+    
+    try {
+      // Get current stored count
+      final userDoc = await _firestore.collection('users').doc(currentUserId).get();
+      final userData = userDoc.data();
+      final storedCount = userData?['supportersCount'] ?? 0;
+      
+      // Get actual count
+      final supportersSnapshot = await _firestore
+          .collection('supporters')
+          .where('supportedId', isEqualTo: currentUserId)
+          .get();
+      
+      final actualCount = supportersSnapshot.docs.length;
+      
+      final result = {
+        'userId': currentUserId,
+        'storedCount': storedCount,
+        'actualCount': actualCount,
+        'wasFixed': false,
+      };
+      
+      // Fix if mismatch
+      if (storedCount != actualCount) {
+        await _firestore.collection('users').doc(currentUserId).update({
+          'supportersCount': actualCount,
+        });
+        result['wasFixed'] = true;
+        
+        // Notify UI to refresh (trigger any listeners)
+        _notifyUIRefresh();
+      }
+      
+      return result;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Auto-sync method that can be called periodically
+  Future<bool> autoSyncSupporterCount() async {
+    if (currentUserId == null) {
+      return false;
+    }
+    
+    try {
+      final result = await checkAndFixMySuppoterCount();
+      return result['wasFixed'] == true;
+    } catch (e) {
+      // Silent fail for auto-sync
+      return false;
     }
   }
 }

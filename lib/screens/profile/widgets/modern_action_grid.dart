@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../../../theme/app_theme.dart';
 import '../add_friend_screen.dart';
 import '../supporters_list_screen.dart';
-import '../friend_activity_feed_screen.dart';
+import '../supporter_activity_feed_screen.dart';
 import '../eco_impact_screen.dart';
+import '../debug_menu_screen.dart';
 import 'dart:ui';
 import '../../../utils/translation_helper.dart';
 
@@ -94,7 +96,7 @@ class ModernActionGrid extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const FriendActivityFeedScreen(),
+                      builder: (context) => const SupporterActivityFeedScreen(),
                     ),
                   );
                 },
@@ -114,6 +116,23 @@ class ModernActionGrid extends StatelessWidget {
                   );
                 },
               ),
+              // Debug card - only show in debug mode
+              if (kDebugMode)
+                _buildModernActionCard(
+                  context,
+                  icon: Icons.bug_report_outlined,
+                  title: 'Debug Menu',
+                  subtitle: 'Developer tools',
+                  gradient: [Colors.grey.shade600, Colors.grey.shade800],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const DebugMenuScreen(),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ],

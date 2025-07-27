@@ -22,7 +22,7 @@ class UserProfileService {
     _cachedUid = null;
   }
 
-  Future<UserProfile?> getCurrentUserProfile() async {
+  Future<UserProfile?> getCurrentUserProfile({bool forceRefresh = false}) async {
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -31,8 +31,8 @@ class UserProfileService {
         return null;
       }
 
-      // Return cached profile if available and valid
-      if (_cachedProfile != null && _cachedUid == user.uid) {
+      // Return cached profile if available and valid (unless force refresh)
+      if (!forceRefresh && _cachedProfile != null && _cachedUid == user.uid) {
         return _cachedProfile;
       }
 
@@ -256,20 +256,20 @@ class UserProfileService {
     }
   }
 
-  Future<UserProfile> getOrCreateUserProfile() async {
+  Future<UserProfile> getOrCreateUserProfile({bool forceRefresh = false}) async {
     try {
       final user = _auth.currentUser;
       if (user == null) {
         throw Exception('No authenticated user');
       }
 
-      // Clear cache if user has changed
-      if (_cachedUid != null && _cachedUid != user.uid) {
+      // Clear cache if user has changed or force refresh requested
+      if (forceRefresh || (_cachedUid != null && _cachedUid != user.uid)) {
         _cachedProfile = null;
         _cachedUid = null;
       }
 
-      UserProfile? profile = await getCurrentUserProfile();
+      UserProfile? profile = await getCurrentUserProfile(forceRefresh: forceRefresh);
       
       if (profile == null) {
         profile = await createUserProfile(

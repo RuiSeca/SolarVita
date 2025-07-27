@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/user_profile.dart';
@@ -53,6 +54,11 @@ Stream<User?> authStateChanges(Ref ref) {
 class UserProfileNotifier extends _$UserProfileNotifier {
   @override
   Future<UserProfile?> build() async {
+    // Register callback for supporter count changes
+    SocialService.setSupporterCountChangeCallback(() async {
+      await silentRefreshSupporterCount();
+    });
+    
     // Listen to auth state changes
     final authState = ref.watch(authStateChangesProvider);
     
@@ -75,10 +81,10 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     );
   }
 
-  Future<UserProfile?> _loadUserProfile() async {
+  Future<UserProfile?> _loadUserProfile({bool forceRefresh = false}) async {
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
-      final newProfile = await userProfileService.getOrCreateUserProfile();
+      final newProfile = await userProfileService.getOrCreateUserProfile(forceRefresh: forceRefresh);
       
       // Sync public profile data for new/existing profiles to ensure chat data is current
       await _syncPublicProfileData(newProfile);
@@ -91,7 +97,7 @@ class UserProfileNotifier extends _$UserProfileNotifier {
 
   Future<void> refreshUserProfile() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(() => _loadUserProfile());
+    state = await AsyncValue.guard(() => _loadUserProfile(forceRefresh: true));
   }
 
   Future<void> updateUserProfile(UserProfile profile) async {
@@ -213,9 +219,28 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     try {
       // Clear cache to force fresh data
       ref.read(userProfileServiceProvider).clearCache();
-      await refreshUserProfile();
+      await refreshUserProfile(); // This now uses forceRefresh: true
     } catch (e) {
       // Ignore refresh errors
+    }
+  }
+
+  // Silent refresh that doesn't trigger loading state
+  Future<void> silentRefreshSupporterCount() async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+    
+    try {
+      // Clear cache and get fresh data
+      ref.read(userProfileServiceProvider).clearCache();
+      final freshProfile = await ref.read(userProfileServiceProvider).getCurrentUserProfile(forceRefresh: true);
+      
+      if (freshProfile != null) {
+        // Update state directly without loading state
+        state = AsyncValue.data(freshProfile);
+      }
+    } catch (e) {
+      // Ignore refresh errors silently
     }
   }
 
@@ -322,4 +347,27 @@ DateTime? lastUpdated(Ref ref) {
 Stream<UserProfile?> userProfileStream(Ref ref) {
   final userProfileService = ref.watch(userProfileServiceProvider);
   return userProfileService.getCurrentUserProfileStream();
+}
+
+// Real-time supporter count listener
+@riverpod
+Stream<int> supporterCountStream(Ref ref) {
+  final auth = FirebaseAuth.instance;
+  final user = auth.currentUser;
+  
+  if (user == null) {
+    return Stream.value(0);
+  }
+  
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .snapshots()
+      .map((snapshot) {
+    if (snapshot.exists) {
+      final data = snapshot.data();
+      return data?['supportersCount'] ?? 0;
+    }
+    return 0;
+  });
 }

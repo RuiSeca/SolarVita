@@ -3,12 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/chat_message.dart';
 import '../models/chat_conversation.dart';
 import '../models/social_activity.dart';
-import 'chat_notification_service.dart';
+import 'firebase_push_notification_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final ChatNotificationService _notificationService = ChatNotificationService();
+  final FirebasePushNotificationService _notificationService = FirebasePushNotificationService();
 
   String? get currentUserId => _auth.currentUser?.uid;
 
@@ -142,8 +142,8 @@ class ChatService {
       await _notificationService.sendMessageNotification(
         receiverId: receiverId,
         senderName: senderName,
-        messageContent: content.length > 50 ? '${content.substring(0, 50)}...' : content,
-        conversationId: conversationId,
+        messagePreview: content.length > 50 ? '${content.substring(0, 47)}...' : content,
+        chatId: conversationId,
       );
     } catch (e) {
       // Don't fail the message sending if notification fails

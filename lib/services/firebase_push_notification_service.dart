@@ -19,6 +19,9 @@ enum NotificationType {
   achievement,
   reminder,
   system,
+  supportRequest,
+  supportAccepted,
+  supportRejected,
 }
 
 class PushNotification {
@@ -414,43 +417,90 @@ class FirebasePushNotificationService {
     }
   }
 
-  /// Send FCM message (placeholder - implement with your backend)
+  /// Send support request notification
+  Future<void> sendSupportRequestNotification({
+    required String receiverId,
+    required String requesterName,
+    String? message,
+  }) async {
+    await sendNotificationToUser(
+      userId: receiverId,
+      title: 'New Support Request',
+      body: message != null && message.isNotEmpty
+          ? '$requesterName wants to support you: "$message"'
+          : '$requesterName wants to support you',
+      type: NotificationType.supportRequest,
+      data: {
+        'requesterId': _auth.currentUser?.uid,
+        'requesterName': requesterName,
+        'message': message,
+      },
+      actionUrl: '/supporter-requests',
+    );
+  }
+
+  /// Send support accepted notification
+  Future<void> sendSupportAcceptedNotification({
+    required String requesterId,
+    required String acceptorName,
+  }) async {
+    await sendNotificationToUser(
+      userId: requesterId,
+      title: 'Support Request Accepted',
+      body: '$acceptorName accepted your support request',
+      type: NotificationType.supportAccepted,
+      data: {
+        'acceptorId': _auth.currentUser?.uid,
+        'acceptorName': acceptorName,
+      },
+      actionUrl: '/supporters',
+    );
+  }
+
+  /// Send support rejected notification
+  Future<void> sendSupportRejectedNotification({
+    required String requesterId,
+    required String rejectorName,
+  }) async {
+    await sendNotificationToUser(
+      userId: requesterId,
+      title: 'Support Request Declined',
+      body: '$rejectorName declined your support request',
+      type: NotificationType.supportRejected,
+      data: {
+        'rejectorId': _auth.currentUser?.uid,
+        'rejectorName': rejectorName,
+      },
+    );
+  }
+
+  /// Send message notification
+  Future<void> sendMessageNotification({
+    required String receiverId,
+    required String senderName,
+    required String messagePreview,
+    required String chatId,
+  }) async {
+    await sendNotificationToUser(
+      userId: receiverId,
+      title: senderName,
+      body: messagePreview,
+      type: NotificationType.chat,
+      data: {
+        'senderId': _auth.currentUser?.uid,
+        'senderName': senderName,
+        'chatId': chatId,
+      },
+      actionUrl: '/chat/$chatId',
+    );
+  }
+
+  /// Send FCM message via Cloud Functions
   Future<void> _sendFCMMessage(List<String> tokens, PushNotification notification) async {
-    // This should be implemented via Cloud Functions or your backend API
-    // For now, this is a placeholder
-    _logger.info('Sending FCM message to ${tokens.length} tokens');
-    
-    // Example structure for FCM HTTP API:
-    /*
-    final payload = {
-      'registration_ids': tokens,
-      'notification': {
-        'title': notification.title,
-        'body': notification.body,
-        'image': notification.imageUrl,
-      },
-      'data': {
-        'id': notification.id,
-        'type': notification.type.toString(),
-        'actionUrl': notification.actionUrl,
-        ...notification.data,
-      },
-      'android': {
-        'notification': {
-          'channel_id': _getChannelId(notification.type),
-          'priority': 'high',
-        },
-      },
-      'apns': {
-        'payload': {
-          'aps': {
-            'badge': 1,
-            'sound': 'default',
-          },
-        },
-      },
-    };
-    */
+    // The actual FCM sending is now handled by Cloud Functions
+    // This method is called automatically when notifications are stored in Firestore
+    // The Cloud Function 'sendNotification' will trigger and send the push notification
+    _logger.info('Notification stored - Cloud Function will handle FCM delivery to ${tokens.length} tokens');
   }
 
   /// Get user notifications stream
@@ -574,6 +624,10 @@ class FirebasePushNotificationService {
         return 'achievement_notifications';
       case NotificationType.reminder:
         return 'reminder_notifications';
+      case NotificationType.supportRequest:
+      case NotificationType.supportAccepted:
+      case NotificationType.supportRejected:
+        return 'social_notifications';
       default:
         return 'social_notifications';
     }
@@ -587,6 +641,10 @@ class FirebasePushNotificationService {
         return 'Achievements';
       case NotificationType.reminder:
         return 'Reminders';
+      case NotificationType.supportRequest:
+      case NotificationType.supportAccepted:
+      case NotificationType.supportRejected:
+        return 'Social Notifications';
       default:
         return 'Social Notifications';
     }
@@ -598,6 +656,11 @@ class FirebasePushNotificationService {
         return Importance.max;
       case NotificationType.reminder:
         return Importance.high;
+      case NotificationType.supportRequest:
+        return Importance.high;
+      case NotificationType.supportAccepted:
+      case NotificationType.supportRejected:
+        return Importance.defaultImportance;
       default:
         return Importance.defaultImportance;
     }
@@ -613,7 +676,7 @@ class FirebasePushNotificationService {
 /// Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  final _logger = Logger('FirebaseMessagingBackgroundHandler');
-  _logger.info('Handling background message: ${message.messageId}');
+  final logger = Logger('FirebaseMessagingBackgroundHandler');
+  logger.info('Handling background message: ${message.messageId}');
   // Handle background message processing here
 }
