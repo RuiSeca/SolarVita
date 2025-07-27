@@ -8,6 +8,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:uuid/uuid.dart';
 import '../models/social_post.dart';
 import '../models/post_revision.dart';
+import 'social_service.dart';
 
 class FirebaseSocialPostsService {
   static final FirebaseSocialPostsService _instance = FirebaseSocialPostsService._internal();
@@ -18,6 +19,7 @@ class FirebaseSocialPostsService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final Uuid _uuid = const Uuid();
+  final SocialService _socialService = SocialService();
 
   String? get currentUserId => _auth.currentUser?.uid;
   User? get currentUser => _auth.currentUser;
@@ -107,22 +109,31 @@ class FirebaseSocialPostsService {
       query = query.where('userId', isEqualTo: userId);
     }
 
-    if (visibility != null) {
-      query = query.where('visibility', isEqualTo: visibility.name);
+    // For supporters filter, don't filter by visibility in query since we want all posts from supporters
+    if (visibility != null && visibility != PostVisibility.supporters) {
+      query = query.where('visibility', isEqualTo: visibility.toString());
     }
 
     if (pillars != null && pillars.isNotEmpty) {
-      query = query.where('pillars', arrayContainsAny: pillars.map((p) => p.name).toList());
+      query = query.where('pillars', arrayContainsAny: pillars.map((p) => p.toString()).toList());
     }
 
     // Order by timestamp
     query = query.orderBy('timestamp', descending: true).limit(limit);
 
-    return query.snapshots().map((snapshot) {
-      return snapshot.docs
-          .map((doc) => SocialPost.fromFirestore(doc))
-          .where(_canViewPost)
-          .toList();
+    return query.snapshots().asyncMap((snapshot) async {
+      final posts = snapshot.docs.map((doc) => SocialPost.fromFirestore(doc)).toList();
+      
+      // Filter posts based on visibility and user relationship
+      final filteredPosts = <SocialPost>[];
+      
+      for (final post in posts) {
+        if (await _canViewPostAsync(post, filterVisibility: visibility)) {
+          filteredPosts.add(post);
+        }
+      }
+      
+      return filteredPosts;
     });
   }
 
@@ -130,8 +141,11 @@ class FirebaseSocialPostsService {
   Future<SocialPost?> getPostById(String postId) async {
     try {
       final doc = await _firestore.collection('social_posts').doc(postId).get();
-      if (doc.exists && _canViewPost(SocialPost.fromFirestore(doc))) {
-        return SocialPost.fromFirestore(doc);
+      if (doc.exists) {
+        final post = SocialPost.fromFirestore(doc);
+        if (await _canViewPostAsync(post)) {
+          return post;
+        }
       }
       return null;
     } catch (e) {
@@ -389,23 +403,28 @@ class FirebaseSocialPostsService {
     Query firestoreQuery = _firestore.collection('social_posts');
 
     if (visibility != null) {
-      firestoreQuery = firestoreQuery.where('visibility', isEqualTo: visibility.name);
+      firestoreQuery = firestoreQuery.where('visibility', isEqualTo: visibility.toString());
     }
 
     if (pillars != null && pillars.isNotEmpty) {
-      firestoreQuery = firestoreQuery.where('pillars', arrayContainsAny: pillars.map((p) => p.name).toList());
+      firestoreQuery = firestoreQuery.where('pillars', arrayContainsAny: pillars.map((p) => p.toString()).toList());
     }
 
     firestoreQuery = firestoreQuery.orderBy('timestamp', descending: true).limit(limit * 2);
 
     final snapshot = await firestoreQuery.get();
-    final posts = snapshot.docs
-        .map((doc) => SocialPost.fromFirestore(doc))
-        .where(_canViewPost)
-        .where((post) => post.content.toLowerCase().contains(query.toLowerCase()) ||
-                        post.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase())))
-        .take(limit)
-        .toList();
+    final allPosts = snapshot.docs.map((doc) => SocialPost.fromFirestore(doc)).toList();
+    
+    // Filter posts based on visibility and search query
+    final posts = <SocialPost>[];
+    for (final post in allPosts) {
+      if (await _canViewPostAsync(post) &&
+          (post.content.toLowerCase().contains(query.toLowerCase()) ||
+           post.tags.any((tag) => tag.toLowerCase().contains(query.toLowerCase())))) {
+        posts.add(post);
+        if (posts.length >= limit) break;
+      }
+    }
 
     return posts;
   }
@@ -421,10 +440,15 @@ class FirebaseSocialPostsService {
         .limit(limit * 3) // Get more to sort by reactions
         .get();
 
-    final posts = snapshot.docs
-        .map((doc) => SocialPost.fromFirestore(doc))
-        .where(_canViewPost)
-        .toList();
+    final allPosts = snapshot.docs.map((doc) => SocialPost.fromFirestore(doc)).toList();
+    
+    // Filter posts based on visibility
+    final posts = <SocialPost>[];
+    for (final post in allPosts) {
+      if (await _canViewPostAsync(post)) {
+        posts.add(post);
+      }
+    }
 
     // Sort by reaction count
     posts.sort((a, b) => b.reactions.length.compareTo(a.reactions.length));
@@ -509,17 +533,69 @@ class FirebaseSocialPostsService {
     }
   }
 
-  /// Check if current user can view a post based on visibility settings
+  /// Check if current user can view a post based on visibility settings (async)
+  Future<bool> _canViewPostAsync(SocialPost post, {PostVisibility? filterVisibility}) async {
+    // User can always see their own posts
+    if (post.userId == currentUserId) return true;
+    
+    // If not authenticated, can only see public posts
+    if (currentUserId == null) {
+      return post.visibility == PostVisibility.public;
+    }
+
+    // Special handling for supporters filter - show all posts from supported users
+    if (filterVisibility == PostVisibility.supporters) {
+      try {
+        final isSupporting = await _socialService.isSupporting(post.userId);
+        if (isSupporting) {
+          // Show all posts (public and supporters-only) from supported users
+          return post.visibility == PostVisibility.public || post.visibility == PostVisibility.supporters;
+        }
+        return false;
+      } catch (e) {
+        return false;
+      }
+    }
+
+    // Special handling for public filter - show ALL public posts
+    if (filterVisibility == PostVisibility.public) {
+      return post.visibility == PostVisibility.public;
+    }
+
+    // Default filtering (for "all" filter)
+    switch (post.visibility) {
+      case PostVisibility.public:
+        return true;
+      case PostVisibility.supporters:
+        // Check if current user is supporting the post author
+        try {
+          return await _socialService.isSupporting(post.userId);
+        } catch (e) {
+          // If check fails, deny access for safety
+          return false;
+        }
+      case PostVisibility.private:
+        return false;
+    }
+  }
+
+  /// Check if current user can view a post based on visibility settings (sync version for legacy code)
   bool _canViewPost(SocialPost post) {
     // User can always see their own posts
     if (post.userId == currentUserId) return true;
+    
+    // If not authenticated, can only see public posts
+    if (currentUserId == null) {
+      return post.visibility == PostVisibility.public;
+    }
 
     switch (post.visibility) {
       case PostVisibility.public:
         return true;
       case PostVisibility.supporters:
-        // TODO: Check if current user is a supporter
-        return true; // For now, allow all authenticated users
+        // For sync version, we allow all authenticated users
+        // The async version handles proper supporter checking
+        return true;
       case PostVisibility.private:
         return false;
     }
@@ -543,7 +619,7 @@ class FirebaseSocialPostsService {
       'description': post.content.length > 100 
           ? '${post.content.substring(0, 100)}...'
           : post.content,
-      'visibility': post.visibility.name,
+      'visibility': post.visibility.toString(),
       'metadata': {
         'postId': post.id,
         'postType': post.type.name,

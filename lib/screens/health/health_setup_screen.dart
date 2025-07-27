@@ -346,9 +346,11 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
           onPressed: () async {
             final service = ref.read(healthDataServiceProvider);
             await service.showHealthAppInstallDialog(context);
+            // Refresh the state after attempting to open Health Connect
+            ref.invalidate(healthAppInstalledProvider);
           },
           icon: const Icon(Icons.download),
-          label: const Text('Install Health Connect'),
+          label: const Text('Setup Health Connect'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
             foregroundColor: Colors.white,
@@ -390,6 +392,8 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
           ),
           textAlign: TextAlign.center,
         ),
+        const SizedBox(height: 16),
+        _buildPermissionsList(),
         const SizedBox(height: 24),
         Container(
           padding: const EdgeInsets.all(16),
@@ -681,17 +685,15 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
           title: const Text('Manual Health Setup Required'),
           content: const Text(
             'The automatic permission setup failed. Please follow these steps:\n\n'
-            '1. Open Health Connect app on your device\n'
+            'Android 14+ users:\n'
+            '1. Go to Settings → Security & Privacy → Privacy → Health Connect\n'
+            '2. Tap "App permissions"\n'
+            '3. Find "SolarVita" and enable all health data types\n\n'
+            'Android 13 users:\n'
+            '1. Open Health Connect app\n'
             '2. Go to "App permissions"\n'
-            '3. Find "SolarVita" in the list\n'
-            '4. Enable permissions for:\n'
-            '   • Steps\n'
-            '   • Active calories burned\n'
-            '   • Heart rate\n'
-            '   • Sleep\n'
-            '   • Exercise\n'
-            '   • Hydration\n\n'
-            'After granting permissions, tap "Check Permissions" below.',
+            '3. Find "SolarVita" and enable all permissions\n\n'
+            'After granting permissions, tap "Check Permissions" below.'
           ),
           actions: <Widget>[
             TextButton(
@@ -699,6 +701,13 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
               onPressed: () async {
                 final service = ref.read(healthDataServiceProvider);
                 await service.openHealthConnectSettings();
+              },
+            ),
+            TextButton(
+              child: const Text('Open Permissions'),
+              onPressed: () async {
+                final service = ref.read(healthDataServiceProvider);
+                await service.openHealthPermissions();
               },
             ),
             TextButton(
@@ -764,5 +773,87 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
         });
       }
     }
+  }
+  
+  Widget _buildPermissionsList() {
+    final permissions = [
+      {'icon': Icons.directions_walk, 'name': 'Steps & Distance', 'description': 'Daily activity tracking'},
+      {'icon': Icons.local_fire_department, 'name': 'Calories Burned', 'description': 'Energy expenditure'},
+      {'icon': Icons.favorite, 'name': 'Heart Rate', 'description': 'Cardiovascular health'},
+      {'icon': Icons.bedtime, 'name': 'Sleep Data', 'description': 'Rest and recovery'},
+      {'icon': Icons.fitness_center, 'name': 'Exercise Sessions', 'description': 'Workout tracking'},
+      {'icon': Icons.water_drop, 'name': 'Hydration', 'description': 'Water intake tracking'},
+    ];
+    
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.checklist,
+                color: AppTheme.textColor(context),
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Permissions Needed:',
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ...permissions.map((permission) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Icon(
+                  permission['icon'] as IconData,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        permission['name'] as String,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        permission['description'] as String,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )),
+        ],
+      ),
+    );
   }
 }

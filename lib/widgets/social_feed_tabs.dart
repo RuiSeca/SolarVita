@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/social_service.dart';
-import '../services/tribe_service.dart';
 import '../models/social_activity.dart';
 import '../models/community_challenge.dart';
-import '../models/tribe_post.dart';
 import '../models/social_post.dart' as social;
 import '../theme/app_theme.dart';
-import '../screens/tribes/tribe_discovery_screen.dart';
 import '../screens/chat/conversations_screen.dart';
 import '../screens/social/create_post_screen.dart';
 import '../screens/social/social_feed_screen.dart';
 import '../providers/riverpod/chat_provider.dart';
 import '../widgets/social/social_post_card.dart';
 import '../widgets/common/lottie_loading_widget.dart';
+import '../screens/tribes/tribes_screen.dart';
 
 enum SocialFeedTab {
   allPosts,
@@ -36,7 +34,6 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final SocialService _socialService = SocialService();
-  final TribeService _tribeService = TribeService();
 
   @override
   void initState() {
@@ -104,7 +101,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
         
         // Tab Content
         SizedBox(
-          height: 350,
+          height: 400,
           child: TabBarView(
             controller: _tabController,
             children: [
@@ -179,108 +176,61 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
   Widget _buildTribesTab() {
-    // Always show Discover Button at top, then activity feed
-    return Column(
-      children: [
-        // Discover Tribes Button - Always visible at top right
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const TribeDiscoveryScreen(),
-                    ),
-                  );
-                },
-                icon: Icon(
-                  Icons.explore,
-                  color: Theme.of(context).primaryColor,
-                  size: 20,
-                ),
-                label: Text(
-                  'Discover Tribes',
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                ),
-              ),
-            ],
+    // Navigate to full-screen tribes screen
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor.withAlpha(26),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.groups,
+              size: 48,
+              color: Theme.of(context).primaryColor,
+            ),
           ),
-        ),
-        
-        // Activity Feed
-        Expanded(
-          child: StreamBuilder<List<TribePost>>(
-            stream: _tribeService.getAllTribesActivityFeed(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Text('Error: ${snapshot.error}'),
-                );
-              }
-
-              final posts = snapshot.data ?? [];
-              
-              if (posts.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        '💬',
-                        style: const TextStyle(fontSize: 48),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No tribe activity yet',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Join tribes and start sharing!',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).textTheme.bodySmall?.color,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: posts.length,
-                itemBuilder: (context, index) {
-                  final post = posts[index];
-                  return _buildTribePostCard(post);
-                },
+          const SizedBox(height: 16),
+          Text(
+            'Explore Tribes',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor(context),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Join communities and connect with like-minded people',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textColor(context).withAlpha(153),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TribesScreen(),
+                ),
               );
             },
+            icon: const Icon(Icons.explore),
+            label: const Text('Open Tribes'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -740,145 +690,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
 
-  Widget _buildTribePostCard(TribePost post) {
-    final theme = Theme.of(context);
-    
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Post Header
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 16,
-                  backgroundImage: post.authorPhotoURL != null
-                      ? NetworkImage(post.authorPhotoURL!)
-                      : null,
-                  child: post.authorPhotoURL == null
-                      ? Text(
-                          post.authorName.isNotEmpty 
-                              ? post.authorName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(fontSize: 12),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            post.authorName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'Tribe',
-                              style: TextStyle(
-                                fontSize: 8,
-                                color: theme.primaryColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        post.getTimeAgo(),
-                        style: TextStyle(
-                          color: theme.textTheme.bodySmall?.color,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  post.getPostTypeIcon(),
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Post Content
-            if (post.title != null) ...[
-              Text(
-                post.title!,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 4),
-            ],
-            
-            Text(
-              post.content,
-              style: const TextStyle(fontSize: 13),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // Post Actions
-            Row(
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 16,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${post.likes.length}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.comment_outlined,
-                  size: 16,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '${post.commentCount}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Removed _buildTribePostCard - now handled by ModernTribesTab
 }
 
 // Embedded Social Feed Content for Instagram-style posts
@@ -1063,6 +875,7 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
         final post = _posts[index];
         return SocialPostCard(
           post: post,
+          showSupporterTag: false, // No supporter tags in embedded social feed tabs
           onReaction: (postId, reaction) {
             debugPrint('Reaction: $reaction on post $postId');
           },

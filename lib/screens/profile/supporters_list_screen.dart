@@ -6,7 +6,7 @@ import '../../services/social_service.dart';
 import '../../models/supporter.dart';
 import '../../providers/riverpod/firebase_chat_provider.dart';
 import '../../screens/chat/chat_screen.dart';
-import 'friend_profile_screen.dart';
+import 'supporter_profile_screen.dart';
 
 class SupportersListScreen extends ConsumerStatefulWidget {
   const SupportersListScreen({super.key});

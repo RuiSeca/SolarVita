@@ -3,6 +3,7 @@ import '../../../theme/app_theme.dart';
 import '../add_friend_screen.dart';
 import '../supporters_list_screen.dart';
 import '../friend_activity_feed_screen.dart';
+import '../eco_impact_screen.dart';
 import 'dart:ui';
 import '../../../utils/translation_helper.dart';
 
@@ -105,7 +106,12 @@ class ModernActionGrid extends StatelessWidget {
                 subtitle: tr(context, 'view_your_progress'),
                 gradient: [AppColors.primary, Colors.lightGreen],
                 onTap: () {
-                  // Navigate to eco impact screen
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EcoImpactScreen(),
+                    ),
+                  );
                 },
               ),
             ],
@@ -130,7 +136,7 @@ class ModernActionGrid extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: gradient[0].withAlpha(77),
+              color: gradient[0].withValues(alpha: 0.3),
               spreadRadius: 0,
               blurRadius: 15,
               offset: const Offset(0, 5),
@@ -148,13 +154,13 @@ class ModernActionGrid extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    gradient[0].withAlpha(204),
-                    gradient[1].withAlpha(153),
+                    gradient[0].withValues(alpha: 0.8),
+                    gradient[1].withValues(alpha: 0.6),
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.white.withAlpha(51),
+                  color: Colors.white.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -168,7 +174,7 @@ class ModernActionGrid extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withAlpha(51),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -179,7 +185,7 @@ class ModernActionGrid extends StatelessWidget {
                       ),
                       Icon(
                         Icons.arrow_forward_ios,
-                        color: Colors.white.withAlpha(179),
+                        color: Colors.white.withValues(alpha: 0.7),
                         size: 14,
                       ),
                     ],
@@ -198,7 +204,7 @@ class ModernActionGrid extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withAlpha(204),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
                     ),

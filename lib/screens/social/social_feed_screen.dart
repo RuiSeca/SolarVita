@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../providers/riverpod/firebase_social_provider.dart';
+import '../../services/social_service.dart';
 import 'create_post_screen.dart';
 import 'post_templates_screen.dart';
 
@@ -23,11 +24,13 @@ class SocialFeedScreen extends ConsumerStatefulWidget {
 class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     with AutomaticKeepAliveClientMixin {
   final ScrollController _scrollController = ScrollController();
+  final SocialService _socialService = SocialService();
   String _selectedFilter = 'all'; // all, supporters, public
   bool _isBottomBarVisible = true;
   bool _isScrolling = false;
   Timer? _scrollTimer;
   List<PostPillar>? _selectedPillars;
+  Set<String> _supportedUserIds = {};
 
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
@@ -185,7 +188,10 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
             : AppTheme.textColor(context),
       ),
       onSelected: (value) {
-        setState(() => _selectedFilter = value);
+        setState(() {
+          _selectedFilter = value;
+          _supportedUserIds.clear(); // Clear cache when filter changes
+        });
         HapticFeedback.selectionClick();
       },
       itemBuilder: (context) => [
@@ -264,6 +270,11 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       return _buildEmptyState();
     }
 
+    // Load supported user IDs for tagging
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadSupportedUserIds(posts);
+    });
+
     return RefreshIndicator(
       onRefresh: () async {
         HapticFeedback.lightImpact();
@@ -285,6 +296,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
             child: SocialPostCard(
               post: post,
               onReaction: (postId, reaction) => _handleReaction(postId, reaction),
+              showSupporterTag: _shouldShowSupporterTag(post),
             ),
           );
         },
@@ -668,6 +680,35 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  bool _shouldShowSupporterTag(SocialPost post) {
+    // Only show supporter tag in public filter for users we're supporting
+    return _selectedFilter == 'public' && _supportedUserIds.contains(post.userId);
+  }
+
+  Future<void> _loadSupportedUserIds(List<SocialPost> posts) async {
+    if (_selectedFilter != 'public') return;
+    
+    final userIds = posts.map((post) => post.userId).toSet();
+    final supportedIds = <String>{};
+    
+    for (final userId in userIds) {
+      try {
+        final isSupporting = await _socialService.isSupporting(userId);
+        if (isSupporting) {
+          supportedIds.add(userId);
+        }
+      } catch (e) {
+        // Ignore errors for individual checks
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _supportedUserIds = supportedIds;
+      });
+    }
   }
 
 }

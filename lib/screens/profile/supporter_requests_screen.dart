@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
-import 'friend_profile_screen.dart';
+import 'supporter_profile_screen.dart';
 
 class SupporterRequestsScreen extends StatefulWidget {
   const SupporterRequestsScreen({super.key});
@@ -126,127 +126,178 @@ class _SupporterRequestsScreenState extends State<SupporterRequestsScreen> {
           final username = request.requesterUsername;
           final photoURL = request.requesterPhotoURL;
 
-          return Row(
+          return Column(
             children: [
-              Expanded(
-                child: InkWell(
-                  onTap: () => _viewUserProfile(request),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: theme.primaryColor.withAlpha(51),
-                          backgroundImage: photoURL != null ? CachedNetworkImageProvider(photoURL) : null,
-                          child: photoURL == null
-                              ? Text(
-                                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                                  style: TextStyle(
-                                    color: theme.primaryColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 24,
-                                  ),
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      displayName,
-                                      style: theme.textTheme.titleMedium?.copyWith(
+              // Header with profile info and action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => _viewUserProfile(request),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: theme.primaryColor.withAlpha(51),
+                              backgroundImage: photoURL != null ? CachedNetworkImageProvider(photoURL) : null,
+                              child: photoURL == null
+                                  ? Text(
+                                      displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                                      style: TextStyle(
+                                        color: theme.primaryColor,
                                         fontWeight: FontWeight.bold,
+                                        fontSize: 24,
+                                      ),
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          displayName,
+                                          style: theme.textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: theme.hintColor,
+                                      ),
+                                    ],
+                                  ),
+                                  if (username != null) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '@$username',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: theme.primaryColor,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                     ),
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: theme.hintColor,
+                                  ],
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Sent ${_getTimeAgo(request.createdAt)} • Tap to view profile',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.hintColor,
+                                    ),
                                   ),
                                 ],
                               ),
-                              if (username != null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  '@$username',
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.primaryColor,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 8),
-                              Text(
-                                'Sent ${_getTimeAgo(request.createdAt)} • Tap to view profile',
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.hintColor,
-                                ),
-                              ),
-                            ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: 80,
+                        height: 32,
+                        child: ElevatedButton(
+                          onPressed: () => _acceptRequest(request.id),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: theme.primaryColor,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text(
+                            'Accept',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                children: [
-                  SizedBox(
-                    width: 80,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: () => _acceptRequest(request.id),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: 80,
+                        height: 32,
+                        child: OutlinedButton(
+                          onPressed: () => _rejectRequest(request.id),
+                          style: OutlinedButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            side: BorderSide(color: theme.hintColor),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            'Decline',
+                            style: TextStyle(
+                              color: theme.hintColor,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'Accept',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: 80,
-                    height: 32,
-                    child: OutlinedButton(
-                      onPressed: () => _rejectRequest(request.id),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        side: BorderSide(color: theme.hintColor),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      child: Text(
-                        'Decline',
-                        style: TextStyle(
-                          color: theme.hintColor,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
+                    ],
                   ),
                 ],
               ),
+              // Message section (if provided)
+              if (request.message != null && request.message!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.primaryColor.withAlpha(26),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: theme.primaryColor.withAlpha(51),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.message_outlined,
+                            size: 14,
+                            color: theme.primaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Message:',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        request.message!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textColor(context),
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           );
         },

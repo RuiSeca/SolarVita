@@ -243,26 +243,6 @@ class TribeService {
     });
   }
 
-  Future<void> leaveTribe(String tribeId) async {
-    if (currentUserId == null) throw Exception('User not authenticated');
-    
-    final member = await _getTribeMember(tribeId, currentUserId!);
-    if (member == null) throw Exception('Not a member of this tribe');
-    
-    if (member.isCreator) {
-      throw Exception('Creator cannot leave the tribe. Delete the tribe instead.');
-    }
-    
-    // Deactivate membership
-    await _firestore.collection('tribeMembers').doc(member.id).update({
-      'isActive': false,
-    });
-    
-    // Update tribe member count
-    await _firestore.collection('tribes').doc(tribeId).update({
-      'memberCount': FieldValue.increment(-1),
-    });
-  }
 
   Future<void> removeMember(String tribeId, String userId) async {
     if (currentUserId == null) throw Exception('User not authenticated');
@@ -460,13 +440,111 @@ class TribeService {
     }
   }
 
+  // Get user's tribes
+  Stream<List<Tribe>> getUserTribes() {
+    if (currentUserId == null) {
+      return Stream.value([]);
+    }
+    
+    return _firestore
+        .collection('tribeMembers')
+        .where('userId', isEqualTo: currentUserId)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      if (snapshot.docs.isEmpty) {
+        return <Tribe>[];
+      }
+      
+      final tribeIds = snapshot.docs.map((doc) => doc.data()['tribeId'] as String).toList();
+      
+      // Get tribe details
+      try {
+        final tribesSnapshot = await _firestore
+            .collection('tribes')
+            .where(FieldPath.documentId, whereIn: tribeIds)
+            .get();
+        
+        return tribesSnapshot.docs
+            .map((doc) => Tribe.fromFirestore(doc))
+            .toList();
+      } catch (e) {
+        return <Tribe>[];
+      }
+    });
+  }
+
+  // Join tribe by invite code
+  Future<void> joinTribeByInviteCode(String inviteCode) async {
+    if (currentUserId == null) throw Exception('User not authenticated');
+    
+    final tribe = await findTribeByInviteCode(inviteCode.toUpperCase());
+    if (tribe == null) {
+      throw Exception('Invalid invite code');
+    }
+    
+    await joinTribe(tribe.id);
+  }
+
+  // Get specific tribe by ID
+  Stream<Tribe?> getTribeById(String tribeId) {
+    return _firestore
+        .collection('tribes')
+        .doc(tribeId)
+        .snapshots()
+        .map((doc) => doc.exists ? Tribe.fromFirestore(doc) : null);
+  }
+
+  // Get tribe member details
+  Future<TribeMember?> getTribeMember(String tribeId, String userId) async {
+    final snapshot = await _firestore
+        .collection('tribeMembers')
+        .where('tribeId', isEqualTo: tribeId)
+        .where('userId', isEqualTo: userId)
+        .limit(1)
+        .get();
+    
+    return snapshot.docs.isNotEmpty 
+        ? TribeMember.fromFirestore(snapshot.docs.first)
+        : null;
+  }
+
+  // Leave tribe - enhanced version
+  Future<void> leaveTribe(String tribeId) async {
+    if (currentUserId == null) throw Exception('User not authenticated');
+    
+    await _firestore.runTransaction((transaction) async {
+      // Remove from tribe members
+      final memberQuery = await _firestore
+          .collection('tribeMembers')
+          .where('tribeId', isEqualTo: tribeId)
+          .where('userId', isEqualTo: currentUserId)
+          .limit(1)
+          .get();
+      
+      if (memberQuery.docs.isNotEmpty) {
+        transaction.delete(memberQuery.docs.first.reference);
+      }
+      
+      // Update member count
+      final tribeRef = _firestore.collection('tribes').doc(tribeId);
+      final tribeDoc = await transaction.get(tribeRef);
+      
+      if (tribeDoc.exists) {
+        final currentCount = tribeDoc.data()?['memberCount'] ?? 0;
+        transaction.update(tribeRef, {
+          'memberCount': currentCount > 0 ? currentCount - 1 : 0,
+        });
+      }
+    });
+  }
+
   // Activity Feed Integration
   Stream<List<TribePost>> getAllTribesActivityFeed({int limit = 20}) {
     if (currentUserId == null) {
       return Stream.value([]);
     }
     
-    return getMyTribes().asyncMap((tribes) async {
+    return getUserTribes().asyncMap((tribes) async {
       if (tribes.isEmpty) {
         return <TribePost>[];
       }

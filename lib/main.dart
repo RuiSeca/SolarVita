@@ -13,15 +13,18 @@ import 'firebase_options.dart';
 import 'services/notification_service.dart';
 import 'services/data_sync_service.dart';
 import 'services/chat_notification_service.dart';
+import 'services/strike_calculation_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
+import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/health/health_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'widgets/common/lottie_loading_widget.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
 
@@ -67,18 +70,26 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
 
-    // Activate Firebase App Check with debug providers
-    await FirebaseAppCheck.instance.activate(
-      androidProvider: AndroidProvider.debug,
-      appleProvider: AppleProvider.debug,
-    );
-
-    // Get and print App Check debug token
-    final token = await FirebaseAppCheck.instance.getToken();
-    assert(() {
-      debugPrint('[FirebaseAppCheck] Debug token: $token');
-      return true;
-    }());
+    // Activate Firebase App Check with appropriate providers
+    try {
+      await FirebaseAppCheck.instance.activate(
+        // Use debug providers only in debug mode to avoid rate limiting
+        androidProvider: AndroidProvider.debug,
+        appleProvider: AppleProvider.debug,
+        // In production, you should use:
+        // androidProvider: AndroidProvider.playIntegrity,
+        // appleProvider: AppleProvider.appAttest,
+      );
+      
+      // Only get token in debug mode to avoid unnecessary requests
+      if (const bool.fromEnvironment('dart.vm.product') == false) {
+        final token = await FirebaseAppCheck.instance.getToken();
+        debugPrint('[FirebaseAppCheck] Debug token available: ${token != null}');
+      }
+    } catch (e) {
+      debugPrint('Firebase App Check initialization failed: $e');
+      // Continue without App Check in case of errors
+    }
 
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -90,11 +101,24 @@ void main() async {
   }
 
   // Initialize notification service (local notifications work without Firebase)
+  NotificationService? notificationService;
   try {
-    final notificationService = NotificationService();
+    notificationService = NotificationService();
     await notificationService.initialize();
   } catch (e, st) {
     debugPrint('Notification service initialization failed: $e\n$st');
+  }
+
+  // Initialize strike calculation service for streak notifications
+  if (notificationService != null) {
+    try {
+      final strikeService = StrikeCalculationService(notificationService.localNotifications);
+      await strikeService.initialize();
+      debugPrint('Strike calculation service initialized successfully');
+      
+    } catch (e, st) {
+      debugPrint('Strike calculation service initialization failed: $e\n$st');
+    }
   }
 
   // Initialize chat notification service if Firebase available
@@ -166,7 +190,11 @@ class SolarVitaApp extends ConsumerWidget {
         );
       },
       loading: () => const MaterialApp(
-        home: Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: Scaffold(
+          body: Center(
+            child: LottieLoadingWidget(width: 80, height: 80)
+          )
+        ),
       ),
       error: (error, stack) => MaterialApp(
         home: Scaffold(body: Center(child: Text('Error loading app: $error'))),
@@ -188,17 +216,24 @@ class SolarVitaApp extends ConsumerWidget {
         return userProfileAsync.when(
           data: (userProfile) {
             if (userProfile == null) {
-              return const CircularProgressIndicator();
+              return const Scaffold(
+                body: Center(
+                  child: LottieLoadingWidget(width: 80, height: 80)
+                )
+              );
             }
 
             if (!userProfile.isOnboardingComplete) {
-              return const WelcomeScreen();
+              return const OnboardingScreen();
             }
 
             return const MainNavigationScreen();
           },
-          loading: () =>
-              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          loading: () => const Scaffold(
+            body: Center(
+              child: LottieLoadingWidget(width: 80, height: 80)
+            )
+          ),
           error: (error, stack) => Scaffold(
             body: Center(
               child: Column(
@@ -217,8 +252,11 @@ class SolarVitaApp extends ConsumerWidget {
           ),
         );
       },
-      loading: () =>
-          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      loading: () => const Scaffold(
+        body: Center(
+          child: LottieLoadingWidget(width: 80, height: 80)
+        )
+      ),
       error: (error, stack) =>
           Scaffold(body: Center(child: Text('Authentication error: $error'))),
     );

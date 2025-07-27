@@ -80,7 +80,7 @@ class UserProfileService {
         photoURL: photoURL,
         createdAt: now,
         lastUpdated: now,
-        isOnboardingComplete: false,
+        isOnboardingComplete: false, // New users should go through onboarding
         workoutPreferences: WorkoutPreferences(),
         sustainabilityPreferences: SustainabilityPreferences(),
         diaryPreferences: DiaryPreferences(),

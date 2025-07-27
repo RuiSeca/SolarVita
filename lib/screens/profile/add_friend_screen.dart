@@ -3,7 +3,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
 import '../../services/social_service.dart';
 import '../../theme/app_theme.dart';
-import 'friend_profile_screen.dart';
+import 'supporter_profile_screen.dart';
 
 class AddSupporterScreen extends StatefulWidget {
   const AddSupporterScreen({super.key});
@@ -104,13 +104,89 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
     }
   }
 
-  Future<void> _sendSupporterRequest(String userId) async {
+  void _sendSupporterRequest(String userId, String userName) {
+    _showSupportRequestDialog(userId, userName);
+  }
+  
+  void _showSupportRequestDialog(String userId, String userName) {
+    final messageController = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardColor(context),
+        title: Text(
+          'Send Support Request',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Send a support request to $userName',
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: messageController,
+              maxLength: 250,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Optional message',
+                hintText: 'Introduce yourself or explain why you\'d like to connect...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: AppTheme.textColor(context).withAlpha(153),
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _sendSupportRequestWithMessage(userId, userName, messageController.text.trim());
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+            ),
+            child: const Text(
+              'Send Request',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendSupportRequestWithMessage(String userId, String userName, String message) async {
     try {
-      await _socialService.sendSupporterRequest(userId);
+      // Send support request with optional message
+      await _socialService.sendSupporterRequest(userId, message: message.isNotEmpty ? message : null);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Support request sent!'),
+          SnackBar(
+            content: Text('Support request sent to $userName!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -433,7 +509,7 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
           ),
           const SizedBox(width: 12),
           ElevatedButton(
-            onPressed: () => _sendSupporterRequest(user.userId),
+            onPressed: () => _sendSupporterRequest(user.userId, user.displayName),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.primaryColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -442,7 +518,7 @@ class _AddSupporterScreenState extends State<AddSupporterScreen> {
               ),
             ),
             child: const Text(
-              'Add Supporter',
+              'Send Request',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 12,
