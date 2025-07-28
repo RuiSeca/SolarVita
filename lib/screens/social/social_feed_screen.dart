@@ -22,7 +22,7 @@ class SocialFeedScreen extends ConsumerStatefulWidget {
 }
 
 class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin, TickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   final SocialService _socialService = SocialService();
   String _selectedFilter = 'all'; // all, supporters, public
@@ -32,18 +32,50 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   List<PostPillar>? _selectedPillars;
   Set<String> _supportedUserIds = {};
 
+  // Animation controller for smooth bottom bar transitions
+  late AnimationController _bottomBarController;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _fadeAnimation;
+
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
 
   @override
   void initState() {
     super.initState();
+    
+    // Initialize animation controller
+    _bottomBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _bottomBarController, 
+      curve: Curves.easeInOutCubic,
+    ));
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _bottomBarController, 
+      curve: Curves.easeInOut,
+    ));
+
+    // Start with bottom bar visible
+    _bottomBarController.forward();
+    
     _scrollController.addListener(_onScroll);
     _setupScrollListener();
   }
 
   @override
   void dispose() {
+    _bottomBarController.dispose();
     _scrollController.dispose();
     _scrollTimer?.cancel();
     super.dispose();
@@ -53,14 +85,23 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     _scrollController.addListener(() {
       if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
         if (_isBottomBarVisible) {
-          setState(() => _isBottomBarVisible = false);
+          _updateBottomBarVisibility(false);
         }
       } else if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
         if (!_isBottomBarVisible) {
-          setState(() => _isBottomBarVisible = true);
+          _updateBottomBarVisibility(true);
         }
       }
     });
+  }
+
+  void _updateBottomBarVisibility(bool visible) {
+    setState(() => _isBottomBarVisible = visible);
+    if (visible) {
+      _bottomBarController.forward();
+    } else {
+      _bottomBarController.reverse();
+    }
   }
 
   void _onScroll() {
@@ -105,7 +146,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       body: Stack(
         children: [
           _buildFeedContent(),
-          if (_isBottomBarVisible) _buildGlassyBottomBar(),
+          _buildGlassyBottomBar(),
           if (_isScrolling && !_isBottomBarVisible) _buildScrollToTopButton(),
         ],
       ),
@@ -430,35 +471,36 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       left: 0,
       right: 0,
       bottom: 0,
-      child: AnimatedSlide(
-        offset: _isBottomBarVisible ? Offset.zero : const Offset(0, 1),
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor(context).withAlpha(200),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                border: Border.all(
-                  color: AppTheme.textColor(context).withAlpha(26),
-                  width: 1,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: Container(
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context).withAlpha(200),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  border: Border.all(
+                    color: AppTheme.textColor(context).withAlpha(26),
+                    width: 1,
+                  ),
                 ),
-              ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildCreatePostButton(),
-                      ),
-                      const SizedBox(width: 12),
-                      _buildTemplatesButton(),
-                    ],
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _buildCreatePostButton(),
+                        ),
+                        const SizedBox(width: 12),
+                        _buildTemplatesButton(),
+                      ],
+                    ),
                   ),
                 ),
               ),

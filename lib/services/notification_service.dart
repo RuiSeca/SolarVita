@@ -8,6 +8,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/notification_preferences.dart';
 
 class NotificationService {
@@ -241,17 +243,22 @@ class NotificationService {
   // Initialize push notifications
   Future<void> _initializePushNotifications() async {
     try {
-
       // Request permission
       await _requestNotificationPermissions();
 
-      // Get FCM token
-      await _firebaseMessaging.getToken();
+      // Get FCM token and store it
+      await _getFCMTokenAndStore();
+
+      // Set up token refresh listener
+      _firebaseMessaging.onTokenRefresh.listen((newToken) {
+        _storeTokenInFirestore(newToken);
+      });
 
       // Configure message handlers
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
       FirebaseMessaging.onMessageOpenedApp.listen(_handleBackgroundMessage);
-      FirebaseMessaging.onBackgroundMessage(_handleBackgroundMessage);
+      // Use the top-level background handler from main.dart
+      FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     } catch (e) {
       // Don't rethrow - push notifications are optional
@@ -359,9 +366,9 @@ class NotificationService {
   Future<void> _showLocalNotificationFromRemote(RemoteMessage message) async {
     try {
       const androidDetails = AndroidNotificationDetails(
-        'default_channel',
-        'Default Channel',
-        channelDescription: 'Default notification channel',
+        'social_notifications',
+        'Social Notifications',
+        channelDescription: 'Notifications for likes, comments, and follows',
         importance: Importance.high,
         priority: Priority.high,
       );
@@ -1282,5 +1289,43 @@ class NotificationService {
     } catch (e) {
       rethrow;
     }
+  }
+
+  // Get FCM token and store it in Firestore
+  Future<void> _getFCMTokenAndStore() async {
+    try {
+      final token = await _firebaseMessaging.getToken();
+      if (token != null) {
+        await _storeTokenInFirestore(token);
+      }
+    } catch (e) {
+      // Token retrieval failed, but don't prevent initialization
+    }
+  }
+
+  // Store FCM token in Firestore
+  Future<void> _storeTokenInFirestore(String token) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('fcm_tokens')
+            .doc('current')
+            .set({
+          'token': token,
+          'platform': Platform.operatingSystem,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      // Token storage failed, but don't prevent functionality
+    }
+  }
+
+  // Reference to background message handler from main.dart
+  static Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+    // This will be handled by the main.dart background handler
   }
 }

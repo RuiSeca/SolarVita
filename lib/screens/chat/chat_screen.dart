@@ -210,7 +210,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     final message = messages[index];
                     final isCurrentUser = message.senderId == currentUser?.uid;
                     
-                    // Show avatar for the first message from each sender (accounting for reverse order)
+                    // Show avatar only on first message from each sender (cleaner UX)
+                    // Following UX research: use color differentiation instead of per-message avatars
                     final showAvatar = index == messages.length - 1 ||
                         messages[index + 1].senderId != message.senderId;
 

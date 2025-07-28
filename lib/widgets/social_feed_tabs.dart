@@ -82,11 +82,11 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
             unselectedLabelColor: theme.textTheme.bodyMedium?.color,
             labelStyle: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
             ),
             unselectedLabelStyle: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.normal,
+              fontWeight: FontWeight.bold,
             ),
             tabs: const [
               Tab(text: 'All Posts'),
@@ -235,30 +235,14 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   }
 
   Widget _buildSupportersTab() {
-    // Instagram-like dual view: Activity Feed + Messages
     return Column(
       children: [
-        // Top Section: Messages Header with unread count
+        // Messages button only (header removed)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(
-                Icons.chat_bubble_outline,
-                color: Theme.of(context).primaryColor,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Messages',
-                style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
               const Spacer(),
-              const SizedBox(width: 8),
               Consumer(
                 builder: (context, ref, child) {
                   final totalUnreadAsync = ref.watch(totalUnreadCountProvider);
@@ -287,7 +271,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                             color: Theme.of(context).primaryColor,
                           ),
                           label: Text(
-                            'Message',
+                            'Messages',
                             style: TextStyle(
                               color: Theme.of(context).primaryColor,
                               fontSize: 12,
@@ -344,7 +328,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                         color: Theme.of(context).primaryColor,
                       ),
                       label: Text(
-                        'Message',
+                        'Messages',
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontSize: 12,
@@ -374,7 +358,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                         color: Theme.of(context).primaryColor,
                       ),
                       label: Text(
-                        'Message',
+                        'Messages',
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontSize: 12,
@@ -410,7 +394,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                 return _buildEmptyState(
                   icon: '👥',
                   title: 'No supporter activities',
-                  subtitle: 'Connect with supporters to see their activities and start chatting',
+                  subtitle: 'Connect with supporters to see their activities',
                 );
               }
 

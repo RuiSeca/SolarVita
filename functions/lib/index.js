@@ -49,22 +49,30 @@ exports.sendNotification = functions.firestore
     const { title, body, type, data = {}, imageUrl, actionUrl } = notificationData;
     // Configure notification based on type
     const notificationConfig = getNotificationConfig(type);
+    // Send standard FCM notification with both notification and data payloads
     const message = {
-        notification: Object.assign({ title: title || notificationConfig.defaultTitle, body: body || notificationConfig.defaultBody }, (imageUrl && { imageUrl })),
-        data: Object.assign({ id: snap.id, type: type, actionUrl: actionUrl || '', click_action: 'FLUTTER_NOTIFICATION_CLICK' }, data),
+        notification: {
+            title: title || notificationConfig.defaultTitle,
+            body: body || notificationConfig.defaultBody,
+        },
+        data: Object.assign({ id: snap.id, type: type, actionUrl: actionUrl || '', imageUrl: imageUrl || '', channelId: notificationConfig.channelId, click_action: 'FLUTTER_NOTIFICATION_CLICK' }, Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]))),
         android: {
-            notification: Object.assign({ sound: 'default', channelId: notificationConfig.channelId, priority: notificationConfig.priority }, (imageUrl && { imageUrl })),
-            data: Object.assign({ id: snap.id, type: type, actionUrl: actionUrl || '' }, Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]))),
+            priority: notificationConfig.priority === 'high' ? 'high' : 'normal',
+            data: Object.assign({ id: snap.id, type: type, title: title || notificationConfig.defaultTitle, body: body || notificationConfig.defaultBody, actionUrl: actionUrl || '', imageUrl: imageUrl || '', channelId: notificationConfig.channelId }, Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)]))),
         },
         apns: {
             payload: {
                 aps: {
-                    sound: 'default',
-                    badge: 1,
                     'content-available': 1,
+                    badge: 1,
                 },
             },
-            fcmOptions: Object.assign({ analyticsLabel: `${type}_notification` }, (imageUrl && { imageUrl })),
+            headers: {
+                'apns-priority': notificationConfig.priority === 'high' ? '10' : '5',
+            },
+            fcmOptions: {
+                analyticsLabel: `${type}_notification`,
+            },
         },
     };
     try {

@@ -678,7 +678,7 @@ final offlineSyncManagerProvider =
     );
 
 typedef _$OfflineSyncManager = AutoDisposeNotifier<AsyncValue<void>>;
-String _$hybridDataManagerHash() => r'2eb9f3e93f2c4d828f4fc3b9a609fe2321201edb';
+String _$hybridDataManagerHash() => r'da27f9896c1395d68daf96881ae42b62d16defac';
 
 /// See also [HybridDataManager].
 @ProviderFor(HybridDataManager)

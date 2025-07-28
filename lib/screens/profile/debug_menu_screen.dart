@@ -1,7 +1,9 @@
 // Debug menu screen for development tools
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/social_service.dart';
+import '../../services/firebase_push_notification_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -14,6 +16,7 @@ class DebugMenuScreen extends ConsumerStatefulWidget {
 
 class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
   final SocialService _socialService = SocialService();
+  final FirebasePushNotificationService _notificationService = FirebasePushNotificationService();
   bool _isLoading = false;
   String? _lastResult;
 
@@ -54,6 +57,78 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
         _lastResult = 'Error: $e';
       });
       _showSnackBar('❌ Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _testNotifications() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Get current FCM token
+      final token = await _notificationService.getCurrentToken();
+      
+      // Send test notification
+      await _notificationService.sendTestNotification();
+      
+      setState(() {
+        _lastResult = 'Test Notification Sent!\n'
+            'FCM Token: ${token?.substring(0, 20)}...\n'
+            'Check your notification tray.';
+      });
+
+      _showSnackBar('🔥 Test notification sent!', Colors.orange);
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error: $e';
+      });
+      _showSnackBar('❌ Notification test failed: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _testChatNotification() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) {
+        throw Exception('Not logged in');
+      }
+
+      // Send a test chat notification to yourself
+      await _notificationService.sendMessageNotification(
+        receiverId: currentUserId,
+        senderName: 'Test Sender',
+        messagePreview: 'This is a test chat notification!',
+        chatId: 'test_chat_123',
+      );
+      
+      setState(() {
+        _lastResult = 'Chat Notification Test:\n'
+            'Sent to: $currentUserId\n'
+            'Type: Chat\n'
+            'Check your notification tray and Firestore.';
+      });
+
+      _showSnackBar('💬 Chat notification test sent!', Colors.blue);
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error: $e';
+      });
+      _showSnackBar('❌ Chat notification test failed: $e', Colors.red);
     } finally {
       setState(() {
         _isLoading = false;
@@ -206,6 +281,28 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
               icon: Icons.healing,
               color: Colors.green,
               onTap: _isLoading ? null : _checkAndFixSupporterCount,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Test Notifications
+            _buildDebugCard(
+              title: 'Test Firebase Notifications',
+              description: 'Send a test notification to verify setup',
+              icon: Icons.notifications_active,
+              color: Colors.orange,
+              onTap: _isLoading ? null : _testNotifications,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Test Chat Notifications
+            _buildDebugCard(
+              title: 'Test Chat Notifications',
+              description: 'Send a test chat notification to verify message flow',
+              icon: Icons.chat_bubble,
+              color: Colors.cyan,
+              onTap: _isLoading ? null : _testChatNotification,
             ),
 
             const SizedBox(height: 12),

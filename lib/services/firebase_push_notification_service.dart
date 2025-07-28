@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -48,6 +49,17 @@ class PushNotification {
   });
 
   factory PushNotification.fromMap(Map<String, dynamic> map) {
+    // Handle both Timestamp (from Firestore) and int (from JSON)
+    DateTime timestamp;
+    final timestampValue = map['timestamp'];
+    if (timestampValue is Timestamp) {
+      timestamp = timestampValue.toDate();
+    } else if (timestampValue is int) {
+      timestamp = DateTime.fromMillisecondsSinceEpoch(timestampValue);
+    } else {
+      timestamp = DateTime.now(); // Fallback
+    }
+
     return PushNotification(
       id: map['id'] ?? '',
       title: map['title'] ?? '',
@@ -57,7 +69,7 @@ class PushNotification {
         orElse: () => NotificationType.system,
       ),
       data: Map<String, dynamic>.from(map['data'] ?? {}),
-      timestamp: (map['timestamp'] as Timestamp).toDate(),
+      timestamp: timestamp,
       isRead: map['isRead'] ?? false,
       imageUrl: map['imageUrl'],
       actionUrl: map['actionUrl'],
@@ -72,6 +84,21 @@ class PushNotification {
       'type': type.toString(),
       'data': data,
       'timestamp': Timestamp.fromDate(timestamp),
+      'isRead': isRead,
+      'imageUrl': imageUrl,
+      'actionUrl': actionUrl,
+    };
+  }
+
+  // For JSON encoding (local notifications payload)
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'body': body,
+      'type': type.toString(),
+      'data': data,
+      'timestamp': timestamp.millisecondsSinceEpoch, // Convert to int for JSON
       'isRead': isRead,
       'imageUrl': imageUrl,
       'actionUrl': actionUrl,
@@ -237,10 +264,10 @@ class FirebasePushNotificationService {
     // Store notification in Firestore
     await _storeNotification(notification);
     
-    // Show local notification
+    // Show local notification in foreground (original working behavior)
     await _showLocalNotification(notification);
     
-    // Trigger callback
+    // Trigger callback for in-app handling
     _onNotificationReceived?.call(notification);
   }
 
@@ -299,7 +326,7 @@ class FirebasePushNotificationService {
       notification.title,
       notification.body,
       details,
-      payload: jsonEncode(notification.toMap()),
+      payload: jsonEncode(notification.toJson()),
     );
   }
 
@@ -667,6 +694,44 @@ class FirebasePushNotificationService {
   }
 
 
+  /// Test notification functionality
+  Future<void> sendTestNotification() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+
+    try {
+      final notification = PushNotification(
+        id: 'test_${DateTime.now().millisecondsSinceEpoch}',
+        title: '🔥 Test Notification',
+        body: 'If you see this, Firebase notifications are working!',
+        type: NotificationType.system,
+        data: {'type': 'test'},
+        timestamp: DateTime.now(),
+      );
+
+      // Store notification in Firestore
+      await _storeNotification(notification);
+      
+      // Show local notification immediately
+      await _showLocalNotification(notification);
+      
+      _logger.info('Test notification sent successfully');
+    } catch (e) {
+      _logger.severe('Failed to send test notification: $e');
+    }
+  }
+
+  /// Get current FCM token for debugging
+  Future<String?> getCurrentToken() async {
+    try {
+      return await _messaging.getToken();
+    } catch (e) {
+      _logger.severe('Error getting FCM token: $e');
+      return null;
+    }
+  }
+
+
   /// Cleanup
   void dispose() {
     // Clean up resources if needed
@@ -677,6 +742,40 @@ class FirebasePushNotificationService {
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   final logger = Logger('FirebaseMessagingBackgroundHandler');
-  logger.info('Handling background message: ${message.messageId}');
-  // Handle background message processing here
+  logger.info('📱 App in background - processing message: ${message.messageId}');
+  
+  try {
+    // Initialize Firebase if not already done
+    await Firebase.initializeApp();
+    
+    // Store notification in Firestore for when user opens app
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null && message.data.isNotEmpty) {
+      final notification = PushNotification(
+        id: message.data['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title: message.notification?.title ?? message.data['title'] ?? '',
+        body: message.notification?.body ?? message.data['body'] ?? '',
+        type: NotificationType.values.firstWhere(
+          (e) => e.toString() == message.data['type'],
+          orElse: () => NotificationType.system,
+        ),
+        data: message.data,
+        timestamp: DateTime.now(),
+        imageUrl: message.data['imageUrl']?.isNotEmpty == true ? message.data['imageUrl'] : null,
+        actionUrl: message.data['actionUrl'],
+      );
+      
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .collection('notifications')
+          .doc(notification.id)
+          .set(notification.toMap());
+    }
+    
+    // System automatically shows notification since we have notification payload
+    logger.info('✅ Background notification processed - system will display notification automatically');
+  } catch (e) {
+    logger.severe('❌ Error processing background message: $e');
+  }
 }

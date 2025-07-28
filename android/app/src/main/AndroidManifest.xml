@@ -53,7 +53,10 @@
         android:label="SolarVita"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
-        android:networkSecurityConfig="@xml/network_security_config">
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:name="androidx.multidex.MultiDexApplication"
+        android:largeHeap="true"
+        android:hardwareAccelerated="true">
 
         <!-- Main Flutter Activity -->
         <activity
@@ -149,6 +152,11 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="social_notifications" />
+
+        <!-- Google Maps API Key -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}"/>
 
         <!-- Required for Flutter engine -->
         <meta-data

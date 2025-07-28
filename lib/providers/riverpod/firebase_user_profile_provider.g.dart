@@ -1579,7 +1579,7 @@ class _UserDisplayInfoProviderElement
 }
 
 String _$profileCompletionStatusHash() =>
-    r'5d9ee64e3158922a46e8da8829584948dca1915d';
+    r'a298b25f375f77a74f215538ce934912d8c5ba38';
 
 /// Profile completion status
 ///
@@ -1601,7 +1601,7 @@ final profileCompletionStatusProvider =
 typedef ProfileCompletionStatusRef =
     AutoDisposeFutureProviderRef<ProfileCompletionStatus>;
 String _$userProfileActionsHash() =>
-    r'b384442fe7a86841ea8472cf4d8f31c24d8e63f6';
+    r'3723c6e8f5be5714ec1b9a9ced2463c06250ec87';
 
 /// User Profile Actions State Notifier
 ///

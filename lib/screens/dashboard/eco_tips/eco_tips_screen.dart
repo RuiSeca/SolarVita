@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/eco_tip.dart';
 import 'widgets/tip_card.dart';
 import 'widgets/sustainable_product_card.dart';
 import 'widgets/carbon_tracker.dart';
 import '../../../../models/carbon_activity.dart';
+import '../../../../providers/riverpod/eco_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
-class EcoTipsScreen extends StatefulWidget {
+class EcoTipsScreen extends ConsumerStatefulWidget {
   const EcoTipsScreen({super.key});
 
   @override
-  State<EcoTipsScreen> createState() => _EcoTipsScreenState();
+  ConsumerState<EcoTipsScreen> createState() => _EcoTipsScreenState();
 }
 
-class _EcoTipsScreenState extends State<EcoTipsScreen> {
+class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
   final List<EcoTip> _tips = [
     EcoTip(
       titleKey: 'tip_recycle_title',
@@ -40,37 +42,13 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
       imagePath: 'assets/images/eco_tips/transport/transport.webp',
     ),
   ];
-  final List<CarbonActivity> _carbonActivities = [
-    CarbonActivity(
-      nameKey: 'activity_carpooling',
-      co2Saved: 2.5,
-      icon: Icons.directions_car,
-      date: DateTime(2025, 1, 20),
-    ),
-    CarbonActivity(
-      nameKey: 'activity_transit',
-      co2Saved: 1.8,
-      icon: Icons.directions_bus,
-      date: DateTime(2025, 1, 22),
-    ),
-    CarbonActivity(
-      nameKey: 'activity_biking',
-      co2Saved: 0.5,
-      icon: Icons.directions_bike,
-      date: DateTime(2025, 1, 23),
-    ),
-  ];
-
   String _selectedCategory = 'category_all';
-
-  double get _totalSaved {
-    return _carbonActivities.fold(
-        0, (sum, activity) => sum + activity.co2Saved);
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final recentActivitiesAsync = ref.watch(recentEcoActivitiesProvider);
+    final carbonLast30DaysAsync = ref.watch(carbonSavedLast30DaysProvider);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -132,9 +110,32 @@ class _EcoTipsScreenState extends State<EcoTipsScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: CarbonTracker(
-                activities: _carbonActivities,
-                totalSaved: _totalSaved,
+              child: recentActivitiesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stack) => Center(
+                  child: Text('Error loading carbon tracker: $error'),
+                ),
+                data: (ecoActivities) {
+                  // Convert EcoActivity to CarbonActivity for compatibility
+                  final carbonActivities = ecoActivities
+                      .map((eco) => CarbonActivity.fromEcoActivity(eco))
+                      .toList();
+                  
+                  return carbonLast30DaysAsync.when(
+                    loading: () => CarbonTracker(
+                      activities: carbonActivities,
+                      totalSaved: carbonActivities.fold(0.0, (sum, activity) => sum + activity.co2Saved),
+                    ),
+                    error: (error, stack) => CarbonTracker(
+                      activities: carbonActivities,
+                      totalSaved: carbonActivities.fold(0.0, (sum, activity) => sum + activity.co2Saved),
+                    ),
+                    data: (totalSaved) => CarbonTracker(
+                      activities: carbonActivities,
+                      totalSaved: totalSaved,
+                    ),
+                  );
+                },
               ),
             ),
           ),

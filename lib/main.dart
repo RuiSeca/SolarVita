@@ -11,9 +11,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 // Import Firebase options
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_push_notification_service.dart';
 import 'services/data_sync_service.dart';
 import 'services/chat_notification_service.dart';
 import 'services/strike_calculation_service.dart';
+import 'services/google_maps_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
@@ -94,6 +96,15 @@ void main() async {
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+    // Initialize Firebase Push Notification Service
+    try {
+      final firebasePushService = FirebasePushNotificationService();
+      await firebasePushService.initialize();
+      debugPrint('Firebase Push Notification Service initialized successfully');
+    } catch (e, st) {
+      debugPrint('Firebase Push Notification Service initialization failed: $e\n$st');
+    }
+
     isFirebaseAvailable = true;
   } catch (e, st) {
     debugPrint('Firebase initialization error: $e\n$st');
@@ -118,6 +129,17 @@ void main() async {
       
     } catch (e, st) {
       debugPrint('Strike calculation service initialization failed: $e\n$st');
+    }
+  }
+
+  // Initialize Firebase push notification service if Firebase available
+  if (isFirebaseAvailable) {
+    try {
+      final firebasePushNotificationService = FirebasePushNotificationService();
+      await firebasePushNotificationService.initialize();
+      debugPrint('Firebase push notification service initialized successfully');
+    } catch (e, st) {
+      debugPrint('Firebase push notification service init failed: $e\n$st');
     }
   }
 
@@ -151,6 +173,9 @@ void main() async {
   } catch (e) {
     debugPrint('.env file not found, using system environment variables.');
   }
+
+  // Initialize Google Maps with API key from environment
+  await GoogleMapsService.initialize();
 
   runApp(ProviderScope(child: const SolarVitaApp()));
 }

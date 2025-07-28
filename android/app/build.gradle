@@ -26,6 +26,14 @@ android {
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Set manifest placeholders from environment variables or dart-define
+        manifestPlaceholders = [
+            GOOGLE_MAPS_API_KEY: project.findProperty('dart.env.GOOGLE_MAPS_API_KEY') ?: System.getenv('GOOGLE_MAPS_API_KEY') ?: ''
+        ]
+        
+        // Increase memory for Google Maps
+        multiDexEnabled true
     }
 
     buildTypes {
@@ -41,4 +49,5 @@ flutter {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    implementation("androidx.multidex:multidex:2.0.1")
 }

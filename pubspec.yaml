@@ -44,6 +44,11 @@ dependencies:
   health: ^11.1.1
   device_info_plus: ^10.1.2
 
+  # Maps and Location
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.1.0
+  geocoding: ^2.1.1
+
   # Firebase
   firebase_core: ^3.15.1
   firebase_auth: ^5.6.2

@@ -192,14 +192,17 @@ class SocialService {
     await _firestore.collection('supporterRequests').add(supporterRequest);
     
     // Send notification to receiver
+    // Note: Notification will only be displayed if app is in background
     try {
+      debugPrint('🤝 Sending support request notification to $receiverId');
       await _notificationService.sendSupportRequestNotification(
         receiverId: receiverId,
         requesterName: requesterData['displayName'] ?? 'Someone',
         message: message,
       );
+      debugPrint('✅ Support request notification sent (will show only if app in background)');
     } catch (e) {
-      // Continue even if notification fails
+      debugPrint('❌ Support request notification failed: $e');
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import '../models/chat_message.dart';
 import '../models/chat_conversation.dart';
 import '../models/social_activity.dart';
@@ -133,21 +134,24 @@ class ChatService {
     await batch.commit();
     
     // Send notification to the receiver
+    // Note: Notification will only be displayed if app is in background
     try {
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId!).get();
       final senderName = currentUserDoc.exists 
           ? (currentUserDoc.data()?['displayName'] ?? 'Someone')
           : 'Someone';
       
+      debugPrint('💬 Sending message notification to $receiverId from $senderName');
       await _notificationService.sendMessageNotification(
         receiverId: receiverId,
         senderName: senderName,
         messagePreview: content.length > 50 ? '${content.substring(0, 47)}...' : content,
         chatId: conversationId,
       );
+      debugPrint('✅ Message notification sent (will show only if app in background)');
     } catch (e) {
       // Don't fail the message sending if notification fails
-      // Silent failure for notification issues
+      debugPrint('❌ Message notification failed: $e');
     }
   }
 
@@ -174,7 +178,7 @@ class ChatService {
     );
   }
 
-  // Get messages for a conversation
+  // Get messages for a conversation with automatic read status management
   Stream<List<ChatMessage>> getMessages(String conversationId) {
     final participants = _getConversationParticipants(conversationId);
     if (participants.length != 2) return Stream.value([]);
@@ -186,14 +190,76 @@ class ChatService {
         .orderBy('timestamp', descending: true)
         .limit(100)
         .snapshots()
-        .map((snapshot) {
+        .asyncMap((snapshot) async {
           final messages = snapshot.docs
               .map((doc) => ChatMessage.fromFirestore(doc))
               .toList();
           
+          // Automatically mark messages as read when they're loaded (only for received messages)
+          await _autoMarkNewMessagesAsRead(conversationId, messages);
+          
           // Reverse the list so oldest messages are first (newest at bottom)
           return messages.reversed.toList();
         });
+  }
+
+  // Enhanced message stream that provides real-time read receipts for senders
+  Stream<List<ChatMessage>> getMessagesWithReadReceipts(String conversationId) {
+    final participants = _getConversationParticipants(conversationId);
+    if (participants.length != 2) return Stream.value([]);
+    
+    return _firestore
+        .collection('messages')
+        .where('conversationId', isEqualTo: conversationId)
+        .orderBy('timestamp', descending: true)
+        .limit(100)
+        .snapshots()
+        .asyncMap((snapshot) async {
+          final messages = snapshot.docs
+              .map((doc) => ChatMessage.fromFirestore(doc))
+              .toList();
+          
+          // Auto-mark received messages as read
+          await _autoMarkNewMessagesAsRead(conversationId, messages);
+          
+          // Return messages with current read status (real-time updates)
+          return messages.reversed.toList();
+        });
+  }
+
+  // Automatically mark new messages as read when viewing the chat
+  Future<void> _autoMarkNewMessagesAsRead(String conversationId, List<ChatMessage> messages) async {
+    if (currentUserId == null) return;
+    
+    try {
+      final unreadMessages = messages.where((message) => 
+        message.receiverId == currentUserId && 
+        !message.isRead
+      ).toList();
+      
+      if (unreadMessages.isNotEmpty) {
+        debugPrint('📖 Auto-marking ${unreadMessages.length} messages as read');
+        
+        final batch = _firestore.batch();
+        
+        // Mark individual messages as read
+        for (final message in unreadMessages) {
+          final messageRef = _firestore.collection('messages').doc(message.messageId);
+          batch.update(messageRef, {'isRead': true});
+        }
+        
+        // Update conversation unread count
+        final conversationRef = _firestore.collection('conversations').doc(conversationId);
+        batch.update(conversationRef, {
+          'unreadCounts.$currentUserId': 0,
+        });
+        
+        await batch.commit();
+        debugPrint('✅ Auto-marked messages as read successfully');
+      }
+    } catch (e) {
+      debugPrint('❌ Failed to auto-mark messages as read: $e');
+    }
   }
 
   // Get user's conversations
@@ -210,33 +276,48 @@ class ChatService {
             .toList());
   }
 
-  // Mark messages as read
+  // Mark messages as read (call this when user enters chat screen)
   Future<void> markMessagesAsRead(String conversationId) async {
     if (currentUserId == null) return;
 
-    final batch = _firestore.batch();
-    
-    // Update conversation unread count
-    final conversationRef = _firestore.collection('conversations').doc(conversationId);
-    batch.update(conversationRef, {
-      'unreadCounts.$currentUserId': 0,
-    });
-    
-    // Mark individual messages as read
-    final unreadMessages = await _firestore
-        .collection('messages')
-        .where('receiverId', isEqualTo: currentUserId)
-        .where('isRead', isEqualTo: false)
-        .get();
-    
-    for (final doc in unreadMessages.docs) {
-      final message = ChatMessage.fromFirestore(doc);
-      if (_belongsToConversation(message, conversationId)) {
+    try {
+      debugPrint('📖 Marking all messages as read for conversation: $conversationId');
+      
+      final batch = _firestore.batch();
+      
+      // Update conversation unread count
+      final conversationRef = _firestore.collection('conversations').doc(conversationId);
+      batch.update(conversationRef, {
+        'unreadCounts.$currentUserId': 0,
+      });
+      
+      // Mark individual messages as read
+      final unreadMessages = await _firestore
+          .collection('messages')
+          .where('conversationId', isEqualTo: conversationId)
+          .where('receiverId', isEqualTo: currentUserId)
+          .where('isRead', isEqualTo: false)
+          .get();
+      
+      for (final doc in unreadMessages.docs) {
         batch.update(doc.reference, {'isRead': true});
       }
+      
+      await batch.commit();
+      debugPrint('✅ Marked ${unreadMessages.docs.length} messages as read');
+    } catch (e) {
+      debugPrint('❌ Failed to mark messages as read: $e');
     }
-    
-    await batch.commit();
+  }
+
+  // Call this when user enters a chat screen for immediate read status update
+  Future<void> enterChatScreen(String conversationId) async {
+    await markMessagesAsRead(conversationId);
+  }
+
+  // Call this method periodically or on user activity to keep read status current
+  Future<void> refreshReadStatus(String conversationId) async {
+    await markMessagesAsRead(conversationId);
   }
 
   // Get total unread count for user

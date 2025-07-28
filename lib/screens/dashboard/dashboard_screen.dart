@@ -81,6 +81,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                       style: theme.textTheme.titleLarge?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 19,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ],
@@ -126,6 +127,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         tr(context, 'explore_popular_workouts'),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -160,6 +162,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         tr(context, 'quick_exercise_routines'),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -203,6 +206,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   tr(context, 'fitness_categories'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -233,6 +237,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           'From the Community',
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                         const SizedBox(width: 8),
