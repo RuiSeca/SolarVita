@@ -32,8 +32,11 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
-.firebase/
+/.firebase/
 
+# Firebase rules (added)
+firestore.rules
+firestore.rules.dev
 
 # Symbolication related
 app.*.symbols
