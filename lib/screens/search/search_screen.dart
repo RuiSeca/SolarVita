@@ -10,6 +10,7 @@ import 'workout_detail/workout_list_screen.dart';
 import 'workout_detail/models/workout_item.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/oriented_image.dart';
+import '../routine/routine_main_screen.dart';
 
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -343,6 +344,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           children: [
             _buildAppBar(context),
             if (_isSearching) _buildSearchBar() else _buildTitle(context),
+            _buildRoutineButton(),
 
             // Show loading indicator when loading exercises
             if (_isLoadingExercises)
@@ -523,6 +525,38 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           fontSize: 24,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+
+  Widget _buildRoutineButton() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _navigateToRoutines(),
+          icon: const Icon(Icons.schedule),
+          label: Text(tr(context, 'weekly_routines')),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToRoutines() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RoutineMainScreen(),
       ),
     );
   }
