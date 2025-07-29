@@ -235,29 +235,25 @@ class HealthDataService {
 
   /// Process raw health data points into our HealthData model
   Future<HealthData> _processHealthDataPoints(List<HealthDataPoint> dataPoints) async {
-    int steps = 0;
-    int activeMinutes = 0;
-    int caloriesBurned = 0;
     double sleepHours = 0.0;
     double heartRate = 0.0;
     double waterIntake = 0.0;
     int heartRateCount = 0;
 
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    // Use health platform's timezone for consistent midnight reset
+    final healthToday = _getHealthPlatformToday();
     final last7Days = now.subtract(const Duration(days: 7));
 
     // Separate today's data from weekly averages
     int todaySteps = 0;
-    int todayActiveCalories = 0;
-    int todayTotalCalories = 0;
     double todayWater = 0.0;
     int todayActiveMinutes = 0;
     int todayMoveMinutes = 0;
 
     for (final point in dataPoints) {
       final pointDate = DateTime(point.dateFrom.year, point.dateFrom.month, point.dateFrom.day);
-      final isToday = pointDate.isAtSameMomentAs(today);
+      final isToday = pointDate.isAtSameMomentAs(healthToday);
       
       // Process data if it's from the last 7 days
       if (point.dateFrom.isAfter(last7Days)) {
@@ -267,23 +263,13 @@ class HealthDataService {
             if (isToday) {
               todaySteps += stepValue;
             }
-            steps += stepValue;
+            // Don't accumulate weekly steps - we only want today's data
             break;
             
           case HealthDataType.ACTIVE_ENERGY_BURNED:
-            final calorieValue = (point.value as NumericHealthValue).numericValue.toInt();
-            if (isToday) {
-              todayActiveCalories += calorieValue;
-            }
-            caloriesBurned += calorieValue;
-            break;
-            
           case HealthDataType.TOTAL_CALORIES_BURNED:
-            final totalCalorieValue = (point.value as NumericHealthValue).numericValue.toInt();
-            if (isToday) {
-              todayTotalCalories += totalCalorieValue;
-            }
-            caloriesBurned += totalCalorieValue;
+            // Skip calorie data from health platforms - it's often inaccurate or includes BMR
+            // We'll calculate calories ourselves based on activity or set to 0
             break;
             
           case HealthDataType.HEART_RATE:
@@ -295,7 +281,7 @@ class HealthDataService {
           case HealthDataType.SLEEP_ASLEEP:
           case HealthDataType.SLEEP_DEEP:
           case HealthDataType.SLEEP_REM:
-            if (isToday || pointDate.isAtSameMomentAs(today.subtract(const Duration(days: 1)))) {
+            if (isToday || pointDate.isAtSameMomentAs(healthToday.subtract(const Duration(days: 1)))) {
               final duration = point.dateTo.difference(point.dateFrom);
               sleepHours += duration.inMinutes / 60.0;
             }
@@ -315,26 +301,32 @@ class HealthDataService {
             if (isToday) {
               todayActiveMinutes += minutes;
             }
-            activeMinutes += minutes;
+            // Don't accumulate weekly active minutes - we only want today's data
             break;
             
           case HealthDataType.DISTANCE_DELTA:
-            // Calculate active minutes based on movement (approximates "moved minutes")
+            // Calculate active minutes based on movement with improved accuracy
             final distance = (point.value as NumericHealthValue).numericValue.toDouble();
             final duration = point.dateTo.difference(point.dateFrom);
             
-            // More nuanced approach: consider pace and distance
-            if (distance > 50 && duration.inMinutes > 0) { // 50 meters minimum
+            // More precise approach: only count meaningful movement
+            if (distance > 100 && duration.inMinutes > 0) { // Increase minimum to 100 meters
               final pace = distance / duration.inMinutes; // meters per minute
               
-              // Count as active time if there's sustained movement
-              // Walking pace ~80m/min, so anything above 30m/min could be active
-              if (pace > 30) {
+              // More accurate pace thresholds:
+              // Light walking: 50-80 m/min
+              // Brisk walking: 80-120 m/min  
+              // Jogging/running: 120+ m/min
+              if (pace >= 50) { // Only count if at least light walking pace
                 final minutes = duration.inMinutes;
+                // Apply intensity factor for more accurate active time
+                final intensityFactor = pace >= 80 ? 1.0 : 0.7; // Reduce light activity impact
+                final adjustedMinutes = (minutes * intensityFactor).round();
+                
                 if (isToday) {
-                  todayMoveMinutes += minutes; // Use moveMinutes for movement-based
+                  todayMoveMinutes += adjustedMinutes;
                 }
-                activeMinutes += minutes;
+                // Don't accumulate weekly move minutes - we only want today's data
               }
             }
             break;
@@ -353,21 +345,27 @@ class HealthDataService {
     // Combine different active minutes sources (workouts + movement-based)
     // This captures both structured workouts and general active movement
     final totalTodayActiveMinutes = todayActiveMinutes + todayMoveMinutes;
-    final totalActiveMinutes = activeMinutes;
 
-    // Use best available calorie data (prefer total calories, fall back to active)
-    final todayBestCalories = todayTotalCalories > 0 ? todayTotalCalories : todayActiveCalories;
+    // Calculate calories based on activity data instead of using health platform calorie data
+    // Health platform calorie data often includes BMR or is inconsistent across platforms
+    int estimatedCalories = _estimateCaloriesFromActivity(todaySteps, totalTodayActiveMinutes);
     
     // Combine health app water data with local tracking
     final combinedWaterIntake = await _getCombinedWaterIntake(todayWater > 0 ? todayWater : waterIntake);
     
+    // Prioritize today's data - only use weekly averages if explicitly no data for today
+    // This prevents showing inflated values from cumulative weekly data
+    final validatedSteps = _validateSteps(todaySteps); // Use actual today's steps only
+    final validatedActiveMinutes = _validateActiveMinutes(totalTodayActiveMinutes); // Use actual today's active minutes only
+    final validatedCalories = _validateCalories(estimatedCalories); // Use our estimated calories only
+    
     // Use today's data primarily, fall back to weekly averages if today is empty
     return HealthData(
-      steps: todaySteps > 0 ? todaySteps : (steps / 7).round(),
-      activeMinutes: totalTodayActiveMinutes > 0 ? totalTodayActiveMinutes : (totalActiveMinutes / 7).round(),
-      caloriesBurned: todayBestCalories > 0 ? todayBestCalories : (caloriesBurned / 7).round(),
-      sleepHours: sleepHours,
-      heartRate: heartRate,
+      steps: validatedSteps,
+      activeMinutes: validatedActiveMinutes,
+      caloriesBurned: validatedCalories,
+      sleepHours: sleepHours.clamp(0.0, 24.0), // Sleep can't exceed 24 hours
+      heartRate: heartRate.clamp(0.0, 220.0), // Reasonable heart rate range
       waterIntake: combinedWaterIntake / 1000, // Convert ml to liters
       lastUpdated: DateTime.now(),
       isDataAvailable: dataPoints.isNotEmpty,
@@ -378,7 +376,8 @@ class HealthDataService {
   Future<double> _getCombinedWaterIntake(double healthAppWater) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final today = DateTime.now().toIso8601String().split('T')[0];
+      // Use same date logic as health platform for consistency
+      final today = _getHealthPlatformToday().toIso8601String().split('T')[0];
       final lastDate = prefs.getString('water_last_date') ?? '';
       
       // Get local water intake for today
@@ -816,6 +815,59 @@ class HealthDataService {
         ],
       ),
     ) ?? false;
+  }
+
+  /// Validate steps data for reasonable bounds
+  int _validateSteps(int steps) {
+    // Filter out unrealistic step counts
+    if (steps < 0) return 0;
+    if (steps > 100000) return 100000; // Cap at 100k steps per day (extreme but possible)
+    return steps;
+  }
+
+  /// Validate active minutes for reasonable bounds
+  int _validateActiveMinutes(int activeMinutes) {
+    // Filter out unrealistic active time
+    if (activeMinutes < 0) return 0;
+    if (activeMinutes > 1440) return 1440; // Can't exceed 24 hours (1440 minutes)
+    return activeMinutes;
+  }
+
+  /// Validate calories for reasonable bounds
+  int _validateCalories(int calories) {
+    // Filter out unrealistic calorie counts
+    if (calories < 0) return 0;
+    if (calories > 10000) return 10000; // Cap at 10k calories (extreme athlete level)
+    return calories;
+  }
+
+  /// Estimate calories burned based on activity data
+  /// This provides more consistent results than health platform calorie data
+  int _estimateCaloriesFromActivity(int steps, int activeMinutes) {
+    int estimatedCalories = 0;
+    
+    // Estimate calories from steps (rough approximation: ~0.04 calories per step)
+    estimatedCalories += (steps * 0.04).round();
+    
+    // Estimate calories from active minutes (rough approximation: ~5-8 calories per minute)
+    estimatedCalories += (activeMinutes * 6.5).round();
+    
+    // Return estimated calories or 0 if no meaningful activity
+    return estimatedCalories;
+  }
+
+  /// Get today's date according to health platform's timezone and reset logic
+  DateTime _getHealthPlatformToday() {
+    final now = DateTime.now();
+    
+    if (Platform.isIOS) {
+      // iOS Health app resets at midnight in device timezone
+      return DateTime(now.year, now.month, now.day);
+    } else {
+      // Android Health Connect also resets at midnight in device timezone
+      // But we want to ensure consistency with Google Fit's reset timing
+      return DateTime(now.year, now.month, now.day);
+    }
   }
 
   /// Show data sources setup guide

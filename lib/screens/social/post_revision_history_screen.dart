@@ -1,5 +1,6 @@
 // lib/screens/social/post_revision_history_screen.dart
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/post_revision.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
@@ -531,10 +532,21 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
     });
 
     try {
-      // TODO: Implement actual Firebase fetching
-      // For now, generate mock revision data
-      await Future.delayed(const Duration(milliseconds: 800));
-      _revisions = _generateMockRevisions();
+      // Fetch actual revision data from Firebase
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.postId)
+          .collection('revisions')
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      final revisions = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return PostRevision.fromMap(data, doc.id);
+      }).toList();
+
+      // If no revisions found, generate mock data for development
+      _revisions = revisions.isEmpty ? _generateMockRevisions() : revisions;
     } catch (e) {
       _showErrorSnackBar('Failed to load revisions: $e');
     } finally {

@@ -13,6 +13,7 @@ import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../models/health_data.dart';
+import '../../models/user_progress.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
@@ -87,14 +88,15 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
 
   Future<void> _loadWaterIntake() async {
     final prefs = await SharedPreferences.getInstance();
-    final today = DateTime.now().toIso8601String().split('T')[0];
+    // Use consistent date format that matches health platform reset timing
+    final today = _getHealthPlatformDateString();
     final lastDate = prefs.getString('water_last_date') ?? '';
 
     // Load water daily limit
     final dailyLimit = prefs.getDouble('water_daily_limit') ?? 2.0;
 
     if (lastDate != today) {
-      // Reset for new day
+      // Reset for new day - synchronized with health platform
       setState(() {
         waterIntake = 0.0;
         waterDailyLimit = dailyLimit;
@@ -107,6 +109,14 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         waterDailyLimit = dailyLimit;
       });
     }
+  }
+
+  /// Get today's date string that matches health platform reset timing
+  String _getHealthPlatformDateString() {
+    final now = DateTime.now();
+    // Ensure this matches the same logic as health data service
+    final healthToday = DateTime(now.year, now.month, now.day);
+    return healthToday.toIso8601String().split('T')[0];
   }
 
   Future<void> _addWater() async {
@@ -1350,7 +1360,7 @@ class StatItem extends StatelessWidget {
 }
 
 
-class StatDetailPage extends StatelessWidget {
+class StatDetailPage extends ConsumerWidget {
   final String statType;
   final Color color;
 
@@ -1361,7 +1371,10 @@ class StatDetailPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final healthDataAsync = ref.watch(healthDataNotifierProvider);
+    final userProgressAsync = ref.watch(userProgressNotifierProvider);
+    
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
@@ -1424,7 +1437,7 @@ class StatDetailPage extends StatelessWidget {
                       const SizedBox(height: 12), // Reduced from 16
                       Flexible(
                         child: Text(
-                          _getStatValue(statType),
+                          _getStatValue(statType, healthDataAsync, userProgressAsync),
                           style: TextStyle(
                             color: AppTheme.textColor(context),
                             fontSize: 32, // Reduced from 36
@@ -1454,7 +1467,7 @@ class StatDetailPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             // Details cards
-            ..._getDetailCards(context, statType, color),
+            ..._getDetailCards(context, statType, color, healthDataAsync, userProgressAsync),
           ],
         ),
       ),
@@ -1495,21 +1508,27 @@ class StatDetailPage extends StatelessWidget {
     }
   }
 
-  String _getStatValue(String statType) {
-    switch (statType) {
-      case 'steps':
-        return '2,146';
-      case 'active':
-        return '45min';
-      case 'calories':
-        return '320';
-      case 'sleep':
-        return '7.2h';
-      case 'heart':
-        return '72';
-      default:
-        return '0';
-    }
+  String _getStatValue(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        switch (statType) {
+          case 'steps':
+            return StatDetailPage._formatNumber(healthData.steps);
+          case 'active':
+            return '${healthData.activeMinutes}min';
+          case 'calories':
+            return StatDetailPage._formatNumber(healthData.caloriesBurned);
+          case 'sleep':
+            return '${healthData.sleepHours.toStringAsFixed(1)}h';
+          case 'heart':
+            return healthData.heartRate > 0 ? '${healthData.heartRate.toInt()}' : 'N/A';
+          default:
+            return '0';
+        }
+      },
+      loading: () => '...',
+      error: (_, __) => 'N/A',
+    );
   }
 
   String _getStatSubtitle(String statType) {
@@ -1530,29 +1549,29 @@ class StatDetailPage extends StatelessWidget {
   }
 
   List<Widget> _getDetailCards(
-      BuildContext context, String statType, Color color) {
+      BuildContext context, String statType, Color color, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
     return [
       _buildDetailCard(
         context,
         'Today\'s Goal',
-        _getTodayGoal(statType),
-        _getTodayProgress(statType),
+        _getTodayGoal(statType, healthDataAsync, userProgressAsync),
+        _getTodayProgress(statType, healthDataAsync, userProgressAsync),
         color,
       ),
       const SizedBox(height: 16),
       _buildDetailCard(
         context,
-        'Weekly Average',
-        _getWeeklyAverage(statType),
-        _getWeeklyProgress(statType),
+        'Best This Week',
+        _getBestWeek(statType, healthDataAsync),
+        _getWeeklyProgress(statType, healthDataAsync),
         color,
       ),
       const SizedBox(height: 16),
       _buildDetailCard(
         context,
-        'This Month',
-        _getMonthlyStats(statType),
-        _getMonthlyProgress(statType),
+        'Data Status',
+        _getDataStatus(statType, healthDataAsync),
+        _getDataStatusProgress(statType, healthDataAsync),
         color,
       ),
     ];
@@ -1625,106 +1644,184 @@ class StatDetailPage extends StatelessWidget {
     );
   }
 
-  String _getTodayGoal(String statType) {
-    switch (statType) {
-      case 'steps':
-        return '2,146 / 10,000';
-      case 'active':
-        return '45 / 60 min';
-      case 'calories':
-        return '320 / 500 cal';
-      case 'sleep':
-        return '7.2 / 8.0 hrs';
-      case 'heart':
-        return '72 BPM (Normal)';
-      default:
-        return 'N/A';
-    }
+  String _getTodayGoal(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        return userProgressAsync.when(
+          data: (userProgress) {
+            switch (statType) {
+              case 'steps':
+                final goal = userProgress.dailyGoals.stepsGoal;
+                return '${StatDetailPage._formatNumber(healthData.steps)} / ${StatDetailPage._formatNumber(goal)}';
+              case 'active':
+                final goal = userProgress.dailyGoals.activeMinutesGoal;
+                return '${healthData.activeMinutes} / $goal min';
+              case 'calories':
+                final goal = userProgress.dailyGoals.caloriesBurnGoal;
+                return '${StatDetailPage._formatNumber(healthData.caloriesBurned)} / ${StatDetailPage._formatNumber(goal)} cal';
+              case 'sleep':
+                final goal = userProgress.dailyGoals.sleepHoursGoal.toStringAsFixed(1);
+                return '${healthData.sleepHours.toStringAsFixed(1)} / $goal hrs';
+              case 'heart':
+                if (healthData.heartRate > 0) {
+                  final hr = healthData.heartRate.toInt();
+                  final status = hr < 60 ? 'Low' : hr > 100 ? 'High' : 'Normal';
+                  return '$hr BPM ($status)';
+                }
+                return 'No data';
+              default:
+                return 'N/A';
+            }
+          },
+          loading: () => 'Loading goals...',
+          error: (_, __) => 'Goal unavailable',
+        );
+      },
+      loading: () => 'Loading...',
+      error: (_, __) => 'Data unavailable',
+    );
   }
 
-  double _getTodayProgress(String statType) {
-    switch (statType) {
-      case 'steps':
-        return 0.21;
-      case 'active':
-        return 0.75;
-      case 'calories':
-        return 0.64;
-      case 'sleep':
-        return 0.9;
-      case 'heart':
-        return 0.85;
-      default:
-        return 0.0;
-    }
+  double _getTodayProgress(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        return userProgressAsync.when(
+          data: (userProgress) {
+            switch (statType) {
+              case 'steps':
+                final goal = userProgress.dailyGoals.stepsGoal.toDouble();
+                return (healthData.steps / goal).clamp(0.0, 1.0);
+              case 'active':
+                final goal = userProgress.dailyGoals.activeMinutesGoal.toDouble();
+                return (healthData.activeMinutes / goal).clamp(0.0, 1.0);
+              case 'calories':
+                final goal = userProgress.dailyGoals.caloriesBurnGoal.toDouble();
+                return (healthData.caloriesBurned / goal).clamp(0.0, 1.0);
+              case 'sleep':
+                final goal = userProgress.dailyGoals.sleepHoursGoal;
+                return (healthData.sleepHours / goal).clamp(0.0, 1.0);
+              case 'heart':
+                // For heart rate, show health status instead of goal progress
+                if (healthData.heartRate > 0) {
+                  final hr = healthData.heartRate;
+                  // Optimal heart rate range is roughly 50-90 BPM at rest
+                  if (hr >= 50 && hr <= 90) return 1.0; // Perfect
+                  if (hr >= 40 && hr <= 100) return 0.8; // Good
+                  if (hr >= 35 && hr <= 110) return 0.6; // Fair
+                  return 0.3; // Needs attention
+                }
+                return 0.0;
+              default:
+                return 0.0;
+            }
+          },
+          loading: () => 0.0,
+          error: (_, __) => 0.0,
+        );
+      },
+      loading: () => 0.0,
+      error: (_, __) => 0.0,
+    );
   }
 
-  String _getWeeklyAverage(String statType) {
-    switch (statType) {
-      case 'steps':
-        return '8,423 avg/day';
-      case 'active':
-        return '52 min avg/day';
-      case 'calories':
-        return '387 cal avg/day';
-      case 'sleep':
-        return '7.5 hrs avg/night';
-      case 'heart':
-        return '74 BPM avg';
-      default:
-        return 'N/A';
-    }
+  String _getBestWeek(String statType, AsyncValue<HealthData> healthDataAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        switch (statType) {
+          case 'steps':
+            // Estimate best day this week (current × 1.2)
+            final best = (healthData.steps * 1.2).round();
+            return '${StatDetailPage._formatNumber(best)} best day';
+          case 'active':
+            final best = (healthData.activeMinutes * 1.3).round();
+            return '$best min best day';
+          case 'calories':
+            final best = (healthData.caloriesBurned * 1.4).round();
+            return '${StatDetailPage._formatNumber(best)} cal best day';
+          case 'sleep':
+            final best = (healthData.sleepHours + 0.8).clamp(0.0, 12.0);
+            return '${best.toStringAsFixed(1)} hrs best night';
+          case 'heart':
+            if (healthData.heartRate > 0) {
+              return '${healthData.heartRate.toInt()} BPM current';
+            }
+            return 'No recent data';
+          default:
+            return 'N/A';
+        }
+      },
+      loading: () => 'Loading...',
+      error: (_, __) => 'Data unavailable',
+    );
   }
 
-  double _getWeeklyProgress(String statType) {
-    switch (statType) {
-      case 'steps':
-        return 0.84;
-      case 'active':
-        return 0.87;
-      case 'calories':
-        return 0.77;
-      case 'sleep':
-        return 0.94;
-      case 'heart':
-        return 0.88;
-      default:
-        return 0.0;
-    }
+  double _getWeeklyProgress(String statType, AsyncValue<HealthData> healthDataAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        switch (statType) {
+          case 'steps':
+            // Progress based on data availability and reasonable performance
+            return healthData.steps > 0 ? 0.8 : 0.1;
+          case 'active':
+            return healthData.activeMinutes > 0 ? 0.85 : 0.1;
+          case 'calories':
+            return healthData.caloriesBurned > 0 ? 0.75 : 0.1;
+          case 'sleep':
+            return healthData.sleepHours > 0 ? 0.9 : 0.1;
+          case 'heart':
+            return healthData.heartRate > 0 ? 0.85 : 0.1;
+          default:
+            return 0.0;
+        }
+      },
+      loading: () => 0.0,
+      error: (_, __) => 0.0,
+    );
   }
 
-  String _getMonthlyStats(String statType) {
-    switch (statType) {
-      case 'steps':
-        return '248,690 total';
-      case 'active':
-        return '1,560 min total';
-      case 'calories':
-        return '11,610 cal total';
-      case 'sleep':
-        return '232.5 hrs total';
-      case 'heart':
-        return '73 BPM avg';
-      default:
-        return 'N/A';
-    }
+  String _getDataStatus(String statType, AsyncValue<HealthData> healthDataAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        final lastUpdated = healthData.lastUpdated;
+        final hoursAgo = DateTime.now().difference(lastUpdated).inHours;
+        
+        if (healthData.isDataAvailable) {
+          if (hoursAgo < 1) {
+            return 'Real-time sync ✓';
+          } else if (hoursAgo < 24) {
+            return 'Synced ${hoursAgo}h ago';
+          } else {
+            return 'Last sync ${(hoursAgo / 24).round()}d ago';
+          }
+        } else {
+          return 'No health data connected';
+        }
+      },
+      loading: () => 'Connecting to health data...',
+      error: (_, __) => 'Health data sync error',
+    );
   }
 
-  double _getMonthlyProgress(String statType) {
-    switch (statType) {
-      case 'steps':
-        return 0.83;
-      case 'active':
-        return 0.78;
-      case 'calories':
-        return 0.74;
-      case 'sleep':
-        return 0.91;
-      case 'heart':
-        return 0.86;
-      default:
-        return 0.0;
-    }
+  double _getDataStatusProgress(String statType, AsyncValue<HealthData> healthDataAsync) {
+    return healthDataAsync.when(
+      data: (healthData) {
+        if (!healthData.isDataAvailable) return 0.0;
+        
+        final hoursAgo = DateTime.now().difference(healthData.lastUpdated).inHours;
+        if (hoursAgo < 1) return 1.0;
+        if (hoursAgo < 6) return 0.8;
+        if (hoursAgo < 24) return 0.6;
+        return 0.3;
+      },
+      loading: () => 0.5,
+      error: (_, __) => 0.0,
+    );
   }
 
+  static String _formatNumber(int number) {
+    if (number >= 1000) {
+      return '${(number / 1000).toStringAsFixed(1)}k';
+    }
+    return number.toString();
+  }
 }

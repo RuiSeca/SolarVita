@@ -153,10 +153,11 @@
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="social_notifications" />
 
-        <!-- Google Maps API Key -->
+        <!-- Google Maps API Key - Commented out since using lightweight fitness tracker
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${GOOGLE_MAPS_API_KEY}"/>
+        -->
 
         <!-- Required for Flutter engine -->
         <meta-data

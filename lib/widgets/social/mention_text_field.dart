@@ -169,11 +169,11 @@ class _MentionTextFieldState extends State<MentionTextField> {
 
   void _onUserSelected(MentionableUser user) {
     final text = widget.controller.text;
-    // TODO: Use selection for more precise cursor positioning
-    // final selection = widget.controller.selection;
+    final selection = widget.controller.selection;
     
-    // Calculate mention end position
-    final mentionEndIndex = _mentionStartIndex + 1 + _currentMentionQuery.length;
+    // Use the actual cursor position if available, otherwise fall back to calculated position
+    final cursorPosition = selection.isValid ? selection.baseOffset : -1;
+    final mentionEndIndex = cursorPosition >= 0 ? cursorPosition : _mentionStartIndex + 1 + _currentMentionQuery.length;
     
     // Replace the partial mention with the complete username
     final newText = '${text.substring(0, _mentionStartIndex)}@${user.userName}${text.substring(mentionEndIndex)}';
@@ -190,10 +190,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
     // Add to mentions list
     _mentions.add(mentionInfo);
     
-    // Update text and cursor position
-    widget.controller.text = newText;
-    widget.controller.selection = TextSelection.collapsed(
-      offset: _mentionStartIndex + user.userName.length + 1,
+    // Update text and cursor position with more precise positioning
+    widget.controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: _mentionStartIndex + user.userName.length + 1,
+      ),
     );
     
     _removeOverlay();

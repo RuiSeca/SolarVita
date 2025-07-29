@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/health_data_provider.dart';
 import '../../providers/riverpod/location_provider.dart';
-import '../../widgets/transportation_map_widget.dart';
+import '../../widgets/optimized_map_factory.dart';
 import 'package:geolocator/geolocator.dart';
 
 class TransportationDetailsScreen extends ConsumerStatefulWidget {
@@ -254,7 +254,7 @@ class _TransportationDetailsScreenState extends ConsumerState<TransportationDeta
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
-        child: const TransportationMapWidget(
+        child: OptimizedMapFactory.createMap(
           height: 400,
           showRoutes: true,
           enableInteraction: true,

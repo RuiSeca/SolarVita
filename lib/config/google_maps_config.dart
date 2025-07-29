@@ -1,3 +1,8 @@
+// GoogleMapsConfig - DEPRECATED
+// This config is no longer used since we replaced Google Maps with lightweight fitness tracker
+// Keeping commented for reference in case future reversion is needed
+
+/*
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GoogleMapsConfig {
@@ -9,3 +14,4 @@ class GoogleMapsConfig {
     return key;
   }
 }
+*/

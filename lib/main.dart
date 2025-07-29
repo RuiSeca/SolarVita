@@ -15,7 +15,6 @@ import 'services/firebase_push_notification_service.dart';
 import 'services/data_sync_service.dart';
 import 'services/chat_notification_service.dart';
 import 'services/strike_calculation_service.dart';
-import 'services/google_maps_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
@@ -174,8 +173,7 @@ void main() async {
     debugPrint('.env file not found, using system environment variables.');
   }
 
-  // Initialize Google Maps with API key from environment
-  await GoogleMapsService.initialize();
+  // Google Maps service removed - no longer needed
 
   runApp(ProviderScope(child: const SolarVitaApp()));
 }

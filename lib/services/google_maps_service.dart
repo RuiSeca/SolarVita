@@ -1,3 +1,8 @@
+// GoogleMapsService - DEPRECATED
+// This service is no longer used since we replaced Google Maps with lightweight fitness tracker
+// Keeping commented for reference in case future reversion is needed
+
+/*
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../config/google_maps_config.dart';
@@ -21,3 +26,4 @@ class GoogleMapsService {
     }
   }
 }
+*/

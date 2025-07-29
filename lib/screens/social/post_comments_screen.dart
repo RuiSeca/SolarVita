@@ -6,10 +6,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/social_post.dart';
 import '../../models/post_comment.dart';
 import '../../models/user_mention.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/social/report_content_dialog.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/social/comment_reaction_widget.dart';
 import '../../widgets/social/mention_text_field.dart';
@@ -94,7 +97,7 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
                 data: (threads) {
                   final totalComments = threads.fold<int>(
                     0, 
-                    (sum, thread) => sum + 1 + thread.replies.length,
+                    (currentSum, thread) => currentSum + 1 + thread.replies.length,
                   );
                   return Text(
                     '$totalComments comments',
@@ -920,8 +923,62 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
   }
 
   void _editComment(PostComment comment) {
-    // TODO: Implement edit comment functionality
-    _showInfoSnackBar('Edit comment functionality coming soon!');
+    final controller = TextEditingController(text: comment.content);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Comment'),
+        content: TextField(
+          controller: controller,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            hintText: 'Edit your comment...',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newContent = controller.text.trim();
+              if (newContent.isNotEmpty && newContent != comment.content) {
+                final currentContext = context; // Capture context before async operation
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('posts')
+                      .doc(widget.post.id)
+                      .collection('comments')
+                      .doc(comment.id)
+                      .update({
+                    'content': newContent,
+                    'editedAt': FieldValue.serverTimestamp(),
+                    'isEdited': true,
+                  });
+                  
+                  if (mounted && currentContext.mounted) {
+                    Navigator.pop(currentContext);
+                    _showSuccessSnackBar('Comment updated successfully');
+                    ref.invalidate(postCommentsProvider(widget.post.id));
+                  }
+                } catch (e) {
+                  if (mounted && currentContext.mounted) {
+                    Navigator.pop(currentContext);
+                    _showErrorSnackBar('Failed to update comment: $e');
+                  }
+                }
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deleteComment(String commentId) async {
@@ -950,8 +1007,44 @@ class _PostCommentsScreenState extends ConsumerState<PostCommentsScreen> {
   }
 
   void _reportComment(String commentId) {
-    // TODO: Implement report comment functionality
-    _showInfoSnackBar('Report functionality coming soon!');
+    // Find the comment to get its details
+    final allComments = ref.read(postCommentsProvider(widget.post.id)).value ?? [];
+    final comment = allComments.firstWhere((c) => c.id == commentId);
+    
+    showDialog(
+      context: context,
+      builder: (context) => ReportContentDialog(
+        contentId: commentId,
+        contentType: 'comment',
+        contentOwnerId: comment.userId,
+        contentOwnerName: comment.userName,
+        onReportSubmitted: (report) async {
+          try {
+            // Submit comment report to Firebase
+            await FirebaseFirestore.instance
+                .collection('reports')
+                .add({
+              'reporterId': FirebaseAuth.instance.currentUser?.uid,
+              'reporterName': FirebaseAuth.instance.currentUser?.displayName ?? 'Anonymous',
+              'contentId': commentId,
+              'contentType': 'comment',
+              'contentOwnerId': comment.userId,
+              'contentOwnerName': comment.userName,
+              'reason': report.reason,
+              'description': report.description,
+              'reportedAt': FieldValue.serverTimestamp(),
+              'status': 'pending',
+              'postId': widget.post.id, // Reference to parent post
+              'commentContent': comment.content,
+            });
+
+            _showSuccessSnackBar('Report submitted successfully');
+          } catch (e) {
+            _showErrorSnackBar('Failed to submit report: $e');
+          }
+        },
+      ),
+    );
   }
 
   void _navigateToUserProfile(String userId) {

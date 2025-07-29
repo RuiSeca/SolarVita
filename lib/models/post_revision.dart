@@ -82,6 +82,31 @@ class PostRevision {
     };
   }
 
+  // Alias methods for compatibility
+  Map<String, dynamic> toMap() => toFirestore();
+
+  factory PostRevision.fromMap(Map<String, dynamic> data, String id) {
+    return PostRevision(
+      id: id,
+      postId: data['postId'] ?? '',
+      userId: data['userId'] ?? '',
+      userName: data['userName'] ?? '',
+      timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      type: RevisionType.values.firstWhere(
+        (e) => e.toString() == data['type'],
+        orElse: () => RevisionType.contentEdit,
+      ),
+      previousContent: data['previousContent'],
+      newContent: data['newContent'],
+      previousData: data['previousData'],
+      newData: data['newData'],
+      editReason: data['editReason'],
+      changedFields: data['changedFields'] != null 
+          ? List<String>.from(data['changedFields']) 
+          : null,
+    );
+  }
+
   // Helper methods
   String getRevisionSummary() {
     switch (type) {

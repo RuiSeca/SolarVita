@@ -2,11 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:video_player/video_player.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../common/lottie_loading_widget.dart';
 import '../../screens/social/post_comments_screen.dart';
 import '../../screens/social/edit_post_screen.dart';
+import '../../screens/social/post_revision_history_screen.dart';
 import '../media/enhanced_video_player.dart';
 import '../../screens/media/full_screen_video_player.dart';
 import 'mention_rich_text.dart';
@@ -41,7 +45,7 @@ class SocialPostCard extends ConsumerStatefulWidget {
 class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   PageController? _mediaPageController;
   int _currentMediaIndex = 0;
-  // TODO: Video controllers for enhanced video handling
+  final Map<String, VideoPlayerController> _videoControllers = {};
 
   @override
   void initState() {
@@ -53,13 +57,35 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   }
 
   void _initializeVideoControllers() {
-    // TODO: Initialize video controllers for enhanced video handling
+    for (int i = 0; i < widget.post.mediaUrls.length; i++) {
+      final mediaUrl = widget.post.mediaUrls[i];
+      if (_isVideoUrl(mediaUrl)) {
+        try {
+          final controller = VideoPlayerController.networkUrl(Uri.parse(mediaUrl));
+          _videoControllers[mediaUrl] = controller;
+          controller.initialize().then((_) {
+            if (mounted) setState(() {});
+          });
+        } catch (e) {
+          debugPrint('Error initializing video controller for $mediaUrl: $e');
+        }
+      }
+    }
+  }
+
+  bool _isVideoUrl(String url) {
+    final videoExtensions = ['.mp4', '.mov', '.avi', '.mkv', '.webm'];
+    return videoExtensions.any((ext) => url.toLowerCase().contains(ext));
   }
 
   @override
   void dispose() {
     _mediaPageController?.dispose();
-    // TODO: Dispose video controllers
+    // Dispose all video controllers
+    for (final controller in _videoControllers.values) {
+      controller.dispose();
+    }
+    _videoControllers.clear();
     super.dispose();
   }
 
@@ -352,7 +378,6 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  // TODO: Build video player widget when needed
 
   Widget _buildMediaIndicators(int mediaCount) {
     return Positioned(
@@ -647,7 +672,14 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                         subtitle: 'See all changes made to this post',
                         onTap: () {
                           Navigator.pop(context);
-                          // TODO: Navigate to revision history
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostRevisionHistoryScreen(
+                                postId: widget.post.id,
+                              ),
+                            ),
+                          );
                         },
                       ),
                     ],
@@ -699,22 +731,49 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  void _handleSavePost() {
-    // TODO: Implement save post functionality with Firebase
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.bookmark, color: Colors.white, size: 20),
-            const SizedBox(width: 8),
-            const Text('Post saved to your collection!'),
-          ],
-        ),
-        backgroundColor: Theme.of(context).primaryColor,
+  void _handleSavePost() async {
+    final currentContext = context; // Capture context before async operation
+    try {
+      // Save post to Firebase
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser?.uid)
+          .collection('saved_posts')
+          .doc(widget.post.id)
+          .set({
+        'postId': widget.post.id,
+        'savedAt': FieldValue.serverTimestamp(),
+        'postAuthor': widget.post.userName,
+        'postContent': widget.post.content,
+        'postImageUrl': widget.post.mediaUrls.isNotEmpty ? widget.post.mediaUrls.first : null,
+      });
+
+      if (mounted && currentContext.mounted) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.bookmark, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                const Text('Post saved to your collection!'),
+              ],
+            ),
+            backgroundColor: Theme.of(currentContext).primaryColor,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
-      ),
-    );
+      ));
+      }
+    } catch (e) {
+      if (mounted && currentContext.mounted) {
+        ScaffoldMessenger.of(currentContext).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save post: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildOptionTile({
@@ -771,9 +830,47 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
         contentType: 'post',
         contentOwnerId: widget.post.userId,
         contentOwnerName: widget.post.userName,
-        onReportSubmitted: (report) {
-          // TODO: Submit report to Firebase
-          debugPrint('Report submitted: ${report.reason}');
+        onReportSubmitted: (report) async {
+          final currentContext = context; // Capture context before async operation
+          try {
+            // Submit report to Firebase
+            await FirebaseFirestore.instance
+                .collection('reports')
+                .add({
+              'reporterId': FirebaseAuth.instance.currentUser?.uid,
+              'reporterName': FirebaseAuth.instance.currentUser?.displayName ?? 'Anonymous',
+              'contentId': widget.post.id,
+              'contentType': 'post',
+              'contentOwnerId': widget.post.userId,
+              'contentOwnerName': widget.post.userName,
+              'reason': report.reason,
+              'description': report.description,
+              'reportedAt': FieldValue.serverTimestamp(),
+              'status': 'pending', // pending, reviewed, resolved
+              'postContent': widget.post.content,
+              'postImageUrl': widget.post.mediaUrls.isNotEmpty ? widget.post.mediaUrls.first : null,
+            });
+
+            if (mounted && currentContext.mounted) {
+              ScaffoldMessenger.of(currentContext).showSnackBar(
+                const SnackBar(
+                  content: Text('Report submitted successfully'),
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          } catch (e) {
+            if (mounted && currentContext.mounted) {
+              ScaffoldMessenger.of(currentContext).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to submit report: $e'),
+                  backgroundColor: Colors.red,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
         },
       ),
     );

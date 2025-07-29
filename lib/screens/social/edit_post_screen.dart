@@ -1,6 +1,9 @@
 // lib/screens/social/edit_post_screen.dart
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../models/social_post.dart';
 import '../../models/post_revision.dart';
@@ -846,6 +849,29 @@ class _EditPostScreenState extends State<EditPostScreen> {
     });
   }
 
+  Future<String?> _uploadMediaFile(File file) async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return null;
+
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('posts')
+          .child(userId)
+          .child(fileName);
+
+      final uploadTask = ref.putFile(file);
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      return downloadUrl;
+    } catch (e) {
+      debugPrint('Error uploading media file: $e');
+      return null;
+    }
+  }
+
   Future<void> _saveChanges() async {
     if (!_hasChanges) return;
 
@@ -854,16 +880,30 @@ class _EditPostScreenState extends State<EditPostScreen> {
     });
 
     try {
-      // TODO: Implement actual post update with Firebase
-      // This would include:
-      // 1. Upload new media files
-      // 2. Update post document
-      // 3. Create revision history entry
-      // 4. Update post's editedAt timestamp
+      // 1. Upload new media files if any
+      List<String> newMediaUrls = [];
+      if (_newImages.isNotEmpty) {
+        for (final file in _newImages) {
+          final mediaUrl = await _uploadMediaFile(file);
+          if (mediaUrl != null) {
+            newMediaUrls.add(mediaUrl);
+          }
+        }
+      }
 
-      await Future.delayed(const Duration(seconds: 2)); // Mock delay
+      // 2. Update post document in Firebase
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.post.id)
+          .update({
+        'content': _contentController.text.trim(),
+        'mediaUrls': [...widget.post.mediaUrls, ...newMediaUrls],
+        'editedAt': FieldValue.serverTimestamp(),
+        'editCount': FieldValue.increment(1),
+        'lastEditReason': _editReasonController.text.trim(),
+      });
 
-      // Create revision entries for tracking changes
+      // 3. Create revision entries for tracking changes
       await _createRevisionEntries();
 
       if (mounted) {
@@ -878,6 +918,18 @@ class _EditPostScreenState extends State<EditPostScreen> {
     }
   }
 
+  Future<void> _saveRevisionToFirebase(PostRevision revision) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('posts')
+          .doc(widget.post.id)
+          .collection('revisions')
+          .add(revision.toMap());
+    } catch (e) {
+      debugPrint('Error saving revision to Firebase: $e');
+    }
+  }
+
   Future<void> _createRevisionEntries() async {
     final editReason = _editReasonController.text.trim().isEmpty 
         ? null 
@@ -885,7 +937,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
     // Content change revision
     if (_contentController.text.trim() != _originalContent) {
-      PostRevision.createContentEdit(
+      final revision = PostRevision.createContentEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -893,12 +945,12 @@ class _EditPostScreenState extends State<EditPostScreen> {
         newContent: _contentController.text.trim(),
         editReason: editReason,
       );
-      // TODO: Save revision to Firebase
+      await _saveRevisionToFirebase(revision);
     }
 
     // Pillar changes revision
     if (!_listsEqual(_selectedPillars, _originalPillars)) {
-      PostRevision.createPillarEdit(
+      final revision = PostRevision.createPillarEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -906,12 +958,12 @@ class _EditPostScreenState extends State<EditPostScreen> {
         newPillars: _selectedPillars,
         editReason: editReason,
       );
-      // TODO: Save revision to Firebase
+      await _saveRevisionToFirebase(revision);
     }
 
     // Visibility change revision
     if (_selectedVisibility != _originalVisibility) {
-      PostRevision.createVisibilityEdit(
+      final revision = PostRevision.createVisibilityEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -919,12 +971,12 @@ class _EditPostScreenState extends State<EditPostScreen> {
         newVisibility: _selectedVisibility,
         editReason: editReason,
       );
-      // TODO: Save revision to Firebase
+      await _saveRevisionToFirebase(revision);
     }
 
     // Media changes revision
     if (_newImages.isNotEmpty || _removedMediaUrls.isNotEmpty) {
-      PostRevision.createMediaEdit(
+      final revision = PostRevision.createMediaEdit(
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
@@ -938,7 +990,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         },
         editReason: editReason,
       );
-      // TODO: Save revision to Firebase
+      await _saveRevisionToFirebase(revision);
     }
   }
 

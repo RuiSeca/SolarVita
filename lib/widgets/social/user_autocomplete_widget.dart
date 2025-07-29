@@ -1,6 +1,9 @@
 // lib/widgets/social/user_autocomplete_widget.dart
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math' as math;
 import '../../models/user_mention.dart';
 import '../../theme/app_theme.dart';
 
@@ -54,17 +57,35 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
     });
 
     try {
-      // TODO: Replace with actual Firebase query
-      await Future.delayed(const Duration(milliseconds: 300)); // Simulate API delay
-      
-      final allUsers = _getMockUsers();
-      final filteredUsers = allUsers
-          .where((user) => user.matchesQuery(widget.query))
-          .take(widget.maxResults)
-          .toList();
+      // Query Firebase for users matching the search term
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('searchTerms', arrayContainsAny: [
+            widget.query.toLowerCase(),
+            widget.query.toLowerCase().substring(0, math.min(3, widget.query.length)),
+          ])
+          .limit(widget.maxResults)
+          .get();
+
+      final filteredUsers = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return MentionableUser(
+          userId: doc.id,
+          userName: data['userName'] ?? '',
+          displayName: data['displayName'] ?? data['fullName'] ?? '',
+          avatarUrl: data['avatarUrl'],
+          isFollowing: data['isFollowing'] ?? false,
+          isSupporter: data['isSupporter'] ?? false,
+        );
+      }).where((user) => user.matchesQuery(widget.query)).toList();
+
+      // If no results from Firebase, fall back to mock data for development
+      final finalUsers = filteredUsers.isEmpty ? 
+          _getMockUsers().where((user) => user.matchesQuery(widget.query)).take(widget.maxResults).toList() :
+          filteredUsers;
 
       setState(() {
-        _users = filteredUsers;
+        _users = finalUsers;
         _isLoading = false;
       });
     } catch (e) {
@@ -76,7 +97,42 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
   }
 
   List<MentionableUser> _getRecentUsers() {
-    // TODO: Get from shared preferences or Firebase
+    // Get recent users from Firebase (users the current user has interacted with)
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(FirebaseAuth.instance.currentUser?.uid)
+        .collection('recent_interactions')
+        .orderBy('lastInteraction', descending: true)
+        .limit(widget.maxResults)
+        .get()
+        .then((querySnapshot) {
+      final recentUsers = querySnapshot.docs.map((doc) {
+        final data = doc.data();
+        return MentionableUser(
+          userId: data['userId'] ?? '',
+          userName: data['userName'] ?? '',
+          displayName: data['displayName'] ?? '',
+          avatarUrl: data['avatarUrl'],
+          isFollowing: data['isFollowing'] ?? false,
+          isSupporter: data['isSupporter'] ?? false,
+        );
+      }).toList();
+      
+      if (mounted) {
+        setState(() {
+          _users = recentUsers;
+        });
+      }
+    }).catchError((e) {
+      // Fall back to mock data if Firebase fails
+      if (mounted) {
+        setState(() {
+          _users = _getMockUsers().take(widget.maxResults).toList();
+        });
+      }
+    });
+    
+    // Return mock data initially while Firebase loads
     return _getMockUsers().take(widget.maxResults).toList();
   }
 

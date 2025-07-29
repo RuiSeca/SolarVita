@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'transportation_map_widget.dart';
+import 'fitness_tracker_widget.dart';
 
 class OptimizedMapFactory {
   static Widget createMap({
@@ -12,17 +12,8 @@ class OptimizedMapFactory {
       return _buildMapPlaceholder(height);
     }
     
-    // For small preview maps, use lite mode
-    if (height <= 150) {
-      return TransportationMapWidget(
-        height: height,
-        showRoutes: false, // Disable routes for small maps
-        enableInteraction: false,
-      );
-    }
-    
-    // For larger maps, use full functionality
-    return TransportationMapWidget(
+    // Use lightweight fitness tracker instead of Google Maps
+    return FitnessTrackerWidget(
       height: height,
       showRoutes: showRoutes,
       enableInteraction: enableInteraction,

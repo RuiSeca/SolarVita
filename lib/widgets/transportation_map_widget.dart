@@ -1,3 +1,8 @@
+// TransportationMapWidget - DEPRECATED
+// This widget is no longer used since we replaced Google Maps with lightweight fitness tracker
+// Keeping commented for reference in case future reversion is needed
+
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -655,3 +660,4 @@ class _TransportationMapWidgetState extends ConsumerState<TransportationMapWidge
     }
   }
 }
+*/
