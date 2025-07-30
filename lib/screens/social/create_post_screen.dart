@@ -10,6 +10,7 @@ import '../../models/user_mention.dart';
 import '../../models/post_template.dart';
 import '../../models/content_moderation.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/media/video_thumbnail_widget.dart';
 import '../../widgets/social/mention_text_field.dart';
@@ -139,7 +140,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
-        'Create Post',
+        tr(context, 'create_post'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.bold,
@@ -149,7 +150,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         TextButton(
           onPressed: _canPost() ? _createPost : null,
           child: Text(
-            'Share',
+            tr(context, 'share'),
             style: TextStyle(
               color: _canPost()
                   ? Theme.of(context).primaryColor
@@ -168,7 +169,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Post Type',
+          tr(context, 'post_type'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -225,7 +226,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         Row(
           children: [
             Text(
-              'What\'s on your mind?',
+              tr(context, 'whats_on_your_mind'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -254,7 +255,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Templates',
+                      tr(context, 'templates'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -287,7 +288,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              '${_mentions.length} ${_mentions.length == 1 ? 'person' : 'people'} mentioned',
+              '${_mentions.length} ${_mentions.length == 1 ? tr(context, 'person') : tr(context, 'people')} ${tr(context, 'mentioned')}',
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).primaryColor,
@@ -306,7 +307,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         Row(
           children: [
             Text(
-              'Media',
+              tr(context, 'media'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -316,14 +317,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             const Spacer(),
             _buildMediaButton(
               icon: Icons.photo_library,
-              label: 'Photos',
+              label: tr(context, 'photos'),
               onTap: _canAddMoreMedia() ? _pickImages : null,
               isDisabled: !_canAddMoreMedia(),
             ),
             const SizedBox(width: 8),
             _buildMediaButton(
               icon: Icons.videocam,
-              label: 'Videos',
+              label: tr(context, 'videos'),
               onTap: _canAddMoreMedia() ? _pickVideos : null,
               isDisabled: !_canAddMoreMedia(),
             ),
@@ -407,7 +408,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             const Spacer(),
             if (allMedia.length > 1)
               Text(
-                'Tap and hold to reorder',
+                tr(context, 'tap_hold_reorder'),
                 style: TextStyle(
                   fontSize: 10,
                   color: AppTheme.textColor(context).withAlpha(128),
@@ -457,7 +458,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Maximum 10 files per post',
+                  tr(context, 'max_files_per_post'),
                   style: TextStyle(
                     fontSize: 11,
                     color: Colors.orange,
@@ -527,7 +528,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   ),
                   const SizedBox(width: 2),
                   Text(
-                    media.isVideo ? 'VIDEO' : 'PHOTO',
+                    media.isVideo ? tr(context, 'video') : tr(context, 'photo'),
                     style: const TextStyle(
                       fontSize: 8,
                       color: Colors.white,
@@ -615,7 +616,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Categories',
+          tr(context, 'categories'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -673,7 +674,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Who can see this?',
+          tr(context, 'who_can_see'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -750,7 +751,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Preview',
+          tr(context, 'preview'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -780,7 +781,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'You',
+                    tr(context, 'you'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textColor(context),
@@ -857,6 +858,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Future<void> _pickImages() async {
+    final maxFilesError = tr(context, 'max_files_error');
+    final onlyXImagesAdded = tr(context, 'only_x_images_added');
+    final failedPickImages = tr(context, 'failed_pick_images');
+    
     try {
       final List<XFile> images = await _imagePicker.pickMultiImage();
       if (images.isNotEmpty) {
@@ -865,7 +870,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         final availableSlots = 10 - totalMedia;
         
         if (availableSlots <= 0) {
-          _showErrorMessage('Maximum 10 files allowed per post');
+          _showErrorMessage(maxFilesError);
           return;
         }
         
@@ -877,15 +882,19 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         
         // Show warning if some images were not added
         if (images.length > imagesToAdd.length) {
-          _showWarningMessage('Only ${imagesToAdd.length} images added due to limit');
+          _showWarningMessage(onlyXImagesAdded.replaceAll('{count}', '${imagesToAdd.length}'));
         }
       }
     } catch (e) {
-      _showErrorMessage('Failed to pick images: $e');
+      _showErrorMessage(failedPickImages.replaceAll('{error}', '$e'));
     }
   }
 
   Future<void> _pickVideos() async {
+    final maxFilesError = tr(context, 'max_files_error');
+    final videoTooLarge = tr(context, 'video_too_large');
+    final failedPickVideo = tr(context, 'failed_pick_video');
+    
     try {
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.gallery,
@@ -896,7 +905,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         final totalMedia = _selectedImages.length + _selectedVideos.length;
         
         if (totalMedia >= 10) {
-          _showErrorMessage('Maximum 10 files allowed per post');
+          _showErrorMessage(maxFilesError);
           return;
         }
         
@@ -906,7 +915,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         const maxSize = 100 * 1024 * 1024; // 100MB in bytes
         
         if (fileSize > maxSize) {
-          _showErrorMessage('Video file too large. Maximum size is 100MB.');
+          _showErrorMessage(videoTooLarge);
           return;
         }
         
@@ -915,7 +924,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         });
       }
     } catch (e) {
-      _showErrorMessage('Failed to pick video: $e');
+      _showErrorMessage(failedPickVideo.replaceAll('{error}', '$e'));
     }
   }
 
@@ -1060,7 +1069,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    'Video Preview\nTap to close',
+                    tr(context, 'video_preview'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -1077,6 +1086,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Future<void> _createPost() async {
+    final postCreatedSuccess = tr(context, 'post_created_success');
+    final peopleNotified = tr(context, 'people_notified');
+    final postUnderReview = tr(context, 'post_under_review');
+    
     setState(() {
       _isLoading = true;
     });
@@ -1106,12 +1119,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       );
 
       // Show success message
-      String successMessage = 'Post created successfully!';
+      String successMessage = postCreatedSuccess;
       if (_mentions.isNotEmpty) {
-        successMessage += ' ${_mentions.length} ${_mentions.length == 1 ? 'person' : 'people'} will be notified.';
+        successMessage += ' ${peopleNotified.replaceAll('{count}', '${_mentions.length}')}';
       }
       if (moderationResult.requiresHumanReview) {
-        successMessage += ' Your post is being reviewed and will be visible once approved.';
+        successMessage += ' $postUnderReview';
       }
 
       if (mounted) {
@@ -1131,7 +1144,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create post: $e'),
+            content: Text(tr(context, 'failed_create_post').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -1160,7 +1173,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ),
             const SizedBox(width: 8),
             Text(
-              'Content Review',
+              tr(context, 'content_review'),
               style: TextStyle(
                 color: AppTheme.textColor(context),
                 fontWeight: FontWeight.bold,
@@ -1173,7 +1186,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Your post contains content that may violate our community guidelines.',
+              tr(context, 'content_guidelines_violation'),
               style: TextStyle(
                 color: AppTheme.textColor(context),
               ),
@@ -1190,7 +1203,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             ],
             const SizedBox(height: 16),
             Text(
-              'Please review and edit your content to ensure it follows our community guidelines.',
+              tr(context, 'review_edit_content'),
               style: TextStyle(
                 color: AppTheme.textColor(context),
                 fontWeight: FontWeight.w500,
@@ -1202,7 +1215,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Edit Post',
+              tr(context, 'edit_post'),
               style: TextStyle(
                 color: Theme.of(context).primaryColor,
                 fontWeight: FontWeight.w600,
@@ -1216,7 +1229,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               _createPostAnyway();
             },
             child: Text(
-              'Submit Anyway',
+              tr(context, 'submit_anyway'),
               style: TextStyle(
                 color: Colors.orange,
                 fontWeight: FontWeight.w600,
@@ -1253,11 +1266,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       if (mounted) {
         HapticFeedback.lightImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Post submitted for review. It will be visible once approved by our moderation team.'),
+          SnackBar(
+            content: Text(tr(context, 'post_submitted_review')),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
         Navigator.pop(context, post);
@@ -1267,7 +1280,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to create post: $e'),
+            content: Text(tr(context, 'failed_create_post').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -1287,45 +1300,45 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String _getPostTypeDisplayName(PostType type) {
     switch (type) {
       case PostType.fitnessProgress:
-        return 'Fitness Progress';
+        return tr(context, 'fitness_progress');
       case PostType.nutritionUpdate:
-        return 'Nutrition Update';
+        return tr(context, 'nutrition_update');
       case PostType.ecoAchievement:
-        return 'Eco Achievement';
+        return tr(context, 'eco_achievement');
       case PostType.reflection:
-        return 'Reflection';
+        return tr(context, 'reflection');
       case PostType.milestone:
-        return 'Milestone';
+        return tr(context, 'milestone');
       case PostType.weeklyWins:
-        return 'Weekly Wins';
+        return tr(context, 'weekly_wins');
     }
   }
 
   String _getPostTypeHint(PostType type) {
     switch (type) {
       case PostType.fitnessProgress:
-        return 'Share your workout achievements, progress photos, or fitness goals...';
+        return tr(context, 'fitness_progress_hint');
       case PostType.nutritionUpdate:
-        return 'Share a healthy meal, nutrition tips, or eating habits...';
+        return tr(context, 'nutrition_update_hint');
       case PostType.ecoAchievement:
-        return 'Share your sustainable choices, eco-friendly habits, or environmental impact...';
+        return tr(context, 'eco_achievement_hint');
       case PostType.reflection:
-        return 'Share your thoughts, gratitude, or wellness reflections...';
+        return tr(context, 'reflection_hint');
       case PostType.milestone:
-        return 'Celebrate a major achievement or goal reached...';
+        return tr(context, 'milestone_hint');
       case PostType.weeklyWins:
-        return 'What was your biggest win this week?';
+        return tr(context, 'weekly_wins_hint');
     }
   }
 
   String _getPillarDisplayName(PostPillar pillar) {
     switch (pillar) {
       case PostPillar.fitness:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case PostPillar.nutrition:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case PostPillar.eco:
-        return 'Eco';
+        return tr(context, 'eco');
     }
   }
 
@@ -1343,11 +1356,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   String _getVisibilityDisplayName(PostVisibility visibility) {
     switch (visibility) {
       case PostVisibility.public:
-        return 'Public';
+        return tr(context, 'public');
       case PostVisibility.supporters:
-        return 'Supporters';
+        return tr(context, 'supporters');
       case PostVisibility.private:
-        return 'Private';
+        return tr(context, 'private');
     }
   }
 

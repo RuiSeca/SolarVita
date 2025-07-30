@@ -1,0 +1,415 @@
+// lib/services/exercise_routine_sync_service.dart
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
+import 'package:logging/logging.dart';
+import '../models/exercise_log.dart';
+import '../models/weekly_progress.dart';
+import '../models/personal_record.dart';
+import 'exercise_tracking_service.dart';
+import 'routine_service.dart';
+
+class ExerciseRoutineSyncService {
+  static final ExerciseRoutineSyncService _instance = ExerciseRoutineSyncService._internal();
+  final Logger _log = Logger('ExerciseRoutineSyncService');
+  final Uuid _uuid = Uuid();
+  final ExerciseTrackingService _exerciseService = ExerciseTrackingService();
+  final RoutineService _routineService = RoutineService();
+
+  factory ExerciseRoutineSyncService() {
+    return _instance;
+  }
+
+  ExerciseRoutineSyncService._internal();
+
+  // Keys for SharedPreferences
+  static const String _weeklyProgressKey = 'weekly_progress';
+  static const String _personalRecordsKey = 'personal_records_enhanced';
+
+  // 🔄 Main sync function: Log exercise to routine
+  Future<bool> logExerciseToRoutine({
+    required String exerciseId,
+    required String exerciseName,
+    required List<ExerciseSet> sets,
+    required String notes,
+    String? routineId,
+    String? dayName,
+  }) async {
+    try {
+      final now = DateTime.now();
+      final weekOfYear = _calculateWeekOfYear(now);
+      
+      // Create the exercise log with routine linking
+      final log = ExerciseLog(
+        id: _uuid.v4(),
+        exerciseId: exerciseId,
+        exerciseName: exerciseName,
+        date: now,
+        sets: sets,
+        notes: notes,
+        routineId: routineId,
+        dayName: dayName ?? _getCurrentDayName(),
+        weekOfYear: weekOfYear,
+        isPersonalRecord: false, // Will be updated after PR check
+      );
+
+      // Save the log using existing service
+      final saved = await _exerciseService.saveExerciseLog(log);
+      if (!saved) return false;
+
+      // Check for personal records and update log if needed
+      final isNewRecord = await _checkAndUpdatePersonalRecords(log);
+      if (isNewRecord) {
+        final updatedLog = log.copyWith(isPersonalRecord: true);
+        await _exerciseService.updateLog(updatedLog);
+      }
+
+      // Update weekly progress if linked to routine
+      if (routineId != null) {
+        await _updateWeeklyProgress(routineId, exerciseId, dayName ?? _getCurrentDayName(), weekOfYear);
+      }
+
+      return true;
+    } catch (e) {
+      _log.severe('Error logging exercise to routine: $e');
+      return false;
+    }
+  }
+
+  // 📊 Get weekly progress for a routine
+  Future<WeeklyProgress?> getWeeklyProgress(String routineId, {int? weekOfYear}) async {
+    try {
+      final targetWeek = weekOfYear ?? _calculateWeekOfYear(DateTime.now());
+      final prefs = await SharedPreferences.getInstance();
+      final progressData = prefs.getStringList(_weeklyProgressKey) ?? [];
+      
+      for (final data in progressData) {
+        final progress = WeeklyProgress.fromJson(jsonDecode(data));
+        if (progress.routineId == routineId && progress.weekOfYear == targetWeek) {
+          return progress;
+        }
+      }
+      
+      // Create new weekly progress if not found
+      return await _createWeeklyProgress(routineId, targetWeek);
+    } catch (e) {
+      _log.severe('Error getting weekly progress: $e');
+      return null;
+    }
+  }
+
+  // 🧠 Get smart auto-fill data for exercise
+  Future<Map<String, dynamic>> getAutoFillData(String exerciseId, {String? routineId}) async {
+    try {
+      final logs = await _exerciseService.getLogsForExercise(exerciseId);
+      if (logs.isEmpty) return {};
+
+      // Get most recent log from current week
+      final currentWeek = _calculateWeekOfYear(DateTime.now());
+      final currentWeekLogs = logs.where((log) => log.weekNumber == currentWeek).toList();
+      
+      ExerciseLog? recentLog;
+      if (currentWeekLogs.isNotEmpty) {
+        recentLog = currentWeekLogs.first;
+      } else if (logs.isNotEmpty) {
+        recentLog = logs.first;
+      }
+
+      if (recentLog == null) return {};
+
+      // Get personal records for this exercise
+      final records = await getPersonalRecordsForExercise(exerciseId);
+
+      return {
+        'lastLog': {
+          'sets': recentLog.sets,
+          'notes': recentLog.notes,
+          'date': recentLog.date.toIso8601String(),
+          'wasThisWeek': recentLog.isCurrentWeek,
+        },
+        'personalRecords': records.map((r) => r.toJson()).toList(),
+        'suggestions': _generateSuggestions(recentLog, records),
+      };
+    } catch (e) {
+      _log.severe('Error getting auto-fill data: $e');
+      return {};
+    }
+  }
+
+  // 🏅 Get personal records for exercise with enhanced tracking
+  Future<List<PersonalRecord>> getPersonalRecordsForExercise(String exerciseId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final recordsData = prefs.getStringList(_personalRecordsKey) ?? [];
+      
+      final records = recordsData
+          .map((data) => PersonalRecord.fromJson(jsonDecode(data)))
+          .where((record) => record.exerciseId == exerciseId)
+          .toList();
+          
+      return records..sort((a, b) => b.date.compareTo(a.date));
+    } catch (e) {
+      _log.severe('Error getting personal records: $e');
+      return [];
+    }
+  }
+
+  // 📈 Check if exercise is completed for a specific day
+  Future<bool> isExerciseCompletedForDay(String routineId, String dayName, String exerciseId) async {
+    try {
+      final progress = await getWeeklyProgress(routineId);
+      if (progress == null) return false;
+      
+      final dayProgress = progress.dailyProgress[dayName];
+      return dayProgress?.isExerciseCompleted(exerciseId) ?? false;
+    } catch (e) {
+      _log.severe('Error checking exercise completion: $e');
+      return false;
+    }
+  }
+
+  // 🗓️ Get logs for current week by routine and day
+  Future<List<ExerciseLog>> getWeeklyLogsByRoutineAndDay(String routineId, String dayName) async {
+    try {
+      final currentWeek = _calculateWeekOfYear(DateTime.now());
+      final allLogs = await _exerciseService.getAllLogs();
+      
+      return allLogs
+          .where((log) => 
+              log.routineId == routineId && 
+              log.dayName == dayName && 
+              log.weekNumber == currentWeek)
+          .toList();
+    } catch (e) {
+      _log.severe('Error getting weekly logs: $e');
+      return [];
+    }
+  }
+
+  // 🎯 Get completion statistics for routine
+  Future<Map<String, dynamic>> getRoutineCompletionStats(String routineId, {int? weekOfYear}) async {
+    try {
+      final progress = await getWeeklyProgress(routineId, weekOfYear: weekOfYear);
+      if (progress == null) {
+        return {
+          'completionPercentage': 0.0,
+          'totalExercisesCompleted': 0,
+          'totalPlannedExercises': 0,
+          'currentStreak': 0,
+          'isWeekCompleted': false,
+        };
+      }
+
+      return {
+        'completionPercentage': progress.completionPercentage,
+        'totalExercisesCompleted': progress.totalExercisesCompleted,
+        'totalPlannedExercises': progress.totalPlannedExercises,
+        'currentStreak': progress.currentStreak,
+        'isWeekCompleted': progress.isWeekCompleted,
+        'dailyBreakdown': progress.dailyProgress.map((day, progress) => 
+            MapEntry(day, {
+              'completed': progress.completedExercises,
+              'planned': progress.plannedExercises,
+              'percentage': progress.completionPercentage,
+              'isCompleted': progress.isCompleted,
+              'isRestDay': progress.isRestDay,
+            })
+        ),
+      };
+    } catch (e) {
+      _log.severe('Error getting completion stats: $e');
+      return {};
+    }
+  }
+
+  // Private helper methods
+
+  Future<WeeklyProgress> _createWeeklyProgress(String routineId, int weekOfYear) async {
+    try {
+      final manager = await _routineService.loadRoutineManager();
+      final routine = manager.routines.firstWhere((r) => r.id == routineId);
+      
+      final weekStartDate = _getWeekStartDate(weekOfYear, DateTime.now().year);
+      final dailyProgress = <String, DayProgress>{};
+      
+      // Create daily progress for each day
+      for (final day in routine.weeklyPlan) {
+        dailyProgress[day.dayName] = DayProgress(
+          dayName: day.dayName,
+          plannedExercises: day.exercises.length,
+          completedExerciseIds: [],
+          isRestDay: day.isRestDay,
+        );
+      }
+      
+      final progress = WeeklyProgress(
+        routineId: routineId,
+        weekOfYear: weekOfYear,
+        year: DateTime.now().year,
+        dailyProgress: dailyProgress,
+        weekStartDate: weekStartDate,
+      );
+      
+      await _saveWeeklyProgress(progress);
+      return progress;
+    } catch (e) {
+      _log.severe('Error creating weekly progress: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> _updateWeeklyProgress(String routineId, String exerciseId, String dayName, int weekOfYear) async {
+    try {
+      var progress = await getWeeklyProgress(routineId, weekOfYear: weekOfYear);
+      if (progress == null) return;
+      
+      final dayProgress = progress.dailyProgress[dayName];
+      if (dayProgress == null) return;
+      
+      // Add exercise to completed list if not already there
+      if (!dayProgress.completedExerciseIds.contains(exerciseId)) {
+        final updatedDayProgress = dayProgress.copyWith(
+          completedExerciseIds: [...dayProgress.completedExerciseIds, exerciseId],
+          lastUpdated: DateTime.now(),
+        );
+        
+        final updatedDailyProgress = Map<String, DayProgress>.from(progress.dailyProgress);
+        updatedDailyProgress[dayName] = updatedDayProgress;
+        
+        progress = progress.copyWith(dailyProgress: updatedDailyProgress);
+        await _saveWeeklyProgress(progress);
+      }
+    } catch (e) {
+      _log.severe('Error updating weekly progress: $e');
+    }
+  }
+
+  Future<void> _saveWeeklyProgress(WeeklyProgress progress) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var progressData = prefs.getStringList(_weeklyProgressKey) ?? [];
+      
+      // Remove existing progress for same routine and week
+      progressData.removeWhere((data) {
+        final existing = WeeklyProgress.fromJson(jsonDecode(data));
+        return existing.routineId == progress.routineId && 
+               existing.weekOfYear == progress.weekOfYear;
+      });
+      
+      // Add updated progress
+      progressData.add(jsonEncode(progress.toJson()));
+      await prefs.setStringList(_weeklyProgressKey, progressData);
+    } catch (e) {
+      _log.severe('Error saving weekly progress: $e');
+    }
+  }
+
+  Future<bool> _checkAndUpdatePersonalRecords(ExerciseLog log) async {
+    try {
+      bool hasNewRecord = false;
+      final existingRecords = await getPersonalRecordsForExercise(log.exerciseId);
+      
+      // Check different types of records
+      final recordChecks = [
+        {'type': 'Max Weight', 'value': log.maxWeight},
+        {'type': 'Max Reps', 'value': log.maxReps.toDouble()},
+        {'type': 'Total Volume', 'value': log.totalVolume},
+      ];
+      
+      // Add duration and distance checks if applicable
+      if (log.maxDuration != null) {
+        recordChecks.add({'type': 'Max Duration', 'value': log.maxDuration!.inSeconds.toDouble()});
+      }
+      if (log.maxDistance != null) {
+        recordChecks.add({'type': 'Max Distance', 'value': log.maxDistance!});
+      }
+      
+      for (final check in recordChecks) {
+        final existingRecord = existingRecords
+            .where((r) => r.recordType == check['type'])
+            .firstOrNull;
+            
+        if (existingRecord == null || (check['value'] as double) > existingRecord.value) {
+          await _savePersonalRecord(PersonalRecord(
+            exerciseId: log.exerciseId,
+            exerciseName: log.exerciseName,
+            recordType: check['type'] as String,
+            value: check['value'] as double,
+            date: log.date,
+            logId: log.id,
+          ));
+          hasNewRecord = true;
+        }
+      }
+      
+      return hasNewRecord;
+    } catch (e) {
+      _log.severe('Error checking personal records: $e');
+      return false;
+    }
+  }
+
+  Future<void> _savePersonalRecord(PersonalRecord record) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var recordsData = prefs.getStringList(_personalRecordsKey) ?? [];
+      
+      // Remove existing record of same type for this exercise
+      recordsData.removeWhere((data) {
+        final existing = PersonalRecord.fromJson(jsonDecode(data));
+        return existing.exerciseId == record.exerciseId && 
+               existing.recordType == record.recordType;
+      });
+      
+      // Add new record
+      recordsData.add(jsonEncode(record.toJson()));
+      await prefs.setStringList(_personalRecordsKey, recordsData);
+    } catch (e) {
+      _log.severe('Error saving personal record: $e');
+    }
+  }
+
+  Map<String, dynamic> _generateSuggestions(ExerciseLog lastLog, List<PersonalRecord> records) {
+    final suggestions = <String, dynamic>{};
+    
+    // Weight progression suggestion
+    if (lastLog.sets.isNotEmpty) {
+      final avgWeight = lastLog.sets.map((s) => s.weight).reduce((a, b) => a + b) / lastLog.sets.length;
+      suggestions['recommendedWeight'] = (avgWeight * 1.025).round(); // 2.5% increase
+    }
+    
+    // Rep progression suggestion
+    if (lastLog.sets.isNotEmpty) {
+      final avgReps = lastLog.sets.map((s) => s.reps).reduce((a, b) => a + b) / lastLog.sets.length;
+      suggestions['recommendedReps'] = (avgReps + 1).round();
+    }
+    
+    // Personal record context
+    final maxWeightRecord = records.where((r) => r.recordType == 'Max Weight').firstOrNull;
+    if (maxWeightRecord != null) {
+      suggestions['personalBest'] = {
+        'weight': maxWeightRecord.value,
+        'date': maxWeightRecord.date.toIso8601String(),
+      };
+    }
+    
+    return suggestions;
+  }
+
+  String _getCurrentDayName() {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[DateTime.now().weekday - 1];
+  }
+
+  DateTime _getWeekStartDate(int weekOfYear, int year) {
+    final firstDayOfYear = DateTime(year, 1, 1);
+    final daysToAdd = (weekOfYear - 1) * 7 - (firstDayOfYear.weekday - 1);
+    return firstDayOfYear.add(Duration(days: daysToAdd));
+  }
+
+  int _calculateWeekOfYear(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
+    return ((daysSinceFirstDay + firstDayOfYear.weekday - 1) / 7).ceil();
+  }
+}

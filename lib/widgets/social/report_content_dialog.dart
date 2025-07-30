@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../models/content_moderation.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 
 class ReportContentDialog extends StatefulWidget {
   final String contentId;
@@ -101,7 +102,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Report ${widget.contentType == 'post' ? 'Post' : 'Comment'}',
+                widget.contentType == 'post' ? tr(context, 'report_post') : tr(context, 'report_comment_title'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -109,7 +110,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
                 ),
               ),
               Text(
-                'Help us keep the community safe',
+                tr(context, 'help_community_safe'),
                 style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.textColor(context).withAlpha(153),
@@ -134,7 +135,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Why are you reporting this ${widget.contentType}?',
+          tr(context, 'why_reporting'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -218,7 +219,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Please specify the reason:',
+          tr(context, 'specify_reason'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -229,7 +230,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
         TextField(
           controller: _customReasonController,
           decoration: InputDecoration(
-            hintText: 'Enter the specific reason...',
+            hintText: tr(context, 'enter_specific_reason'),
             hintStyle: TextStyle(
               color: AppTheme.textColor(context).withAlpha(128),
             ),
@@ -267,7 +268,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Additional details (optional):',
+          tr(context, 'additional_details'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -279,7 +280,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
           controller: _descriptionController,
           maxLines: 3,
           decoration: InputDecoration(
-            hintText: 'Provide any additional context that might help us understand the issue...',
+            hintText: tr(context, 'provide_context'),
             hintStyle: TextStyle(
               color: AppTheme.textColor(context).withAlpha(128),
             ),
@@ -319,7 +320,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
           child: TextButton(
             onPressed: _isSubmitting ? null : () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              tr(context, 'cancel'),
               style: TextStyle(
                 color: AppTheme.textColor(context).withAlpha(153),
                 fontWeight: FontWeight.w600,
@@ -346,8 +347,8 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
                       color: Colors.white,
                     ),
                   )
-                : const Text(
-                    'Submit Report',
+                : Text(
+                    tr(context, 'submit_report'),
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -398,8 +399,8 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report submitted successfully. Thank you for helping keep our community safe.'),
+          SnackBar(
+            content: Text(tr(context, 'report_success_message')),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -409,7 +410,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to submit report: $e'),
+            content: Text(tr(context, 'failed_submit_report').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -427,19 +428,19 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
   String _getReasonTitle(ModerationReason reason) {
     switch (reason) {
       case ModerationReason.spam:
-        return 'Spam';
+        return tr(context, 'spam');
       case ModerationReason.harassment:
-        return 'Harassment or Bullying';
+        return tr(context, 'harassment_bullying');
       case ModerationReason.inappropriateContent:
-        return 'Inappropriate Content';
+        return tr(context, 'inappropriate_content');
       case ModerationReason.falseInformation:
-        return 'False Information';
+        return tr(context, 'false_information');
       case ModerationReason.hate:
-        return 'Hate Speech';
+        return tr(context, 'hate_speech');
       case ModerationReason.violence:
-        return 'Violence or Harmful Content';
+        return tr(context, 'violence_harmful');
       case ModerationReason.other:
-        return 'Other';
+        return tr(context, 'other');
     }
   }
 

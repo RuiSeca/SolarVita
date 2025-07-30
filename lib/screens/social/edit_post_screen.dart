@@ -8,6 +8,7 @@ import 'dart:io';
 import '../../models/social_post.dart';
 import '../../models/post_revision.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'post_revision_history_screen.dart';
 
@@ -133,7 +134,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         onPressed: () => _handleBackPress(),
       ),
       title: Text(
-        'Edit Post',
+        tr(context, 'edit_post'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.bold,
@@ -159,7 +160,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               ),
               const SizedBox(width: 4),
               Text(
-                'History',
+                tr(context, 'history'),
                 style: TextStyle(
                   color: Theme.of(context).primaryColor,
                   fontWeight: FontWeight.w600,
@@ -202,7 +203,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Editing Post',
+                  tr(context, 'editing_post'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -210,7 +211,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   ),
                 ),
                 Text(
-                  'Changes will be tracked in revision history',
+                  tr(context, 'changes_tracked'),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppTheme.textColor(context).withAlpha(153),
@@ -227,7 +228,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'Modified',
+                tr(context, 'modified'),
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -245,7 +246,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Content',
+          tr(context, 'content'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -265,7 +266,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
             controller: _contentController,
             maxLines: 6,
             decoration: InputDecoration(
-              hintText: 'What\'s on your mind?',
+              hintText: tr(context, 'whats_on_mind'),
               hintStyle: TextStyle(
                 color: AppTheme.textColor(context).withAlpha(128),
               ),
@@ -289,7 +290,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         Row(
           children: [
             Text(
-              'Media',
+              tr(context, 'media'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -299,7 +300,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
             const Spacer(),
             _buildMediaButton(
               icon: Icons.add_photo_alternate,
-              label: 'Add Photos',
+              label: tr(context, 'add_photos'),
               onTap: _addImages,
             ),
           ],
@@ -334,7 +335,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
           ),
         ),
         child: Text(
-          'All existing media removed',
+          tr(context, 'existing_media_removed'),
           style: TextStyle(
             color: AppTheme.textColor(context).withAlpha(128),
             fontStyle: FontStyle.italic,
@@ -406,7 +407,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'New Media',
+          tr(context, 'new_media'),
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -453,8 +454,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 color: Colors.green,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'NEW',
+              child: Text(
+                tr(context, 'new'),
                 style: TextStyle(
                   fontSize: 8,
                   color: Colors.white,
@@ -527,7 +528,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Categories',
+          tr(context, 'categories'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -586,7 +587,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Who can see this?',
+          tr(context, 'who_can_see'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -658,7 +659,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Edit Reason (Optional)',
+          tr(context, 'edit_reason_optional'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -678,7 +679,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
             controller: _editReasonController,
             maxLines: 2,
             decoration: InputDecoration(
-              hintText: 'Why are you editing this post? (e.g., "Fixed typo", "Added more details")',
+              hintText: tr(context, 'edit_reason_hint'),
               hintStyle: TextStyle(
                 color: AppTheme.textColor(context).withAlpha(128),
               ),
@@ -700,7 +701,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Preview',
+          tr(context, 'preview'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -745,7 +746,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      'EDITED',
+                      tr(context, 'edited'),
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
@@ -760,7 +761,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               // Content
               Text(
                 _contentController.text.trim().isEmpty 
-                    ? 'No content'
+                    ? tr(context, 'no_content')
                     : _contentController.text,
                 style: TextStyle(
                   fontSize: 16,
@@ -999,19 +1000,19 @@ class _EditPostScreenState extends State<EditPostScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Discard Changes?'),
-          content: const Text('You have unsaved changes. Do you want to discard them?'),
+          title: Text(tr(context, 'discard_changes')),
+          content: Text(tr(context, 'unsaved_changes_warning')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(tr(context, 'cancel')),
             ),
             TextButton(
               onPressed: () {
                 Navigator.pop(context); // Close dialog
                 Navigator.pop(context); // Close edit screen
               },
-              child: const Text('Discard'),
+              child: Text(tr(context, 'discard')),
             ),
           ],
         ),
@@ -1045,22 +1046,22 @@ class _EditPostScreenState extends State<EditPostScreen> {
   String _getPillarDisplayName(PostPillar pillar) {
     switch (pillar) {
       case PostPillar.fitness:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case PostPillar.nutrition:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case PostPillar.eco:
-        return 'Eco';
+        return tr(context, 'eco');
     }
   }
 
   String _getVisibilityDisplayName(PostVisibility visibility) {
     switch (visibility) {
       case PostVisibility.public:
-        return 'Public';
+        return tr(context, 'public');
       case PostVisibility.supporters:
-        return 'Supporters';
+        return tr(context, 'supporters');
       case PostVisibility.private:
-        return 'Private';
+        return tr(context, 'private');
     }
   }
 

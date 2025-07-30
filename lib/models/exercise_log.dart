@@ -7,6 +7,10 @@ class ExerciseLog {
   final DateTime date;
   final List<ExerciseSet> sets;
   final String notes;
+  final String? routineId;
+  final String? dayName;
+  final int? weekOfYear;
+  final bool isPersonalRecord;
 
   ExerciseLog({
     required this.id,
@@ -15,6 +19,10 @@ class ExerciseLog {
     required this.date,
     required this.sets,
     this.notes = '',
+    this.routineId,
+    this.dayName,
+    this.weekOfYear,
+    this.isPersonalRecord = false,
   });
 
   // Calculate total volume (weight × reps across all sets)
@@ -28,11 +36,47 @@ class ExerciseLog {
     return sets.map((s) => s.weight).reduce((a, b) => a > b ? a : b);
   }
 
-  // Check if this workout contains a personal record
-  bool get isPersonalRecord {
-    // Logic to determine if this workout contains a PR
-    // Could be based on maxWeight, totalVolume, or other metrics
-    return false; // Placeholder
+  // Get the maximum reps used in any set
+  int get maxReps {
+    if (sets.isEmpty) return 0;
+    return sets.map((s) => s.reps).reduce((a, b) => a > b ? a : b);
+  }
+
+  // Get the maximum duration used in any set
+  Duration? get maxDuration {
+    final durationsOnly = sets.where((s) => s.duration != null).map((s) => s.duration!);
+    if (durationsOnly.isEmpty) return null;
+    return durationsOnly.reduce((a, b) => a > b ? a : b);
+  }
+
+  // Get the maximum distance used in any set
+  double? get maxDistance {
+    final distancesOnly = sets.where((s) => s.distance != null).map((s) => s.distance!);
+    if (distancesOnly.isEmpty) return null;
+    return distancesOnly.reduce((a, b) => a > b ? a : b);
+  }
+
+  // Helper to get the week of year for this log
+  int get weekNumber {
+    return weekOfYear ?? _calculateWeekOfYear(date);
+  }
+
+  // Calculate which day of the week this log is from
+  String get dayOfWeek {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[date.weekday - 1];
+  }
+
+  // Check if this log is from the current week
+  bool get isCurrentWeek {
+    return weekNumber == _calculateWeekOfYear(DateTime.now());
+  }
+
+  // Calculate week of year for a given date
+  static int _calculateWeekOfYear(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
+    return ((daysSinceFirstDay + firstDayOfYear.weekday - 1) / 7).ceil();
   }
 
   // Convert to JSON for storage
@@ -44,6 +88,10 @@ class ExerciseLog {
       'date': date.toIso8601String(),
       'sets': sets.map((s) => s.toJson()).toList(),
       'notes': notes,
+      'routineId': routineId,
+      'dayName': dayName,
+      'weekOfYear': weekOfYear,
+      'isPersonalRecord': isPersonalRecord,
     };
   }
 
@@ -56,6 +104,37 @@ class ExerciseLog {
       date: DateTime.parse(json['date']),
       sets: (json['sets'] as List).map((s) => ExerciseSet.fromJson(s)).toList(),
       notes: json['notes'] ?? '',
+      routineId: json['routineId'],
+      dayName: json['dayName'],
+      weekOfYear: json['weekOfYear'],
+      isPersonalRecord: json['isPersonalRecord'] ?? false,
+    );
+  }
+
+  // Create a copy with updated fields
+  ExerciseLog copyWith({
+    String? id,
+    String? exerciseId,
+    String? exerciseName,
+    DateTime? date,
+    List<ExerciseSet>? sets,
+    String? notes,
+    String? routineId,
+    String? dayName,
+    int? weekOfYear,
+    bool? isPersonalRecord,
+  }) {
+    return ExerciseLog(
+      id: id ?? this.id,
+      exerciseId: exerciseId ?? this.exerciseId,
+      exerciseName: exerciseName ?? this.exerciseName,
+      date: date ?? this.date,
+      sets: sets ?? this.sets,
+      notes: notes ?? this.notes,
+      routineId: routineId ?? this.routineId,
+      dayName: dayName ?? this.dayName,
+      weekOfYear: weekOfYear ?? this.weekOfYear,
+      isPersonalRecord: isPersonalRecord ?? this.isPersonalRecord,
     );
   }
 }

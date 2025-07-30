@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/post_revision.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 
 class PostRevisionHistoryScreen extends StatefulWidget {
@@ -50,7 +51,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Revision History',
+            tr(context, 'revision_history'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontWeight: FontWeight.bold,
@@ -181,7 +182,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              'LATEST',
+                              tr(context, 'latest'),
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
@@ -199,9 +200,9 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                               color: Colors.blue.withAlpha(26),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Text(
-                              'ORIGINAL',
-                              style: TextStyle(
+                            child: Text(
+                              tr(context, 'original'),
+                              style: const TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue,
@@ -343,7 +344,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'Previous:',
+                  tr(context, 'previous'),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -379,7 +380,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'New:',
+                  tr(context, 'new_text'),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -416,7 +417,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No revisions found',
+            tr(context, 'no_revisions'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -425,7 +426,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'This post hasn\'t been edited yet',
+            tr(context, 'post_not_edited'),
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.textColor(context).withAlpha(153),
@@ -491,7 +492,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
             if (revision.editReason != null) ...[
               const SizedBox(height: 16),
               Text(
-                'Edit Reason:',
+                tr(context, 'edit_reason'),
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -517,7 +518,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                   backgroundColor: Theme.of(context).primaryColor,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Close'),
+                child: Text(tr(context, 'close')),
               ),
             ),
           ],
@@ -527,6 +528,8 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
   }
 
   Future<void> _loadRevisions() async {
+    final failedLoadRevisions = tr(context, 'failed_load_revisions');
+    
     setState(() {
       _isLoading = true;
     });
@@ -548,7 +551,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
       // If no revisions found, generate mock data for development
       _revisions = revisions.isEmpty ? _generateMockRevisions() : revisions;
     } catch (e) {
-      _showErrorSnackBar('Failed to load revisions: $e');
+      _showErrorSnackBar(failedLoadRevisions.replaceAll('{error}', '$e'));
     } finally {
       setState(() {
         _isLoading = false;

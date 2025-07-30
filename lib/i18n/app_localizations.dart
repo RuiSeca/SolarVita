@@ -30,7 +30,8 @@ class AppLocalizations {
     'profile_sustainability',
     'workout_preferences',
     'dietary_preferences',
-    'settings'
+    'settings',
+    'social',
   ];
 
   AppLocalizations(this.locale);
@@ -56,8 +57,9 @@ class AppLocalizations {
 
   Future<Map<String, String>> _loadJsonFile(String fileName) async {
     try {
-      final jsonString = await rootBundle
-          .loadString('assets/i18n/${locale.languageCode}/$fileName.json');
+      final jsonString = await rootBundle.loadString(
+        'assets/i18n/${locale.languageCode}/$fileName.json',
+      );
 
       Map<String, dynamic> jsonMap = json.decode(jsonString);
 
@@ -85,8 +87,9 @@ class AppLocalizations {
 
   Map<String, String> getCategory(String category) {
     return Map.fromEntries(
-      _localizedStrings.entries
-          .where((entry) => entry.key.startsWith('$category.')),
+      _localizedStrings.entries.where(
+        (entry) => entry.key.startsWith('$category.'),
+      ),
     );
   }
 
@@ -106,8 +109,18 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
 
   @override
   bool isSupported(Locale locale) {
-    return ['en', 'pt', 'fr', 'it', 'de', 'es', 'ar', 'ja', 'ko', 'zh']
-        .contains(locale.languageCode);
+    return [
+      'en',
+      'pt',
+      'fr',
+      'it',
+      'de',
+      'es',
+      'ar',
+      'ja',
+      'ko',
+      'zh',
+    ].contains(locale.languageCode);
   }
 
   @override

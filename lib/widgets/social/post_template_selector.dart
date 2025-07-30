@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../models/post_template.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 
 class PostTemplateSelectorSheet extends StatefulWidget {
   final Function(PostTemplate) onTemplateSelected;
@@ -76,7 +77,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
             child: Row(
               children: [
                 Text(
-                  'Choose a Template',
+                  tr(context, 'choose_template'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
@@ -153,7 +154,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
             ),
             const SizedBox(height: 16),
             Text(
-              'No templates available',
+              tr(context, 'no_templates'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -162,7 +163,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
             ),
             const SizedBox(height: 8),
             Text(
-              'Check back soon for new templates!',
+              tr(context, 'check_back_templates'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppTheme.textColor(context).withAlpha(128),
@@ -260,7 +261,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Preview:',
+                        tr(context, 'preview_label'),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -287,7 +288,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
               if (template.suggestedContent.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Text(
-                  'Ideas:',
+                  tr(context, 'ideas_label'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -349,19 +350,19 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
   String _getCategoryDisplayName(TemplateCategory category) {
     switch (category) {
       case TemplateCategory.weeklyWins:
-        return 'Weekly Wins';
+        return tr(context, 'weekly_wins');
       case TemplateCategory.fitnessAchievement:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case TemplateCategory.nutritionGoal:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case TemplateCategory.ecoChallenge:
-        return 'Eco';
+        return tr(context, 'eco');
       case TemplateCategory.mindfulness:
-        return 'Mindfulness';
+        return tr(context, 'mindfulness');
       case TemplateCategory.milestone:
-        return 'Milestones';
+        return tr(context, 'milestones');
       case TemplateCategory.gratitude:
-        return 'Gratitude';
+        return tr(context, 'gratitude');
     }
   }
 

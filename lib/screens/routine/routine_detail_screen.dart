@@ -3,17 +3,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
+import '../../services/exercise_routine_sync_service.dart';
 import 'day_workout_screen.dart';
 import 'routine_main_screen.dart';
+
+final routineSyncServiceProvider = Provider<ExerciseRoutineSyncService>((ref) => ExerciseRoutineSyncService());
+
+final routineStatsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, routineId) async {
+  final service = ref.watch(routineSyncServiceProvider);
+  return await service.getRoutineCompletionStats(routineId);
+});
 
 class RoutineDetailScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;
 
-  const RoutineDetailScreen({super.key, required this.routine});
+  const RoutineDetailScreen({
+    super.key,
+    required this.routine,
+  });
 
   @override
-  ConsumerState<RoutineDetailScreen> createState() =>
-      _RoutineDetailScreenState();
+  ConsumerState<RoutineDetailScreen> createState() => _RoutineDetailScreenState();
 }
 
 class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
@@ -41,12 +51,18 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+          icon: Icon(
+            Icons.arrow_back,
+            color: AppTheme.textColor(context),
+          ),
           onPressed: () => Navigator.pop(context, true),
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert, color: AppTheme.textColor(context)),
+            icon: Icon(
+              Icons.more_vert,
+              color: AppTheme.textColor(context),
+            ),
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -54,18 +70,14 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 child: Row(
                   children: [
                     Icon(
-                      _currentRoutine.isActive
-                          ? Icons.check_circle
-                          : Icons.play_circle_outline,
+                      _currentRoutine.isActive ? Icons.check_circle : Icons.play_circle_outline,
                       color: AppTheme.primaryColor,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      _currentRoutine.isActive
-                          ? tr(context, 'active')
-                          : tr(context, 'set_active'),
-                    ),
+                    Text(_currentRoutine.isActive 
+                        ? tr(context, 'active') 
+                        : tr(context, 'set_active')),
                   ],
                 ),
               ),
@@ -101,7 +113,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    const Icon(Icons.delete, color: Colors.red, size: 20),
+                    const Icon(
+                      Icons.delete,
+                      color: Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       tr(context, 'delete'),
@@ -121,6 +137,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_currentRoutine.isActive) ...[
+                    _buildWeeklyProgress(),
+                    const SizedBox(height: 24),
+                  ],
                   _buildRoutineStats(),
                   const SizedBox(height: 24),
                   _buildWeeklyCalendar(),
@@ -132,17 +152,156 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     );
   }
 
-  Widget _buildRoutineStats() {
-    final stats = ref
-        .read(routineServiceProvider)
-        .getRoutineStats(_currentRoutine);
+  Widget _buildWeeklyProgress() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final statsAsync = ref.watch(routineStatsProvider(_currentRoutine.id));
+        return statsAsync.when(
+          loading: () => Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppTheme.cardColor(context),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => const SizedBox.shrink(),
+          data: (stats) => Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.cardColor(context),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppTheme.primaryColor.withAlpha(26),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      tr(context, 'this_week_progress'),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withAlpha(26),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        '${stats['completionPercentage']?.round() ?? 0}%',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                
+                // Progress bar
+                Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withAlpha(26),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: FractionallySizedBox(
+                    widthFactor: (stats['completionPercentage'] ?? 0) / 100,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Stats row
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildProgressItem(
+                        tr(context, 'completed'),
+                        '${stats['totalExercisesCompleted'] ?? 0}',
+                        Icons.check_circle,
+                        AppTheme.primaryColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildProgressItem(
+                        tr(context, 'remaining'),
+                        '${(stats['totalPlannedExercises'] ?? 0) - (stats['totalExercisesCompleted'] ?? 0)}',
+                        Icons.schedule,
+                        Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildProgressItem(
+                        tr(context, 'streak'),
+                        '${stats['currentStreak'] ?? 0}',
+                        Icons.local_fire_department,
+                        Colors.red,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildProgressItem(String title, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          title,
+          style: TextStyle(
+            color: AppTheme.textColor(context).withAlpha(179),
+            fontSize: 12,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRoutineStats() {
+    final stats = ref.read(routineServiceProvider).getRoutineStats(_currentRoutine);
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
+        border: Border.all(
+          color: AppTheme.primaryColor.withAlpha(26),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,10 +319,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               const Spacer(),
               if (_currentRoutine.isActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryColor,
                     borderRadius: BorderRadius.circular(12),
@@ -233,7 +389,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppTheme.primaryColor, size: 20),
+          Icon(
+            icon,
+            color: AppTheme.primaryColor,
+            size: 20,
+          ),
           const SizedBox(height: 8),
           Text(
             value,
@@ -284,18 +444,18 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
   Widget _buildDayCard(DailyWorkout day) {
     final isToday = _isToday(day.dayName);
-
+    
     return GestureDetector(
       onTap: () => _navigateToDayWorkout(day),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isToday
+          color: isToday 
               ? AppTheme.primaryColor.withAlpha(26)
               : AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isToday
+            color: isToday 
                 ? AppTheme.primaryColor
                 : AppTheme.primaryColor.withAlpha(26),
             width: isToday ? 2 : 1,
@@ -307,7 +467,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: day.isRestDay
+                color: day.isRestDay 
                     ? Colors.orange.withAlpha(26)
                     : AppTheme.primaryColor.withAlpha(26),
                 shape: BoxShape.circle,
@@ -361,8 +521,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                     day.isRestDay
                         ? tr(context, 'rest_day')
                         : day.exercises.isEmpty
-                        ? tr(context, 'no_exercises')
-                        : '${day.exercises.length} ${tr(context, 'exercises')}',
+                            ? tr(context, 'no_exercises')
+                            : '${day.exercises.length} ${tr(context, 'exercises')}',
                     style: TextStyle(
                       color: AppTheme.textColor(context).withAlpha(179),
                       fontSize: 14,
@@ -427,22 +587,14 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: _currentRoutine.isActive
-                    ? null
-                    : () => _setActiveRoutine(),
-                icon: Icon(
-                  _currentRoutine.isActive
-                      ? Icons.check_circle
-                      : Icons.play_circle_outline,
-                ),
-                label: Text(
-                  _currentRoutine.isActive
-                      ? tr(context, 'currently_active')
-                      : tr(context, 'set_as_active'),
-                ),
+                onPressed: _currentRoutine.isActive ? null : () => _setActiveRoutine(),
+                icon: Icon(_currentRoutine.isActive ? Icons.check_circle : Icons.play_circle_outline),
+                label: Text(_currentRoutine.isActive 
+                    ? tr(context, 'currently_active')
+                    : tr(context, 'set_as_active')),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _currentRoutine.isActive
-                      ? Colors.grey
+                  backgroundColor: _currentRoutine.isActive 
+                      ? Colors.grey 
                       : AppTheme.primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
@@ -498,15 +650,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
   bool _isToday(String dayName) {
     final today = DateTime.now().weekday;
-    final dayNames = [
-      'monday',
-      'tuesday',
-      'wednesday',
-      'thursday',
-      'friday',
-      'saturday',
-      'sunday',
-    ];
+    final dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     final todayName = dayNames[today - 1];
     return dayName.toLowerCase() == todayName;
   }
@@ -524,8 +668,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) =>
-            DayWorkoutScreen(routine: _currentRoutine, dayWorkout: day),
+        builder: (context) => DayWorkoutScreen(
+          routine: _currentRoutine,
+          dayWorkout: day,
+        ),
       ),
     );
 
@@ -557,14 +703,14 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
   void _setActiveRoutine() async {
     setState(() => _isLoading = true);
-
+    
     try {
       final service = ref.read(routineServiceProvider);
       final updatedManager = await service.setActiveRoutine(_currentRoutine.id);
       final updatedRoutine = updatedManager.routines.firstWhere(
         (r) => r.id == _currentRoutine.id,
       );
-
+      
       setState(() {
         _currentRoutine = updatedRoutine;
         _isLoading = false;
@@ -592,10 +738,8 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   }
 
   void _duplicateRoutine() async {
-    final nameController = TextEditingController(
-      text: '${_currentRoutine.name} Copy',
-    );
-
+    final nameController = TextEditingController(text: '${_currentRoutine.name} Copy');
+    
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -622,13 +766,13 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
     if (result != null && result.isNotEmpty) {
       setState(() => _isLoading = true);
-
+      
       try {
         final service = ref.read(routineServiceProvider);
         await service.duplicateRoutine(_currentRoutine.id, result);
-
+        
         setState(() => _isLoading = false);
-
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -641,7 +785,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(e.toString()),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -650,7 +797,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
   void _editRoutineName() async {
     final nameController = TextEditingController(text: _currentRoutine.name);
-
+    
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -677,7 +824,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
     if (result != null && result.isNotEmpty && result != _currentRoutine.name) {
       setState(() => _isLoading = true);
-
+      
       try {
         final updatedRoutine = WorkoutRoutine(
           id: _currentRoutine.id,
@@ -689,10 +836,10 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
           category: _currentRoutine.category,
           isActive: _currentRoutine.isActive,
         );
-
+        
         final service = ref.read(routineServiceProvider);
         await service.updateRoutine(updatedRoutine);
-
+        
         setState(() {
           _currentRoutine = updatedRoutine;
           _isLoading = false;
@@ -749,11 +896,11 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
 
   void _deleteRoutine() async {
     setState(() => _isLoading = true);
-
+    
     try {
       final service = ref.read(routineServiceProvider);
       await service.deleteRoutine(_currentRoutine.id);
-
+      
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../models/exercise_log.dart';
+import '../../models/personal_record.dart';
 import '../../services/exercise_tracking_service.dart';
+import '../../services/exercise_routine_sync_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../search/workout_detail/models/workout_item.dart';
@@ -13,12 +15,16 @@ class LogExerciseScreen extends StatefulWidget {
   final String? exerciseId; // Optional - if coming from a specific exercise
   final String? initialExerciseName; // Add this parameter to fix the error
   final ExerciseLog? existingLog; // Optional - if editing an existing log
+  final String? routineId; // For routine linking
+  final String? dayName; // For routine linking
 
   const LogExerciseScreen({
     super.key,
     this.exerciseId,
     this.initialExerciseName, // Added parameter
     this.existingLog,
+    this.routineId,
+    this.dayName,
   });
 
   @override
@@ -27,6 +33,7 @@ class LogExerciseScreen extends StatefulWidget {
 
 class _LogExerciseScreenState extends State<LogExerciseScreen> {
   final ExerciseTrackingService _trackingService = ExerciseTrackingService();
+  final ExerciseRoutineSyncService _syncService = ExerciseRoutineSyncService();
   final _formKey = GlobalKey<FormState>();
 
   late String _exerciseId;
@@ -41,6 +48,11 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
   late List<TextEditingController> _repsControllers;
   late List<TextEditingController> _distanceControllers;
   late List<TextEditingController> _durationControllers;
+
+  // Auto-fill and personal records data
+  Map<String, dynamic> _autoFillData = {};
+  List<PersonalRecord> _personalRecords = [];
+  bool _isLoadingAutoFill = false;
 
   @override
   void initState() {
@@ -58,7 +70,7 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
     } else {
       // Creating a new log
       _exerciseId = widget.exerciseId ?? '';
-      _exerciseNameController = TextEditingController();
+      _exerciseNameController = TextEditingController(text: widget.initialExerciseName ?? '');
       _selectedDate = DateTime.now();
       _selectedTime = TimeOfDay.now();
       _sets = [ExerciseSet(setNumber: 1, weight: 0, reps: 0)];
@@ -67,6 +79,11 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
 
     // Initialize controllers for each set
     _initializeSetControllers();
+
+    // Load auto-fill data if we have an exercise ID
+    if (_exerciseId.isNotEmpty) {
+      _loadAutoFillData();
+    }
   }
 
   void _initializeSetControllers() {
@@ -107,6 +124,82 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
         _exerciseId = result.title; // This should be a proper ID in a real app
         _exerciseNameController.text = result.title;
       });
+      // Load auto-fill data for the new exercise
+      _loadAutoFillData();
+    }
+  }
+
+  Future<void> _loadAutoFillData() async {
+    if (_exerciseId.isEmpty) return;
+
+    setState(() {
+      _isLoadingAutoFill = true;
+    });
+
+    try {
+      final autoFillData = await _syncService.getAutoFillData(
+        _exerciseId,
+        routineId: widget.routineId,
+      );
+      final personalRecords = await _syncService.getPersonalRecordsForExercise(_exerciseId);
+
+      setState(() {
+        _autoFillData = autoFillData;
+        _personalRecords = personalRecords;
+        _isLoadingAutoFill = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingAutoFill = false;
+      });
+    }
+  }
+
+  void _applyAutoFill() {
+    if (_autoFillData.isEmpty || _autoFillData['lastLog'] == null) return;
+
+    final lastLog = _autoFillData['lastLog'];
+    final lastSets = lastLog['sets'] as List<dynamic>?;
+    
+    if (lastSets != null && lastSets.isNotEmpty) {
+      setState(() {
+        // Clear current sets
+        _sets.clear();
+        _weightControllers.clear();
+        _repsControllers.clear();
+        _distanceControllers.clear();
+        _durationControllers.clear();
+
+        // Apply last log data
+        for (int i = 0; i < lastSets.length; i++) {
+          final setData = lastSets[i];
+          _sets.add(ExerciseSet(
+            setNumber: i + 1,
+            weight: setData['weight']?.toDouble() ?? 0.0,
+            reps: setData['reps'] ?? 0,
+            distance: setData['distance']?.toDouble(),
+            duration: setData['duration'] != null 
+                ? Duration(seconds: setData['duration']) 
+                : null,
+          ));
+        }
+
+        // Initialize controllers with the new data
+        _initializeSetControllers();
+
+        // Apply notes if available
+        if (lastLog['notes'] != null && lastLog['notes'].toString().isNotEmpty) {
+          _notesController.text = lastLog['notes'];
+        }
+      });
+
+      // Show confirmation
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr(context, 'auto_fill_applied')),
+          backgroundColor: AppTheme.primaryColor,
+        ),
+      );
     }
   }
 
@@ -120,7 +213,7 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppTheme.primaryColor,
               onPrimary: Colors.white,
               surface: AppTheme.surfaceColor(context),
               onSurface: AppTheme.textColor(context),
@@ -146,7 +239,7 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
+              primary: AppTheme.primaryColor,
               onPrimary: Colors.white,
               surface: AppTheme.surfaceColor(context),
               onSurface: AppTheme.textColor(context),
@@ -258,45 +351,53 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
       );
     }
 
-    // Create date time from selected date and time
-    final dateTime = DateTime(
-      _selectedDate.year,
-      _selectedDate.month,
-      _selectedDate.day,
-      _selectedTime.hour,
-      _selectedTime.minute,
-    );
+    bool success = false;
 
-    // Create log object
-    ExerciseLog log;
     if (widget.existingLog != null) {
-      // Update existing log
-      log = ExerciseLog(
+      // Update existing log using traditional service
+      final dateTime = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        _selectedTime.hour,
+        _selectedTime.minute,
+      );
+
+      final log = ExerciseLog(
         id: widget.existingLog!.id,
         exerciseId: _exerciseId,
         exerciseName: _exerciseNameController.text,
         date: dateTime,
         sets: _sets,
         notes: _notesController.text,
+        routineId: widget.routineId,
+        dayName: widget.dayName,
       );
 
-      await _trackingService.updateLog(log);
+      success = await _trackingService.updateLog(log);
     } else {
-      // Create new log
-      log = ExerciseLog(
-        id: _trackingService.generateId(),
+      // Create new log using sync service for routine integration
+      success = await _syncService.logExerciseToRoutine(
         exerciseId: _exerciseId,
         exerciseName: _exerciseNameController.text,
-        date: dateTime,
         sets: _sets,
         notes: _notesController.text,
+        routineId: widget.routineId,
+        dayName: widget.dayName,
       );
-
-      await _trackingService.saveExerciseLog(log);
     }
 
     if (mounted) {
-      Navigator.pop(context, true); // Return true to refresh parent screen
+      if (success) {
+        Navigator.pop(context, true); // Return true to refresh parent screen
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'error_saving_log')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -341,7 +442,13 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
+            // Auto-fill and Personal Records section
+            if (_exerciseId.isNotEmpty) ...[
+              _buildAutoFillSection(),
+              const SizedBox(height: 16),
+            ],
 
             // Date and Time
             Row(
@@ -667,5 +774,222 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
     }
 
     super.dispose();
+  }
+
+  Widget _buildAutoFillSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppTheme.primaryColor.withAlpha(26),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                tr(context, 'smart_logging'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (_isLoadingAutoFill)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Auto-fill section
+          if (_autoFillData.isNotEmpty && _autoFillData['lastLog'] != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withAlpha(13),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        color: AppTheme.primaryColor,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        tr(context, 'last_workout'),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: _applyAutoFill,
+                        child: Text(
+                          tr(context, 'use_data'),
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildLastWorkoutPreview(),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Personal Records section
+          if (_personalRecords.isNotEmpty) ...[
+            Text(
+              tr(context, 'personal_records'),
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ..._personalRecords.take(3).map((record) => _buildPersonalRecordItem(record)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLastWorkoutPreview() {
+    if (_autoFillData.isEmpty || _autoFillData['lastLog'] == null) {
+      return const SizedBox.shrink();
+    }
+
+    final lastLog = _autoFillData['lastLog'];
+    final lastSets = lastLog['sets'] as List<dynamic>?;
+    final wasThisWeek = lastLog['wasThisWeek'] ?? false;
+
+    if (lastSets == null || lastSets.isEmpty) {
+      return Text(
+        tr(context, 'no_previous_data'),
+        style: TextStyle(
+          color: AppTheme.textColor(context).withAlpha(179),
+          fontSize: 12,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          wasThisWeek 
+              ? tr(context, 'earlier_this_week')
+              : DateFormat.MMMd().format(DateTime.parse(lastLog['date'])),
+          style: TextStyle(
+            color: AppTheme.textColor(context).withAlpha(179),
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${lastSets.length} ${tr(context, 'sets')} • ${lastSets.first['weight']}kg × ${lastSets.first['reps']}',
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPersonalRecordItem(PersonalRecord record) {
+    IconData icon;
+    Color color;
+    
+    switch (record.recordType) {
+      case 'Max Weight':
+        icon = Icons.fitness_center;
+        color = Colors.blue;
+        break;
+      case 'Max Reps':
+        icon = Icons.repeat;
+        color = Colors.green;
+        break;
+      case 'Total Volume':
+        icon = Icons.trending_up;
+        color = Colors.orange;
+        break;
+      default:
+        icon = Icons.star;
+        color = AppTheme.primaryColor;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: color.withAlpha(26),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.recordType,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume') ? 'kg' : record.recordType.contains('Distance') ? 'km' : ''}',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withAlpha(179),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            DateFormat.MMMd().format(record.date),
+            style: TextStyle(
+              color: AppTheme.textColor(context).withAlpha(179),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

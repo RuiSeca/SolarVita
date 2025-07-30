@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/post_template.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import 'create_post_screen.dart';
 
 class TemplatePostCreatorScreen extends StatefulWidget {
@@ -83,7 +84,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
-        'Create Template Post',
+        tr(context, 'create_template_post'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.bold,
@@ -157,7 +158,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Fill in the details',
+          tr(context, 'fill_details'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -166,7 +167,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Complete the prompts below to create your personalized post',
+          tr(context, 'complete_prompts'),
           style: TextStyle(
             fontSize: 14,
             color: AppTheme.textColor(context).withAlpha(153),
@@ -248,7 +249,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
             ),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'This field is required';
+                return tr(context, 'field_required');
               }
               return null;
             },
@@ -319,7 +320,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
         Row(
           children: [
             Text(
-              'Preview',
+              tr(context, 'preview'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -358,7 +359,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'You',
+                    tr(context, 'you'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppTheme.textColor(context),
@@ -423,7 +424,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                 side: BorderSide(color: AppTheme.textColor(context).withAlpha(77)),
               ),
               child: Text(
-                'Cancel',
+                tr(context, 'cancel'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontWeight: FontWeight.w600,
@@ -452,7 +453,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Create Post',
+                    tr(context, 'create_post'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: _canCreatePost() ? Colors.white : AppTheme.textColor(context).withAlpha(128),
@@ -475,19 +476,19 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
   String _getHintText(String placeholder) {
     switch (placeholder) {
       case 'achievement':
-        return 'What did you accomplish?';
+        return tr(context, 'what_accomplished');
       case 'details':
-        return 'Tell us more about it...';
+        return tr(context, 'tell_more_about');
       case 'next_goal':
-        return 'What\'s next for you?';
+        return tr(context, 'whats_next');
       case 'amount':
-        return 'e.g., 10';
+        return tr(context, 'amount_example');
       case 'unit':
-        return 'lbs, kg, etc.';
+        return tr(context, 'unit_example');
       case 'time':
-        return 'e.g., 25:30';
+        return tr(context, 'time_example');
       default:
-        return 'Enter your ${placeholder.replaceAll('_', ' ')}...';
+        return tr(context, 'enter_placeholder').replaceAll('{placeholder}', placeholder.replaceAll('_', ' '));
     }
   }
 
@@ -559,13 +560,13 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
   String _getPillarName(pillar) {
     switch (pillar) {
       case PostPillar.fitness:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case PostPillar.nutrition:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case PostPillar.eco:
-        return 'Eco';
+        return tr(context, 'eco');
       default:
-        return 'Other';
+        return tr(context, 'other');
     }
   }
 }

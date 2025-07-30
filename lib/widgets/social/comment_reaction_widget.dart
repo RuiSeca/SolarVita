@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/social_post.dart';
 import '../../models/post_comment.dart' as pc;
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 
 class CommentReactionWidget extends StatelessWidget {
   final pc.PostComment comment;
@@ -142,7 +143,7 @@ class CommentReactionWidget extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Reactions',
+              tr(context, 'reactions'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -169,7 +170,7 @@ class CommentReactionWidget extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      _getReactionDisplayName(entry.key),
+                      _getReactionDisplayName(context, entry.key),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -221,16 +222,16 @@ class CommentReactionWidget extends StatelessWidget {
     }
   }
 
-  String _getReactionDisplayName(ReactionType reaction) {
+  String _getReactionDisplayName(BuildContext context, ReactionType reaction) {
     switch (reaction) {
       case ReactionType.like:
-        return 'Like';
+        return tr(context, 'like');
       case ReactionType.celebrate:
-        return 'Celebrate';
+        return tr(context, 'celebrate');
       case ReactionType.boost:
-        return 'Boost';
+        return tr(context, 'boost');
       case ReactionType.motivate:
-        return 'Motivate';
+        return tr(context, 'motivate');
     }
   }
 }

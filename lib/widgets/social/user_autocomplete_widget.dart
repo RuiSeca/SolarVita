@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
 import '../../models/user_mention.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 
 class UserAutocompleteWidget extends StatefulWidget {
   final String query;
@@ -221,8 +222,8 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
         ),
         child: Text(
           widget.query.isEmpty 
-              ? 'Start typing to search users...'
-              : 'No users found matching "${widget.query}"',
+              ? tr(context, 'start_typing_search')
+              : tr(context, 'no_users_found').replaceAll('{query}', widget.query),
           style: TextStyle(
             color: AppTheme.textColor(context).withAlpha(128),
             fontSize: 14,
@@ -267,7 +268,7 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Recent',
+                    tr(context, 'recent'),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -348,9 +349,9 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
                             color: Colors.orange.withAlpha(51),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
-                            'SUP',
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'sup'),
+                            style: const TextStyle(
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
                               color: Colors.orange,
@@ -381,7 +382,7 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  'Following',
+                  tr(context, 'following'),
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,

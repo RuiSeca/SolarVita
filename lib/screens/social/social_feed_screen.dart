@@ -7,6 +7,7 @@ import 'dart:async';
 import 'dart:ui';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../providers/riverpod/firebase_social_provider.dart';
@@ -165,7 +166,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Social Feed',
+            tr(context, 'social_feed'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontWeight: FontWeight.bold,
@@ -189,14 +190,14 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                   ),
                 ),
                 loading: () => Text(
-                  'Loading...',
+                  tr(context, 'loading'),
                   style: TextStyle(
                     color: AppTheme.textColor(context).withAlpha(153),
                     fontSize: 12,
                   ),
                 ),
                 error: (_, __) => Text(
-                  'Error loading',
+                  tr(context, 'error_loading'),
                   style: TextStyle(
                     color: Colors.red.withAlpha(153),
                     fontSize: 12,
@@ -248,7 +249,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
-              Text('All Posts'),
+              Text(tr(context, 'all_posts')),
             ],
           ),
         ),
@@ -264,7 +265,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
-              Text('Supporters Only'),
+              Text(tr(context, 'supporters_only')),
             ],
           ),
         ),
@@ -280,7 +281,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
-              Text('Public Only'),
+              Text(tr(context, 'public_only')),
             ],
           ),
         ),
@@ -409,7 +410,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               );
             },
             icon: const Icon(Icons.add),
-            label: const Text('Create First Post'),
+            label: Text(tr(context, 'create_first_post')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
@@ -433,7 +434,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'Something went wrong',
+            tr(context, 'something_wrong'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -455,7 +456,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               ref.invalidate(socialPostsFeedProvider);
             },
             icon: const Icon(Icons.refresh),
-            label: const Text('Try Again'),
+            label: Text(tr(context, 'try_again')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
@@ -561,15 +562,15 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               ),
             );
           },
-          child: const Center(
+          child: Center(
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.add, color: Colors.white, size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.add, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  'Create Post',
-                  style: TextStyle(
+                  tr(context, 'create_post'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
@@ -675,33 +676,35 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   String _getEmptyStateTitle() {
     switch (_selectedFilter) {
       case 'supporters':
-        return 'No supporter posts yet';
+        return tr(context, 'no_supporter_posts');
       case 'public':
-        return 'No public posts yet';
+        return tr(context, 'no_public_posts');
       default:
-        return 'Welcome to SolarVita Social!';
+        return tr(context, 'welcome_social');
     }
   }
 
   String _getEmptyStateSubtitle() {
     switch (_selectedFilter) {
       case 'supporters':
-        return 'Connect with supporters to see their posts here';
+        return tr(context, 'connect_supporters');
       case 'public':
-        return 'Be the first to share a public post';
+        return tr(context, 'first_public_post');
       default:
-        return 'Share your wellness journey with the community';
+        return tr(context, 'share_wellness_journey');
     }
   }
 
   // EVENT HANDLERS
 
   void _handleReaction(String postId, ReactionType reaction) async {
+    final failedAddReaction = tr(context, 'failed_add_reaction');
+    
     try {
       await ref.read(socialPostActionsProvider.notifier).reactToPost(postId, reaction);
       HapticFeedback.lightImpact();
     } catch (e) {
-      _showErrorSnackBar('Failed to add reaction: $e');
+      _showErrorSnackBar(failedAddReaction.replaceAll('{error}', '$e'));
     }
   }
 

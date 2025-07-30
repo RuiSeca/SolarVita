@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../../models/post_template.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'create_post_screen.dart';
 
@@ -80,7 +81,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
-        'Customize Template',
+        tr(context, 'customize_template'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.bold,
@@ -147,7 +148,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Fill in the details',
+          tr(context, 'fill_details'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -156,7 +157,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
         ),
         const SizedBox(height: 8),
         Text(
-          'Complete the fields below to personalize your post',
+          tr(context, 'personalize_post'),
           style: TextStyle(
             fontSize: 14,
             color: AppTheme.textColor(context).withAlpha(153),
@@ -239,7 +240,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
         ),
         validator: isRequired ? (value) {
           if (value == null || value.trim().isEmpty) {
-            return 'This field is required';
+            return tr(context, 'field_required');
           }
           return null;
         } : null,
@@ -307,7 +308,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Preview',
+          tr(context, 'preview'),
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -351,7 +352,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
           ),
         ),
         child: Text(
-          'Create Post',
+          tr(context, 'create_post'),
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -409,7 +410,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to generate post: $e'),
+            content: Text(tr(context, 'failed_generate_post').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -438,18 +439,18 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
   }
 
   String _getPlaceholderHint(String placeholder) {
-    const hints = {
-      'achievement': 'e.g., completed my first 5K',
-      'feeling': 'How are you feeling?',
-      'workout_type': 'What type of workout?',
-      'details': 'What made it special?',
-      'next_goal': 'What are you aiming for next?',
-      'timeframe': 'e.g., 3 months, 6 weeks',
-      'changes': 'What changes do you notice?',
-      'challenge': 'What was difficult?',
-      'additional_notes': 'Any extra thoughts... (optional)',
+    final hints = {
+      'achievement': tr(context, 'achievement_example'),
+      'feeling': tr(context, 'how_you_feel'),
+      'workout_type': tr(context, 'workout_type'),
+      'details': tr(context, 'what_made_special'),
+      'next_goal': tr(context, 'aiming_next'),
+      'timeframe': tr(context, 'timeframe_example'),
+      'changes': tr(context, 'what_changes_notice'),
+      'challenge': tr(context, 'what_was_difficult'),
+      'additional_notes': tr(context, 'extra_thoughts_optional'),
     };
-    return hints[placeholder] ?? 'Enter $placeholder...';
+    return hints[placeholder] ?? tr(context, 'enter_field').replaceAll('{field}', placeholder);
   }
 
   List<String> _getDropdownOptions(String placeholder) {
@@ -457,7 +458,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       case 'feeling':
         return ['amazing', 'energized', 'proud', 'accomplished', 'motivated', 'tired but satisfied'];
       case 'workout_type':
-        return ['strength training', 'cardio', 'yoga', 'HIIT', 'pilates', 'running', 'cycling'];
+        return [tr(context, 'strength_training'), tr(context, 'cardio'), tr(context, 'yoga'), tr(context, 'hiit'), tr(context, 'pilates'), tr(context, 'running'), tr(context, 'cycling')];
       case 'unit':
         return ['lbs', 'kg'];
       default:

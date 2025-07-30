@@ -6,6 +6,7 @@ import '../models/social_activity.dart';
 import '../models/community_challenge.dart';
 import '../models/social_post.dart' as social;
 import '../theme/app_theme.dart';
+import '../utils/translation_helper.dart';
 import '../screens/chat/conversations_screen.dart';
 import '../screens/social/create_post_screen.dart';
 import '../screens/social/social_feed_screen.dart';
@@ -88,11 +89,11 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
-            tabs: const [
-              Tab(text: 'All Posts'),
-              Tab(text: 'Tribes'),
-              Tab(text: 'Supporters'),
-              Tab(text: 'Challenges'),
+            tabs: [
+              Tab(text: tr(context, 'all_posts')),
+              Tab(text: tr(context, 'tribes')),
+              Tab(text: tr(context, 'supporters')),
+              Tab(text: tr(context, 'challenges')),
             ],
           ),
         ),
@@ -136,7 +137,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           ),
           const SizedBox(height: 16),
           Text(
-            'View Full Social Feed',
+            tr(context, 'view_full_social_feed'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -146,7 +147,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap to explore the community',
+            tr(context, 'tap_explore_community'),
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.textColor(context).withAlpha(153),
@@ -164,7 +165,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               );
             },
             icon: const Icon(Icons.explore),
-            label: const Text('Open Social Feed'),
+            label: Text(tr(context, 'open_social_feed')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
@@ -195,7 +196,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           ),
           const SizedBox(height: 16),
           Text(
-            'Explore Tribes',
+            tr(context, 'explore_tribes'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -205,7 +206,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           ),
           const SizedBox(height: 8),
           Text(
-            'Join communities and connect with like-minded people',
+            tr(context, 'join_communities'),
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.textColor(context).withAlpha(153),
@@ -223,7 +224,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               );
             },
             icon: const Icon(Icons.explore),
-            label: const Text('Open Tribes'),
+            label: Text(tr(context, 'open_tribes')),
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
@@ -271,7 +272,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                             color: Theme.of(context).primaryColor,
                           ),
                           label: Text(
-                            'Messages',
+                            tr(context, 'messages'),
                             style: TextStyle(
                               color: Theme.of(context).primaryColor,
                               fontSize: 12,
@@ -328,7 +329,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                         color: Theme.of(context).primaryColor,
                       ),
                       label: Text(
-                        'Messages',
+                        tr(context, 'messages'),
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontSize: 12,
@@ -358,7 +359,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                         color: Theme.of(context).primaryColor,
                       ),
                       label: Text(
-                        'Messages',
+                        tr(context, 'messages'),
                         style: TextStyle(
                           color: Theme.of(context).primaryColor,
                           fontSize: 12,
@@ -393,8 +394,8 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               if (activities.isEmpty) {
                 return _buildEmptyState(
                   icon: '👥',
-                  title: 'No supporter activities',
-                  subtitle: 'Connect with supporters to see their activities',
+                  title: tr(context, 'no_supporter_activities'),
+                  subtitle: tr(context, 'connect_see_activities'),
                 );
               }
 
@@ -425,8 +426,8 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
         if (challenges.isEmpty) {
           return _buildEmptyState(
             icon: '🏆',
-            title: 'No active challenges',
-            subtitle: 'Check back for new community challenges!',
+            title: tr(context, 'no_active_challenges'),
+            subtitle: tr(context, 'check_back_challenges'),
           );
         }
 
@@ -510,9 +511,9 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                                 color: Colors.green.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
-                                '👥 Supporter',
-                                style: TextStyle(fontSize: 10, color: Colors.green),
+                              child: Text(
+                                '👥 ${tr(context, 'supporter')}',
+                                style: const TextStyle(fontSize: 10, color: Colors.green),
                               ),
                             ),
                           ],
@@ -607,7 +608,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
               children: [
                 Icon(Icons.people, size: 16),
                 const SizedBox(width: 4),
-                Text('${challenge.participants.length} participants'),
+                Text('${challenge.participants.length} ${tr(context, 'participants')}'),
                 const SizedBox(width: 16),
                 Icon(Icons.calendar_today, size: 16),
                 const SizedBox(width: 4),
@@ -663,13 +664,13 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     final difference = endDate.difference(now);
     
     if (difference.isNegative) {
-      return 'Ended';
+      return tr(context, 'ended');
     } else if (difference.inDays > 0) {
-      return '${difference.inDays} days left';
+      return tr(context, 'days_left').replaceAll('{days}', '${difference.inDays}');
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours left';
+      return tr(context, 'hours_left').replaceAll('{hours}', '${difference.inHours}');
     } else {
-      return 'Ending soon';
+      return tr(context, 'ending_soon');
     }
   }
 
@@ -796,7 +797,7 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Welcome to SolarVita Social!',
+              tr(context, 'welcome_social'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -806,7 +807,7 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Share your wellness journey',
+              tr(context, 'share_wellness_journey'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppTheme.textColor(context).withAlpha(153),
@@ -841,7 +842,7 @@ class _SocialFeedContentState extends State<SocialFeedContent> {
                 );
               },
               icon: const Icon(Icons.add),
-              label: const Text('Create Post'),
+              label: Text(tr(context, 'create_post')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,

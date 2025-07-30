@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:video_player/video_player.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../common/lottie_loading_widget.dart';
 import '../../screens/social/post_comments_screen.dart';
 import '../../screens/social/edit_post_screen.dart';
@@ -170,7 +171,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'AUTO',
+                          tr(context, 'auto'),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -190,8 +191,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                           color: Colors.green.withAlpha(51),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'SUPPORTER',
+                        child: Text(
+                          tr(context, 'supporter'),
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -298,7 +299,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
         onMentionTap: (mention) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Tapped on ${mention.displayName}'),
+              content: Text(tr(context, 'tapped_mention').replaceAll('{name}', mention.displayName)),
               duration: const Duration(seconds: 1),
             ),
           );
@@ -548,8 +549,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   Widget _buildReactionStats() {
     return Text(
       widget.post.totalReactions == 1
-          ? '1 reaction'
-          : '${widget.post.totalReactions} reactions',
+          ? tr(context, 'one_reaction')
+          : tr(context, 'reactions_count').replaceAll('{count}', '${widget.post.totalReactions}'),
       style: TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w600,
@@ -570,8 +571,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
       },
       child: Text(
         widget.post.commentCount == 1
-            ? 'View 1 comment'
-            : 'View all ${widget.post.commentCount} comments',
+            ? tr(context, 'view_one_comment')
+            : tr(context, 'view_all_comments').replaceAll('{count}', '${widget.post.commentCount}'),
         style: TextStyle(
           fontSize: 14,
           color: AppTheme.textColor(context).withAlpha(153),
@@ -593,7 +594,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     } else if (difference.inMinutes > 0) {
       return '${difference.inMinutes}m ago';
     } else {
-      return 'Just now';
+      return tr(context, 'just_now');
     }
   }
 
@@ -645,8 +646,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                     if (isOwner) ...[
                       _buildOptionTile(
                         icon: Icons.edit,
-                        title: 'Edit Post',
-                        subtitle: 'Make changes to your post',
+                        title: tr(context, 'edit_post'),
+                        subtitle: tr(context, 'make_changes_post'),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
@@ -659,8 +660,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                       ),
                       _buildOptionTile(
                         icon: Icons.delete_outline,
-                        title: 'Delete Post',
-                        subtitle: 'Permanently delete this post',
+                        title: tr(context, 'delete_post'),
+                        subtitle: tr(context, 'permanently_delete'),
                         onTap: () {
                           Navigator.pop(context);
                           _showDeleteConfirmation();
@@ -668,8 +669,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                       ),
                       _buildOptionTile(
                         icon: Icons.history,
-                        title: 'View History',
-                        subtitle: 'See all changes made to this post',
+                        title: tr(context, 'view_history'),
+                        subtitle: tr(context, 'see_changes'),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
@@ -686,8 +687,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                     // Common options for all users
                     _buildOptionTile(
                       icon: Icons.bookmark_border,
-                      title: 'Save Post',
-                      subtitle: 'Save this post to your collection',
+                      title: tr(context, 'save_post'),
+                      subtitle: tr(context, 'save_post_description'),
                       onTap: () {
                         Navigator.pop(context);
                         _handleSavePost();
@@ -695,8 +696,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                     ),
                     _buildOptionTile(
                       icon: Icons.share,
-                      title: 'Share',
-                      subtitle: 'Share this post with others',
+                      title: tr(context, 'share'),
+                      subtitle: tr(context, 'share_post_description'),
                       onTap: () {
                         Navigator.pop(context);
                         widget.onShare?.call(widget.post.id);
@@ -704,8 +705,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                     ),
                     _buildOptionTile(
                       icon: Icons.copy,
-                      title: 'Copy Link',
-                      subtitle: 'Copy link to this post',
+                      title: tr(context, 'copy_link'),
+                      subtitle: tr(context, 'copy_link_description'),
                       onTap: () {
                         Navigator.pop(context);
                         // Copy link functionality to be implemented
@@ -714,8 +715,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                     if (!isOwner)
                       _buildOptionTile(
                         icon: Icons.report,
-                        title: 'Report',
-                        subtitle: 'Report this post',
+                        title: tr(context, 'report'),
+                        subtitle: tr(context, 'report_post_description'),
                         onTap: () {
                           Navigator.pop(context);
                           _showReportDialog();
@@ -755,7 +756,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
               children: [
                 const Icon(Icons.bookmark, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                const Text('Post saved to your collection!'),
+                Text(tr(context, 'post_saved_success')),
               ],
             ),
             backgroundColor: Theme.of(currentContext).primaryColor,
@@ -767,7 +768,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
       if (mounted && currentContext.mounted) {
         ScaffoldMessenger.of(currentContext).showSnackBar(
           SnackBar(
-            content: Text('Failed to save post: $e'),
+            content: Text(tr(context, 'failed_save_post').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -853,8 +854,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
 
             if (mounted && currentContext.mounted) {
               ScaffoldMessenger.of(currentContext).showSnackBar(
-                const SnackBar(
-                  content: Text('Report submitted successfully'),
+                SnackBar(
+                  content: Text(tr(currentContext, 'report_submitted')),
                   backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -864,7 +865,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
             if (mounted && currentContext.mounted) {
               ScaffoldMessenger.of(currentContext).showSnackBar(
                 SnackBar(
-                  content: Text('Failed to submit report: $e'),
+                  content: Text(tr(context, 'failed_submit_report').replaceAll('{error}', '$e')),
                   backgroundColor: Colors.red,
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -882,14 +883,14 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.cardColor(context),
         title: Text(
-          'Delete Post',
+          tr(context, 'delete_post'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Are you sure you want to delete this post? This action cannot be undone.',
+          tr(context, 'delete_post_confirmation'),
           style: TextStyle(
             color: AppTheme.textColor(context),
           ),
@@ -898,7 +899,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              tr(context, 'cancel'),
               style: TextStyle(
                 color: AppTheme.textColor(context).withAlpha(153),
               ),
@@ -909,9 +910,9 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
               Navigator.pop(context);
               _deletePost();
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(
+            child: Text(
+              tr(context, 'delete'),
+              style: const TextStyle(
                 color: Colors.red,
                 fontWeight: FontWeight.bold,
               ),
@@ -938,7 +939,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('Deleting post...'),
+              Text(tr(context, 'deleting_post')),
             ],
           ),
           backgroundColor: AppTheme.textColor(context),
@@ -958,7 +959,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
               children: [
                 const Icon(Icons.check_circle, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                const Text('Post deleted successfully'),
+                Text(tr(context, 'post_deleted_success')),
               ],
             ),
             backgroundColor: Colors.green,
@@ -977,7 +978,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
               children: [
                 const Icon(Icons.error, color: Colors.white, size: 20),
                 const SizedBox(width: 8),
-                Text('Failed to delete post: ${e.toString()}'),
+                Text(tr(context, 'failed_delete_post').replaceAll('{error}', e.toString())),
               ],
             ),
             backgroundColor: Colors.red,
@@ -992,11 +993,11 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   String _getPillarDisplayName(PostPillar pillar) {
     switch (pillar) {
       case PostPillar.fitness:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case PostPillar.nutrition:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case PostPillar.eco:
-        return 'Eco';
+        return tr(context, 'eco');
     }
   }
 

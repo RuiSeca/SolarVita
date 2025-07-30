@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/post_template.dart';
 import '../../models/social_post.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import 'template_post_creator_screen.dart';
 
 class PostTemplatesScreen extends StatefulWidget {
@@ -62,7 +63,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
         onPressed: () => Navigator.pop(context),
       ),
       title: Text(
-        'Post Templates',
+        tr(context, 'post_templates'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.bold,
@@ -97,7 +98,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Get Inspired',
+                      tr(context, 'get_inspired'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -105,7 +106,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
                       ),
                     ),
                     Text(
-                      'Use templates to share your journey and inspire others',
+                      tr(context, 'templates_description'),
                       style: TextStyle(
                         fontSize: 14,
                         color: AppTheme.textColor(context).withAlpha(153),
@@ -146,11 +147,11 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
           fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
-        tabs: const [
-          Tab(text: 'Weekly Wins'),
-          Tab(text: 'Achievements'),
-          Tab(text: 'Gratitude'),
-          Tab(text: 'All'),
+        tabs: [
+          Tab(text: tr(context, 'weekly_wins')),
+          Tab(text: tr(context, 'achievements')),
+          Tab(text: tr(context, 'gratitude')),
+          Tab(text: tr(context, 'all')),
         ],
       ),
     );
@@ -322,7 +323,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
           ),
           const SizedBox(height: 16),
           Text(
-            'No templates available',
+            tr(context, 'no_templates_available'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -331,7 +332,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Check back soon for new templates!',
+            tr(context, 'check_back_templates'),
             style: TextStyle(
               fontSize: 14,
               color: AppTheme.textColor(context).withAlpha(153),
@@ -367,13 +368,13 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
   String _getPillarName(pillar) {
     switch (pillar) {
       case PostPillar.fitness:
-        return 'Fitness';
+        return tr(context, 'fitness');
       case PostPillar.nutrition:
-        return 'Nutrition';
+        return tr(context, 'nutrition');
       case PostPillar.eco:
-        return 'Eco';
+        return tr(context, 'eco');
       default:
-        return 'Other';
+        return tr(context, 'other');
     }
   }
 }

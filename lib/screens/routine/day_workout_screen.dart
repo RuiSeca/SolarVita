@@ -3,11 +3,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
+import '../../models/weekly_progress.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 import '../../screens/search/workout_detail/workout_detail_screen.dart';
 import '../../widgets/common/exercise_image.dart';
+import '../../services/exercise_routine_sync_service.dart';
 import 'exercise_selection_screen.dart';
 import 'routine_main_screen.dart';
+
+final exerciseRoutineSyncServiceProvider = Provider<ExerciseRoutineSyncService>((ref) => ExerciseRoutineSyncService());
+
+final weeklyProgressProvider = FutureProvider.family<WeeklyProgress?, String>((ref, routineId) async {
+  final service = ref.watch(exerciseRoutineSyncServiceProvider);
+  return await service.getWeeklyProgress(routineId);
+});
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;
@@ -27,6 +36,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   late WorkoutRoutine _currentRoutine;
   late DailyWorkout _currentDay;
   bool _isLoading = false;
+  WeeklyProgress? _weeklyProgress;
 
   @override
   void initState() {
@@ -126,9 +136,23 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _currentDay.isRestDay 
-              ? _buildRestDayContent()
-              : _buildWorkoutContent(),
+          : Consumer(
+              builder: (context, ref, child) {
+                final progressAsync = ref.watch(weeklyProgressProvider(_currentRoutine.id));
+                return progressAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => _currentDay.isRestDay 
+                      ? _buildRestDayContent()
+                      : _buildWorkoutContent(),
+                  data: (progress) {
+                    _weeklyProgress = progress;
+                    return _currentDay.isRestDay 
+                        ? _buildRestDayContent()
+                        : _buildWorkoutContent();
+                  },
+                );
+              },
+            ),
       floatingActionButton: !_currentDay.isRestDay
           ? FloatingActionButton(
               onPressed: () => _addExercise(),
@@ -233,6 +257,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_weeklyProgress != null) ...[
+            _buildWeeklyProgressSection(),
+            const SizedBox(height: 24),
+          ],
           _buildWorkoutSummary(),
           const SizedBox(height: 24),
           _buildExercisesList(),
@@ -445,6 +473,8 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   }
 
   Widget _buildExerciseCard(WorkoutItem exercise, int index, {required Key key}) {
+    final isCompleted = _isExerciseCompleted(exercise.title);
+    
     return Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 12),
@@ -453,22 +483,48 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.cardColor(context),
+            color: isCompleted 
+                ? AppTheme.primaryColor.withAlpha(26)
+                : AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppTheme.primaryColor.withAlpha(26),
+              color: isCompleted 
+                  ? AppTheme.primaryColor
+                  : AppTheme.primaryColor.withAlpha(26),
+              width: isCompleted ? 2 : 1,
             ),
           ),
           child: Row(
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: ExerciseImage(
-                  imageUrl: exercise.image,
-                  width: 60,
-                  height: 60,
-                  fit: BoxFit.cover,
-                ),
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: ExerciseImage(
+                      imageUrl: exercise.image,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  if (isCompleted)
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -914,5 +970,140 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         }
       }
     }
+  }
+
+  // Helper methods for completion tracking
+  bool _isExerciseCompleted(String exerciseTitle) {
+    if (_weeklyProgress == null) return false;
+    final dayProgress = _weeklyProgress!.dailyProgress[_currentDay.dayName];
+    return dayProgress?.isExerciseCompleted(exerciseTitle) ?? false;
+  }
+
+  Widget _buildWeeklyProgressSection() {
+    if (_weeklyProgress == null) return const SizedBox.shrink();
+    
+    final dayProgress = _weeklyProgress!.dailyProgress[_currentDay.dayName];
+    if (dayProgress == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withAlpha(26),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                tr(context, 'weekly_progress'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withAlpha(26),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '${_weeklyProgress!.completionPercentage.round()}%',
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Progress bar
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withAlpha(26),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: FractionallySizedBox(
+              widthFactor: _weeklyProgress!.completionPercentage / 100,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Today's progress
+          Row(
+            children: [
+              Expanded(
+                child: _buildProgressItem(
+                  tr(context, 'today'),
+                  '${dayProgress.completedExercises}/${dayProgress.plannedExercises}',
+                  Icons.today,
+                  dayProgress.isCompleted ? AppTheme.primaryColor : Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildProgressItem(
+                  tr(context, 'week_total'),
+                  '${_weeklyProgress!.totalExercisesCompleted}/${_weeklyProgress!.totalPlannedExercises}',
+                  Icons.fitness_center,
+                  AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildProgressItem(
+                  tr(context, 'streak'),
+                  '${_weeklyProgress!.currentStreak}',
+                  Icons.local_fire_department,
+                  Colors.orange,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProgressItem(String title, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          title,
+          style: TextStyle(
+            color: AppTheme.textColor(context).withAlpha(179),
+            fontSize: 12,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
   }
 }

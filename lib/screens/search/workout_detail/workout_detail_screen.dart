@@ -3,10 +3,14 @@ import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/exercise_image.dart';
 import '../../../services/exercise_tracking_service.dart'; // Import tracking service
+import '../../../services/exercise_routine_sync_service.dart';
+import '../../../models/exercise_log.dart';
+import '../../../models/personal_record.dart';
 import '../../exercise_history/log_exercise_screen.dart'; // Import log screen
 import '../../exercise_history/exercise_history_screen.dart';
 import 'models/workout_step.dart';
 import 'package:logging/logging.dart';
+import 'package:intl/intl.dart';
 
 final log = Logger('WorkoutDetailScreen');
 
@@ -39,6 +43,11 @@ class WorkoutDetailScreen extends StatefulWidget {
 class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   final Map<String, bool> _expandedSteps = {};
   final ExerciseTrackingService _trackingService = ExerciseTrackingService();
+  final ExerciseRoutineSyncService _syncService = ExerciseRoutineSyncService();
+  
+  List<ExerciseLog> _recentLogs = [];
+  List<PersonalRecord> _personalRecords = [];
+  bool _isLoadingData = false;
 
   @override
   void initState() {
@@ -46,6 +55,32 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     log.info('Loading WorkoutDetailScreen with imagePath: ${widget.imagePath}');
     for (var step in widget.steps) {
       log.info('Step GIF: ${step.gifUrl}');
+    }
+    _loadExerciseData();
+  }
+
+  Future<void> _loadExerciseData() async {
+    if (_isLoadingData) return;
+    
+    setState(() {
+      _isLoadingData = true;
+    });
+
+    try {
+      final exerciseId = _generateExerciseId(widget.categoryTitle);
+      final logs = await _trackingService.getLogsForExercise(exerciseId);
+      final records = await _syncService.getPersonalRecordsForExercise(exerciseId);
+      
+      setState(() {
+        _recentLogs = logs.take(3).toList();
+        _personalRecords = records;
+        _isLoadingData = false;
+      });
+    } catch (e) {
+      log.severe('Error loading exercise data: $e');
+      setState(() {
+        _isLoadingData = false;
+      });
     }
   }
 
@@ -143,6 +178,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           const SizedBox(height: 24),
           _buildWorkoutOverview(context),
           const SizedBox(height: 24),
+          
+          // Smart logging section
+          if (_personalRecords.isNotEmpty || _recentLogs.isNotEmpty) ...[
+            _buildSmartLoggingSection(context),
+            const SizedBox(height: 24),
+          ],
 
           // New row with two buttons
           Row(
@@ -532,5 +573,213 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Future<List> _getExerciseHistory() async {
     final exerciseId = _generateExerciseId(widget.categoryTitle);
     return await _trackingService.getLogsForExercise(exerciseId);
+  }
+
+  Widget _buildSmartLoggingSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withAlpha(26),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.analytics,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                tr(context, 'your_progress'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Personal Records Section
+          if (_personalRecords.isNotEmpty) ...[
+            Text(
+              tr(context, 'personal_records'),
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: _personalRecords.take(3).map((record) => Expanded(
+                child: _buildPersonalRecordCard(record),
+              )).toList(),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Recent Workouts Section
+          if (_recentLogs.isNotEmpty) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  tr(context, 'recent_workouts'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                TextButton(
+                  onPressed: _navigateToExerciseHistory,
+                  child: Text(
+                    tr(context, 'view_all'),
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ..._recentLogs.map((log) => _buildRecentWorkoutItem(log)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPersonalRecordCard(PersonalRecord record) {
+    IconData icon;
+    Color color;
+    
+    switch (record.recordType) {
+      case 'Max Weight':
+        icon = Icons.fitness_center;
+        color = Colors.blue;
+        break;
+      case 'Max Reps':
+        icon = Icons.repeat;
+        color = Colors.green;
+        break;
+      case 'Total Volume':
+        icon = Icons.trending_up;
+        color = Colors.orange;
+        break;
+      default:
+        icon = Icons.star;
+        color = AppTheme.primaryColor;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withAlpha(26),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withAlpha(51),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 8),
+          Text(
+            '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume') ? 'kg' : record.recordType.contains('Distance') ? 'km' : ''}',
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            record.recordType,
+            style: TextStyle(
+              color: AppTheme.textColor(context).withAlpha(179),
+              fontSize: 10,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentWorkoutItem(ExerciseLog log) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withAlpha(13),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withAlpha(26),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.fitness_center,
+              color: AppTheme.primaryColor,
+              size: 16,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat.MMMd().format(log.date),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '${log.sets.length} sets • ${log.maxWeight.toStringAsFixed(1)}kg • ${log.sets.fold(0, (sum, set) => sum + set.reps)} reps',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withAlpha(179),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (log.isPersonalRecord)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700), // Gold color
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'PR',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

@@ -19,7 +19,6 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -35,18 +34,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               children: [
                 Builder(
                   builder: (context) {
-                    final userProfileAsync = ref.watch(userProfileNotifierProvider);
+                    final userProfileAsync = ref.watch(
+                      userProfileNotifierProvider,
+                    );
                     final currentUser = ref.watch(currentUserProvider);
-                    
+
                     final userProfile = userProfileAsync.value;
-                    
-                    String displayName = userProfile?.displayName ?? 
-                                      currentUser?.displayName ?? 
-                                      'Fitness Enthusiast';
-                    
-                    String? profileImageUrl = userProfile?.photoURL ?? 
-                                           currentUser?.photoURL;
-                    
+
+                    String displayName =
+                        userProfile?.displayName ??
+                        currentUser?.displayName ??
+                        'Fitness Enthusiast';
+
+                    String? profileImageUrl =
+                        userProfile?.photoURL ?? currentUser?.photoURL;
+
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -56,13 +58,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                               CircleAvatar(
                                 radius: 20,
                                 backgroundImage: profileImageUrl != null
-                                    ? CachedNetworkImageProvider(profileImageUrl)
+                                    ? CachedNetworkImageProvider(
+                                        profileImageUrl,
+                                      )
                                     : null,
-                                backgroundColor:
-                                    AppTheme.textFieldBackground(context),
+                                backgroundColor: AppTheme.textFieldBackground(
+                                  context,
+                                ),
                                 child: profileImageUrl == null
-                                    ? Icon(Icons.person,
-                                        color: theme.iconTheme.color)
+                                    ? Icon(
+                                        Icons.person,
+                                        color: theme.iconTheme.color,
+                                      )
                                     : null,
                               ),
                               const SizedBox(width: 8),
@@ -72,17 +79,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                   children: [
                                     Text(
                                       tr(context, 'welcome'),
-                                      style: theme.textTheme.bodyLarge?.copyWith(
-                                        color: theme.hintColor,
-                                      ),
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(color: theme.hintColor),
                                     ),
                                     Text(
                                       displayName,
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 19,
-                                        color: Colors.white,
-                                      ),
+                                      style: theme.textTheme.titleLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 19,
+                                            color: AppTheme.textColor(context),
+                                          ),
                                     ),
                                   ],
                                 ),
@@ -94,14 +101,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (context) => const EcoTipsScreen()),
+                              builder: (context) => const EcoTipsScreen(),
+                            ),
                           ),
                           style: TextButton.styleFrom(
                             backgroundColor: theme.primaryColor.withAlpha(25),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20)),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                           ),
                           child: Text(
                             tr(context, 'eco_tips'),
@@ -116,7 +127,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   },
                 ),
 
-
                 const SizedBox(height: 40),
 
                 // Popular Workouts Section
@@ -127,18 +137,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         tr(context, 'explore_popular_workouts'),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppTheme.textColor(context),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
                       children: [
-                        Icon(Icons.arrow_back_ios,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.arrow_back_ios,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                       ],
                     ),
                   ],
@@ -162,18 +178,24 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         tr(context, 'quick_exercise_routines'),
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: AppTheme.textColor(context),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Row(
                       children: [
-                        Icon(Icons.arrow_back_ios,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.arrow_back_ios,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                         const SizedBox(width: 8),
-                        Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                       ],
                     ),
                   ],
@@ -206,7 +228,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   tr(context, 'fitness_categories'),
                   style: theme.textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppTheme.textColor(context),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -214,14 +236,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
                     _buildCategoryIcon(
-                        Icons.fitness_center, tr(context, 'gym')),
+                      Icons.fitness_center,
+                      tr(context, 'gym'),
+                    ),
                     _buildCategoryIcon(
-                        Icons.directions_run, tr(context, 'hiit')),
+                      Icons.directions_run,
+                      tr(context, 'hiit'),
+                    ),
                     _buildCategoryIcon(Icons.forest, tr(context, 'mindful')),
                     _buildCategoryIcon(
-                        Icons.sports_volleyball, tr(context, 'toned')),
+                      Icons.sports_volleyball,
+                      tr(context, 'toned'),
+                    ),
                     _buildCategoryIcon(
-                        Icons.local_drink_outlined, tr(context, 'supplements')),
+                      Icons.local_drink_outlined,
+                      tr(context, 'supplements'),
+                    ),
                   ],
                 ),
 
@@ -234,18 +264,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     Row(
                       children: [
                         Text(
-                          'From the Community',
+                          tr(context, 'from_the_community'),
                           style: theme.textTheme.headlineSmall?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: AppTheme.textColor(context),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(
-                          Icons.people,
-                          size: 20,
-                          color: theme.primaryColor,
-                        ),
+                        Icon(Icons.people, size: 20, color: theme.primaryColor),
                       ],
                     ),
                     // Plus button for creating posts
@@ -275,7 +301,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 const SocialFeedTabs(),
-
               ],
             ),
           ),
@@ -293,9 +318,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }) {
     return Container(
       height: 160,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Stack(
@@ -317,8 +340,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 top: 16,
                 left: 16,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -356,7 +381,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: SizedBox(
                 // Added Container with width constraint
                 width:
-                    MediaQuery.of(context).size.width - 64, // Account for padding
+                    MediaQuery.of(context).size.width -
+                    64, // Account for padding
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min, // Added to minimize height
@@ -398,9 +424,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }) {
     return Container(
       height: 120,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: Stack(
@@ -449,10 +473,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     author,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.white70,
-                    ),
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -475,23 +496,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             color: Colors.grey[900],
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 24,
-          ),
+          child: Icon(icon, color: Colors.white, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.white70,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textColor(context),
           ),
         ),
       ],
     );
   }
-
-
 }
