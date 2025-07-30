@@ -396,5 +396,20 @@
     "save_log": "Save Log",
     "error_saving_log": "Error saving log",
     "week_total": "Week Total",
-    "total": "Total"
+    "daily_progress": "Daily Progress",
+    "day_total": "Day Total",
+    "completed_exercises": "Completed",
+    "remaining_exercises": "Remaining",
+    "total": "Total",
+    "one_comment": "1 comment",
+    "comments_count": "{count} comments",
+    "edit_comment_hint": "Edit your comment...",
+    "failed_load_replies": "Failed to load replies: {error}",
+    "comment_posted_success": "Comment posted successfully!",
+    "failed_post_comment": "Failed to post comment: {error}",
+    "reply_to_user": "Reply to {username}...",
+    "replying_to_user": "Replying to {username}",
+    "failed_update_comment": "Failed to update comment: {error}",
+    "failed_delete_comment": "Failed to delete comment: {error}",
+    "failed_update_pin": "Failed to update pin status: {error}"
 }

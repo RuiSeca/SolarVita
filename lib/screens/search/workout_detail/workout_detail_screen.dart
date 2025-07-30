@@ -23,6 +23,8 @@ class WorkoutDetailScreen extends StatefulWidget {
   final String description;
   final double rating;
   final String caloriesBurn;
+  final String? routineId; // Optional routine context
+  final String? dayName; // Optional day context
 
   const WorkoutDetailScreen({
     super.key,
@@ -34,6 +36,8 @@ class WorkoutDetailScreen extends StatefulWidget {
     required this.description,
     required this.rating,
     required this.caloriesBurn,
+    this.routineId,
+    this.dayName,
   });
 
   @override
@@ -520,8 +524,11 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   // New method to log this exercise
   void _logExercise() async {
-    // Generate an exercise ID (in a real app, you'd have actual IDs)
-    final exerciseId = _generateExerciseId(widget.categoryTitle);
+    // For routine exercises, use the exercise title as ID to ensure proper completion tracking
+    // For standalone exercises, use the generated ID
+    final exerciseId = widget.routineId != null 
+        ? widget.categoryTitle  // Use exact title for routine exercises
+        : _generateExerciseId(widget.categoryTitle); // Use generated ID for standalone
 
     final result = await Navigator.push(
       context,
@@ -529,6 +536,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         builder: (context) => LogExerciseScreen(
           exerciseId: exerciseId,
           initialExerciseName: widget.categoryTitle,
+          routineId: widget.routineId, // Pass routine context
+          dayName: widget.dayName, // Pass day context
         ),
       ),
     );
@@ -544,6 +553,16 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
+        
+        // If this was a routine exercise, notify parent to refresh
+        if (widget.routineId != null) {
+          // Small delay to ensure snackbar shows, then return to parent
+          Future.delayed(const Duration(milliseconds: 1500), () {
+            if (mounted) {
+              Navigator.pop(context, true); // Return true to indicate exercise was logged
+            }
+          });
+        }
       }
     }
   }

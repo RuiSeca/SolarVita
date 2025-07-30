@@ -3,17 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
-import '../../services/routine_service.dart';
+import '../../providers/routine_providers.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'routine_detail_screen.dart';
 import 'routine_creation_screen.dart';
-
-final routineServiceProvider = Provider<RoutineService>((ref) => RoutineService());
-
-final routineManagerProvider = FutureProvider<RoutineManager>((ref) async {
-  final service = ref.watch(routineServiceProvider);
-  return await service.loadRoutineManager();
-});
 
 class RoutineMainScreen extends ConsumerStatefulWidget {
   const RoutineMainScreen({super.key});

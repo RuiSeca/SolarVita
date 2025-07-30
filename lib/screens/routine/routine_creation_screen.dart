@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
-import 'routine_main_screen.dart';
+import '../../providers/routine_providers.dart';
 
 class RoutineCreationScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine? template;

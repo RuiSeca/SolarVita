@@ -4,10 +4,10 @@ import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
 import '../../providers/riverpod/exercise_provider.dart';
+import '../../providers/routine_providers.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/exercise_image.dart';
-import 'routine_main_screen.dart';
 
 class ExerciseSelectionScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;

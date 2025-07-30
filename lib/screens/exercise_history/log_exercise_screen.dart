@@ -1,6 +1,7 @@
 // lib/screens/exercise_history/log_exercise_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/exercise_log.dart';
 import '../../models/personal_record.dart';
@@ -8,10 +9,11 @@ import '../../services/exercise_tracking_service.dart';
 import '../../services/exercise_routine_sync_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
+import '../../providers/routine_providers.dart';
 import '../search/workout_detail/models/workout_item.dart';
 import '../search/search_screen.dart';
 
-class LogExerciseScreen extends StatefulWidget {
+class LogExerciseScreen extends ConsumerStatefulWidget {
   final String? exerciseId; // Optional - if coming from a specific exercise
   final String? initialExerciseName; // Add this parameter to fix the error
   final ExerciseLog? existingLog; // Optional - if editing an existing log
@@ -28,10 +30,10 @@ class LogExerciseScreen extends StatefulWidget {
   });
 
   @override
-  State<LogExerciseScreen> createState() => _LogExerciseScreenState();
+  ConsumerState<LogExerciseScreen> createState() => _LogExerciseScreenState();
 }
 
-class _LogExerciseScreenState extends State<LogExerciseScreen> {
+class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
   final ExerciseTrackingService _trackingService = ExerciseTrackingService();
   final ExerciseRoutineSyncService _syncService = ExerciseRoutineSyncService();
   final _formKey = GlobalKey<FormState>();
@@ -172,7 +174,8 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
 
         // Apply last log data
         for (int i = 0; i < lastSets.length; i++) {
-          final setData = lastSets[i];
+          final setData = lastSets[i] as Map<String, dynamic>;
+          
           _sets.add(ExerciseSet(
             setNumber: i + 1,
             weight: setData['weight']?.toDouble() ?? 0.0,
@@ -389,7 +392,29 @@ class _LogExerciseScreenState extends State<LogExerciseScreen> {
 
     if (mounted) {
       if (success) {
-        Navigator.pop(context, true); // Return true to refresh parent screen
+        // Force immediate state updates before navigation
+        if (widget.routineId != null) {
+          // Clear cache first to ensure fresh data
+          final syncService = ref.read(exerciseRoutineSyncServiceProvider);
+          syncService.clearProgressCache(widget.routineId!);
+          
+          // Invalidate all related providers
+          ref.invalidate(weeklyProgressProvider(widget.routineId!));
+          ref.invalidate(routineStatsProvider(widget.routineId!));
+          ref.invalidate(routineManagerProvider);
+          
+          // Force immediate refresh and wait for completion
+          ref.refresh(weeklyProgressProvider(widget.routineId!));
+          ref.refresh(routineStatsProvider(widget.routineId!));
+          ref.refresh(routineManagerProvider);
+        }
+        
+        // Small delay to ensure all state updates are processed
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            Navigator.pop(context, true); // Return true to refresh parent screen
+          }
+        });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

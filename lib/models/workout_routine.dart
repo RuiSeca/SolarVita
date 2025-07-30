@@ -161,11 +161,65 @@ class WorkoutRoutine {
   int get totalWeeklyMinutes {
     return weeklyPlan.fold(0, (sum, day) {
       return sum + day.exercises.fold(0, (daySum, exercise) {
-        // Parse duration string like "30 min" to int
-        final durationText = exercise.duration.replaceAll(RegExp(r'[^\d]'), '');
-        return daySum + (int.tryParse(durationText) ?? 0);
+        return daySum + _parseDurationToMinutes(exercise.duration);
       });
     });
+  }
+  
+  int _parseDurationToMinutes(String duration) {
+    // Handle different duration formats: "30s", "2m", "90", "1:30", "1.5m", "60-90"
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // Handle ranges like "60-90" or "60-90s" - use the lowest value
+    if (lowerDuration.contains('-')) {
+      final parts = lowerDuration.split('-');
+      if (parts.length == 2) {
+        final firstPart = parts[0].trim();
+        // Use the first (lowest) value from the range
+        return _parseSingleDuration(firstPart);
+      }
+    }
+    
+    return _parseSingleDuration(lowerDuration);
+  }
+  
+  int _parseSingleDuration(String duration) {
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // If it contains 's' (seconds)
+    if (lowerDuration.contains('s')) {
+      final seconds = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+      return (seconds / 60).ceil(); // Convert seconds to minutes (round up)
+    }
+    
+    // If it contains 'm' (minutes)
+    if (lowerDuration.contains('m')) {
+      final minutes = double.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+      return minutes.round();
+    }
+    
+    // If it contains ':' (mm:ss format)
+    if (lowerDuration.contains(':')) {
+      final parts = lowerDuration.split(':');
+      if (parts.length == 2) {
+        final minutes = int.tryParse(parts[0]) ?? 0;
+        final seconds = int.tryParse(parts[1]) ?? 0;
+        return minutes + (seconds / 60).ceil();
+      }
+    }
+    
+    // Default: assume it's seconds if just a number
+    final number = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), ''));
+    if (number != null) {
+      // If the number is > 10, assume it's seconds, otherwise minutes
+      if (number > 10) {
+        return (number / 60).ceil(); // Convert seconds to minutes
+      } else {
+        return number; // Assume minutes
+      }
+    }
+    
+    return 0;
   }
 
   Map<String, dynamic> toJson() {

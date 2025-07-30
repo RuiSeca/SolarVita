@@ -15,6 +15,10 @@ class ExerciseRoutineSyncService {
   final Uuid _uuid = Uuid();
   final ExerciseTrackingService _exerciseService = ExerciseTrackingService();
   final RoutineService _routineService = RoutineService();
+  
+  // In-memory cache for faster access
+  final Map<String, WeeklyProgress> _weeklyProgressCache = {};
+  final Map<String, Map<String, dynamic>> _routineStatsCache = {};
 
   factory ExerciseRoutineSyncService() {
     return _instance;
@@ -25,6 +29,7 @@ class ExerciseRoutineSyncService {
   // Keys for SharedPreferences
   static const String _weeklyProgressKey = 'weekly_progress';
   static const String _personalRecordsKey = 'personal_records_enhanced';
+  static const String _exerciseHistoryKey = 'exercise_history_for_firestore';
 
   // 🔄 Main sync function: Log exercise to routine
   Future<bool> logExerciseToRoutine({
@@ -68,6 +73,9 @@ class ExerciseRoutineSyncService {
       if (routineId != null) {
         await _updateWeeklyProgress(routineId, exerciseId, dayName ?? _getCurrentDayName(), weekOfYear);
       }
+      
+      // Save to exercise history for Firestore migration
+      await _saveExerciseHistory(log);
 
       return true;
     } catch (e) {
@@ -80,18 +88,33 @@ class ExerciseRoutineSyncService {
   Future<WeeklyProgress?> getWeeklyProgress(String routineId, {int? weekOfYear}) async {
     try {
       final targetWeek = weekOfYear ?? _calculateWeekOfYear(DateTime.now());
+      final cacheKey = '${routineId}_$targetWeek';
+      
+      // Check in-memory cache first
+      if (_weeklyProgressCache.containsKey(cacheKey)) {
+        return _weeklyProgressCache[cacheKey];
+      }
+      
       final prefs = await SharedPreferences.getInstance();
       final progressData = prefs.getStringList(_weeklyProgressKey) ?? [];
       
       for (final data in progressData) {
         final progress = WeeklyProgress.fromJson(jsonDecode(data));
         if (progress.routineId == routineId && progress.weekOfYear == targetWeek) {
+          // Cache the result immediately for fast UI response
+          _weeklyProgressCache[cacheKey] = progress;
+          
+          // Sync in background without blocking UI (fire and forget)
+          _syncInBackground(routineId, targetWeek, cacheKey);
+          
           return progress;
         }
       }
       
       // Create new weekly progress if not found
-      return await _createWeeklyProgress(routineId, targetWeek);
+      final newProgress = await _createWeeklyProgress(routineId, targetWeek);
+      _weeklyProgressCache[cacheKey] = newProgress;
+      return newProgress;
     } catch (e) {
       _log.severe('Error getting weekly progress: $e');
       return null;
@@ -122,7 +145,7 @@ class ExerciseRoutineSyncService {
 
       return {
         'lastLog': {
-          'sets': recentLog.sets,
+          'sets': recentLog.sets.map((set) => set.toJson()).toList(),
           'notes': recentLog.notes,
           'date': recentLog.date.toIso8601String(),
           'wasThisWeek': recentLog.isCurrentWeek,
@@ -189,22 +212,36 @@ class ExerciseRoutineSyncService {
   // 🎯 Get completion statistics for routine
   Future<Map<String, dynamic>> getRoutineCompletionStats(String routineId, {int? weekOfYear}) async {
     try {
+      // Check cache first for faster response
+      if (_routineStatsCache.containsKey(routineId)) {
+        return _routineStatsCache[routineId]!;
+      }
+      
       final progress = await getWeeklyProgress(routineId, weekOfYear: weekOfYear);
       if (progress == null) {
-        return {
+        final stats = {
           'completionPercentage': 0.0,
           'totalExercisesCompleted': 0,
           'totalPlannedExercises': 0,
-          'currentStreak': 0,
+          'currentStreak': await _calculateCurrentStreak(routineId),
           'isWeekCompleted': false,
         };
+        _routineStatsCache[routineId] = stats;
+        return stats;
       }
 
-      return {
-        'completionPercentage': progress.completionPercentage,
-        'totalExercisesCompleted': progress.totalExercisesCompleted,
-        'totalPlannedExercises': progress.totalPlannedExercises,
-        'currentStreak': progress.currentStreak,
+      // Calculate exercise-based completion percentage (not day-based)
+      final totalPlanned = progress.totalPlannedExercises;
+      final totalCompleted = progress.totalExercisesCompleted;
+      final exerciseCompletionPercentage = totalPlanned > 0 
+          ? (totalCompleted / totalPlanned) * 100 
+          : 0.0;
+
+      final stats = {
+        'completionPercentage': exerciseCompletionPercentage,
+        'totalExercisesCompleted': totalCompleted,
+        'totalPlannedExercises': totalPlanned,
+        'currentStreak': await _calculateCurrentStreak(routineId),
         'isWeekCompleted': progress.isWeekCompleted,
         'dailyBreakdown': progress.dailyProgress.map((day, progress) => 
             MapEntry(day, {
@@ -216,9 +253,80 @@ class ExerciseRoutineSyncService {
             })
         ),
       };
+      
+      // Cache the results for faster subsequent access
+      _routineStatsCache[routineId] = stats;
+      return stats;
     } catch (e) {
       _log.severe('Error getting completion stats: $e');
       return {};
+    }
+  }
+  
+  // 🔥 Calculate current workout streak
+  Future<int> _calculateCurrentStreak(String routineId) async {
+    try {
+      final allLogs = await _exerciseService.getAllLogs();
+      final routineLogs = allLogs
+          .where((log) => log.routineId == routineId)
+          .toList()
+        ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date descending
+      
+      if (routineLogs.isEmpty) return 0;
+      
+      int streak = 0;
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      // Group logs by day
+      final logsByDay = <DateTime, List<ExerciseLog>>{};
+      for (final log in routineLogs) {
+        final logDay = DateTime(log.date.year, log.date.month, log.date.day);
+        logsByDay[logDay] = (logsByDay[logDay] ?? [])..add(log);
+      }
+      
+      // Get sorted workout days (most recent first)
+      final workoutDays = logsByDay.keys.toList()
+        ..sort((a, b) => b.compareTo(a));
+      
+      if (workoutDays.isEmpty) return 0;
+      
+      // Check if streak is broken (no workout today and more than 24 hours since last workout)
+      final mostRecentWorkout = workoutDays.first;
+      final hoursSinceLastWorkout = today.difference(mostRecentWorkout).inHours;
+      
+      // If more than 48 hours since last workout, streak is broken
+      if (hoursSinceLastWorkout > 48) return 0;
+      
+      // If last workout was today, start counting streak
+      if (mostRecentWorkout == today) {
+        streak = 1;
+      } else if (hoursSinceLastWorkout <= 24) {
+        // If within 24 hours, count it
+        streak = 1;
+      } else {
+        return 0; // Streak broken
+      }
+      
+      // Count consecutive days going backwards
+      for (int i = 1; i < workoutDays.length; i++) {
+        final currentDay = workoutDays[i];
+        final previousDay = workoutDays[i - 1];
+        
+        // Check if days are consecutive (within 1-2 days to account for rest days)
+        final daysBetween = previousDay.difference(currentDay).inDays;
+        
+        if (daysBetween <= 2 && daysBetween >= 1) {
+          streak++;
+        } else {
+          break; // Streak broken
+        }
+      }
+      
+      return streak;
+    } catch (e) {
+      _log.severe('Error calculating streak: $e');
+      return 0;
     }
   }
 
@@ -277,7 +385,13 @@ class ExerciseRoutineSyncService {
         updatedDailyProgress[dayName] = updatedDayProgress;
         
         progress = progress.copyWith(dailyProgress: updatedDailyProgress);
-        await _saveWeeklyProgress(progress);
+        
+        // Update cache immediately for instant UI response
+        final cacheKey = '${routineId}_$weekOfYear';
+        _weeklyProgressCache[cacheKey] = progress;
+        
+        // Save to persistent storage (async - doesn't block UI)
+        _saveWeeklyProgress(progress);
       }
     } catch (e) {
       _log.severe('Error updating weekly progress: $e');
@@ -411,5 +525,188 @@ class ExerciseRoutineSyncService {
     final firstDayOfYear = DateTime(date.year, 1, 1);
     final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
     return ((daysSinceFirstDay + firstDayOfYear.weekday - 1) / 7).ceil();
+  }
+  
+  // 💾 Save exercise history for Firestore migration
+  Future<void> _saveExerciseHistory(ExerciseLog log) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var historyData = prefs.getStringList(_exerciseHistoryKey) ?? [];
+      
+      // Create history entry with additional metadata for Firestore
+      final historyEntry = {
+        'id': log.id,
+        'exerciseId': log.exerciseId,
+        'exerciseName': log.exerciseName,
+        'date': log.date.toIso8601String(),
+        'sets': log.sets.map((set) => set.toJson()).toList(),
+        'notes': log.notes,
+        'routineId': log.routineId,
+        'dayName': log.dayName,
+        'weekOfYear': log.weekOfYear,
+        'isPersonalRecord': log.isPersonalRecord,
+        'totalVolume': log.totalVolume,
+        'maxWeight': log.maxWeight,
+        'maxReps': log.maxReps,
+        'maxDuration': log.maxDuration?.inSeconds,
+        'maxDistance': log.maxDistance,
+        'createdAt': DateTime.now().toIso8601String(),
+        'syncedToFirestore': false, // Flag for Firestore migration
+      };
+      
+      // Add to history
+      historyData.add(jsonEncode(historyEntry));
+      
+      // Keep only last 1000 entries to prevent storage bloat
+      if (historyData.length > 1000) {
+        historyData = historyData.sublist(historyData.length - 1000);
+      }
+      
+      await prefs.setStringList(_exerciseHistoryKey, historyData);
+      _log.info('Exercise history saved for Firestore migration: ${log.exerciseName}');
+    } catch (e) {
+      _log.severe('Error saving exercise history: $e');
+    }
+  }
+  
+  // 📋 Get exercise history for Firestore migration
+  Future<List<Map<String, dynamic>>> getExerciseHistoryForMigration() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyData = prefs.getStringList(_exerciseHistoryKey) ?? [];
+      
+      return historyData
+          .map((data) => jsonDecode(data) as Map<String, dynamic>)
+          .where((entry) => entry['syncedToFirestore'] != true)
+          .toList();
+    } catch (e) {
+      _log.severe('Error getting exercise history for migration: $e');
+      return [];
+    }
+  }
+  
+  // ✅ Mark exercise history as synced to Firestore
+  Future<void> markHistoryAsSynced(List<String> historyIds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var historyData = prefs.getStringList(_exerciseHistoryKey) ?? [];
+      
+      // Update synced status
+      historyData = historyData.map((data) {
+        final entry = jsonDecode(data) as Map<String, dynamic>;
+        if (historyIds.contains(entry['id'])) {
+          entry['syncedToFirestore'] = true;
+        }
+        return jsonEncode(entry);
+      }).toList();
+      
+      await prefs.setStringList(_exerciseHistoryKey, historyData);
+      _log.info('Marked ${historyIds.length} history entries as synced to Firestore');
+    } catch (e) {
+      _log.severe('Error marking history as synced: $e');
+    }
+  }
+  
+  // 🧹 Cache management methods
+  void clearCache() {
+    _weeklyProgressCache.clear();
+    _routineStatsCache.clear();
+  }
+  
+  void clearProgressCache(String routineId, {int? weekOfYear}) {
+    final targetWeek = weekOfYear ?? _calculateWeekOfYear(DateTime.now());
+    final cacheKey = '${routineId}_$targetWeek';
+    _weeklyProgressCache.remove(cacheKey);
+    _routineStatsCache.remove(routineId);
+  }
+  
+  // 🚀 Background sync to avoid blocking UI
+  void _syncInBackground(String routineId, int targetWeek, String cacheKey) {
+    // Run sync in background without awaiting
+    Future.microtask(() async {
+      try {
+        await syncPlannedExercisesWithRoutine(routineId, weekOfYear: targetWeek);
+      } catch (e) {
+        // Silently handle errors in background sync
+        _log.warning('Background sync failed for routine $routineId: $e');
+      }
+    });
+  }
+
+  // 🔄 Sync planned exercises count with current routine structure
+  Future<void> syncPlannedExercisesWithRoutine(String routineId, {int? weekOfYear}) async {
+    try {
+      final targetWeek = weekOfYear ?? _calculateWeekOfYear(DateTime.now());
+      
+      // Get progress directly without triggering sync (to avoid circular calls)
+      final prefs = await SharedPreferences.getInstance();
+      final progressData = prefs.getStringList(_weeklyProgressKey) ?? [];
+      
+      WeeklyProgress? progress;
+      for (final data in progressData) {
+        final candidate = WeeklyProgress.fromJson(jsonDecode(data));
+        if (candidate.routineId == routineId && candidate.weekOfYear == targetWeek) {
+          progress = candidate;
+          break;
+        }
+      }
+      
+      if (progress == null) return;
+      
+      // Get current routine structure
+      final manager = await _routineService.loadRoutineManager();
+      final routine = manager.routines.firstWhere((r) => r.id == routineId);
+      
+      // Quick check: if routine has same number of total exercises, likely no sync needed
+      final currentTotalExercises = routine.weeklyPlan.fold(0, (sum, day) => sum + day.exercises.length);
+      final cachedTotalExercises = progress.dailyProgress.values.fold(0, (sum, day) => sum + day.plannedExercises);
+      
+      if (currentTotalExercises == cachedTotalExercises) {
+        // Likely no changes, skip detailed check for performance
+        return;
+      }
+      
+      // Check if any day's planned exercises count has changed
+      bool needsUpdate = false;
+      final updatedDailyProgress = <String, DayProgress>{};
+      
+      for (final day in routine.weeklyPlan) {
+        final existingDayProgress = progress.dailyProgress[day.dayName];
+        if (existingDayProgress != null) {
+          final currentPlannedCount = day.exercises.length;
+          if (existingDayProgress.plannedExercises != currentPlannedCount) {
+            // Update planned exercises count while preserving completed exercises
+            updatedDailyProgress[day.dayName] = existingDayProgress.copyWith(
+              plannedExercises: currentPlannedCount,
+            );
+            needsUpdate = true;
+          } else {
+            updatedDailyProgress[day.dayName] = existingDayProgress;
+          }
+        } else {
+          // Create new day progress if it doesn't exist
+          updatedDailyProgress[day.dayName] = DayProgress(
+            dayName: day.dayName,
+            plannedExercises: day.exercises.length,
+            completedExerciseIds: [],
+            isRestDay: day.isRestDay,
+          );
+          needsUpdate = true;
+        }
+      }
+      
+      if (needsUpdate) {
+        final updatedProgress = progress.copyWith(dailyProgress: updatedDailyProgress);
+        await _saveWeeklyProgress(updatedProgress);
+        
+        // Update cache immediately
+        final cacheKey = '${routineId}_$targetWeek';
+        _weeklyProgressCache[cacheKey] = updatedProgress;
+        
+        _log.info('Synced planned exercises count for routine: $routineId');
+      }
+    } catch (e) {
+      _log.severe('Error syncing planned exercises with routine: $e');
+    }
   }
 }

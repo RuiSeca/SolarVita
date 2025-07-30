@@ -229,5 +229,20 @@
     "save_log": "Guardar Registro",
     "error_saving_log": "Error guardando registro",
     "week_total": "Total Semanal",
-    "total": "Total"
+    "daily_progress": "Progreso Diario",
+    "day_total": "Total del Día",
+    "completed_exercises": "Completados",
+    "remaining_exercises": "Restantes",
+    "total": "Total",
+    "one_comment": "1 comentario",
+    "comments_count": "{count} comentarios",
+    "edit_comment_hint": "Edita tu comentario...",
+    "failed_load_replies": "Error al cargar respuestas: {error}",
+    "comment_posted_success": "¡Comentario publicado exitosamente!",
+    "failed_post_comment": "Error al publicar comentario: {error}",
+    "reply_to_user": "Responder a {username}...",
+    "replying_to_user": "Respondiendo a {username}",
+    "failed_update_comment": "Error al actualizar comentario: {error}",
+    "failed_delete_comment": "Error al eliminar comentario: {error}",
+    "failed_update_pin": "Error al actualizar estado de fijado: {error}"
 }

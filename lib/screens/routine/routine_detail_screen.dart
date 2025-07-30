@@ -3,16 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
-import '../../services/exercise_routine_sync_service.dart';
+import '../../providers/routine_providers.dart';
 import 'day_workout_screen.dart';
-import 'routine_main_screen.dart';
-
-final routineSyncServiceProvider = Provider<ExerciseRoutineSyncService>((ref) => ExerciseRoutineSyncService());
-
-final routineStatsProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, routineId) async {
-  final service = ref.watch(routineSyncServiceProvider);
-  return await service.getRoutineCompletionStats(routineId);
-});
 
 class RoutineDetailScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;
@@ -242,7 +234,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                     Expanded(
                       child: _buildProgressItem(
                         tr(context, 'remaining'),
-                        '${(stats['totalPlannedExercises'] ?? 0) - (stats['totalExercisesCompleted'] ?? 0)}',
+                        '${((stats['totalPlannedExercises'] ?? 0) - (stats['totalExercisesCompleted'] ?? 0)).clamp(0, double.infinity).toInt()}',
                         Icons.schedule,
                         Colors.orange,
                       ),
@@ -658,10 +650,65 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   String _getTotalDayDuration(DailyWorkout day) {
     int totalMinutes = 0;
     for (final exercise in day.exercises) {
-      final durationText = exercise.duration.replaceAll(RegExp(r'[^\d]'), '');
-      totalMinutes += int.tryParse(durationText) ?? 0;
+      totalMinutes += _parseDurationToMinutes(exercise.duration);
     }
     return '${totalMinutes}min';
+  }
+  
+  int _parseDurationToMinutes(String duration) {
+    // Handle different duration formats: "30s", "2m", "90", "1:30", "1.5m", "60-90"
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // Handle ranges like "60-90" or "60-90s" - use the lowest value
+    if (lowerDuration.contains('-')) {
+      final parts = lowerDuration.split('-');
+      if (parts.length == 2) {
+        final firstPart = parts[0].trim();
+        // Use the first (lowest) value from the range
+        return _parseSingleDuration(firstPart);
+      }
+    }
+    
+    return _parseSingleDuration(lowerDuration);
+  }
+  
+  int _parseSingleDuration(String duration) {
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // If it contains 's' (seconds)
+    if (lowerDuration.contains('s')) {
+      final seconds = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+      return (seconds / 60).ceil(); // Convert seconds to minutes (round up)
+    }
+    
+    // If it contains 'm' (minutes)
+    if (lowerDuration.contains('m')) {
+      final minutes = double.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+      return minutes.round();
+    }
+    
+    // If it contains ':' (mm:ss format)
+    if (lowerDuration.contains(':')) {
+      final parts = lowerDuration.split(':');
+      if (parts.length == 2) {
+        final minutes = int.tryParse(parts[0]) ?? 0;
+        final seconds = int.tryParse(parts[1]) ?? 0;
+        return minutes + (seconds / 60).ceil();
+      }
+    }
+    
+    // Default: assume it's seconds if just a number
+    final number = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), ''));
+    if (number != null) {
+      // If the number is > 10, assume it's seconds, otherwise minutes
+      if (number > 10) {
+        return (number / 60).ceil(); // Convert seconds to minutes
+      } else {
+        return number; // Assume minutes
+      }
+    }
+    
+    return 0;
   }
 
   void _navigateToDayWorkout(DailyWorkout day) async {
@@ -679,6 +726,22 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       setState(() {
         _currentRoutine = result;
       });
+    }
+    
+    // Always refresh providers when returning from day workout screen
+    // This ensures stats and progress are updated if exercises were logged or rest day changes made
+    if (mounted) {
+      ref.invalidate(routineStatsProvider(_currentRoutine.id));
+      ref.invalidate(routineManagerProvider);
+      ref.refresh(routineStatsProvider(_currentRoutine.id));
+      ref.refresh(routineManagerProvider);
+      
+      // Also reload the current routine from the updated manager
+      _reloadCurrentRoutine();
+      
+      // Trigger background sync of planned exercises (in case exercises were added/removed)
+      final syncService = ref.read(exerciseRoutineSyncServiceProvider);
+      syncService.syncPlannedExercisesWithRoutine(_currentRoutine.id);
     }
   }
 
@@ -920,6 +983,25 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
           ),
         );
       }
+    }
+  }
+
+  // Reload current routine from the updated routine manager
+  void _reloadCurrentRoutine() async {
+    try {
+      final routineManager = await ref.read(routineManagerProvider.future);
+      final updatedRoutine = routineManager.routines.firstWhere(
+        (r) => r.id == _currentRoutine.id,
+        orElse: () => _currentRoutine, // Fallback to current if not found
+      );
+      
+      if (mounted) {
+        setState(() {
+          _currentRoutine = updatedRoutine;
+        });
+      }
+    } catch (e) {
+      // Handle error silently, keep current routine
     }
   }
 }

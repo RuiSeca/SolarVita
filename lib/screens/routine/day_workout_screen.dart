@@ -7,16 +7,8 @@ import '../../models/weekly_progress.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 import '../../screens/search/workout_detail/workout_detail_screen.dart';
 import '../../widgets/common/exercise_image.dart';
-import '../../services/exercise_routine_sync_service.dart';
+import '../../providers/routine_providers.dart';
 import 'exercise_selection_screen.dart';
-import 'routine_main_screen.dart';
-
-final exerciseRoutineSyncServiceProvider = Provider<ExerciseRoutineSyncService>((ref) => ExerciseRoutineSyncService());
-
-final weeklyProgressProvider = FutureProvider.family<WeeklyProgress?, String>((ref, routineId) async {
-  final service = ref.watch(exerciseRoutineSyncServiceProvider);
-  return await service.getWeeklyProgress(routineId);
-});
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;
@@ -263,7 +255,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           ],
           _buildWorkoutSummary(),
           const SizedBox(height: 24),
-          _buildExercisesList(),
+          _buildExercisesList(_weeklyProgress),
           const SizedBox(height: 80), // Space for FAB
         ],
       ),
@@ -445,7 +437,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  Widget _buildExercisesList() {
+  Widget _buildExercisesList(WeeklyProgress? weeklyProgress) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -465,15 +457,15 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           onReorder: _reorderExercises,
           itemBuilder: (context, index) {
             final exercise = _currentDay.exercises[index];
-            return _buildExerciseCard(exercise, index, key: ValueKey(exercise.title + index.toString()));
+            return _buildExerciseCard(exercise, index, weeklyProgress, key: ValueKey(exercise.title + index.toString()));
           },
         ),
       ],
     );
   }
 
-  Widget _buildExerciseCard(WorkoutItem exercise, int index, {required Key key}) {
-    final isCompleted = _isExerciseCompleted(exercise.title);
+  Widget _buildExerciseCard(WorkoutItem exercise, int index, WeeklyProgress? weeklyProgress, {required Key key}) {
+    final isCompleted = _isExerciseCompletedFromProgress(exercise.title, weeklyProgress);
     
     return Container(
       key: key,
@@ -626,19 +618,96 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   int _getTotalDuration() {
     int totalMinutes = 0;
     for (final exercise in _currentDay.exercises) {
-      final durationText = exercise.duration.replaceAll(RegExp(r'[^\d]'), '');
-      totalMinutes += int.tryParse(durationText) ?? 0;
+      totalMinutes += _parseDurationToMinutes(exercise.duration);
     }
     return totalMinutes;
+  }
+  
+  int _parseDurationToMinutes(String duration) {
+    // Handle different duration formats: "30s", "2m", "90", "1:30", "1.5m", "60-90"
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // Handle ranges like "60-90" or "60-90s" - use the lowest value
+    if (lowerDuration.contains('-')) {
+      final parts = lowerDuration.split('-');
+      if (parts.length == 2) {
+        final firstPart = parts[0].trim();
+        // Use the first (lowest) value from the range
+        return _parseSingleDuration(firstPart);
+      }
+    }
+    
+    return _parseSingleDuration(lowerDuration);
+  }
+  
+  int _parseSingleDuration(String duration) {
+    final lowerDuration = duration.toLowerCase().trim();
+    
+    // If it contains 's' (seconds)
+    if (lowerDuration.contains('s')) {
+      final seconds = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+      return (seconds / 60).ceil(); // Convert seconds to minutes (round up)
+    }
+    
+    // If it contains 'm' (minutes)
+    if (lowerDuration.contains('m')) {
+      final minutes = double.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+      return minutes.round();
+    }
+    
+    // If it contains ':' (mm:ss format)
+    if (lowerDuration.contains(':')) {
+      final parts = lowerDuration.split(':');
+      if (parts.length == 2) {
+        final minutes = int.tryParse(parts[0]) ?? 0;
+        final seconds = int.tryParse(parts[1]) ?? 0;
+        return minutes + (seconds / 60).ceil();
+      }
+    }
+    
+    // Default: assume it's seconds if just a number
+    final number = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), ''));
+    if (number != null) {
+      // If the number is > 10, assume it's seconds, otherwise minutes
+      if (number > 10) {
+        return (number / 60).ceil(); // Convert seconds to minutes
+      } else {
+        return number; // Assume minutes
+      }
+    }
+    
+    return 0;
   }
 
   String _getTotalCalories() {
     int totalCalories = 0;
     for (final exercise in _currentDay.exercises) {
-      final caloriesText = exercise.caloriesBurn.replaceAll(RegExp(r'[^\d]'), '');
-      totalCalories += int.tryParse(caloriesText) ?? 0;
+      totalCalories += _parseCalories(exercise.caloriesBurn);
     }
     return '${totalCalories}cal';
+  }
+  
+  int _parseCalories(String caloriesStr) {
+    // Handle different calorie formats: "150 cal", "150cal", "150", "150-200 cal"
+    final lowerCalories = caloriesStr.toLowerCase().trim();
+    
+    // Handle range formats like "150-200 cal" - take the average
+    if (lowerCalories.contains('-')) {
+      final parts = lowerCalories.split('-');
+      if (parts.length == 2) {
+        final firstNum = int.tryParse(parts[0].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+        final secondNum = int.tryParse(parts[1].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+        return ((firstNum + secondNum) / 2).round();
+      }
+    }
+    
+    // Extract first number from the string
+    final match = RegExp(r'\d+').firstMatch(lowerCalories);
+    if (match != null) {
+      return int.tryParse(match.group(0)!) ?? 0;
+    }
+    
+    return 0;
   }
 
   void _reorderExercises(int oldIndex, int newIndex) async {
@@ -720,11 +789,15 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _currentRoutine = result;
         _currentDay = result.getDayWorkout(_currentDay.dayName);
       });
+      
+      // Trigger sync immediately when exercises are added to update planned count
+      final syncService = ref.read(exerciseRoutineSyncServiceProvider);
+      syncService.syncPlannedExercisesWithRoutine(_currentRoutine.id);
     }
   }
 
-  void _navigateToExerciseDetail(WorkoutItem exercise) {
-    Navigator.push(
+  void _navigateToExerciseDetail(WorkoutItem exercise) async {
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => WorkoutDetailScreen(
@@ -736,9 +809,33 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           description: exercise.description,
           rating: exercise.rating,
           caloriesBurn: exercise.caloriesBurn,
+          // Pass routine context for proper exercise completion tracking
+          routineId: _currentRoutine.id,
+          dayName: _currentDay.dayName,
         ),
       ),
     );
+    
+    // Refresh the screen when returning from exercise detail
+    // This ensures exercise completion status is updated immediately
+    if (mounted) {
+      // Force provider refresh to get latest data
+      ref.invalidate(weeklyProgressProvider(_currentRoutine.id));  
+      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
+      
+      // If an exercise was logged, show additional feedback
+      if (result == true) {
+        // Extra refresh to ensure immediate updates
+        Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) {
+            ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
+            setState(() {});
+          }
+        });
+      } else {
+        setState(() {});
+      }
+    }
   }
 
   void _removeExercise(int index) async {
@@ -761,6 +858,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
         _isLoading = false;
       });
+
+      // Trigger sync immediately when exercises are removed to update planned count
+      final syncService = ref.read(exerciseRoutineSyncServiceProvider);
+      syncService.syncPlannedExercisesWithRoutine(_currentRoutine.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -804,6 +905,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
         _isLoading = false;
       });
+
+      // Invalidate providers to update parent screens immediately
+      ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
+      ref.invalidate(routineManagerProvider);
+      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
+      ref.refresh(routineManagerProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -878,6 +985,16 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _isLoading = false;
       });
 
+      // Trigger sync immediately when exercises are cleared to update planned count
+      final syncService = ref.read(exerciseRoutineSyncServiceProvider);
+      syncService.syncPlannedExercisesWithRoutine(_currentRoutine.id);
+
+      // Invalidate providers to update parent screens immediately
+      ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
+      ref.invalidate(routineManagerProvider);
+      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
+      ref.refresh(routineManagerProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -950,6 +1067,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           _isLoading = false;
         });
 
+        // Invalidate providers to update parent screens immediately
+        ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
+        ref.invalidate(routineManagerProvider);
+        ref.refresh(weeklyProgressProvider(_currentRoutine.id));
+        ref.refresh(routineManagerProvider);
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -973,17 +1096,49 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   }
 
   // Helper methods for completion tracking
-  bool _isExerciseCompleted(String exerciseTitle) {
-    if (_weeklyProgress == null) return false;
-    final dayProgress = _weeklyProgress!.dailyProgress[_currentDay.dayName];
+  bool _isExerciseCompletedFromProgress(String exerciseTitle, WeeklyProgress? weeklyProgress) {
+    if (weeklyProgress == null) return false;
+    final dayProgress = weeklyProgress.dailyProgress[_currentDay.dayName];
     return dayProgress?.isExerciseCompleted(exerciseTitle) ?? false;
   }
 
+  // Calculate completion percentage using current local state for instant updates
+  double _calculateCurrentCompletionPercentage(DayProgress dayProgress) {
+    if (_currentDay.isRestDay) return 100.0;
+    final currentPlannedCount = _currentDay.exercises.length;
+    if (currentPlannedCount == 0) return 0.0;
+    return (dayProgress.completedExercises / currentPlannedCount) * 100;
+  }
+
   Widget _buildWeeklyProgressSection() {
-    if (_weeklyProgress == null) return const SizedBox.shrink();
-    
-    final dayProgress = _weeklyProgress!.dailyProgress[_currentDay.dayName];
-    if (dayProgress == null) return const SizedBox.shrink();
+    return Consumer(
+      builder: (context, ref, child) {
+        final weeklyProgressAsync = ref.watch(weeklyProgressProvider(_currentRoutine.id));
+        
+        return weeklyProgressAsync.when(
+          loading: () => Container(
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppTheme.cardColor(context),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, stack) => const SizedBox.shrink(),
+          data: (weeklyProgress) {
+            if (weeklyProgress == null) return const SizedBox.shrink();
+            
+            final dayProgress = weeklyProgress.dailyProgress[_currentDay.dayName];
+            if (dayProgress == null) return const SizedBox.shrink();
+            
+            return _buildWeeklyProgressContent(weeklyProgress, dayProgress);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildWeeklyProgressContent(WeeklyProgress weeklyProgress, DayProgress dayProgress) {
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1001,7 +1156,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                tr(context, 'weekly_progress'),
+                tr(context, 'daily_progress'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 18,
@@ -1015,7 +1170,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
-                  '${_weeklyProgress!.completionPercentage.round()}%',
+                  '${_calculateCurrentCompletionPercentage(dayProgress).round()}%',
                   style: TextStyle(
                     color: AppTheme.primaryColor,
                     fontSize: 14,
@@ -1035,7 +1190,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(
-              widthFactor: _weeklyProgress!.completionPercentage / 100,
+              widthFactor: _calculateCurrentCompletionPercentage(dayProgress) / 100,
               child: Container(
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,
@@ -1046,33 +1201,39 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           ),
           const SizedBox(height: 16),
           
-          // Today's progress
+          // Daily progress breakdown
           Row(
             children: [
               Expanded(
                 child: _buildProgressItem(
-                  tr(context, 'today'),
-                  '${dayProgress.completedExercises}/${dayProgress.plannedExercises}',
-                  Icons.today,
-                  dayProgress.isCompleted ? AppTheme.primaryColor : Colors.orange,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildProgressItem(
-                  tr(context, 'week_total'),
-                  '${_weeklyProgress!.totalExercisesCompleted}/${_weeklyProgress!.totalPlannedExercises}',
-                  Icons.fitness_center,
+                  tr(context, 'completed_exercises'),
+                  '${dayProgress.completedExercises}',
+                  Icons.check_circle,
                   AppTheme.primaryColor,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildProgressItem(
-                  tr(context, 'streak'),
-                  '${_weeklyProgress!.currentStreak}',
-                  Icons.local_fire_department,
+                  tr(context, 'remaining_exercises'),
+                  '${(_currentDay.exercises.length - dayProgress.completedExercises).clamp(0, double.infinity)}',
+                  Icons.pending,
                   Colors.orange,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FutureBuilder<Map<String, dynamic>>(
+                  future: ref.read(exerciseRoutineSyncServiceProvider).getRoutineCompletionStats(_currentRoutine.id),
+                  builder: (context, snapshot) {
+                    final streak = snapshot.data?['currentStreak'] ?? 0;
+                    return _buildProgressItem(
+                      tr(context, 'streak'),
+                      '$streak',
+                      Icons.local_fire_department,
+                      Colors.orange,
+                    );
+                  },
                 ),
               ),
             ],
