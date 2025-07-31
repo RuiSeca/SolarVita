@@ -28,6 +28,7 @@ import 'screens/profile/profile_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
+import 'utils/translation_helper.dart';
 
 // Import Riverpod providers
 import 'providers/riverpod/theme_provider.dart';
@@ -339,21 +340,27 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         backgroundColor: AppTheme.navigationBackground(context),
         selectedItemColor: Theme.of(context).primaryColor,
         unselectedItemColor: Colors.grey,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Search'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.health_and_safety),
-            label: 'Health',
+            icon: const Icon(Icons.dashboard),
+            label: tr(context, 'nav_dashboard'),
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.assistant),
-            label: 'Solar AI',
+            icon: const Icon(Icons.search), 
+            label: tr(context, 'nav_search')
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.health_and_safety),
+            label: tr(context, 'nav_health'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.assistant),
+            label: tr(context, 'nav_solar_ai'),
+          ),
+          BottomNavigationBarItem(
+            icon: const Icon(Icons.person), 
+            label: tr(context, 'nav_profile')
+          ),
         ],
       ),
     );

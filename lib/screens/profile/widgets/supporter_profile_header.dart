@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../../../models/supporter.dart';
 import '../../../models/privacy_settings.dart';
 import '../../../models/user_progress.dart';
@@ -172,7 +173,7 @@ class SupporterProfileHeader extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    _getPublicLevelInfo(),
+                                    _getPublicLevelInfo(context),
                                     style: TextStyle(
                                       color: AppTheme.textColor(context).withAlpha(179),
                                       fontSize: 13,
@@ -208,7 +209,7 @@ class SupporterProfileHeader extends ConsumerWidget {
                               context,
                               Icons.people_outline,
                               (actualSupporterCount ?? supporter.supportersCount ?? 0).toString(),
-                              'Supporters',
+                              tr(context, 'supporters'),
                             ),
                           ),
                           _buildDivider(),
@@ -216,8 +217,8 @@ class SupporterProfileHeader extends ConsumerWidget {
                             child: _buildQuickStat(
                               context,
                               Icons.eco_outlined,
-                              _getEcoScoreDisplay(),
-                              'Eco Score',
+                              _getEcoScoreDisplay(context),
+                              tr(context, 'eco_score'),
                             ),
                           ),
                           _buildDivider(),
@@ -225,8 +226,8 @@ class SupporterProfileHeader extends ConsumerWidget {
                             child: _buildQuickStat(
                               context,
                               Icons.local_fire_department_outlined,
-                              _getStreakDisplay(),
-                              'Streak',
+                              _getStreakDisplay(context),
+                              tr(context, 'streak'),
                             ),
                           ),
                         ],
@@ -262,7 +263,7 @@ class SupporterProfileHeader extends ConsumerWidget {
         ),
       ),
       child: Text(
-        _getLevelTitle(),
+        _getLevelTitle(context),
         style: TextStyle(
           color: AppColors.primary,
           fontSize: 12,
@@ -310,30 +311,30 @@ class SupporterProfileHeader extends ConsumerWidget {
     );
   }
 
-  String _getLevelTitle() {
+  String _getLevelTitle(BuildContext context) {
     // Could be fetched from supporter data or privacy settings
-    return 'Eco Enthusiast'; // Default for now
+    return tr(context, 'eco_enthusiast'); // Default for now
   }
 
-  String _getPublicLevelInfo() {
+  String _getPublicLevelInfo(BuildContext context) {
     // Show level info based on privacy settings
     if (privacySettings?.showEcoScore == true) {
-      return 'Level 3 Eco Enthusiast';
+      return tr(context, 'level_3_eco_enthusiast');
     }
-    return 'Health Enthusiast';
+    return tr(context, 'health_enthusiast');
   }
 
-  String _getEcoScoreDisplay() {
+  String _getEcoScoreDisplay(BuildContext context) {
     if (privacySettings?.showEcoScore == true && supporter.ecoScore != null) {
       return supporter.ecoScore!;
     }
-    return 'Private';
+    return tr(context, 'private');
   }
 
-  String _getStreakDisplay() {
+  String _getStreakDisplay(BuildContext context) {
     if (privacySettings?.showWorkoutStats == true && supporterProgress != null) {
       return supporterProgress!.currentStrikes.toString();
     }
-    return 'Private';
+    return tr(context, 'private');
   }
 }

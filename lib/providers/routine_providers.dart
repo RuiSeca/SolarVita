@@ -4,10 +4,12 @@ import '../models/workout_routine.dart';
 import '../models/weekly_progress.dart';
 import '../services/routine_service.dart';
 import '../services/exercise_routine_sync_service.dart';
+import '../services/dynamic_duration_service.dart';
 
 // Service providers
 final routineServiceProvider = Provider<RoutineService>((ref) => RoutineService());
 final exerciseRoutineSyncServiceProvider = Provider<ExerciseRoutineSyncService>((ref) => ExerciseRoutineSyncService());
+final dynamicDurationServiceProvider = Provider<DynamicDurationService>((ref) => DynamicDurationService());
 
 // Routine manager provider
 final routineManagerProvider = FutureProvider<RoutineManager>((ref) async {

@@ -152,7 +152,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 children: [
                   Icon(Icons.celebration, color: Colors.white),
                   SizedBox(width: 8),
-                  Text('Daily water goal completed! 🎉'),
+                  Text(tr(context, 'daily_water_goal_completed')),
                 ],
               ),
               backgroundColor: Colors.green,
@@ -329,7 +329,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                     ],
                   ),
                   Text(
-                    'day streak',
+                    tr(context, 'day_streak'),
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 11,
@@ -367,7 +367,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               color: AppTheme.textColor(context).withValues(alpha: 0.7),
               size: 24,
             ),
-            tooltip: 'Setup Health Data',
+            tooltip: tr(context, 'setup_health_data'),
           );
         }
 
@@ -394,7 +394,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                   color: AppTheme.textColor(context).withValues(alpha: 0.7),
                   size: 24,
                 ),
-          tooltip: 'Sync Health Data',
+          tooltip: tr(context, 'sync_health_data'),
         );
       },
       loading: () => const SizedBox(
@@ -421,7 +421,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
           color: Colors.red,
           size: 24,
         ),
-        tooltip: 'Fix Health Data Setup',
+        tooltip: tr(context, 'fix_health_data_setup'),
       ),
     );
   }
@@ -454,7 +454,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Connect your health data for personalized insights',
+                    tr(context, 'connect_health_data_for_insights'),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontSize: 14,
@@ -475,7 +475,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                       ),
                     );
                   },
-                  child: const Text('Setup'),
+                  child: Text(tr(context, 'setup')),
                 ),
               ],
             ),
@@ -485,8 +485,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         return lastSyncAsync.when(
           data: (lastSync) {
             final syncText = lastSync != null
-                ? 'Last sync: ${_formatSyncTime(lastSync)}'
-                : 'Health data connected';
+                ? tr(context, 'last_sync').replaceAll('{time}', _formatSyncTime(context, lastSync))
+                : tr(context, 'health_data_connected');
             
             return Container(
               padding: const EdgeInsets.all(12),
@@ -547,7 +547,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Syncing health data...',
+                  tr(context, 'syncing_health_data'),
                   style: TextStyle(
                     color: AppTheme.textColor(context),
                     fontSize: 14,
@@ -576,7 +576,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Error syncing health data',
+                    tr(context, 'error_syncing_health_data'),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontSize: 14,
@@ -610,7 +610,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
             const SizedBox(width: 8),
             Text(
-              'Checking health data permissions...',
+              tr(context, 'checking_health_permissions'),
               style: TextStyle(
                 color: AppTheme.textColor(context),
                 fontSize: 14,
@@ -639,7 +639,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Health data setup error',
+                tr(context, 'health_data_setup_error'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 14,
@@ -652,18 +652,18 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     );
   }
 
-  String _formatSyncTime(DateTime syncTime) {
+  String _formatSyncTime(BuildContext context, DateTime syncTime) {
     final now = DateTime.now();
     final difference = now.difference(syncTime);
 
     if (difference.inMinutes < 1) {
-      return 'just now';
+      return tr(context, 'just_now');
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
+      return tr(context, 'minutes_ago').replaceAll('{minutes}', difference.inMinutes.toString());
     } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
+      return tr(context, 'hours_ago').replaceAll('{hours}', difference.inHours.toString());
     } else {
-      return '${difference.inDays}d ago';
+      return tr(context, 'days_ago').replaceAll('{days}', difference.inDays.toString());
     }
   }
 
@@ -698,8 +698,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 context,
                 Icons.directions_walk,
                 _formatNumber(healthData.steps),
-                'Steps',
-                'Daily walking goal',
+                tr(context, 'steps'),
+                tr(context, 'daily_walking_goal'),
                 stepsProgress,
                 Colors.blue,
                 'steps',
@@ -710,8 +710,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 context,
                 Icons.directions_run,
                 '${healthData.activeMinutes}min',
-                'Active Time',
-                'Eco-friendly workouts',
+                tr(context, 'active_time'),
+                tr(context, 'eco_friendly_workouts'),
                 activeProgress,
                 Colors.green,
                 'active',
@@ -722,8 +722,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 context,
                 Icons.local_fire_department,
                 _formatNumber(healthData.caloriesBurned),
-                'Calories Burned',
-                'Energy used today',
+                tr(context, 'calories_burned'),
+                tr(context, 'energy_used_today'),
                 caloriesProgress,
                 Colors.orange,
                 'calories',
@@ -736,8 +736,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 context,
                 Icons.bedtime,
                 '${healthData.sleepHours.toStringAsFixed(1)}h',
-                'Sleep Quality',
-                'Restful night tracking',
+                tr(context, 'sleep_quality'),
+                tr(context, 'restful_night_tracking'),
                 sleepProgress,
                 Colors.indigo,
                 'sleep',
@@ -748,8 +748,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 context,
                 Icons.favorite,
                 healthData.heartRate > 0 ? '${healthData.heartRate.toInt()} BPM' : 'N/A',
-                'Heart Rate',
-                'Cardiovascular health',
+                tr(context, 'heart_rate'),
+                tr(context, 'cardiovascular_health'),
                 heartRateProgress,
                 Colors.red,
                 'heart',
@@ -793,8 +793,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               context,
               Icons.directions_walk,
               '2,146',
-              'Steps',
-              'Daily walking goal',
+              tr(context, 'steps'),
+              tr(context, 'daily_walking_goal'),
               0.7,
               Colors.blue,
               'steps',
@@ -805,7 +805,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               context,
               Icons.directions_run,
               '45min',
-              'Active Time',
+              tr(context, 'active_time'),
               'Eco-friendly workouts',
               0.8,
               Colors.green,
@@ -817,8 +817,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               context,
               Icons.local_fire_department,
               '320',
-              'Calories Burned',
-              'Energy used today',
+              tr(context, 'calories_burned'),
+              tr(context, 'energy_used_today'),
               0.6,
               Colors.orange,
               'calories',
@@ -831,8 +831,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               context,
               Icons.bedtime,
               '7.2h',
-              'Sleep Quality',
-              'Restful night tracking',
+              tr(context, 'sleep_quality'),
+              tr(context, 'restful_night_tracking'),
               0.9,
               Colors.indigo,
               'sleep',
@@ -843,8 +843,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               context,
               Icons.favorite,
               '72 BPM',
-              'Heart Rate',
-              'Cardiovascular health',
+              tr(context, 'heart_rate'),
+              tr(context, 'cardiovascular_health'),
               0.85,
               Colors.red,
               'heart',
@@ -1169,7 +1169,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                       ),
                       const SizedBox(height: 1),
                       Text(
-                        'Water Intake',
+                        tr(context, 'water_intake'),
                         style: TextStyle(
                           color: AppTheme.textColor(context),
                           fontSize: 9,
@@ -1178,8 +1178,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                       ),
                       Text(
                         isGoalReached 
-                            ? 'Goal completed! Tap to manage water intake'
-                            : 'Tap to add 250ml • Goal: ${(waterDailyLimit * 1000).toInt()}ml',
+                            ? tr(context, 'goal_completed_tap_to_manage')
+                            : tr(context, 'tap_to_add_250ml').replaceAll('{goal}', (waterDailyLimit * 1000).toInt().toString()),
                         style: TextStyle(
                           color: AppTheme.textColor(context)
                               .withValues(alpha: 0.6),
@@ -1271,7 +1271,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Plan healthy, eco-friendly meals that fuel your fitness journey and support sustainable living.',
+                    tr(context, 'plan_healthy_eco_meals'),
                     style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 14,
@@ -1388,7 +1388,7 @@ class StatDetailPage extends ConsumerWidget {
           ),
         ),
         title: Text(
-          _getStatTitle(statType),
+          _getStatTitle(context, statType),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 20,
@@ -1450,7 +1450,7 @@ class StatDetailPage extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Flexible(
                         child: Text(
-                          _getStatSubtitle(statType),
+                          _getStatSubtitle(context, statType),
                           style: TextStyle(
                             color: AppTheme.textColor(context)
                                 .withValues(alpha: 0.7),
@@ -1474,20 +1474,20 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getStatTitle(String statType) {
+  String _getStatTitle(BuildContext context, String statType) {
     switch (statType) {
       case 'steps':
-        return 'Steps Tracking';
+        return tr(context, 'steps_tracking');
       case 'active':
-        return 'Active Time';
+        return tr(context, 'active_time');
       case 'calories':
-        return 'Calories Burned';
+        return tr(context, 'calories_burned');
       case 'sleep':
-        return 'Sleep Quality';
+        return tr(context, 'sleep_quality');
       case 'heart':
-        return 'Heart Rate';
+        return tr(context, 'heart_rate');
       default:
-        return 'Health Stats';
+        return tr(context, 'health_stats');
     }
   }
 
@@ -1531,20 +1531,20 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getStatSubtitle(String statType) {
+  String _getStatSubtitle(BuildContext context, String statType) {
     switch (statType) {
       case 'steps':
-        return 'steps today';
+        return tr(context, 'steps_today');
       case 'active':
-        return 'active minutes';
+        return tr(context, 'active_minutes');
       case 'calories':
-        return 'calories burned';
+        return tr(context, 'calories_burned_subtitle');
       case 'sleep':
-        return 'hours of sleep';
+        return tr(context, 'hours_of_sleep');
       case 'heart':
-        return 'BPM average';
+        return tr(context, 'bpm_average');
       default:
-        return 'data points';
+        return tr(context, 'data_points');
     }
   }
 
@@ -1553,25 +1553,25 @@ class StatDetailPage extends ConsumerWidget {
     return [
       _buildDetailCard(
         context,
-        'Today\'s Goal',
-        _getTodayGoal(statType, healthDataAsync, userProgressAsync),
-        _getTodayProgress(statType, healthDataAsync, userProgressAsync),
+        tr(context, 'today_goal'),
+        _getTodayGoal(context, statType, healthDataAsync, userProgressAsync),
+        _getTodayProgress(context, statType, healthDataAsync, userProgressAsync),
         color,
       ),
       const SizedBox(height: 16),
       _buildDetailCard(
         context,
-        'Best This Week',
-        _getBestWeek(statType, healthDataAsync),
-        _getWeeklyProgress(statType, healthDataAsync),
+        tr(context, 'best_this_week'),
+        _getBestWeek(context, statType, healthDataAsync),
+        _getWeeklyProgress(context, statType, healthDataAsync),
         color,
       ),
       const SizedBox(height: 16),
       _buildDetailCard(
         context,
-        'Data Status',
-        _getDataStatus(statType, healthDataAsync),
-        _getDataStatusProgress(statType, healthDataAsync),
+        tr(context, 'data_status'),
+        _getDataStatus(context, statType, healthDataAsync),
+        _getDataStatusProgress(context, statType, healthDataAsync),
         color,
       ),
     ];
@@ -1644,7 +1644,7 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getTodayGoal(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+  String _getTodayGoal(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         return userProgressAsync.when(
@@ -1665,24 +1665,24 @@ class StatDetailPage extends ConsumerWidget {
               case 'heart':
                 if (healthData.heartRate > 0) {
                   final hr = healthData.heartRate.toInt();
-                  final status = hr < 60 ? 'Low' : hr > 100 ? 'High' : 'Normal';
+                  final status = hr < 60 ? tr(context, 'low') : hr > 100 ? tr(context, 'high') : tr(context, 'normal');
                   return '$hr BPM ($status)';
                 }
-                return 'No data';
+                return tr(context, 'no_data');
               default:
                 return 'N/A';
             }
           },
-          loading: () => 'Loading goals...',
-          error: (_, __) => 'Goal unavailable',
+          loading: () => tr(context, 'loading_goals'),
+          error: (_, __) => tr(context, 'goal_unavailable'),
         );
       },
-      loading: () => 'Loading...',
-      error: (_, __) => 'Data unavailable',
+      loading: () => tr(context, 'loading'),
+      error: (_, __) => tr(context, 'data_unavailable'),
     );
   }
 
-  double _getTodayProgress(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+  double _getTodayProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         return userProgressAsync.when(
@@ -1724,38 +1724,38 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getBestWeek(String statType, AsyncValue<HealthData> healthDataAsync) {
+  String _getBestWeek(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         switch (statType) {
           case 'steps':
             // Estimate best day this week (current × 1.2)
             final best = (healthData.steps * 1.2).round();
-            return '${StatDetailPage._formatNumber(best)} best day';
+            return '${StatDetailPage._formatNumber(best)} ${tr(context, 'best_day')}';
           case 'active':
             final best = (healthData.activeMinutes * 1.3).round();
-            return '$best min best day';
+            return '$best min ${tr(context, 'best_day')}';
           case 'calories':
             final best = (healthData.caloriesBurned * 1.4).round();
-            return '${StatDetailPage._formatNumber(best)} cal best day';
+            return '${StatDetailPage._formatNumber(best)} cal ${tr(context, 'best_day')}';
           case 'sleep':
             final best = (healthData.sleepHours + 0.8).clamp(0.0, 12.0);
-            return '${best.toStringAsFixed(1)} hrs best night';
+            return '${best.toStringAsFixed(1)} hrs ${tr(context, 'best_night')}';
           case 'heart':
             if (healthData.heartRate > 0) {
-              return '${healthData.heartRate.toInt()} BPM current';
+              return '${healthData.heartRate.toInt()} BPM ${tr(context, 'current')}';
             }
-            return 'No recent data';
+            return tr(context, 'no_recent_data');
           default:
             return 'N/A';
         }
       },
-      loading: () => 'Loading...',
-      error: (_, __) => 'Data unavailable',
+      loading: () => tr(context, 'loading'),
+      error: (_, __) => tr(context, 'data_unavailable'),
     );
   }
 
-  double _getWeeklyProgress(String statType, AsyncValue<HealthData> healthDataAsync) {
+  double _getWeeklyProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         switch (statType) {
@@ -1779,7 +1779,7 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getDataStatus(String statType, AsyncValue<HealthData> healthDataAsync) {
+  String _getDataStatus(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         final lastUpdated = healthData.lastUpdated;
@@ -1787,22 +1787,22 @@ class StatDetailPage extends ConsumerWidget {
         
         if (healthData.isDataAvailable) {
           if (hoursAgo < 1) {
-            return 'Real-time sync ✓';
+            return tr(context, 'real_time_sync');
           } else if (hoursAgo < 24) {
-            return 'Synced ${hoursAgo}h ago';
+            return tr(context, 'synced_hours_ago').replaceAll('{hours}', hoursAgo.toString());
           } else {
-            return 'Last sync ${(hoursAgo / 24).round()}d ago';
+            return tr(context, 'last_sync_days_ago').replaceAll('{days}', (hoursAgo / 24).round().toString());
           }
         } else {
-          return 'No health data connected';
+          return tr(context, 'no_health_data_connected');
         }
       },
-      loading: () => 'Connecting to health data...',
-      error: (_, __) => 'Health data sync error',
+      loading: () => tr(context, 'connecting_to_health_data'),
+      error: (_, __) => tr(context, 'health_data_sync_error'),
     );
   }
 
-  double _getDataStatusProgress(String statType, AsyncValue<HealthData> healthDataAsync) {
+  double _getDataStatusProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
     return healthDataAsync.when(
       data: (healthData) {
         if (!healthData.isDataAvailable) return 0.0;

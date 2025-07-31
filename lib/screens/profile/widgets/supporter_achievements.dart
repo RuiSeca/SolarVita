@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../../../models/privacy_settings.dart';
 import '../../../services/supporter_profile_service.dart';
 
@@ -41,7 +42,7 @@ class SupporterAchievements extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Achievements',
+                tr(context, 'achievements'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -70,7 +71,7 @@ class SupporterAchievements extends ConsumerWidget {
     }
 
     // Show actual achievements
-    final achievementsList = achievements ?? _getDefaultAchievements();
+    final achievementsList = achievements ?? _getDefaultAchievements(context);
     
     return SizedBox(
       height: 120,
@@ -106,7 +107,7 @@ class SupporterAchievements extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Achievements Shared Privately',
+              tr(context, 'achievements_shared_privately'),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -115,7 +116,7 @@ class SupporterAchievements extends ConsumerWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'This supporter keeps their achievements private',
+              tr(context, 'supporter_keeps_achievements_private'),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[500],
@@ -209,45 +210,45 @@ class SupporterAchievements extends ConsumerWidget {
     );
   }
 
-  List<Achievement> _getDefaultAchievements() {
+  List<Achievement> _getDefaultAchievements(BuildContext context) {
     // Default achievements - would come from Firebase in real implementation
     return [
       Achievement(
         id: '1',
-        title: 'First Steps',
-        subtitle: 'Started journey',
+        title: tr(context, 'first_steps'),
+        subtitle: tr(context, 'started_journey'),
         iconName: 'directions_walk',
         colorName: 'blue',
         isUnlocked: true,
       ),
       Achievement(
         id: '2',
-        title: 'Eco Warrior',
-        subtitle: 'Green choices',
+        title: tr(context, 'eco_warrior'),
+        subtitle: tr(context, 'green_choices'),
         iconName: 'eco',
         colorName: 'green',
         isUnlocked: true,
       ),
       Achievement(
         id: '3',
-        title: 'Streak Master',
-        subtitle: '7 day streak',
+        title: tr(context, 'streak_master'),
+        subtitle: tr(context, '7_day_streak'),
         iconName: 'local_fire_department',
         colorName: 'orange',
         isUnlocked: true,
       ),
       Achievement(
         id: '4',
-        title: 'Goal Crusher',
-        subtitle: 'Perfect week',
+        title: tr(context, 'goal_crusher'),
+        subtitle: tr(context, 'perfect_week'),
         iconName: 'emoji_events',
         colorName: 'amber',
         isUnlocked: false,
       ),
       Achievement(
         id: '5',
-        title: 'Social Butterfly',
-        subtitle: '10 supporters',
+        title: tr(context, 'social_butterfly'),
+        subtitle: tr(context, '10_supporters'),
         iconName: 'people',
         colorName: 'purple',
         isUnlocked: false,

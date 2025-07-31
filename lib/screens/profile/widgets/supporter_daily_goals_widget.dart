@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../../../models/privacy_settings.dart';
 import '../../../models/user_progress.dart';
 import '../../../models/health_data.dart';
@@ -52,7 +53,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               Text(
-                'Daily Goals Progress',
+                tr(context, 'daily_goals_progress'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -97,23 +98,23 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
-          _buildProgressSummaryWithEmoji(),
+          _buildProgressSummaryWithEmoji(context),
           const SizedBox(height: 20),
-          _buildGoalsList(),
+          _buildGoalsList(context),
           const SizedBox(height: 16),
-          _buildProgressBar(),
+          _buildProgressBar(context),
         ],
       ),
     );
   }
 
-  Widget _buildGoalsList() {
+  Widget _buildGoalsList(BuildContext context) {
     if (!privacySettings.showWorkoutStats) {
-      return _buildPrivateGoalsView();
+      return _buildPrivateGoalsView(context);
     }
 
     if (supporterProgress == null || supporterHealthData == null) {
-      return _buildNoDataView();
+      return _buildNoDataView(context);
     }
 
     // Show actual progress data
@@ -122,35 +123,35 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         type: GoalType.steps,
         current: supporterHealthData!.steps.toDouble(),
         target: supporterProgress!.dailyGoals.stepsGoal.toDouble(),
-        unit: 'steps',
+        unit: tr(context, 'steps'),
         isCompleted: _isGoalCompleted(GoalType.steps),
       ),
       _GoalItem(
         type: GoalType.activeMinutes,
         current: supporterHealthData!.activeMinutes.toDouble(),
         target: supporterProgress!.dailyGoals.activeMinutesGoal.toDouble(),
-        unit: 'min',
+        unit: tr(context, 'min'),
         isCompleted: _isGoalCompleted(GoalType.activeMinutes),
       ),
       _GoalItem(
         type: GoalType.caloriesBurn,
         current: supporterHealthData!.caloriesBurned.toDouble(),
         target: supporterProgress!.dailyGoals.caloriesBurnGoal.toDouble(),
-        unit: 'cal',
+        unit: tr(context, 'cal'),
         isCompleted: _isGoalCompleted(GoalType.caloriesBurn),
       ),
       _GoalItem(
         type: GoalType.waterIntake,
         current: supporterHealthData!.waterIntake,
         target: supporterProgress!.dailyGoals.waterIntakeGoal,
-        unit: 'L',
+        unit: tr(context, 'L'),
         isCompleted: _isGoalCompleted(GoalType.waterIntake),
       ),
       _GoalItem(
         type: GoalType.sleepQuality,
         current: supporterHealthData!.sleepHours,
         target: supporterProgress!.dailyGoals.sleepHoursGoal.toDouble(),
-        unit: 'hrs',
+        unit: tr(context, 'hrs'),
         isCompleted: _isGoalCompleted(GoalType.sleepQuality),
       ),
     ];
@@ -160,7 +161,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildPrivateGoalsView() {
+  Widget _buildPrivateGoalsView(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -177,7 +178,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Daily Goals Shared Privately',
+            tr(context, 'daily_goals_shared_privately'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -186,7 +187,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'This supporter keeps their daily progress private.',
+            tr(context, 'supporter_keeps_daily_progress_private'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -198,7 +199,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildNoDataView() {
+  Widget _buildNoDataView(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -215,7 +216,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'No Recent Activity',
+            tr(context, 'no_recent_activity'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -224,7 +225,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'This supporter hasn\'t synced their health data recently.',
+            tr(context, 'supporter_hasnt_synced_health_data'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.orange[600],
@@ -307,7 +308,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressBar() {
+  Widget _buildProgressBar(BuildContext context) {
     if (!privacySettings.showWorkoutStats || supporterProgress == null) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -324,7 +325,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              'Level progress shared privately',
+              tr(context, 'level_progress_shared_privately'),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -342,7 +343,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Level Progress',
+              tr(context, 'level_progress'),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -353,7 +354,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Level ${supporterProgress!.currentLevel}',
+                  tr(context, 'level').replaceAll('{level}', supporterProgress!.currentLevel.toString()),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -372,8 +373,8 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           supporterProgress!.isMaxLevel 
-              ? 'Max Level Reached!' 
-              : '${supporterProgress!.strikesNeededForNextLevel} strikes to next level',
+              ? tr(context, 'max_level_reached')
+              : tr(context, 'strikes_to_next_level').replaceAll('{strikes}', supporterProgress!.strikesNeededForNextLevel.toString()),
           style: TextStyle(
             fontSize: 10,
             color: AppColors.textSecondary,
@@ -383,10 +384,10 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressSummaryWithEmoji() {
+  Widget _buildProgressSummaryWithEmoji(BuildContext context) {
     if (!privacySettings.showWorkoutStats) {
       return Text(
-        'Working towards their daily goals privately 🔒',
+        tr(context, 'working_towards_goals_privately'),
         style: TextStyle(
           fontSize: 14,
           color: AppColors.textSecondary,
@@ -397,7 +398,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
 
     if (supporterProgress == null) {
       return Text(
-        'No recent activity data available',
+        tr(context, 'no_recent_activity_data'),
         style: TextStyle(
           fontSize: 14,
           color: AppColors.textSecondary,
@@ -411,10 +412,10 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     Widget? emojiWidget;
 
     if (completedCount == 0) {
-      text = 'Getting started with daily goals!';
+      text = tr(context, 'getting_started_with_goals');
       // No emoji for 0 goals
     } else if (completedCount == 5) {
-      text = 'Perfect day! All goals completed!';
+      text = tr(context, 'perfect_day_all_goals');
       emojiWidget = RiveEmojiWidget(
         emojiType: EmojiType.fromGoalCount(completedCount),
         size: 24,
@@ -422,7 +423,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         continuousPlay: true,
       );
     } else {
-      text = '$completedCount/5 goals completed today';
+      text = tr(context, 'goals_completed_today').replaceAll('{count}', completedCount.toString());
       emojiWidget = RiveEmojiWidget(
         emojiType: EmojiType.fromGoalCount(completedCount),
         size: 24,

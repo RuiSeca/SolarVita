@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../models/supporter.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import 'supporter_profile_screen.dart';
 
 part 'supporter_requests_screen.g.dart';
@@ -32,7 +33,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
-        title: const Text('Supporter Requests'),
+        title: Text(tr(context, 'supporter_requests')),
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
@@ -54,14 +55,14 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No pending supporter requests',
+                    tr(context, 'no_pending_supporter_requests'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.hintColor,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Supporter requests will appear here',
+                    tr(context, 'supporter_requests_will_appear'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.hintColor,
                     ),
@@ -93,7 +94,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
               ),
               const SizedBox(height: 16),
               Text(
-                'Error loading supporter requests',
+                tr(context, 'error_loading_supporter_requests'),
                 style: theme.textTheme.titleMedium?.copyWith(
                   color: theme.hintColor,
                 ),
@@ -121,7 +122,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
       child: Builder(
         builder: (context) {
           // Use data directly from supporter_request object
-          final displayName = request.requesterName ?? 'Unknown User';
+          final displayName = request.requesterName ?? tr(context, 'unknown_user');
           final username = request.requesterUsername;
           final photoURL = request.requesterPhotoURL;
 
@@ -187,7 +188,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
                                   ],
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Sent ${_getTimeAgo(request.createdAt)} • Tap to view profile',
+                                    tr(context, 'sent_time_ago').replaceAll('{timeAgo}', _getTimeAgo(context, request.createdAt)),
                                     style: theme.textTheme.bodySmall?.copyWith(
                                       color: theme.hintColor,
                                     ),
@@ -215,8 +216,8 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            'Accept',
+                          child: Text(
+                            tr(context, 'accept'),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 12,
@@ -239,7 +240,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
                             ),
                           ),
                           child: Text(
-                            'Decline',
+                            tr(context, 'decline'),
                             style: TextStyle(
                               color: theme.hintColor,
                               fontSize: 12,
@@ -277,7 +278,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'Message:',
+                            tr(context, 'message_label'),
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: theme.primaryColor,
                               fontWeight: FontWeight.w600,
@@ -311,8 +312,8 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Supporter request accepted! ✨'),
+          SnackBar(
+            content: Text(tr(context, 'supporter_request_accepted')),
             backgroundColor: Colors.green,
           ),
         );
@@ -321,7 +322,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error accepting request: $e'),
+            content: Text(tr(context, 'error_accepting_request').replaceAll('{error}', e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -335,8 +336,8 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
       await socialService.rejectSupporterRequest(supporterRequestId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Supporter request declined'),
+          SnackBar(
+            content: Text(tr(context, 'supporter_request_declined')),
             backgroundColor: Colors.orange,
           ),
         );
@@ -345,7 +346,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error declining request: $e'),
+            content: Text(tr(context, 'error_declining_request').replaceAll('{error}', e.toString())),
             backgroundColor: Colors.red,
           ),
         );
@@ -357,7 +358,7 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
     // Create a Supporter object from the request data
     final supporter = Supporter(
       userId: request.requesterId,
-      displayName: request.requesterName ?? 'Unknown User',
+      displayName: request.requesterName ?? tr(context, 'unknown_user'),
       username: request.requesterUsername,
       photoURL: request.requesterPhotoURL,
     );
@@ -370,20 +371,20 @@ class _SupporterRequestsScreenState extends ConsumerState<SupporterRequestsScree
     );
   }
 
-  String _getTimeAgo(DateTime dateTime) {
+  String _getTimeAgo(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 7) {
-      return '${(difference.inDays / 7).floor()}w ago';
+      return tr(context, 'w_ago').replaceAll('{weeks}', (difference.inDays / 7).floor().toString());
     } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return tr(context, 'd_ago').replaceAll('{days}', difference.inDays.toString());
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return tr(context, 'h_ago').replaceAll('{hours}', difference.inHours.toString());
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return tr(context, 'm_ago').replaceAll('{minutes}', difference.inMinutes.toString());
     } else {
-      return 'now';
+      return tr(context, 'now');
     }
   }
 }

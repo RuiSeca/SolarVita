@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/translation_helper.dart';
 import '../../models/supporter.dart';
 import '../../models/privacy_settings.dart';
 import '../../models/user_progress.dart';
@@ -16,6 +17,7 @@ import 'widgets/supporter_daily_goals_widget.dart';
 import 'widgets/supporter_weekly_summary.dart';
 import 'widgets/supporter_achievements.dart';
 import 'widgets/supporter_meal_sharing_widget.dart';
+import 'widgets/supporter_routine_widget.dart';
 
 class SupporterProfileScreen extends ConsumerStatefulWidget {
   final Supporter supporter;
@@ -191,7 +193,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
           
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Removed support for ${widget.supporter.displayName}'),
+              content: Text(tr(context, 'removed_support_for').replaceAll('{name}', widget.supporter.displayName)),
               backgroundColor: Colors.orange,
             ),
           );
@@ -205,7 +207,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('${tr(context, 'error_prefix')}${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -317,6 +319,13 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
                   achievements: _achievements,
                 ),
               
+              // Weekly Routine Sharing (Privacy-Aware)
+              if (_privacySettings != null)
+                SupporterRoutineWidget(
+                  supporterId: widget.supporter.userId,
+                  privacySettings: _privacySettings!,
+                ),
+              
               // Daily Meal Plan Sharing (Privacy-Aware)
               if (_privacySettings != null)
                 SupporterMealSharingWidget(
@@ -381,7 +390,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
                 child: _buildActionButton(
                   context,
                   icon: Icons.message_outlined,
-                  label: 'Message',
+                  label: tr(context, 'message'),
                   onPressed: () => _openChat(),
                 ),
               ),
@@ -390,11 +399,11 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
                 child: _buildActionButton(
                   context,
                   icon: Icons.timeline_outlined,
-                  label: 'Activity',
+                  label: tr(context, 'activity'),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Activity feed coming soon!'),
+                      SnackBar(
+                        content: Text(tr(context, 'activity_feed_coming_soon')),
                         backgroundColor: AppColors.primary,
                       ),
                     );
@@ -451,15 +460,15 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
   }
 
   String _getButtonText() {
-    if (_isLoading) return 'Loading...';
+    if (_isLoading) return tr(context, 'loading');
     
     // If I'm already supporting them
     if (_isSupporting) {
-      return 'Remove Support';
+      return tr(context, 'remove_support');
     }
     
     // Send support request instead of automatic support
-    return 'Send Request';
+    return tr(context, 'send_request');
   }
 
   ButtonStyle _getButtonStyle() {
@@ -516,7 +525,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.cardColor(context),
         title: Text(
-          'Send Support Request',
+          tr(context, 'send_support_request'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontWeight: FontWeight.bold,
@@ -527,7 +536,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Send a support request to ${widget.supporter.displayName}',
+              tr(context, 'send_support_request_to').replaceAll('{name}', widget.supporter.displayName),
               style: TextStyle(
                 color: AppTheme.textColor(context),
               ),
@@ -538,8 +547,8 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
               maxLength: 250,
               maxLines: 3,
               decoration: InputDecoration(
-                labelText: 'Optional message',
-                hintText: 'Introduce yourself or explain why you\'d like to connect...',
+                labelText: tr(context, 'optional_message'),
+                hintText: tr(context, 'introduce_yourself_hint'),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -555,7 +564,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Cancel',
+              tr(context, 'cancel'),
               style: TextStyle(
                 color: AppTheme.textColor(context).withAlpha(153),
               ),
@@ -569,8 +578,8 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).primaryColor,
             ),
-            child: const Text(
-              'Send Request',
+            child: Text(
+              tr(context, 'send_request'),
               style: TextStyle(color: Colors.white),
             ),
           ),
@@ -589,7 +598,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Support request sent to ${widget.supporter.displayName}'),
+            content: Text(tr(context, 'support_request_sent_to').replaceAll('{name}', widget.supporter.displayName)),
             backgroundColor: Colors.green,
           ),
         );
@@ -599,7 +608,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}'),
+            content: Text('${tr(context, 'error_prefix')}${e.toString().replaceAll('Exception: ', '')}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -647,7 +656,7 @@ class _SupporterProfileScreenState extends ConsumerState<SupporterProfileScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error opening chat: $e'),
+            content: Text(tr(context, 'error_opening_chat').replaceAll('{error}', e.toString())),
             backgroundColor: Colors.red,
           ),
         );

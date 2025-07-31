@@ -8,6 +8,8 @@ import '../../screens/search/workout_detail/models/workout_item.dart';
 import '../../screens/search/workout_detail/workout_detail_screen.dart';
 import '../../widgets/common/exercise_image.dart';
 import '../../providers/routine_providers.dart';
+import '../../services/dynamic_duration_service.dart';
+import '../../services/exercise_tracking_service.dart';
 import 'exercise_selection_screen.dart';
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
@@ -29,6 +31,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   late DailyWorkout _currentDay;
   bool _isLoading = false;
   WeeklyProgress? _weeklyProgress;
+  final DynamicDurationService _dynamicDurationService = DynamicDurationService();
 
   @override
   void initState() {
@@ -322,8 +325,6 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   }
 
   Widget _buildWorkoutSummary() {
-    final totalMinutes = _getTotalDuration();
-    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -356,10 +357,34 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildSummaryItem(
-                  tr(context, 'duration'),
-                  '${totalMinutes}min',
-                  Icons.timer,
+                child: FutureBuilder<DynamicWorkoutDuration>(
+                  future: _dynamicDurationService.calculateDayDynamicDuration(_currentDay),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final duration = snapshot.data!;
+                      return _buildDynamicSummaryItem(
+                        tr(context, 'duration'),
+                        duration.formattedDynamicDuration,
+                        duration.formattedStaticDuration,
+                        duration.isFasterThanStatic,
+                        Icons.timer,
+                      );
+                    } else {
+                      // Fallback: Calculate dynamic duration synchronously for each exercise
+                      int totalDynamicMinutes = 0;
+                      for (final exercise in _currentDay.exercises) {
+                        final staticMinutes = _parseDurationToMinutes(exercise.duration);
+                        final plannedSets = exercise.steps.isNotEmpty ? exercise.steps.length : 3;
+                        final dynamicMinutes = (staticMinutes * plannedSets).round();
+                        totalDynamicMinutes += dynamicMinutes;
+                      }
+                      return _buildSummaryItem(
+                        tr(context, 'duration'),
+                        '${totalDynamicMinutes}min',
+                        Icons.timer,
+                      );
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 12),
@@ -425,6 +450,76 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        Text(
+          title,
+          style: TextStyle(
+            color: AppTheme.textColor(context).withAlpha(179),
+            fontSize: 12,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDynamicSummaryItem(String title, String dynamicValue, String staticValue, bool isFaster, IconData icon) {
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.topRight,
+          children: [
+            Icon(
+              icon,
+              color: AppTheme.primaryColor,
+              size: 20,
+            ),
+            if (staticValue != dynamicValue)
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isFaster ? Colors.green : Colors.orange,
+                  shape: BoxShape.circle,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Column(
+          children: [
+            Text(
+              dynamicValue,
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (staticValue != dynamicValue) ...[
+              const SizedBox(height: 2),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isFaster ? Icons.trending_down : Icons.trending_up,
+                    color: isFaster ? Colors.green : Colors.orange,
+                    size: 10,
+                  ),
+                  const SizedBox(width: 2),
+                  Text(
+                    staticValue,
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(128),
+                      fontSize: 10,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 4),
         Text(
           title,
           style: TextStyle(
@@ -542,12 +637,65 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                           size: 16,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          exercise.duration,
-                          style: TextStyle(
-                            color: AppTheme.textColor(context).withAlpha(179),
-                            fontSize: 14,
+                        FutureBuilder<double>(
+                          future: _dynamicDurationService.calculateDynamicDuration(
+                            exerciseId: exercise.title.hashCode.toString(),
+                            exerciseName: exercise.title,
+                            staticDuration: exercise.duration,
+                            plannedSets: _getPlannedSetsForExercise(exercise), // Get proper sets count
                           ),
+                          builder: (context, snapshot) {
+                            if (snapshot.hasData) {
+                              final dynamicMinutes = snapshot.data!.round();
+                              final staticMinutes = _parseDurationToMinutes(exercise.duration);
+                              final isDifferent = dynamicMinutes != staticMinutes;
+                              
+                              return Flexible(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '${dynamicMinutes}min',
+                                      style: TextStyle(
+                                        color: AppTheme.textColor(context).withAlpha(179),
+                                        fontSize: 14,
+                                        fontWeight: isDifferent ? FontWeight.w600 : FontWeight.normal,
+                                      ),
+                                    ),
+                                    if (isDifferent) ...[
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        dynamicMinutes < staticMinutes ? Icons.trending_down : Icons.trending_up,
+                                        color: dynamicMinutes < staticMinutes ? Colors.green : Colors.orange,
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 2),
+                                      Flexible(
+                                        child: Text(
+                                          exercise.duration,
+                                          style: TextStyle(
+                                            color: AppTheme.textColor(context).withAlpha(102),
+                                            fontSize: 11,
+                                            decoration: TextDecoration.lineThrough,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            } else {
+                              // Fallback to static duration
+                              return Text(
+                                exercise.duration,
+                                style: TextStyle(
+                                  color: AppTheme.textColor(context).withAlpha(179),
+                                  fontSize: 14,
+                                ),
+                              );
+                            }
+                          },
                         ),
                         const SizedBox(width: 16),
                         Icon(
@@ -563,6 +711,67 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                             fontSize: 14,
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Sets and completion info row
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.repeat,
+                          color: AppTheme.primaryColor,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        FutureBuilder<int>(
+                          future: _getActualLoggedSets(exercise.title),
+                          builder: (context, snapshot) {
+                            final loggedSets = snapshot.data ?? 0;
+                            return Text(
+                              '$loggedSets sets',
+                              style: TextStyle(
+                                color: loggedSets > 0 
+                                    ? AppTheme.primaryColor
+                                    : AppTheme.textColor(context).withAlpha(179),
+                                fontSize: 14,
+                                fontWeight: loggedSets > 0 ? FontWeight.w600 : FontWeight.w500,
+                              ),
+                            );
+                          },
+                        ),
+                        if (isCompleted) ...[
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr(context, 'completed'),
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ] else ...[
+                          const SizedBox(width: 16),
+                          Icon(
+                            Icons.schedule,
+                            color: Colors.orange,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr(context, 'pending'),
+                            style: TextStyle(
+                              color: Colors.orange,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -615,13 +824,6 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  int _getTotalDuration() {
-    int totalMinutes = 0;
-    for (final exercise in _currentDay.exercises) {
-      totalMinutes += _parseDurationToMinutes(exercise.duration);
-    }
-    return totalMinutes;
-  }
   
   int _parseDurationToMinutes(String duration) {
     // Handle different duration formats: "30s", "2m", "90", "1:30", "1.5m", "60-90"
@@ -677,6 +879,58 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     }
     
     return 0;
+  }
+
+  /// Get the planned number of sets for an exercise
+  /// For strength exercises, default to 3 sets
+  /// For cardio/time-based exercises, default to 1 set
+  int _getPlannedSetsForExercise(WorkoutItem exercise) {
+    final lowerTitle = exercise.title.toLowerCase();
+    final lowerDifficulty = exercise.difficulty.toLowerCase();
+    
+    // If it's a cardio or time-based exercise, use 1 set
+    if (lowerTitle.contains('run') || 
+        lowerTitle.contains('cycle') || 
+        lowerTitle.contains('cardio') ||
+        lowerTitle.contains('plank') ||
+        exercise.duration.contains('min')) {
+      return 1;
+    }
+    
+    // For most strength exercises, use 3 sets as standard
+    if (lowerDifficulty.contains('beginner')) {
+      return 2; // Beginners start with fewer sets
+    } else if (lowerDifficulty.contains('advanced') || lowerDifficulty.contains('expert')) {
+      return 4; // Advanced users may do more sets
+    }
+    
+    return 3; // Default for intermediate and most exercises
+  }
+
+  /// Get the actual number of sets logged for an exercise today
+  Future<int> _getActualLoggedSets(String exerciseTitle) async {
+    try {
+      final exerciseId = exerciseTitle.hashCode.toString();
+      final today = DateTime.now();
+      final startOfDay = DateTime(today.year, today.month, today.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+      
+      final logs = await ExerciseTrackingService().getLogsByDateRange(startOfDay, endOfDay);
+      
+      // Find logs for this specific exercise
+      final exerciseLogs = logs.where((log) => 
+        log.exerciseId == exerciseId || log.exerciseName == exerciseTitle).toList();
+      
+      if (exerciseLogs.isEmpty) {
+        return 0;
+      }
+      
+      // Return the number of sets from the most recent log today
+      final latestLog = exerciseLogs.first; // logs are sorted by date (newest first)
+      return latestLog.sets.length;
+    } catch (e) {
+      return 0;
+    }
   }
 
   String _getTotalCalories() {
@@ -820,8 +1074,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     // This ensures exercise completion status is updated immediately
     if (mounted) {
       // Force provider refresh to get latest data
-      ref.invalidate(weeklyProgressProvider(_currentRoutine.id));  
-      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
+      ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
+      
+      // Force UI rebuild to show updated durations
+      setState(() {
+        // Trigger rebuild to refresh dynamic durations
+      });
       
       // If an exercise was logged, show additional feedback
       if (result == true) {
@@ -909,8 +1167,6 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       // Invalidate providers to update parent screens immediately
       ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
       ref.invalidate(routineManagerProvider);
-      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
-      ref.refresh(routineManagerProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -992,8 +1248,6 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       // Invalidate providers to update parent screens immediately
       ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
       ref.invalidate(routineManagerProvider);
-      ref.refresh(weeklyProgressProvider(_currentRoutine.id));
-      ref.refresh(routineManagerProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1070,8 +1324,6 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         // Invalidate providers to update parent screens immediately
         ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
         ref.invalidate(routineManagerProvider);
-        ref.refresh(weeklyProgressProvider(_currentRoutine.id));
-        ref.refresh(routineManagerProvider);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

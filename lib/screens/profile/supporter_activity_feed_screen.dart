@@ -168,7 +168,7 @@ class _SupporterActivityFeedScreenState extends State<SupporterActivityFeedScree
                         ),
                       ),
                       Text(
-                        _formatTimeAgo(activity.createdAt),
+                        _formatTimeAgo(context, activity.createdAt),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -323,20 +323,20 @@ class _SupporterActivityFeedScreenState extends State<SupporterActivityFeedScree
     }
   }
 
-  String _formatTimeAgo(DateTime dateTime) {
+  String _formatTimeAgo(BuildContext context, DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
     
     if (difference.inDays > 7) {
       return '${dateTime.day}/${dateTime.month}';
     } else if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
+      return tr(context, 'd_ago').replaceAll('{days}', difference.inDays.toString());
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
+      return tr(context, 'h_ago').replaceAll('{hours}', difference.inHours.toString());
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
+      return tr(context, 'm_ago').replaceAll('{minutes}', difference.inMinutes.toString());
     } else {
-      return 'Just now';
+      return tr(context, 'just_now');
     }
   }
 }

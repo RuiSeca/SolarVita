@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 
 class SupporterMealDetailScreen extends StatefulWidget {
   final Map<String, dynamic> meal;
@@ -187,7 +188,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
           children: [
             Expanded(
               child: Text(
-                meal['name'] ?? 'Unnamed Meal',
+                meal['name'] ?? tr(context, 'unnamed_meal'),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -202,7 +203,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                'From Supporter',
+                tr(context, 'from_supporter'),
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -230,7 +231,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
               _buildInfoChip(
                 context,
                 Icons.people,
-                'Serves ${meal['servings']}',
+                tr(context, 'serves').replaceAll('{servings}', meal['servings'].toString()),
                 Colors.blue,
               ),
               const SizedBox(width: 8),
@@ -239,7 +240,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
               _buildInfoChip(
                 context,
                 Icons.timer,
-                '${meal['prepTime']} min',
+                tr(context, 'minutes_prep').replaceAll('{minutes}', meal['prepTime'].toString()),
                 Colors.green,
               ),
             ],
@@ -297,7 +298,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Nutrition Facts',
+          tr(context, 'nutrition_facts'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -332,7 +333,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Servings:',
+          tr(context, 'servings'),
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -406,7 +407,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Ingredients',
+          tr(context, 'ingredients'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -471,7 +472,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Instructions',
+          tr(context, 'instructions'),
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -543,7 +544,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
           child: ElevatedButton.icon(
             onPressed: () => _showAddToMealPlanDialog(context, meal),
             icon: Icon(Icons.add_circle_outline),
-            label: Text('Add to My Meal Plan'),
+            label: Text(tr(context, 'add_to_my_meal_plan')),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
@@ -597,7 +598,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
             const SizedBox(height: 20),
             
             Text(
-              'Add to My Meal Plan',
+              tr(context, 'add_to_my_meal_plan'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -606,7 +607,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              meal['name'] ?? 'Unnamed Meal',
+              meal['name'] ?? tr(context, 'unnamed_meal'),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -616,7 +617,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
             const SizedBox(height: 20),
             
             Text(
-              'Choose meal time:',
+              tr(context, 'choose_meal_time'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -628,11 +629,11 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildMealTimeButton(context, 'breakfast', 'Breakfast', Icons.free_breakfast, meal),
+                  child: _buildMealTimeButton(context, 'breakfast', tr(context, 'breakfast'), Icons.free_breakfast, meal),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildMealTimeButton(context, 'lunch', 'Lunch', Icons.lunch_dining, meal),
+                  child: _buildMealTimeButton(context, 'lunch', tr(context, 'lunch'), Icons.lunch_dining, meal),
                 ),
               ],
             ),
@@ -640,11 +641,11 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildMealTimeButton(context, 'dinner', 'Dinner', Icons.dinner_dining, meal),
+                  child: _buildMealTimeButton(context, 'dinner', tr(context, 'dinner'), Icons.dinner_dining, meal),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _buildMealTimeButton(context, 'snacks', 'Snacks', Icons.cookie, meal),
+                  child: _buildMealTimeButton(context, 'snacks', tr(context, 'snacks'), Icons.cookie, meal),
                 ),
               ],
             ),
@@ -703,13 +704,13 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
 
   void _showDaySelectionDialog(BuildContext context, Map<String, dynamic> meal, String mealType) {
     final List<String> weekDays = [
-      'Monday',
-      'Tuesday', 
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
+      tr(context, 'monday'),
+      tr(context, 'tuesday'), 
+      tr(context, 'wednesday'),
+      tr(context, 'thursday'),
+      tr(context, 'friday'),
+      tr(context, 'saturday'),
+      tr(context, 'sunday')
     ];
     
     final DateTime now = DateTime.now();
@@ -742,7 +743,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
               const SizedBox(height: 16),
               
               Text(
-                'Choose Day',
+                tr(context, 'choose_day'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -751,7 +752,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
               ),
               const SizedBox(height: 6),
               Text(
-                'Add "${meal['name']}" to ${_getMealTypeTitle(mealType).toLowerCase()}',
+                tr(context, 'add_meal_to_day').replaceAll('{mealName}', meal['name'] ?? tr(context, 'unnamed_meal')).replaceAll('{mealType}', _getMealTypeTitle(context, mealType).toLowerCase()),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -818,7 +819,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'Today',
+                                    tr(context, 'today'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.white,
@@ -843,22 +844,37 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
     );
   }
 
-  String _getMealTypeTitle(String mealType) {
+  String _getMealTypeTitle(BuildContext context, String mealType) {
     switch (mealType) {
       case 'breakfast':
-        return 'Breakfast';
+        return tr(context, 'breakfast');
       case 'lunch':
-        return 'Lunch';
+        return tr(context, 'lunch');
       case 'dinner':
-        return 'Dinner';
+        return tr(context, 'dinner');
       case 'snacks':
-        return 'Snacks';
+        return tr(context, 'snacks');
       default:
         return mealType.toUpperCase();
     }
   }
 
   Future<void> _addMealToMyPlan(BuildContext context, Map<String, dynamic> meal, String mealType, int dayIndex) async {
+    // Get translations before async operations to avoid context issues
+    final unnamedMealText = tr(context, 'unnamed_meal');
+    final mondayText = tr(context, 'monday');
+    final tuesdayText = tr(context, 'tuesday');
+    final wednesdayText = tr(context, 'wednesday');
+    final thursdayText = tr(context, 'thursday');
+    final fridayText = tr(context, 'friday');
+    final saturdayText = tr(context, 'saturday');
+    final sundayText = tr(context, 'sunday');
+    final addedMealText = tr(context, 'added_meal_to_plan');
+    final viewPlanText = tr(context, 'view_plan');
+    final mealAlreadyInPlanText = tr(context, 'meal_already_in_plan');
+    final failedToAddMealText = tr(context, 'failed_to_add_meal');
+    final mealTypeTitleLower = _getMealTypeTitle(context, mealType).toLowerCase();
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       
@@ -866,7 +882,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       final formattedMeal = {
         'id': meal['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
         'titleKey': meal['name'],
-        'name': meal['name'] ?? 'Unnamed Meal',
+        'name': meal['name'] ?? unnamedMealText,
         'imagePath': meal['image'],
         'image': meal['image'],
         'calories': meal['calories']?.toString() ?? '0',
@@ -929,17 +945,17 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
         await prefs.setString(weeklyMealDataKey, json.encode(weeklyData));
         
         final List<String> weekDays = [
-          'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+          mondayText, tuesdayText, wednesdayText, thursdayText, fridayText, saturdayText, sundayText
         ];
         
         // Check if context is still mounted before using it
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Added "${meal['name']}" to ${weekDays[dayIndex]} ${_getMealTypeTitle(mealType).toLowerCase()}!'),
+              content: Text(addedMealText.replaceAll('{mealName}', meal['name'] ?? unnamedMealText).replaceAll('{day}', weekDays[dayIndex]).replaceAll('{mealType}', mealTypeTitleLower)),
               backgroundColor: Colors.green,
               action: SnackBarAction(
-                label: 'View Plan',
+                label: viewPlanText,
                 textColor: Colors.white,
                 onPressed: () {
                   if (context.mounted) {
@@ -954,7 +970,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('This meal is already in your plan'),
+              content: Text(mealAlreadyInPlanText),
               backgroundColor: Colors.orange,
             ),
           );
@@ -964,7 +980,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add meal to your plan'),
+            content: Text(failedToAddMealText),
             backgroundColor: Colors.red,
           ),
         );
@@ -976,7 +992,7 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
     // Implement meal sharing functionality
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Sharing feature coming soon!'),
+        content: Text(tr(context, 'sharing_feature_coming_soon')),
         backgroundColor: AppColors.primary,
       ),
     );

@@ -178,6 +178,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           const SizedBox(height: 24),
           _buildStats(context),
           const SizedBox(height: 24),
+          _buildExerciseContext(),
+          const SizedBox(height: 24),
           _buildDescription(context),
           const SizedBox(height: 24),
           _buildWorkoutOverview(context),
@@ -360,6 +362,62 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildExerciseContext() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: widget.routineId != null 
+            ? AppTheme.primaryColor.withAlpha(26)
+            : Colors.grey.withAlpha(26),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: widget.routineId != null 
+              ? AppTheme.primaryColor.withAlpha(51)
+              : Colors.grey.withAlpha(51),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            widget.routineId != null ? Icons.schedule : Icons.fitness_center,
+            color: widget.routineId != null 
+                ? AppTheme.primaryColor
+                : Colors.grey,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.routineId != null 
+                      ? tr(context, 'part_of_routine')
+                      : tr(context, 'standalone_exercise'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (widget.routineId != null && widget.dayName != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${tr(context, 'routine_day')}: ${tr(context, widget.dayName!.toLowerCase())}',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withAlpha(179),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -583,9 +641,8 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   // Generate a consistent ID from the exercise name
   String _generateExerciseId(String name) {
-    // In a real app, you would use real IDs from your database
-    // This is just a simple way to generate a consistent ID for demo purposes
-    return name.toLowerCase().replaceAll(' ', '_');
+    // Use consistent ID format with dynamic duration service
+    return name.hashCode.toString();
   }
 
   // Get exercise history to check if user has logs for this exercise

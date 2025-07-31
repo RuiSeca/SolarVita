@@ -2,10 +2,13 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/workout_routine.dart';
 import '../screens/search/workout_detail/models/workout_item.dart';
+import 'firebase_routine_service.dart';
 
 class RoutineService {
   static const String _routineManagerKey = 'workout_routine_manager';
   static const String _activeRoutineKey = 'active_routine_id';
+  
+  final FirebaseRoutineService _firebaseService = FirebaseRoutineService();
 
   /// Loads routine manager from storage
   Future<RoutineManager> loadRoutineManager() async {
@@ -36,6 +39,12 @@ class RoutineService {
       final activeRoutine = manager.activeRoutine;
       if (activeRoutine != null) {
         await prefs.setString(_activeRoutineKey, activeRoutine.id);
+        
+        // Sync active routine to Firebase (non-blocking)
+        _firebaseService.syncUserRoutine(activeRoutine).catchError((error) {
+          // Log error but don't fail the local save
+          return false;
+        });
       }
     } catch (e) {
       throw Exception('Failed to save routine: $e');

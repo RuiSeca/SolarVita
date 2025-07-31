@@ -49,7 +49,11 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
   void _refreshLogs() {
     if (widget.exerciseId != null) {
       // Load logs for a specific exercise
-      _logsFuture = _trackingService.getLogsForExercise(widget.exerciseId!);
+      _logsFuture = _trackingService.getAllLogs().then((allLogs) {
+        // Filter for specific exercise
+        final filteredLogs = allLogs.where((log) => log.exerciseId == widget.exerciseId).toList();
+        return filteredLogs;
+      });
     } else {
       // Load all logs within the selected date range
       _logsFuture = _trackingService.getLogsByDateRange(
@@ -96,6 +100,15 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
             ? tr(context, 'exercise_history_for_title')
             : tr(context, 'exercise_history')),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {
+                _refreshLogs();
+              });
+            },
+            tooltip: 'Refresh logs',
+          ),
           IconButton(
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
@@ -168,10 +181,23 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                 const Icon(Icons.fitness_center, size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  tr(context, 'no_logs_found'),
+                  widget.exerciseId != null 
+                    ? 'No logs found for this exercise'
+                    : tr(context, 'no_logs_found'),
                   style: const TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
+                if (widget.exerciseId != null) ...[
+                  Text(
+                    'Exercise ID: ${widget.exerciseId}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  Text(
+                    'Exercise: ${widget.initialTitle ?? 'Unknown'}',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Text(
                   tr(context, 'tap_plus_to_log'),
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
@@ -196,7 +222,6 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
 
         return ListView.builder(
           itemCount: sortedDates.length,
-          itemExtent: 120, // Estimated height for date section + exercises
           itemBuilder: (context, index) {
             final date = sortedDates[index];
             final dateFormatted = DateFormat.yMMMd().format(date);
@@ -217,7 +242,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                   ),
                 ),
                 ...logsForDate.map((log) => _buildLogItem(log)),
-                const Divider(),
+                const SizedBox(height: 8),
               ],
             );
           },
@@ -227,47 +252,138 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
   }
 
   Widget _buildLogItem(ExerciseLog log) {
-    return ListTile(
-      title: Text(log.exerciseName),
-      subtitle: Text(
-        '${log.sets.length} sets • ${DateFormat.jm().format(log.date)}',
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (log.isPersonalRecord)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.amber,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                'PR',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ExerciseDetailHistoryScreen(log: log),
+            ),
+          );
+
+          if (result == true) {
+            setState(() {
+              _refreshLogs();
+            });
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor(context),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.primaryColor.withAlpha(26),
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      log.exerciseName,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Text(
+                          '${log.sets.length} sets',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withAlpha(179),
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          ' • ',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withAlpha(179),
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          DateFormat.jm().format(log.date),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withAlpha(179),
+                            fontSize: 14,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (log.routineId != null && log.dayName != null) ...[
+                          Icon(
+                            Icons.schedule,
+                            size: 14,
+                            color: AppTheme.primaryColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr(context, log.dayName!.toLowerCase()),
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ] else ...[
+                          Icon(
+                            Icons.fitness_center,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            tr(context, 'standalone'),
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ),
-          const SizedBox(width: 8),
-          const Icon(Icons.chevron_right),
-        ],
-      ),
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ExerciseDetailHistoryScreen(log: log),
+              const SizedBox(width: 16),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (log.isPersonalRecord)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.amber,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'PR',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right,
+                    color: AppTheme.textColor(context).withAlpha(179),
+                  ),
+                ],
+              ),
+            ],
           ),
-        );
-
-        if (result == true) {
-          setState(() {
-            _refreshLogs();
-          });
-        }
-      },
+        ),
+      ),
     );
   }
 

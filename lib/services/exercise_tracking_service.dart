@@ -82,9 +82,10 @@ class ExerciseTrackingService {
       final prefs = await SharedPreferences.getInstance();
       List<String> logs = prefs.getStringList(_logsKey) ?? [];
 
-      return logs.map((log) => ExerciseLog.fromJson(jsonDecode(log))).toList()
-        ..sort(
-            (a, b) => b.date.compareTo(a.date)); // Sort by date (newest first)
+      final parsedLogs = logs.map((log) => ExerciseLog.fromJson(jsonDecode(log))).toList()
+        ..sort((a, b) => b.date.compareTo(a.date)); // Sort by date (newest first)
+      
+      return parsedLogs;
     } catch (e) {
       _log.severe('Error getting exercise logs: $e');
       return [];

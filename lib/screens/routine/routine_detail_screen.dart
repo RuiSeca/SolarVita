@@ -4,6 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../models/workout_routine.dart';
 import '../../providers/routine_providers.dart';
+import '../../services/dynamic_duration_service.dart';
 import 'day_workout_screen.dart';
 
 class RoutineDetailScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,7 @@ class RoutineDetailScreen extends ConsumerStatefulWidget {
 class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
   late WorkoutRoutine _currentRoutine;
   bool _isLoading = false;
+  final DynamicDurationService _dynamicDurationService = DynamicDurationService();
 
   @override
   void initState() {
@@ -339,10 +341,29 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildStatItem(
-                  tr(context, 'weekly_minutes'),
-                  '${stats['totalMinutes']}',
-                  Icons.timer,
+                child: FutureBuilder<double>(
+                  future: _calculateWeeklyDynamicMinutes(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final dynamicMinutes = snapshot.data!.round();
+                      final staticMinutes = (stats['totalMinutes'] as num).toDouble();
+                      final improvement = staticMinutes - dynamicMinutes.toDouble();
+                      
+                      return _buildDynamicStatItem(
+                        tr(context, 'weekly_minutes'),
+                        '$dynamicMinutes',
+                        staticMinutes.toString(),
+                        improvement,
+                        Icons.timer,
+                      );
+                    } else {
+                      return _buildStatItem(
+                        tr(context, 'weekly_minutes'),
+                        '${stats['totalMinutes']}',
+                        Icons.timer,
+                      );
+                    }
+                  },
                 ),
               ),
             ],
@@ -359,10 +380,29 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildStatItem(
-                  tr(context, 'avg_workout'),
-                  '${stats['averageWorkoutTime']} min',
-                  Icons.schedule,
+                child: FutureBuilder<double>(
+                  future: _calculateAverageDynamicWorkoutTime(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      final dynamicAvg = snapshot.data!.round();
+                      final staticAvg = (stats['averageWorkoutTime'] as num).toDouble();
+                      final improvement = staticAvg - dynamicAvg.toDouble();
+                      
+                      return _buildDynamicStatItem(
+                        tr(context, 'avg_workout'),
+                        '$dynamicAvg min',
+                        '$staticAvg min',
+                        improvement,
+                        Icons.schedule,
+                      );
+                    } else {
+                      return _buildStatItem(
+                        tr(context, 'avg_workout'),
+                        '${stats['averageWorkoutTime']} min',
+                        Icons.schedule,
+                      );
+                    }
+                  },
                 ),
               ),
             ],
@@ -537,6 +577,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
               ),
             ),
             Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Icon(
                   Icons.arrow_forward_ios,
@@ -545,13 +586,64 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 ),
                 if (!day.isRestDay && day.exercises.isNotEmpty) ...[
                   const SizedBox(height: 8),
-                  Text(
-                    _getTotalDayDuration(day),
-                    style: TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  FutureBuilder<DynamicWorkoutDuration>(
+                    future: _dynamicDurationService.calculateDayDynamicDuration(day),
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        final duration = snapshot.data!;
+                        final staticTime = duration.formattedStaticDuration;
+                        final dynamicTime = duration.formattedDynamicDuration;
+                        final isFaster = duration.isFasterThanStatic;
+                        
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            // Dynamic duration (prominent)
+                            Text(
+                              dynamicTime,
+                              style: TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            // Static duration comparison (subtle)
+                            if (staticTime != dynamicTime) ...[
+                              const SizedBox(height: 2),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isFaster ? Icons.trending_down : Icons.trending_up,
+                                    color: isFaster ? Colors.green : Colors.orange,
+                                    size: 10,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    staticTime,
+                                    style: TextStyle(
+                                      color: AppTheme.textColor(context).withAlpha(128),
+                                      fontSize: 10,
+                                      decoration: TextDecoration.lineThrough,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        );
+                      } else {
+                        // Fallback to static duration while loading
+                        return Text(
+                          _getTotalDayDuration(day),
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ],
@@ -733,8 +825,6 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
     if (mounted) {
       ref.invalidate(routineStatsProvider(_currentRoutine.id));
       ref.invalidate(routineManagerProvider);
-      ref.refresh(routineStatsProvider(_currentRoutine.id));
-      ref.refresh(routineManagerProvider);
       
       // Also reload the current routine from the updated manager
       _reloadCurrentRoutine();
@@ -984,6 +1074,92 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
         );
       }
     }
+  }
+
+  // Calculate total weekly dynamic minutes
+  Future<double> _calculateWeeklyDynamicMinutes() async {
+    double total = 0;
+    for (final day in _currentRoutine.weeklyPlan) {
+      if (!day.isRestDay && day.exercises.isNotEmpty) {
+        final dayDuration = await _dynamicDurationService.calculateDayDynamicDuration(day);
+        total += dayDuration.totalDynamicMinutes;
+      }
+    }
+    return total;
+  }
+
+  // Calculate average dynamic workout time
+  Future<double> _calculateAverageDynamicWorkoutTime() async {
+    final totalMinutes = await _calculateWeeklyDynamicMinutes();
+    final workoutDays = _currentRoutine.weeklyPlan.where((day) => !day.isRestDay && day.exercises.isNotEmpty).length;
+    return workoutDays > 0 ? totalMinutes / workoutDays : 0;
+  }
+
+  // Build dynamic stat item with comparison
+  Widget _buildDynamicStatItem(String title, String dynamicValue, String staticValue, double improvement, IconData icon) {
+    final isImprovement = improvement > 0;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withAlpha(13),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            icon,
+            color: AppTheme.primaryColor,
+            size: 20,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                dynamicValue,
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              if (improvement.abs() > 0.5) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  isImprovement ? Icons.trending_down : Icons.trending_up,
+                  color: isImprovement ? Colors.green : Colors.orange,
+                  size: 12,
+                ),
+              ],
+            ],
+          ),
+          if (improvement.abs() > 0.5) ...[
+            const SizedBox(height: 2),
+            Text(
+              staticValue,
+              style: TextStyle(
+                color: AppTheme.textColor(context).withAlpha(128),
+                fontSize: 10,
+                decoration: TextDecoration.lineThrough,
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(
+              color: AppTheme.textColor(context).withAlpha(179),
+              fontSize: 10,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
   }
 
   // Reload current routine from the updated routine manager

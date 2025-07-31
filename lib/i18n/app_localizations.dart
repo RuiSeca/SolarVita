@@ -17,6 +17,7 @@ class AppLocalizations {
     'health',
     'ai_assistant',
     'profile',
+    'supporter_profile',
     'workout_detail',
     'workout_list_details',
     'meal_page',

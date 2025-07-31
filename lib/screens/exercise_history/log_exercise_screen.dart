@@ -12,6 +12,7 @@ import '../../utils/translation_helper.dart';
 import '../../providers/routine_providers.dart';
 import '../search/workout_detail/models/workout_item.dart';
 import '../search/search_screen.dart';
+import 'exercise_history_screen.dart';
 
 class LogExerciseScreen extends ConsumerStatefulWidget {
   final String? exerciseId; // Optional - if coming from a specific exercise
@@ -123,7 +124,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
 
     if (result != null && result is WorkoutItem) {
       setState(() {
-        _exerciseId = result.title; // This should be a proper ID in a real app
+        _exerciseId = result.title.hashCode.toString(); // Use same ID format as dynamic duration service
         _exerciseNameController.text = result.title;
       });
       // Load auto-fill data for the new exercise
@@ -403,16 +404,22 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
           ref.invalidate(routineStatsProvider(widget.routineId!));
           ref.invalidate(routineManagerProvider);
           
-          // Force immediate refresh and wait for completion
-          ref.refresh(weeklyProgressProvider(widget.routineId!));
-          ref.refresh(routineStatsProvider(widget.routineId!));
-          ref.refresh(routineManagerProvider);
+          // Providers will refresh automatically after invalidation
         }
         
-        // Small delay to ensure all state updates are processed
+        // Navigate to exercise history after successful log
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
-            Navigator.pop(context, true); // Return true to refresh parent screen
+            // Navigate to exercise history screen
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ExerciseHistoryScreen(
+                  exerciseId: _exerciseId,
+                  initialTitle: _exerciseNameController.text,
+                ),
+              ),
+            );
           }
         });
       } else {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../../../models/privacy_settings.dart';
 
 class SupporterWeeklySummary extends ConsumerWidget {
@@ -23,7 +24,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'This Week\'s Journey',
+            tr(context, 'this_weeks_journey'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -41,37 +42,37 @@ class SupporterWeeklySummary extends ConsumerWidget {
             children: [
               _buildWeeklyCard(
                 context,
-                title: 'Steps',
+                title: tr(context, 'steps'),
                 icon: Icons.directions_walk,
-                value: _getStepsValue(),
-                unit: _getStepsUnit(),
+                value: _getStepsValue(context),
+                unit: _getStepsUnit(context),
                 color: Colors.blue,
                 isVisible: privacySettings.showWorkoutStats,
               ),
               _buildWeeklyCard(
                 context,
-                title: 'Active Minutes',
+                title: tr(context, 'active_minutes'),
                 icon: Icons.fitness_center,
-                value: _getActiveMinutesValue(),
-                unit: _getActiveMinutesUnit(),
+                value: _getActiveMinutesValue(context),
+                unit: _getActiveMinutesUnit(context),
                 color: Colors.orange,
                 isVisible: privacySettings.showWorkoutStats,
               ),
               _buildWeeklyCard(
                 context,
-                title: 'Calories',
+                title: tr(context, 'calories'),
                 icon: Icons.local_fire_department,
-                value: _getCaloriesValue(),
-                unit: _getCaloriesUnit(),
+                value: _getCaloriesValue(context),
+                unit: _getCaloriesUnit(context),
                 color: Colors.red,
                 isVisible: privacySettings.showNutritionStats,
               ),
               _buildWeeklyCard(
                 context,
-                title: 'Streak',
+                title: tr(context, 'streak'),
                 icon: Icons.local_fire_department_outlined,
-                value: _getStreakValue(),
-                unit: _getStreakUnit(),
+                value: _getStreakValue(context),
+                unit: _getStreakUnit(context),
                 color: Colors.purple,
                 isVisible: privacySettings.showWorkoutStats,
               ),
@@ -163,7 +164,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
             ),
           ] else ...[
             Text(
-              'Private',
+              tr(context, 'private'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -171,7 +172,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
               ),
             ),
             Text(
-              'Shared privately',
+              tr(context, 'shared_privately'),
               style: TextStyle(
                 fontSize: 10,
                 color: Colors.grey[500],
@@ -193,43 +194,43 @@ class SupporterWeeklySummary extends ConsumerWidget {
   }
 
   // Data getters - would be replaced with actual data from Firebase
-  String _getStepsValue() {
-    if (!privacySettings.showWorkoutStats) return 'Private';
+  String _getStepsValue(BuildContext context) {
+    if (!privacySettings.showWorkoutStats) return tr(context, 'private');
     return weeklyData?['steps']?.toString() ?? '42,500';
   }
 
-  String _getStepsUnit() {
+  String _getStepsUnit(BuildContext context) {
     if (!privacySettings.showWorkoutStats) return '';
-    return 'steps this week';
+    return tr(context, 'steps_this_week');
   }
 
-  String _getActiveMinutesValue() {
-    if (!privacySettings.showWorkoutStats) return 'Private';
+  String _getActiveMinutesValue(BuildContext context) {
+    if (!privacySettings.showWorkoutStats) return tr(context, 'private');
     return weeklyData?['activeMinutes']?.toString() ?? '180';
   }
 
-  String _getActiveMinutesUnit() {
+  String _getActiveMinutesUnit(BuildContext context) {
     if (!privacySettings.showWorkoutStats) return '';
-    return 'active minutes';
+    return tr(context, 'active_minutes_text');
   }
 
-  String _getCaloriesValue() {
-    if (!privacySettings.showNutritionStats) return 'Private';
+  String _getCaloriesValue(BuildContext context) {
+    if (!privacySettings.showNutritionStats) return tr(context, 'private');
     return weeklyData?['calories']?.toString() ?? '12,400';
   }
 
-  String _getCaloriesUnit() {
+  String _getCaloriesUnit(BuildContext context) {
     if (!privacySettings.showNutritionStats) return '';
-    return 'calories burned';
+    return tr(context, 'calories_burned');
   }
 
-  String _getStreakValue() {
-    if (!privacySettings.showWorkoutStats) return 'Private';
+  String _getStreakValue(BuildContext context) {
+    if (!privacySettings.showWorkoutStats) return tr(context, 'private');
     return weeklyData?['streak']?.toString() ?? '5';
   }
 
-  String _getStreakUnit() {
+  String _getStreakUnit(BuildContext context) {
     if (!privacySettings.showWorkoutStats) return '';
-    return 'day streak';
+    return tr(context, 'day_streak');
   }
 }

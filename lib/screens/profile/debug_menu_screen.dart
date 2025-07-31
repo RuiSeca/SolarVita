@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/social_service.dart';
 import '../../services/firebase_push_notification_service.dart';
+import '../../services/firebase_routine_service.dart';
+import '../../services/routine_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -17,6 +19,8 @@ class DebugMenuScreen extends ConsumerStatefulWidget {
 class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
   final SocialService _socialService = SocialService();
   final FirebasePushNotificationService _notificationService = FirebasePushNotificationService();
+  final FirebaseRoutineService _firebaseRoutineService = FirebaseRoutineService();
+  final RoutineService _routineService = RoutineService();
   bool _isLoading = false;
   String? _lastResult;
 
@@ -199,6 +203,156 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     }
   }
 
+  Future<void> _syncRoutinesToFirebase() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Load local routines
+      final manager = await _routineService.loadRoutineManager();
+      
+      if (manager.routines.isEmpty) {
+        setState(() {
+          _lastResult = 'No local routines found to sync.';
+        });
+        _showSnackBar('ℹ️ No routines to sync', Colors.blue);
+        return;
+      }
+
+      // Sync each routine to Firebase
+      int syncedCount = 0;
+      int failedCount = 0;
+      List<String> syncedRoutines = [];
+      List<String> failedRoutines = [];
+
+      for (final routine in manager.routines) {
+        final success = await _firebaseRoutineService.syncUserRoutine(routine);
+        if (success) {
+          syncedCount++;
+          syncedRoutines.add(routine.name);
+        } else {
+          failedCount++;
+          failedRoutines.add(routine.name);
+        }
+      }
+      
+      setState(() {
+        _lastResult = 'Firebase Routine Sync Complete:\n'
+            'Total Routines: ${manager.routines.length}\n'
+            'Successfully Synced: $syncedCount\n'
+            'Failed: $failedCount\n\n'
+            'Synced Routines:\n${syncedRoutines.join('\n')}'
+            '${failedRoutines.isNotEmpty ? '\n\nFailed Routines:\n${failedRoutines.join('\n')}' : ''}';
+      });
+
+      if (failedCount == 0) {
+        _showSnackBar('✅ All $syncedCount routines synced to Firebase!', Colors.green);
+      } else {
+        _showSnackBar('⚠️ $syncedCount synced, $failedCount failed', Colors.orange);
+      }
+    } catch (e) {
+      final errorMessage = e.toString().contains('permission-denied') 
+          ? 'Permission Denied: Please set up Firestore security rules for user_routines collection'
+          : 'Error syncing routines: $e';
+      
+      setState(() {
+        _lastResult = errorMessage;
+      });
+      
+      final snackMessage = e.toString().contains('permission-denied')
+          ? '🔒 Permission denied - Check Firestore rules'
+          : '❌ Sync failed: $e';
+      
+      _showSnackBar(snackMessage, Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _syncWeeklyProgressToFirebase() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Load local routines to get active routine
+      final manager = await _routineService.loadRoutineManager();
+      final activeRoutine = manager.routines.where((r) => r.isActive).firstOrNull;
+      
+      if (activeRoutine == null) {
+        setState(() {
+          _lastResult = 'No active routine found to sync progress for.';
+        });
+        _showSnackBar('ℹ️ No active routine to sync progress', Colors.blue);
+        return;
+      }
+
+      // Generate basic weekly progress data
+      final now = DateTime.now();
+      final currentWeek = ((now.difference(DateTime(now.year, 1, 1)).inDays + DateTime(now.year, 1, 1).weekday - 1) / 7).ceil();
+      
+      final progressData = <String, dynamic>{
+        'routineId': activeRoutine.id,
+        'weekOfYear': currentWeek,
+        'year': now.year,
+        'weekStartDate': now.subtract(Duration(days: now.weekday - 1)).toIso8601String(),
+        'dailyProgress': <String, dynamic>{},
+        'lastUpdated': now.toIso8601String(),
+      };
+
+      // Initialize daily progress for each day
+      final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final dailyProgress = progressData['dailyProgress'] as Map<String, dynamic>;
+      
+      for (int i = 0; i < dayNames.length; i++) {
+        final dayName = dayNames[i];
+        final dayWorkout = activeRoutine.weeklyPlan.firstWhere(
+          (day) => day.dayName.toLowerCase() == dayName.toLowerCase(),
+          orElse: () => activeRoutine.weeklyPlan.first,
+        );
+        
+        dailyProgress[dayName] = {
+          'dayName': dayName,
+          'plannedExercises': dayWorkout.exercises.length,
+          'completedExerciseIds': <String>[],
+          'isRestDay': dayWorkout.isRestDay,
+          'lastUpdated': now.toIso8601String(),
+        };
+      }
+
+      // Sync to Firebase
+      final success = await _firebaseRoutineService.syncWeeklyProgress(progressData);
+      
+      setState(() {
+        _lastResult = 'Weekly Progress Sync ${success ? 'Successful' : 'Failed'}:\\n'
+            'Routine: ${activeRoutine.name}\\n'
+            'Week: $currentWeek of ${now.year}\\n'
+            'Days Initialized: ${dayNames.length}\\n'
+            'Status: ${success ? 'Synced to Firebase' : 'Failed to sync'}';
+      });
+
+      if (success) {
+        _showSnackBar('✅ Weekly progress synced to Firebase!', Colors.green);
+      } else {
+        _showSnackBar('❌ Failed to sync weekly progress', Colors.red);
+      }
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error syncing weekly progress: $e';
+      });
+      _showSnackBar('❌ Sync failed: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -325,6 +479,40 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
               icon: Icons.refresh,
               color: Colors.purple,
               onTap: _isLoading ? null : _initializeSupportersCount,
+            ),
+
+            const SizedBox(height: 24),
+
+            // Firebase Routines Section
+            Text(
+              'Firebase Routines Debug',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Sync Routines to Firebase
+            _buildDebugCard(
+              title: 'Sync Routines to Firebase',
+              description: 'Upload all local routines to Firebase for sharing',
+              icon: Icons.cloud_upload,
+              color: Colors.indigo,
+              onTap: _isLoading ? null : _syncRoutinesToFirebase,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Sync Weekly Progress to Firebase
+            _buildDebugCard(
+              title: 'Sync Weekly Progress to Firebase',
+              description: 'Initialize weekly progress data for current routine',
+              icon: Icons.trending_up,
+              color: Colors.teal,
+              onTap: _isLoading ? null : _syncWeeklyProgressToFirebase,
             ),
 
             const SizedBox(height: 24),

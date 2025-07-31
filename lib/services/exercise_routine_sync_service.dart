@@ -8,6 +8,7 @@ import '../models/weekly_progress.dart';
 import '../models/personal_record.dart';
 import 'exercise_tracking_service.dart';
 import 'routine_service.dart';
+import 'firebase_routine_service.dart';
 
 class ExerciseRoutineSyncService {
   static final ExerciseRoutineSyncService _instance = ExerciseRoutineSyncService._internal();
@@ -15,6 +16,7 @@ class ExerciseRoutineSyncService {
   final Uuid _uuid = Uuid();
   final ExerciseTrackingService _exerciseService = ExerciseTrackingService();
   final RoutineService _routineService = RoutineService();
+  final FirebaseRoutineService _firebaseService = FirebaseRoutineService();
   
   // In-memory cache for faster access
   final Map<String, WeeklyProgress> _weeklyProgressCache = {};
@@ -60,7 +62,14 @@ class ExerciseRoutineSyncService {
 
       // Save the log using existing service
       final saved = await _exerciseService.saveExerciseLog(log);
+      _log.info('Exercise log saved: $saved for ${log.exerciseName} (ID: ${log.exerciseId})');
       if (!saved) return false;
+
+      // Sync exercise log to Firebase (non-blocking)
+      _firebaseService.syncExerciseLog(log).catchError((error) {
+        _log.warning('Failed to sync exercise log to Firebase: $error');
+        return false;
+      });
 
       // Check for personal records and update log if needed
       final isNewRecord = await _checkAndUpdatePersonalRecords(log);

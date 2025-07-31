@@ -925,6 +925,62 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                 ),
               );
             }
+          } else if (error.errorMsg == 'error_no_match') {
+            _logger.w('Speech recognition could not understand the audio');
+            
+            // Show user-friendly message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Could not understand. Please speak clearly and try again.',
+                  ),
+                  duration: Duration(seconds: 3),
+                  backgroundColor: Colors.orange,
+                  action: SnackBarAction(
+                    label: 'Try Again',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      // Restart speech recognition
+                      Future.delayed(Duration(milliseconds: 500), () {
+                        if (mounted && _speechEnabled) {
+                          _handleVoiceInput();
+                        }
+                      });
+                    },
+                  ),
+                ),
+              );
+            }
+          } else if (error.errorMsg == 'error_speech_timeout') {
+            _logger.w('Speech recognition timed out');
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'No speech detected. Please try speaking again.',
+                  ),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          } else {
+            // Handle other errors generically
+            _logger.w('Speech recognition error: ${error.errorMsg}');
+            
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Voice input error. Please try again.',
+                  ),
+                  duration: Duration(seconds: 2),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           }
         },
       );

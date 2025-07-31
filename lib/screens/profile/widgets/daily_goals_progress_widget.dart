@@ -46,7 +46,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Daily Goals Progress',
+                  tr(context, 'daily_goals_progress'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -77,11 +77,11 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 16),
-            _buildProgressSummaryWithEmoji(progress),
+            _buildProgressSummaryWithEmoji(context, progress),
             const SizedBox(height: 20),
-            _buildGoalsList(progress, healthDataAsync.value, ref),
+            _buildGoalsList(context, progress, healthDataAsync.value, ref),
             const SizedBox(height: 16),
-            _buildProgressBar(progress),
+            _buildProgressBar(context, progress),
           ],
         ),
       ),
@@ -159,13 +159,13 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildGoalsList(UserProgress progress, dynamic healthData, WidgetRef ref) {
+  Widget _buildGoalsList(BuildContext context, UserProgress progress, dynamic healthData, WidgetRef ref) {
     // Check if we have real health data - no fake data should be shown
     final hasRealData = healthData?.isDataAvailable ?? false;
     
     // If no real data available, show connection status instead of fake numbers
     if (!hasRealData) {
-      return _buildHealthDataConnectionPrompt(ref);
+      return _buildHealthDataConnectionPrompt(context, ref);
     }
     
     // Only show progress with real data - never display zeros as fake progress
@@ -208,11 +208,11 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     ];
 
     return Column(
-      children: goals.map((goal) => _buildGoalRow(goal)).toList(),
+      children: goals.map((goal) => _buildGoalRow(context, goal)).toList(),
     );
   }
   
-  Widget _buildHealthDataConnectionPrompt(WidgetRef ref) {
+  Widget _buildHealthDataConnectionPrompt(BuildContext context, WidgetRef ref) {
     final permissionsAsync = ref.watch(healthPermissionsNotifierProvider);
     
     return permissionsAsync.when(
@@ -234,8 +234,8 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 permissions.isGranted 
-                  ? 'No health data available'
-                  : 'Health permissions needed',
+                  ? tr(context, 'no_health_data_available')
+                  : tr(context, 'health_permissions_needed'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -245,8 +245,8 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
               const SizedBox(height: 8),
               Text(
                 permissions.isGranted 
-                  ? 'Please ensure your health app is recording data and try refreshing.'
-                  : 'Grant health permissions to see your real progress.',
+                  ? tr(context, 'ensure_health_app_recording')
+                  : tr(context, 'grant_health_permissions'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.orange.shade600,
@@ -268,18 +268,18 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
                   backgroundColor: Colors.orange,
                   foregroundColor: Colors.white,
                 ),
-                child: Text(permissions.isGranted ? 'Refresh Data' : 'Grant Permissions'),
+                child: Text(permissions.isGranted ? tr(context, 'refresh_data') : tr(context, 'grant_permissions')),
               ),
             ],
           ),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) => Text('Error: $error'),
+      error: (error, stack) => Text('${tr(context, 'error_prefix')}$error'),
     );
   }
 
-  Widget _buildGoalRow(_GoalItem goal) {
+  Widget _buildGoalRow(BuildContext context, _GoalItem goal) {
     final progressPercent = (goal.current / goal.target).clamp(0.0, 1.0);
     
     return Padding(
@@ -350,7 +350,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildProgressBar(UserProgress progress) {
+  Widget _buildProgressBar(BuildContext context, UserProgress progress) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -358,7 +358,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Level Progress',
+              tr(context, 'level_progress'),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -369,7 +369,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Level ${progress.currentLevel}',
+                  tr(context, 'level_number').replaceAll('{level}', progress.currentLevel.toString()),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -388,8 +388,8 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
         const SizedBox(height: 4),
         Text(
           progress.isMaxLevel 
-              ? 'Max Level Reached!' 
-              : '${progress.strikesNeededForNextLevel} strikes to next level',
+              ? tr(context, 'max_level_reached') 
+              : tr(context, 'strikes_to_next_level').replaceAll('{strikes}', progress.strikesNeededForNextLevel.toString()),
           style: TextStyle(
             fontSize: 10,
             color: AppColors.textSecondary,
@@ -419,16 +419,16 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
     }
   }
 
-  Widget _buildProgressSummaryWithEmoji(UserProgress progress) {
+  Widget _buildProgressSummaryWithEmoji(BuildContext context, UserProgress progress) {
     final completedCount = progress.completedGoalsCount;
     String text;
     Widget? emojiWidget;
 
     if (completedCount == 0) {
-      text = 'Getting started with daily goals!';
+      text = tr(context, 'getting_started_daily_goals');
       // No emoji for 0 goals
     } else if (completedCount == 5) {
-      text = 'Perfect day! All goals completed!';
+      text = tr(context, 'perfect_day_all_goals');
       emojiWidget = RiveEmojiWidget(
         emojiType: EmojiType.fromGoalCount(completedCount),
         size: 24,
@@ -436,7 +436,7 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
         continuousPlay: true,
       );
     } else {
-      text = '$completedCount/5 goals completed today';
+      text = tr(context, 'goals_completed_today').replaceAll('{count}', completedCount.toString());
       emojiWidget = RiveEmojiWidget(
         emojiType: EmojiType.fromGoalCount(completedCount),
         size: 24,

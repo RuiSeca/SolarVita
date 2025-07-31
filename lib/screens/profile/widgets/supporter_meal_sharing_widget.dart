@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../../../models/privacy_settings.dart';
 import 'supporter_meal_detail_screen.dart';
 
@@ -112,7 +113,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Today\'s Meal Plan',
+                  tr(context, 'todays_meal_plan'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -173,7 +174,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Meal Plan Shared Privately',
+            tr(context, 'meal_plan_shared_privately'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -182,7 +183,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'This supporter keeps their meal plan private.',
+            tr(context, 'supporter_keeps_meal_plan_private'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -211,7 +212,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'No Meals Added Today',
+            tr(context, 'no_meals_added_today'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -220,7 +221,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'This supporter hasn\'t planned any meals for today yet.',
+            tr(context, 'supporter_hasnt_planned_meals'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.orange[600],
@@ -258,7 +259,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               _getMealTypeIcon(mealType),
               const SizedBox(width: 8),
               Text(
-                _getMealTypeTitle(mealType),
+                _getMealTypeTitle(context, mealType),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -274,7 +275,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${meals.length} ${meals.length == 1 ? 'meal' : 'meals'}',
+                    '${meals.length} ${meals.length == 1 ? tr(context, 'meal') : tr(context, 'meals')}',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.orange[700],
@@ -302,7 +303,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'No ${_getMealTypeTitle(mealType).toLowerCase()} planned',
+                    _getNoMealPlannedText(context, mealType),
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,
@@ -349,7 +350,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      meal['name'] ?? 'Unnamed Meal',
+                      meal['name'] ?? tr(context, 'unnamed_meal'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -361,7 +362,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                     if (meal['calories'] != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        '${meal['calories']} calories',
+                        tr(context, 'calories_count').replaceAll('{calories}', meal['calories'].toString()),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -371,7 +372,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                     if (meal['servings'] != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        'Serves ${meal['servings']}',
+                        tr(context, 'serves').replaceAll('{servings}', meal['servings'].toString()),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -392,7 +393,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                       color: Colors.orange,
                       size: 20,
                     ),
-                    tooltip: 'View Details',
+                    tooltip: tr(context, 'view_details'),
                   ),
                   IconButton(
                     onPressed: () => _addToMyMealPlan(context, meal),
@@ -401,7 +402,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                       color: AppColors.primary,
                       size: 20,
                     ),
-                    tooltip: 'Add to My Plan',
+                    tooltip: tr(context, 'add_to_my_plan'),
                   ),
                 ],
               ),
@@ -427,18 +428,33 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     }
   }
 
-  String _getMealTypeTitle(String mealType) {
+  String _getMealTypeTitle(BuildContext context, String mealType) {
     switch (mealType) {
       case 'breakfast':
-        return 'Breakfast';
+        return tr(context, 'breakfast');
       case 'lunch':
-        return 'Lunch';
+        return tr(context, 'lunch');
       case 'dinner':
-        return 'Dinner';
+        return tr(context, 'dinner');
       case 'snacks':
-        return 'Snacks';
+        return tr(context, 'snacks');
       default:
         return mealType.toUpperCase();
+    }
+  }
+
+  String _getNoMealPlannedText(BuildContext context, String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return tr(context, 'no_breakfast_planned');
+      case 'lunch':
+        return tr(context, 'no_lunch_planned');
+      case 'dinner':
+        return tr(context, 'no_dinner_planned');
+      case 'snacks':
+        return tr(context, 'no_snacks_planned');
+      default:
+        return 'No ${_getMealTypeTitle(context, mealType).toLowerCase()} planned';
     }
   }
 
@@ -481,7 +497,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           const SizedBox(height: 20),
           
           Text(
-            'Add to My Meal Plan',
+            tr(context, 'add_to_my_meal_plan'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -490,7 +506,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            meal['name'] ?? 'Unnamed Meal',
+            meal['name'] ?? tr(context, 'unnamed_meal'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -500,7 +516,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           const SizedBox(height: 20),
           
           Text(
-            'Choose meal time:',
+            tr(context, 'choose_meal_time'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -512,11 +528,11 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: _buildMealTimeButton(context, 'breakfast', 'Breakfast', Icons.free_breakfast, meal),
+                child: _buildMealTimeButton(context, 'breakfast', tr(context, 'breakfast'), Icons.free_breakfast, meal),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildMealTimeButton(context, 'lunch', 'Lunch', Icons.lunch_dining, meal),
+                child: _buildMealTimeButton(context, 'lunch', tr(context, 'lunch'), Icons.lunch_dining, meal),
               ),
             ],
           ),
@@ -524,11 +540,11 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: _buildMealTimeButton(context, 'dinner', 'Dinner', Icons.dinner_dining, meal),
+                child: _buildMealTimeButton(context, 'dinner', tr(context, 'dinner'), Icons.dinner_dining, meal),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildMealTimeButton(context, 'snacks', 'Snacks', Icons.cookie, meal),
+                child: _buildMealTimeButton(context, 'snacks', tr(context, 'snacks'), Icons.cookie, meal),
               ),
             ],
           ),
@@ -586,13 +602,13 @@ class SupporterMealSharingWidget extends ConsumerWidget {
 
   void _showDaySelectionDialog(BuildContext context, Map<String, dynamic> meal, String mealType) {
     final List<String> weekDays = [
-      'Monday',
-      'Tuesday', 
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday'
+      tr(context, 'monday'),
+      tr(context, 'tuesday'), 
+      tr(context, 'wednesday'),
+      tr(context, 'thursday'),
+      tr(context, 'friday'),
+      tr(context, 'saturday'),
+      tr(context, 'sunday')
     ];
     
     final DateTime now = DateTime.now();
@@ -625,7 +641,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               const SizedBox(height: 16),
               
               Text(
-                'Choose Day',
+                tr(context, 'choose_day'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -634,7 +650,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Add "${meal['name']}" to ${_getMealTypeTitle(mealType).toLowerCase()}',
+                tr(context, 'add_meal_to_day').replaceAll('{mealName}', meal['name'] ?? tr(context, 'unnamed_meal')).replaceAll('{mealType}', _getMealTypeTitle(context, mealType).toLowerCase()),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -701,7 +717,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'Today',
+                                    tr(context, 'today'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.white,
@@ -727,6 +743,21 @@ class SupporterMealSharingWidget extends ConsumerWidget {
   }
 
   Future<void> _addMealToMyPlan(BuildContext context, Map<String, dynamic> meal, String mealType, int dayIndex) async {
+    // Get translations before async operations to avoid context issues
+    final unnamedMealText = tr(context, 'unnamed_meal');
+    final mondayText = tr(context, 'monday');
+    final tuesdayText = tr(context, 'tuesday');
+    final wednesdayText = tr(context, 'wednesday');
+    final thursdayText = tr(context, 'thursday');
+    final fridayText = tr(context, 'friday');
+    final saturdayText = tr(context, 'saturday');
+    final sundayText = tr(context, 'sunday');
+    final addedMealText = tr(context, 'added_meal_to_plan');
+    final viewPlanText = tr(context, 'view_plan');
+    final mealAlreadyInPlanText = tr(context, 'meal_already_in_plan');
+    final failedToAddMealText = tr(context, 'failed_to_add_meal');
+    final mealTypeTitleLower = _getMealTypeTitle(context, mealType).toLowerCase();
+    
     try {
       final prefs = await SharedPreferences.getInstance();
       
@@ -734,7 +765,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
       final formattedMeal = {
         'id': meal['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
         'titleKey': meal['name'],
-        'name': meal['name'] ?? 'Unnamed Meal',
+        'name': meal['name'] ?? unnamedMealText,
         'imagePath': meal['image'],
         'image': meal['image'],
         'calories': meal['calories']?.toString() ?? '0',
@@ -797,17 +828,17 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         await prefs.setString(weeklyMealDataKey, json.encode(weeklyData));
         
         final List<String> weekDays = [
-          'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
+          mondayText, tuesdayText, wednesdayText, thursdayText, fridayText, saturdayText, sundayText
         ];
         
         // Check if context is still mounted before using it
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Added "${meal['name']}" to ${weekDays[dayIndex]} ${_getMealTypeTitle(mealType).toLowerCase()}!'),
+              content: Text(addedMealText.replaceAll('{mealName}', meal['name'] ?? unnamedMealText).replaceAll('{day}', weekDays[dayIndex]).replaceAll('{mealType}', mealTypeTitleLower)),
               backgroundColor: Colors.green,
               action: SnackBarAction(
-                label: 'View Plan',
+                label: viewPlanText,
                 textColor: Colors.white,
                 onPressed: () {
                   if (context.mounted) {
@@ -822,7 +853,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('This meal is already in your plan'),
+              content: Text(mealAlreadyInPlanText),
               backgroundColor: Colors.orange,
             ),
           );
@@ -832,7 +863,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add meal to your plan'),
+            content: Text(failedToAddMealText),
             backgroundColor: Colors.red,
           ),
         );
