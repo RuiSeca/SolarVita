@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/tribe.dart';
-import '../../services/tribe_service.dart';
+import '../../models/tribe/tribe.dart';
+import '../../services/database/tribe_service.dart';
 import '../../theme/app_theme.dart';
 
 class CreateTribeScreen extends ConsumerStatefulWidget {
@@ -18,9 +18,9 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
   final _customCategoryController = TextEditingController();
   final _locationController = TextEditingController();
   final _tagsController = TextEditingController();
-  
+
   final TribeService _tribeService = TribeService();
-  
+
   TribeCategory _selectedCategory = TribeCategory.fitness;
   TribeVisibility _visibility = TribeVisibility.public;
   bool _isLoading = false;
@@ -53,7 +53,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
 
   Future<void> _createTribe() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -63,13 +63,13 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         category: _selectedCategory,
-        customCategory: _selectedCategory == TribeCategory.custom 
-            ? _customCategoryController.text.trim() 
+        customCategory: _selectedCategory == TribeCategory.custom
+            ? _customCategoryController.text.trim()
             : null,
         visibility: _visibility,
         tags: _tags,
-        location: _locationController.text.trim().isNotEmpty 
-            ? _locationController.text.trim() 
+        location: _locationController.text.trim().isNotEmpty
+            ? _locationController.text.trim()
             : null,
       );
 
@@ -103,7 +103,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Create Tribe'),
@@ -141,7 +141,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
               // Basic Information Section
               _buildSectionHeader('Basic Information', '🏛️'),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
@@ -166,9 +166,9 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                 },
                 maxLength: 50,
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _descriptionController,
                 decoration: InputDecoration(
@@ -219,7 +219,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                       style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 12),
-                    
+
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -231,25 +231,31 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                category == TribeCategory.custom ? '⭐' : Tribe(
-                                  id: '', 
-                                  name: '', 
-                                  description: '', 
-                                  creatorId: '', 
-                                  creatorName: '',
-                                  category: category,
-                                  createdAt: DateTime.now(),
-                                ).getCategoryIcon(),
+                                category == TribeCategory.custom
+                                    ? '⭐'
+                                    : Tribe(
+                                        id: '',
+                                        name: '',
+                                        description: '',
+                                        creatorId: '',
+                                        creatorName: '',
+                                        category: category,
+                                        createdAt: DateTime.now(),
+                                      ).getCategoryIcon(),
                                 style: const TextStyle(fontSize: 16),
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                category == TribeCategory.custom 
-                                    ? 'Custom' 
-                                    : TribeService.getCategoryDisplayName(category),
+                                category == TribeCategory.custom
+                                    ? 'Custom'
+                                    : TribeService.getCategoryDisplayName(
+                                        category,
+                                      ),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -261,13 +267,17 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                               });
                             }
                           },
-                          backgroundColor: AppTheme.textFieldBackground(context),
-                          selectedColor: theme.primaryColor.withValues(alpha: 0.2),
+                          backgroundColor: AppTheme.textFieldBackground(
+                            context,
+                          ),
+                          selectedColor: theme.primaryColor.withValues(
+                            alpha: 0.2,
+                          ),
                           checkmarkColor: theme.primaryColor,
                         );
                       }).toList(),
                     ),
-                    
+
                     if (_selectedCategory == TribeCategory.custom) ...[
                       const SizedBox(height: 16),
                       TextFormField(
@@ -332,9 +342,9 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                       },
                       contentPadding: EdgeInsets.zero,
                     ),
-                    
+
                     const Divider(),
-                    
+
                     RadioListTile<TribeVisibility>(
                       title: const Row(
                         children: [
@@ -356,7 +366,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                       },
                       contentPadding: EdgeInsets.zero,
                     ),
-                    
+
                     if (_visibility == TribeVisibility.private) ...[
                       const SizedBox(height: 12),
                       Container(
@@ -367,9 +377,11 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.info, 
-                                color: theme.primaryColor, 
-                                size: 20),
+                            Icon(
+                              Icons.info,
+                              color: theme.primaryColor,
+                              size: 20,
+                            ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -413,12 +425,9 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Tags',
-                    style: theme.textTheme.labelLarge,
-                  ),
+                  Text('Tags', style: theme.textTheme.labelLarge),
                   const SizedBox(height: 8),
-                  
+
                   TextFormField(
                     controller: _tagsController,
                     decoration: InputDecoration(
@@ -435,19 +444,32 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                     ),
                     onFieldSubmitted: (value) => _addTag(value.trim()),
                   ),
-                  
+
                   if (_tags.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
                       runSpacing: 4,
-                      children: _tags.map((tag) => Chip(
-                        label: Text(tag, style: const TextStyle(fontSize: 12)),
-                        deleteIcon: const Icon(Icons.close, size: 16),
-                        onDeleted: () => _removeTag(tag),
-                        backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-                        side: BorderSide(color: theme.primaryColor.withValues(alpha: 0.3)),
-                      )).toList(),
+                      children: _tags
+                          .map(
+                            (tag) => Chip(
+                              label: Text(
+                                tag,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              deleteIcon: const Icon(Icons.close, size: 16),
+                              onDeleted: () => _removeTag(tag),
+                              backgroundColor: theme.primaryColor.withValues(
+                                alpha: 0.1,
+                              ),
+                              side: BorderSide(
+                                color: theme.primaryColor.withValues(
+                                  alpha: 0.3,
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
                     ),
                   ],
                 ],
@@ -471,7 +493,9 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         )
                       : const Text(
                           'Create Tribe',
@@ -492,16 +516,13 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
   Widget _buildSectionHeader(String title, String emoji) {
     return Row(
       children: [
-        Text(
-          emoji,
-          style: const TextStyle(fontSize: 24),
-        ),
+        Text(emoji, style: const TextStyle(fontSize: 24)),
         const SizedBox(width: 12),
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );

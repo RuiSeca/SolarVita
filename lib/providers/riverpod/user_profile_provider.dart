@@ -2,15 +2,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/user_profile.dart';
-import '../../services/user_profile_service.dart';
-import '../../services/auth_service.dart';
-import '../../services/social_service.dart';
-import '../../services/data_sync_service.dart';
+import '../../models/user/user_profile.dart';
+import '../../services/database/user_profile_service.dart';
+import '../../services/auth/auth_service.dart';
+import '../../services/database/social_service.dart';
+import '../../services/chat/data_sync_service.dart';
 import 'user_progress_provider.dart';
 import 'health_data_provider.dart';
-import '../../models/user_progress.dart';
-import '../../models/health_data.dart';
+import '../../models/user/user_progress.dart';
+import '../../models/health/health_data.dart';
 
 part 'user_profile_provider.g.dart';
 
@@ -58,10 +58,10 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     SocialService.setSupporterCountChangeCallback(() async {
       await silentRefreshSupporterCount();
     });
-    
+
     // Listen to auth state changes
     final authState = ref.watch(authStateChangesProvider);
-    
+
     return authState.when(
       data: (user) async {
         if (user != null) {
@@ -84,11 +84,13 @@ class UserProfileNotifier extends _$UserProfileNotifier {
   Future<UserProfile?> _loadUserProfile({bool forceRefresh = false}) async {
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
-      final newProfile = await userProfileService.getOrCreateUserProfile(forceRefresh: forceRefresh);
-      
+      final newProfile = await userProfileService.getOrCreateUserProfile(
+        forceRefresh: forceRefresh,
+      );
+
       // Sync public profile data for new/existing profiles to ensure chat data is current
       await _syncPublicProfileData(newProfile);
-      
+
       return newProfile;
     } catch (e) {
       throw Exception('Failed to load user profile: $e');
@@ -102,17 +104,22 @@ class UserProfileNotifier extends _$UserProfileNotifier {
 
   Future<void> updateUserProfile(UserProfile profile) async {
     state = const AsyncLoading();
-    
+
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
-      final updatedProfile = await userProfileService.updateUserProfile(profile);
-      
+      final updatedProfile = await userProfileService.updateUserProfile(
+        profile,
+      );
+
       // Sync public profile data to Firebase for supporters
       await _syncPublicProfileData(updatedProfile);
-      
+
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
-      state = AsyncValue.error('Failed to update user profile: $e', StackTrace.current);
+      state = AsyncValue.error(
+        'Failed to update user profile: $e',
+        StackTrace.current,
+      );
     }
   }
 
@@ -121,8 +128,10 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       await DataSyncService().syncPublicProfile(
         displayName: profile.displayName,
         avatarUrl: profile.photoURL,
-        currentLevel: 1, // Default level - will be updated from UserProgress separately
-        currentStrikes: 0, // Default strikes - will be updated from UserProgress separately
+        currentLevel:
+            1, // Default level - will be updated from UserProgress separately
+        currentStrikes:
+            0, // Default strikes - will be updated from UserProgress separately
         ecoScore: 0.0, // Default eco score - will be calculated separately
         supporterCount: profile.supportersCount,
         supportingCount: 0, // Will be fetched from social service separately
@@ -141,36 +150,42 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     if (currentProfile == null) return;
 
     state = const AsyncLoading();
-    
+
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
       final updatedProfile = await userProfileService.updateWorkoutPreferences(
         currentProfile.uid,
         preferences,
       );
-      
+
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
-      state = AsyncValue.error('Failed to update workout preferences: $e', StackTrace.current);
+      state = AsyncValue.error(
+        'Failed to update workout preferences: $e',
+        StackTrace.current,
+      );
     }
   }
 
-  Future<void> updateSustainabilityPreferences(SustainabilityPreferences preferences) async {
+  Future<void> updateSustainabilityPreferences(
+    SustainabilityPreferences preferences,
+  ) async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
 
     state = const AsyncLoading();
-    
+
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
-      final updatedProfile = await userProfileService.updateSustainabilityPreferences(
-        currentProfile.uid,
-        preferences,
-      );
-      
+      final updatedProfile = await userProfileService
+          .updateSustainabilityPreferences(currentProfile.uid, preferences);
+
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
-      state = AsyncValue.error('Failed to update sustainability preferences: $e', StackTrace.current);
+      state = AsyncValue.error(
+        'Failed to update sustainability preferences: $e',
+        StackTrace.current,
+      );
     }
   }
 
@@ -179,17 +194,20 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     if (currentProfile == null) return;
 
     state = const AsyncLoading();
-    
+
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
       final updatedProfile = await userProfileService.updateDiaryPreferences(
         currentProfile.uid,
         preferences,
       );
-      
+
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
-      state = AsyncValue.error('Failed to update diary preferences: $e', StackTrace.current);
+      state = AsyncValue.error(
+        'Failed to update diary preferences: $e',
+        StackTrace.current,
+      );
     }
   }
 
@@ -198,24 +216,27 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     if (currentProfile == null) return;
 
     state = const AsyncLoading();
-    
+
     try {
       final userProfileService = ref.read(userProfileServiceProvider);
       final updatedProfile = await userProfileService.updateDietaryPreferences(
         currentProfile.uid,
         preferences,
       );
-      
+
       state = AsyncValue.data(updatedProfile);
     } catch (e) {
-      state = AsyncValue.error('Failed to update dietary preferences: $e', StackTrace.current);
+      state = AsyncValue.error(
+        'Failed to update dietary preferences: $e',
+        StackTrace.current,
+      );
     }
   }
 
   Future<void> refreshSupporterCount() async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
-    
+
     try {
       // Clear cache to force fresh data
       ref.read(userProfileServiceProvider).clearCache();
@@ -229,12 +250,14 @@ class UserProfileNotifier extends _$UserProfileNotifier {
   Future<void> silentRefreshSupporterCount() async {
     final currentProfile = state.value;
     if (currentProfile == null) return;
-    
+
     try {
       // Clear cache and get fresh data
       ref.read(userProfileServiceProvider).clearCache();
-      final freshProfile = await ref.read(userProfileServiceProvider).getCurrentUserProfile(forceRefresh: true);
-      
+      final freshProfile = await ref
+          .read(userProfileServiceProvider)
+          .getCurrentUserProfile(forceRefresh: true);
+
       if (freshProfile != null) {
         // Update state directly without loading state
         state = AsyncValue.data(freshProfile);
@@ -248,7 +271,7 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     try {
       final socialService = ref.read(socialServiceProvider);
       await socialService.initializeSupportersCount();
-      
+
       // Refresh current user profile after migration
       await refreshSupporterCount();
     } catch (e) {
@@ -264,11 +287,11 @@ Future<ProfileData> profileData(Ref ref) async {
   final profileFuture = ref.watch(userProfileNotifierProvider.future);
   final progressFuture = ref.watch(userProgressNotifierProvider.future);
   final healthDataFuture = ref.watch(healthDataNotifierProvider.future);
-  
+
   // Get profile and progress data
   final profile = await profileFuture;
   final progress = await progressFuture;
-  
+
   // Handle health data separately to allow null values
   HealthData? healthData;
   try {
@@ -277,7 +300,7 @@ Future<ProfileData> profileData(Ref ref) async {
     // Health data can fail gracefully
     healthData = null;
   }
-  
+
   return ProfileData(profile, progress, healthData);
 }
 
@@ -354,20 +377,20 @@ Stream<UserProfile?> userProfileStream(Ref ref) {
 Stream<int> supporterCountStream(Ref ref) {
   final auth = FirebaseAuth.instance;
   final user = auth.currentUser;
-  
+
   if (user == null) {
     return Stream.value(0);
   }
-  
+
   return FirebaseFirestore.instance
       .collection('users')
       .doc(user.uid)
       .snapshots()
       .map((snapshot) {
-    if (snapshot.exists) {
-      final data = snapshot.data();
-      return data?['supportersCount'] ?? 0;
-    }
-    return 0;
-  });
+        if (snapshot.exists) {
+          final data = snapshot.data();
+          return data?['supportersCount'] ?? 0;
+        }
+        return 0;
+      });
 }

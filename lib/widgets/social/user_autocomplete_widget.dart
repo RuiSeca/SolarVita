@@ -4,7 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
-import '../../models/user_mention.dart';
+import '../../models/user/user_mention.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 
@@ -61,29 +61,41 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
       // Query Firebase for users matching the search term
       final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('searchTerms', arrayContainsAny: [
-            widget.query.toLowerCase(),
-            widget.query.toLowerCase().substring(0, math.min(3, widget.query.length)),
-          ])
+          .where(
+            'searchTerms',
+            arrayContainsAny: [
+              widget.query.toLowerCase(),
+              widget.query.toLowerCase().substring(
+                0,
+                math.min(3, widget.query.length),
+              ),
+            ],
+          )
           .limit(widget.maxResults)
           .get();
 
-      final filteredUsers = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return MentionableUser(
-          userId: doc.id,
-          userName: data['userName'] ?? '',
-          displayName: data['displayName'] ?? data['fullName'] ?? '',
-          avatarUrl: data['avatarUrl'],
-          isFollowing: data['isFollowing'] ?? false,
-          isSupporter: data['isSupporter'] ?? false,
-        );
-      }).where((user) => user.matchesQuery(widget.query)).toList();
+      final filteredUsers = querySnapshot.docs
+          .map((doc) {
+            final data = doc.data();
+            return MentionableUser(
+              userId: doc.id,
+              userName: data['userName'] ?? '',
+              displayName: data['displayName'] ?? data['fullName'] ?? '',
+              avatarUrl: data['avatarUrl'],
+              isFollowing: data['isFollowing'] ?? false,
+              isSupporter: data['isSupporter'] ?? false,
+            );
+          })
+          .where((user) => user.matchesQuery(widget.query))
+          .toList();
 
       // If no results from Firebase, fall back to mock data for development
-      final finalUsers = filteredUsers.isEmpty ? 
-          _getMockUsers().where((user) => user.matchesQuery(widget.query)).take(widget.maxResults).toList() :
-          filteredUsers;
+      final finalUsers = filteredUsers.isEmpty
+          ? _getMockUsers()
+                .where((user) => user.matchesQuery(widget.query))
+                .take(widget.maxResults)
+                .toList()
+          : filteredUsers;
 
       setState(() {
         _users = finalUsers;
@@ -107,32 +119,33 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
         .limit(widget.maxResults)
         .get()
         .then((querySnapshot) {
-      final recentUsers = querySnapshot.docs.map((doc) {
-        final data = doc.data();
-        return MentionableUser(
-          userId: data['userId'] ?? '',
-          userName: data['userName'] ?? '',
-          displayName: data['displayName'] ?? '',
-          avatarUrl: data['avatarUrl'],
-          isFollowing: data['isFollowing'] ?? false,
-          isSupporter: data['isSupporter'] ?? false,
-        );
-      }).toList();
-      
-      if (mounted) {
-        setState(() {
-          _users = recentUsers;
+          final recentUsers = querySnapshot.docs.map((doc) {
+            final data = doc.data();
+            return MentionableUser(
+              userId: data['userId'] ?? '',
+              userName: data['userName'] ?? '',
+              displayName: data['displayName'] ?? '',
+              avatarUrl: data['avatarUrl'],
+              isFollowing: data['isFollowing'] ?? false,
+              isSupporter: data['isSupporter'] ?? false,
+            );
+          }).toList();
+
+          if (mounted) {
+            setState(() {
+              _users = recentUsers;
+            });
+          }
+        })
+        .catchError((e) {
+          // Fall back to mock data if Firebase fails
+          if (mounted) {
+            setState(() {
+              _users = _getMockUsers().take(widget.maxResults).toList();
+            });
+          }
         });
-      }
-    }).catchError((e) {
-      // Fall back to mock data if Firebase fails
-      if (mounted) {
-        setState(() {
-          _users = _getMockUsers().take(widget.maxResults).toList();
-        });
-      }
-    });
-    
+
     // Return mock data initially while Firebase loads
     return _getMockUsers().take(widget.maxResults).toList();
   }
@@ -200,9 +213,7 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
             ),
           ],
         ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -221,9 +232,12 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
           ],
         ),
         child: Text(
-          widget.query.isEmpty 
+          widget.query.isEmpty
               ? tr(context, 'start_typing_search')
-              : tr(context, 'no_users_found').replaceAll('{query}', widget.query),
+              : tr(
+                  context,
+                  'no_users_found',
+                ).replaceAll('{query}', widget.query),
           style: TextStyle(
             color: AppTheme.textColor(context).withAlpha(128),
             fontSize: 14,
@@ -322,7 +336,7 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
                   : null,
             ),
             const SizedBox(width: 12),
-            
+
             // User info
             Expanded(
               child: Column(
@@ -372,7 +386,7 @@ class _UserAutocompleteWidgetState extends State<UserAutocompleteWidget> {
                 ],
               ),
             ),
-            
+
             // Following indicator
             if (user.isFollowing)
               Container(

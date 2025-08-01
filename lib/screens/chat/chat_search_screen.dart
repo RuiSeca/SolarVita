@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/riverpod/chat_provider.dart';
 import '../../theme/app_theme.dart';
-import '../../models/chat_message.dart';
+import '../../models/chat/chat_message.dart';
 
 class ChatSearchScreen extends ConsumerStatefulWidget {
   const ChatSearchScreen({super.key});
@@ -33,10 +33,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Container(
@@ -51,13 +48,8 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
             controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search messages...',
-              hintStyle: TextStyle(
-                color: Colors.grey[500],
-              ),
-              prefixIcon: Icon(
-                Icons.search,
-                color: Colors.grey[500],
-              ),
+              hintStyle: TextStyle(color: Colors.grey[500]),
+              prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
               suffixIcon: _currentQuery.isNotEmpty
                   ? IconButton(
                       icon: const Icon(Icons.clear),
@@ -76,9 +68,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
                 vertical: 12,
               ),
             ),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-            ),
+            style: TextStyle(color: AppTheme.textColor(context)),
             autofocus: true,
             onChanged: _onSearchChanged,
             onSubmitted: _performSearch,
@@ -95,9 +85,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
     }
 
     if (_isSearching) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_searchResults.isEmpty) {
@@ -112,11 +100,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.search, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 24),
           Text(
             'Search your messages',
@@ -130,9 +114,9 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               'Find messages, photos, and shared activities across all your conversations',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ),
@@ -146,11 +130,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.search_off, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 24),
           Text(
             'No results found',
@@ -164,9 +144,9 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 48),
             child: Text(
               'Try searching with different keywords or check your spelling',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.grey[500],
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ),
@@ -199,7 +179,9 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
                   children: [
                     CircleAvatar(
                       radius: 16,
-                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       child: Icon(
                         Icons.person,
                         size: 16,
@@ -216,9 +198,9 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
                     const Spacer(),
                     Text(
                       message.getFormattedTime(),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[500],
-                      ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodySmall?.copyWith(color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -240,43 +222,49 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
     final spans = <TextSpan>[];
     final queryLower = _currentQuery.toLowerCase();
     final contentLower = content.toLowerCase();
-    
+
     int start = 0;
     int index = contentLower.indexOf(queryLower);
-    
+
     while (index != -1) {
       // Add text before the match
       if (index > start) {
-        spans.add(TextSpan(
-          text: content.substring(start, index),
-          style: Theme.of(context).textTheme.bodyMedium,
-        ));
+        spans.add(
+          TextSpan(
+            text: content.substring(start, index),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        );
       }
-      
+
       // Add highlighted match
-      spans.add(TextSpan(
-        text: content.substring(index, index + _currentQuery.length),
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-          backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.3),
-          fontWeight: FontWeight.w600,
+      spans.add(
+        TextSpan(
+          text: content.substring(index, index + _currentQuery.length),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            backgroundColor: Theme.of(
+              context,
+            ).primaryColor.withValues(alpha: 0.3),
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ));
-      
+      );
+
       start = index + _currentQuery.length;
       index = contentLower.indexOf(queryLower, start);
     }
-    
+
     // Add remaining text
     if (start < content.length) {
-      spans.add(TextSpan(
-        text: content.substring(start),
-        style: Theme.of(context).textTheme.bodyMedium,
-      ));
+      spans.add(
+        TextSpan(
+          text: content.substring(start),
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      );
     }
 
-    return RichText(
-      text: TextSpan(children: spans),
-    );
+    return RichText(text: TextSpan(children: spans));
   }
 
   void _onSearchChanged(String query) {
@@ -304,7 +292,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
     try {
       final chatService = ref.read(chatServiceProvider);
       final results = await chatService.searchMessages(query);
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -317,7 +305,7 @@ class _ChatSearchScreenState extends ConsumerState<ChatSearchScreen> {
           _searchResults = [];
           _isSearching = false;
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Search failed: $e'),

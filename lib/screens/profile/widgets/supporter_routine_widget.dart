@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/workout_routine.dart';
-import '../../../models/exercise_log.dart';
-import '../../../models/privacy_settings.dart';
-import '../../../services/firebase_routine_service.dart';
+import '../../../models/exercise/workout_routine.dart';
+import '../../../models/exercise/exercise_log.dart';
+import '../../../models/user/privacy_settings.dart';
+import '../../../services/database/firebase_routine_service.dart';
 import '../../../widgets/common/exercise_image.dart';
 import '../../search/workout_detail/workout_detail_screen.dart';
 import '../../search/workout_detail/models/workout_item.dart';
@@ -26,7 +26,8 @@ class SupporterRoutineWidget extends StatefulWidget {
 }
 
 class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
-  final FirebaseRoutineService _firebaseRoutineService = FirebaseRoutineService();
+  final FirebaseRoutineService _firebaseRoutineService =
+      FirebaseRoutineService();
   WorkoutRoutine? _activeRoutine;
   ExerciseLog? _lastLoggedExercise;
   Map<String, dynamic>? _weeklyProgress;
@@ -50,13 +51,20 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
 
     try {
       // Get routine and recent exercise data from Firebase
-      final routine = await _firebaseRoutineService.getUserActiveRoutine(widget.supporterId);
-      final lastExercise = await _firebaseRoutineService.getLastLoggedExercise(widget.supporterId);
-      
+      final routine = await _firebaseRoutineService.getUserActiveRoutine(
+        widget.supporterId,
+      );
+      final lastExercise = await _firebaseRoutineService.getLastLoggedExercise(
+        widget.supporterId,
+      );
+
       // Get weekly progress data if routine exists
       Map<String, dynamic>? weeklyProgress;
       if (routine != null) {
-        weeklyProgress = await _firebaseRoutineService.getWeeklyProgress(widget.supporterId, routine.id);
+        weeklyProgress = await _firebaseRoutineService.getWeeklyProgress(
+          widget.supporterId,
+          routine.id,
+        );
       }
 
       if (mounted) {
@@ -90,13 +98,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.primaryColor.withAlpha(26),
-          ),
+          border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -107,17 +111,11 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.grey.withAlpha(51),
-          ),
+          border: Border.all(color: Colors.grey.withAlpha(51)),
         ),
         child: Column(
           children: [
-            Icon(
-              Icons.cloud_sync,
-              size: 48,
-              color: Colors.grey.withAlpha(128),
-            ),
+            Icon(Icons.cloud_sync, size: 48, color: Colors.grey.withAlpha(128)),
             const SizedBox(height: 12),
             Text(
               'No Routine Found',
@@ -153,23 +151,20 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.red.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with routine info
           _buildRoutineHeader(),
-          
+
           // Preview content
           if (!_isExpanded) _buildRoutinePreview(),
-          
+
           // Expanded content
           if (_isExpanded) _buildExpandedContent(),
-          
+
           // Action buttons
           _buildActionButtons(),
         ],
@@ -188,11 +183,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
               color: Colors.red.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(
-              Icons.fitness_center,
-              color: Colors.red,
-              size: 24,
-            ),
+            child: Icon(Icons.fitness_center, color: Colors.red, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -222,7 +213,10 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                     ),
                     // Weekly completion indicator
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
@@ -249,7 +243,8 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                     ),
                   ],
                 ),
-                if (_activeRoutine!.description != null && _activeRoutine!.description!.isNotEmpty) ...[
+                if (_activeRoutine!.description != null &&
+                    _activeRoutine!.description!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     _activeRoutine!.description!,
@@ -310,19 +305,22 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: todayWorkout.isRestDay 
+                      color: todayWorkout.isRestDay
                           ? Colors.orange.withAlpha(26)
                           : AppTheme.primaryColor.withAlpha(26),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      todayWorkout.isRestDay 
+                      todayWorkout.isRestDay
                           ? tr(context, 'rest_day')
                           : '${todayWorkout.exercises.length} ${tr(context, 'exercises')}',
                       style: TextStyle(
-                        color: todayWorkout.isRestDay 
+                        color: todayWorkout.isRestDay
                             ? Colors.orange
                             : AppTheme.primaryColor,
                         fontSize: 12,
@@ -332,10 +330,13 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                   ),
                 ],
               ),
-              
-              if (!todayWorkout.isRestDay && todayWorkout.exercises.isNotEmpty) ...[
+
+              if (!todayWorkout.isRestDay &&
+                  todayWorkout.exercises.isNotEmpty) ...[
                 const SizedBox(height: 16),
-                ...todayWorkout.exercises.take(3).map((exercise) => _buildExercisePreviewItem(exercise)),
+                ...todayWorkout.exercises
+                    .take(3)
+                    .map((exercise) => _buildExercisePreviewItem(exercise)),
                 if (todayWorkout.exercises.length > 3) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -348,7 +349,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                   ),
                 ],
               ],
-              
+
               // Last logged exercise info
               if (_lastLoggedExercise != null) ...[
                 const SizedBox(height: 16),
@@ -363,20 +364,22 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
 
   Widget _buildExercisePreviewItem(WorkoutItem exercise) {
     // Check if this exercise has been completed (simulated based on last logged exercise)
-    final isCompleted = _lastLoggedExercise?.exerciseName.toLowerCase() == exercise.title.toLowerCase();
+    final isCompleted =
+        _lastLoggedExercise?.exerciseName.toLowerCase() ==
+        exercise.title.toLowerCase();
     final estimatedSets = _getEstimatedSets(exercise);
     final estimatedReps = _getEstimatedReps(exercise);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isCompleted 
+        color: isCompleted
             ? Colors.green.withValues(alpha: 0.1)
             : Colors.grey.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isCompleted 
+          color: isCompleted
               ? Colors.green.withValues(alpha: 0.3)
               : Colors.grey.withValues(alpha: 0.2),
           width: 1,
@@ -405,11 +408,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                       color: Colors.green,
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 12,
-                    ),
+                    child: Icon(Icons.check, color: Colors.white, size: 12),
                   ),
                 ),
             ],
@@ -428,16 +427,21 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                           color: AppTheme.textColor(context),
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          decoration: isCompleted ? TextDecoration.lineThrough : null,
+                          decoration: isCompleted
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: isCompleted 
+                        color: isCompleted
                             ? Colors.green.withValues(alpha: 0.2)
                             : Colors.orange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(8),
@@ -445,7 +449,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                       child: Text(
                         isCompleted ? 'Done' : 'Pending',
                         style: TextStyle(
-                          color: isCompleted ? Colors.green : Colors.orange.shade700,
+                          color: isCompleted
+                              ? Colors.green
+                              : Colors.orange.shade700,
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
                         ),
@@ -457,11 +463,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                 Row(
                   children: [
                     if (estimatedSets > 0) ...[
-                      Icon(
-                        Icons.repeat,
-                        size: 12,
-                        color: Colors.red,
-                      ),
+                      Icon(Icons.repeat, size: 12, color: Colors.red),
                       const SizedBox(width: 2),
                       Text(
                         '${estimatedSets}x',
@@ -498,9 +500,14 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getDifficultyColor(exercise.difficulty).withValues(alpha: 0.2),
+                        color: _getDifficultyColor(
+                          exercise.difficulty,
+                        ).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -526,90 +533,117 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
   int _getEstimatedSets(WorkoutItem exercise) {
     if (exercise.steps.isEmpty) return 3; // Default
     // Look for numbered steps or repetition patterns
-    final stepTitles = exercise.steps.map((s) => s.title.toLowerCase()).toList();
+    final stepTitles = exercise.steps
+        .map((s) => s.title.toLowerCase())
+        .toList();
     final setPattern = RegExp(r'set (\d+)|(\d+) sets?|(\d+)x');
-    
+
     for (final title in stepTitles) {
       final match = setPattern.firstMatch(title);
       if (match != null) {
-        final setNum = int.tryParse(match.group(1) ?? match.group(2) ?? match.group(3) ?? '');
+        final setNum = int.tryParse(
+          match.group(1) ?? match.group(2) ?? match.group(3) ?? '',
+        );
         if (setNum != null && setNum > 0) return setNum;
       }
     }
-    
+
     // If steps suggest repetition, estimate based on step count
     if (stepTitles.any((t) => t.contains('repeat') || t.contains('again'))) {
       return (exercise.steps.length / 2).ceil().clamp(2, 5);
     }
-    
+
     return 3; // Default estimate
   }
 
   // Helper method to estimate reps from exercise content
   int _getEstimatedReps(WorkoutItem exercise) {
-    final description = '${exercise.description} ${exercise.steps.map((s) => s.description).join(' ')}'.toLowerCase();
+    final description =
+        '${exercise.description} ${exercise.steps.map((s) => s.description).join(' ')}'
+            .toLowerCase();
     final repPattern = RegExp(r'(\d+)\s*(?:reps?|repetitions?|times?)');
-    
+
     final match = repPattern.firstMatch(description);
     if (match != null) {
       final reps = int.tryParse(match.group(1) ?? '');
       if (reps != null && reps > 0) return reps;
     }
-    
+
     // Default based on difficulty
     switch (exercise.difficulty.toLowerCase()) {
-      case 'easy': return 15;
-      case 'medium': return 12;
-      case 'hard': return 10;
-      default: return 12;
+      case 'easy':
+        return 15;
+      case 'medium':
+        return 12;
+      case 'hard':
+        return 10;
+      default:
+        return 12;
     }
   }
 
   // Helper method to get difficulty color
   Color _getDifficultyColor(String difficulty) {
     switch (difficulty.toLowerCase()) {
-      case 'easy': return Colors.green;
-      case 'medium': return Colors.orange;
-      case 'hard': return Colors.red;
-      default: return Colors.blue;
+      case 'easy':
+        return Colors.green;
+      case 'medium':
+        return Colors.orange;
+      case 'hard':
+        return Colors.red;
+      default:
+        return Colors.blue;
     }
   }
 
   // Build weekly progress bar showing completion status
   Widget _buildWeeklyProgressBar() {
     if (_activeRoutine == null) return const SizedBox.shrink();
-    
+
     // Calculate completion based on Firebase weekly progress data or fallback to estimates
     final todayName = DateFormat.EEEE().format(DateTime.now());
     int totalExercises = 0;
     int completedExercises = 0;
-    
+
     if (_weeklyProgress != null && _weeklyProgress!['dailyProgress'] != null) {
       // Use real Firebase progress data
-      final dailyProgress = _weeklyProgress!['dailyProgress'] as Map<String, dynamic>;
-      
+      final dailyProgress =
+          _weeklyProgress!['dailyProgress'] as Map<String, dynamic>;
+
       // Count total and completed exercises from daily progress
       for (final dayData in dailyProgress.values) {
         if (dayData is Map<String, dynamic>) {
           final plannedCount = dayData['plannedExercises'] as int? ?? 0;
-          final completedIds = List<String>.from(dayData['completedExerciseIds'] ?? []);
+          final completedIds = List<String>.from(
+            dayData['completedExerciseIds'] ?? [],
+          );
           totalExercises += plannedCount;
           completedExercises += completedIds.length;
         }
       }
-      
+
       // If no planned exercises recorded, fall back to routine structure
       if (totalExercises == 0) {
-        totalExercises = _activeRoutine!.weeklyPlan.fold(0, (sum, day) => sum + day.exercises.length);
+        totalExercises = _activeRoutine!.weeklyPlan.fold(
+          0,
+          (sum, day) => sum + day.exercises.length,
+        );
       }
     } else {
       // Fallback to routine structure and estimates
-      totalExercises = _activeRoutine!.weeklyPlan.fold(0, (sum, day) => sum + day.exercises.length);
-      completedExercises = _lastLoggedExercise != null ? 1 : 0; // Simplified - only count if we have recent activity
+      totalExercises = _activeRoutine!.weeklyPlan.fold(
+        0,
+        (sum, day) => sum + day.exercises.length,
+      );
+      completedExercises = _lastLoggedExercise != null
+          ? 1
+          : 0; // Simplified - only count if we have recent activity
     }
-    
-    final progressPercentage = totalExercises > 0 ? (completedExercises / totalExercises) : 0.0;
-    
+
+    final progressPercentage = totalExercises > 0
+        ? (completedExercises / totalExercises)
+        : 0.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -647,8 +681,11 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
               value: progressPercentage,
               backgroundColor: Colors.transparent,
               valueColor: AlwaysStoppedAnimation<Color>(
-                progressPercentage > 0.7 ? Colors.green : 
-                progressPercentage > 0.3 ? Colors.orange : Colors.red,
+                progressPercentage > 0.7
+                    ? Colors.green
+                    : progressPercentage > 0.3
+                    ? Colors.orange
+                    : Colors.red,
               ),
             ),
           ),
@@ -656,11 +693,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
         const SizedBox(height: 4),
         Row(
           children: [
-            Icon(
-              Icons.today,
-              size: 12,
-              color: Colors.red,
-            ),
+            Icon(Icons.today, size: 12, color: Colors.red),
             const SizedBox(width: 4),
             Text(
               'Today: $todayName',
@@ -671,11 +704,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
             ),
             const Spacer(),
             if (_lastLoggedExercise != null) ...[
-              Icon(
-                Icons.check_circle,
-                size: 12,
-                color: Colors.green,
-              ),
+              Icon(Icons.check_circle, size: 12, color: Colors.green),
               const SizedBox(width: 2),
               Text(
                 'Active',
@@ -686,11 +715,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                 ),
               ),
             ] else ...[
-              Icon(
-                Icons.schedule,
-                size: 12,
-                color: Colors.orange,
-              ),
+              Icon(Icons.schedule, size: 12, color: Colors.orange),
               const SizedBox(width: 2),
               Text(
                 'Not started',
@@ -713,21 +738,14 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
       decoration: BoxDecoration(
         color: Colors.red.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.red.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.history,
-                size: 16,
-                color: Colors.red,
-              ),
+              Icon(Icons.history, size: 16, color: Colors.red),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'last_logged_exercise'),
@@ -805,12 +823,12 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: day.isRestDay 
+        color: day.isRestDay
             ? Colors.orange.withAlpha(13)
             : AppTheme.primaryColor.withAlpha(13),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: day.isRestDay 
+          color: day.isRestDay
               ? Colors.orange.withAlpha(51)
               : AppTheme.primaryColor.withAlpha(51),
         ),
@@ -832,17 +850,17 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: day.isRestDay 
+                  color: day.isRestDay
                       ? Colors.orange.withAlpha(26)
                       : AppTheme.primaryColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  day.isRestDay 
+                  day.isRestDay
                       ? tr(context, 'rest')
                       : '${day.exercises.length}',
                   style: TextStyle(
-                    color: day.isRestDay 
+                    color: day.isRestDay
                         ? Colors.orange
                         : AppTheme.primaryColor,
                     fontSize: 12,
@@ -854,7 +872,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
           ),
           if (!day.isRestDay && day.exercises.isNotEmpty) ...[
             const SizedBox(height: 12),
-            ...day.exercises.map((exercise) => _buildExpandedExerciseItem(exercise)),
+            ...day.exercises.map(
+              (exercise) => _buildExpandedExerciseItem(exercise),
+            ),
           ],
         ],
       ),
@@ -862,10 +882,12 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
   }
 
   Widget _buildExpandedExerciseItem(WorkoutItem exercise) {
-    final isCompleted = _lastLoggedExercise?.exerciseName.toLowerCase() == exercise.title.toLowerCase();
+    final isCompleted =
+        _lastLoggedExercise?.exerciseName.toLowerCase() ==
+        exercise.title.toLowerCase();
     final estimatedSets = _getEstimatedSets(exercise);
     final estimatedReps = _getEstimatedReps(exercise);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -874,12 +896,12 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
         child: Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: isCompleted 
+            color: isCompleted
                 ? Colors.green.withValues(alpha: 0.1)
                 : AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isCompleted 
+              color: isCompleted
                   ? Colors.green.withValues(alpha: 0.3)
                   : Colors.transparent,
               width: 1,
@@ -908,11 +930,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                           color: Colors.green,
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(
-                          Icons.check,
-                          color: Colors.white,
-                          size: 10,
-                        ),
+                        child: Icon(Icons.check, color: Colors.white, size: 10),
                       ),
                     ),
                 ],
@@ -931,16 +949,21 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                               color: AppTheme.textColor(context),
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              decoration: isCompleted ? TextDecoration.lineThrough : null,
+                              decoration: isCompleted
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: isCompleted 
+                            color: isCompleted
                                 ? Colors.green.withValues(alpha: 0.2)
                                 : Colors.orange.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(6),
@@ -948,7 +971,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                           child: Text(
                             isCompleted ? 'Done' : 'Pending',
                             style: TextStyle(
-                              color: isCompleted ? Colors.green : Colors.orange.shade700,
+                              color: isCompleted
+                                  ? Colors.green
+                                  : Colors.orange.shade700,
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
                             ),
@@ -1001,9 +1026,14 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                         ),
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 3,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
-                            color: _getDifficultyColor(exercise.difficulty).withValues(alpha: 0.2),
+                            color: _getDifficultyColor(
+                              exercise.difficulty,
+                            ).withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(3),
                           ),
                           child: Text(
@@ -1050,7 +1080,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                 size: 16,
               ),
               label: Text(
-                _isExpanded ? tr(context, 'show_less') : tr(context, 'view_details'),
+                _isExpanded
+                    ? tr(context, 'show_less')
+                    : tr(context, 'view_details'),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
@@ -1066,7 +1098,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
           Expanded(
             child: ElevatedButton.icon(
               onPressed: _isCopying ? null : _copyRoutine,
-              icon: _isCopying 
+              icon: _isCopying
                   ? SizedBox(
                       width: 16,
                       height: 16,
@@ -1077,7 +1109,9 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
                     )
                   : const Icon(Icons.copy, size: 16),
               label: Text(
-                _isCopying ? tr(context, 'copying') : tr(context, 'copy_routine'),
+                _isCopying
+                    ? tr(context, 'copying')
+                    : tr(context, 'copy_routine'),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -1121,7 +1155,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
 
     try {
       final success = await _firebaseRoutineService.copyRoutineFromUser(
-        widget.supporterId, 
+        widget.supporterId,
         _activeRoutine!.id,
       );
 
@@ -1129,7 +1163,7 @@ class _SupporterRoutineWidgetState extends State<SupporterRoutineWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success 
+              success
                   ? tr(context, 'routine_copied_successfully')
                   : tr(context, 'failed_to_copy_routine'),
             ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../models/chat_message.dart';
+import '../../models/chat/chat_message.dart';
 import '../../theme/app_theme.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -26,12 +26,12 @@ class MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
-        mainAxisAlignment: isCurrentUser 
-            ? MainAxisAlignment.end 
+        mainAxisAlignment: isCurrentUser
+            ? MainAxisAlignment.end
             : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
@@ -39,15 +39,15 @@ class MessageBubble extends StatelessWidget {
             _buildAvatar(),
             const SizedBox(width: 8),
           ],
-          
+
           Flexible(
             child: Container(
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
               child: Column(
-                crossAxisAlignment: isCurrentUser 
-                    ? CrossAxisAlignment.end 
+                crossAxisAlignment: isCurrentUser
+                    ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
                   _buildMessageBubble(context, theme),
@@ -57,7 +57,7 @@ class MessageBubble extends StatelessWidget {
               ),
             ),
           ),
-          
+
           if (isCurrentUser && showAvatar) ...[
             const SizedBox(width: 8),
             _buildAvatar(),
@@ -70,12 +70,12 @@ class MessageBubble extends StatelessWidget {
   Widget _buildAvatar() {
     // Use the actual sender avatar from the message data, fallback to passed values for legacy messages
     String? photoURL = message.senderAvatarUrl;
-    
+
     // Fallback to static values if message doesn't have avatar data
     if (photoURL == null || photoURL.isEmpty) {
       photoURL = isCurrentUser ? currentUserPhotoURL : otherUserPhotoURL;
     }
-    
+
     return CircleAvatar(
       radius: 16,
       backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.1),
@@ -83,11 +83,7 @@ class MessageBubble extends StatelessWidget {
           ? CachedNetworkImageProvider(photoURL)
           : null,
       child: photoURL == null || photoURL.isEmpty
-          ? Icon(
-              Icons.person,
-              size: 16,
-              color: AppTheme.primaryColor,
-            )
+          ? Icon(Icons.person, size: 16, color: AppTheme.primaryColor)
           : null,
     );
   }
@@ -107,12 +103,14 @@ class MessageBubble extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: isCurrentUser 
-            ? theme.primaryColor 
-            : AppTheme.cardColor(context),
+        color: isCurrentUser ? theme.primaryColor : AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(20).copyWith(
-          bottomLeft: isCurrentUser ? const Radius.circular(20) : const Radius.circular(4),
-          bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(20),
+          bottomLeft: isCurrentUser
+              ? const Radius.circular(20)
+              : const Radius.circular(4),
+          bottomRight: isCurrentUser
+              ? const Radius.circular(4)
+              : const Radius.circular(20),
         ),
         boxShadow: [
           BoxShadow(
@@ -125,9 +123,7 @@ class MessageBubble extends StatelessWidget {
       child: Text(
         message.content,
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: isCurrentUser 
-              ? Colors.white 
-              : AppTheme.textColor(context),
+          color: isCurrentUser ? Colors.white : AppTheme.textColor(context),
         ),
       ),
     );
@@ -135,16 +131,20 @@ class MessageBubble extends StatelessWidget {
 
   Widget _buildActivityShareBubble(BuildContext context, ThemeData theme) {
     final metadata = message.metadata;
-    
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: isCurrentUser 
+        color: isCurrentUser
             ? theme.primaryColor.withValues(alpha: 0.9)
             : AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(20).copyWith(
-          bottomLeft: isCurrentUser ? const Radius.circular(20) : const Radius.circular(4),
-          bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(20),
+          bottomLeft: isCurrentUser
+              ? const Radius.circular(20)
+              : const Radius.circular(4),
+          bottomRight: isCurrentUser
+              ? const Radius.circular(4)
+              : const Radius.circular(20),
         ),
         border: Border.all(
           color: theme.primaryColor.withValues(alpha: 0.3),
@@ -166,15 +166,13 @@ class MessageBubble extends StatelessWidget {
               Icon(
                 Icons.share,
                 size: 16,
-                color: isCurrentUser 
-                    ? Colors.white 
-                    : theme.primaryColor,
+                color: isCurrentUser ? Colors.white : theme.primaryColor,
               ),
               const SizedBox(width: 6),
               Text(
                 'Shared Activity',
                 style: theme.textTheme.bodySmall?.copyWith(
-                  color: isCurrentUser 
+                  color: isCurrentUser
                       ? Colors.white.withValues(alpha: 0.8)
                       : theme.textTheme.bodySmall?.color,
                   fontWeight: FontWeight.w500,
@@ -186,7 +184,7 @@ class MessageBubble extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isCurrentUser 
+              color: isCurrentUser
                   ? Colors.white.withValues(alpha: 0.1)
                   : theme.primaryColor.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(12),
@@ -197,8 +195,8 @@ class MessageBubble extends StatelessWidget {
                 Text(
                   metadata?['activityTitle'] ?? 'Activity',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: isCurrentUser 
-                        ? Colors.white 
+                    color: isCurrentUser
+                        ? Colors.white
                         : AppTheme.textColor(context),
                     fontWeight: FontWeight.w600,
                   ),
@@ -208,7 +206,7 @@ class MessageBubble extends StatelessWidget {
                   Text(
                     _getActivityTypeText(metadata!['activityType']),
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: isCurrentUser 
+                      color: isCurrentUser
                           ? Colors.white.withValues(alpha: 0.8)
                           : theme.textTheme.bodySmall?.color,
                     ),
@@ -226,8 +224,12 @@ class MessageBubble extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20).copyWith(
-          bottomLeft: isCurrentUser ? const Radius.circular(20) : const Radius.circular(4),
-          bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(20),
+          bottomLeft: isCurrentUser
+              ? const Radius.circular(20)
+              : const Radius.circular(4),
+          bottomRight: isCurrentUser
+              ? const Radius.circular(4)
+              : const Radius.circular(20),
         ),
         boxShadow: [
           BoxShadow(
@@ -239,8 +241,12 @@ class MessageBubble extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20).copyWith(
-          bottomLeft: isCurrentUser ? const Radius.circular(20) : const Radius.circular(4),
-          bottomRight: isCurrentUser ? const Radius.circular(4) : const Radius.circular(20),
+          bottomLeft: isCurrentUser
+              ? const Radius.circular(20)
+              : const Radius.circular(4),
+          bottomRight: isCurrentUser
+              ? const Radius.circular(4)
+              : const Radius.circular(20),
         ),
         child: CachedNetworkImage(
           imageUrl: message.content,
@@ -251,17 +257,13 @@ class MessageBubble extends StatelessWidget {
             width: 200,
             height: 200,
             color: AppTheme.cardColor(context),
-            child: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            child: const Center(child: CircularProgressIndicator()),
           ),
           errorWidget: (context, url, error) => Container(
             width: 200,
             height: 200,
             color: AppTheme.cardColor(context),
-            child: const Center(
-              child: Icon(Icons.error),
-            ),
+            child: const Center(child: Icon(Icons.error)),
           ),
         ),
       ),

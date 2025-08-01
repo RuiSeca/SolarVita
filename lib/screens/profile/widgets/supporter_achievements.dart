@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/privacy_settings.dart';
-import '../../../services/supporter_profile_service.dart';
+import '../../../models/user/privacy_settings.dart';
+import '../../../services/database/supporter_profile_service.dart';
 
 class SupporterAchievements extends ConsumerWidget {
   final String supporterId;
@@ -35,11 +35,7 @@ class SupporterAchievements extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.emoji_events,
-                color: AppColors.primary,
-                size: 24,
-              ),
+              Icon(Icons.emoji_events, color: AppColors.primary, size: 24),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'achievements'),
@@ -51,11 +47,7 @@ class SupporterAchievements extends ConsumerWidget {
               ),
               const Spacer(),
               if (!privacySettings.showAchievements)
-                Icon(
-                  Icons.lock_outline,
-                  color: Colors.grey[500],
-                  size: 20,
-                ),
+                Icon(Icons.lock_outline, color: Colors.grey[500], size: 20),
             ],
           ),
           const SizedBox(height: 16),
@@ -72,7 +64,7 @@ class SupporterAchievements extends ConsumerWidget {
 
     // Show actual achievements
     final achievementsList = achievements ?? _getDefaultAchievements(context);
-    
+
     return SizedBox(
       height: 120,
       child: ListView.builder(
@@ -92,19 +84,13 @@ class SupporterAchievements extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Colors.grey.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.shield_outlined,
-              color: Colors.grey[500],
-              size: 32,
-            ),
+            Icon(Icons.shield_outlined, color: Colors.grey[500], size: 32),
             const SizedBox(height: 8),
             Text(
               tr(context, 'achievements_shared_privately'),
@@ -117,10 +103,7 @@ class SupporterAchievements extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               tr(context, 'supporter_keeps_achievements_private'),
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -132,7 +115,7 @@ class SupporterAchievements extends ConsumerWidget {
   Widget _buildAchievementBadge(BuildContext context, Achievement achievement) {
     final iconData = _getIconFromName(achievement.iconName);
     final color = _getColorFromName(achievement.colorName);
-    
+
     return Container(
       width: 90,
       margin: const EdgeInsets.only(right: 12),
@@ -144,10 +127,7 @@ class SupporterAchievements extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: achievement.isUnlocked
                   ? LinearGradient(
-                      colors: [
-                        color,
-                        color.withValues(alpha: 0.7),
-                      ],
+                      colors: [color, color.withValues(alpha: 0.7)],
                     )
                   : LinearGradient(
                       colors: [
@@ -157,7 +137,7 @@ class SupporterAchievements extends ConsumerWidget {
                     ),
               shape: BoxShape.circle,
               border: Border.all(
-                color: achievement.isUnlocked 
+                color: achievement.isUnlocked
                     ? color.withValues(alpha: 0.5)
                     : Colors.grey.withValues(alpha: 0.3),
                 width: 2,
@@ -184,7 +164,7 @@ class SupporterAchievements extends ConsumerWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: achievement.isUnlocked 
+              color: achievement.isUnlocked
                   ? AppTheme.textColor(context)
                   : Colors.grey[500],
             ),
@@ -196,10 +176,7 @@ class SupporterAchievements extends ConsumerWidget {
             const SizedBox(height: 2),
             Text(
               achievement.subtitle!,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

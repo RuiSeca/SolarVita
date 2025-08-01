@@ -1,6 +1,6 @@
 // lib/widgets/social/report_content_dialog.dart
 import 'package:flutter/material.dart';
-import '../../models/content_moderation.dart';
+import '../../models/moderation/content_moderation.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 
@@ -41,9 +41,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: AppTheme.cardColor(context),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
         padding: const EdgeInsets.all(24),
         constraints: BoxConstraints(
@@ -90,11 +88,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
             color: Colors.red.withAlpha(51),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(
-            Icons.report,
-            color: Colors.red,
-            size: 20,
-          ),
+          child: const Icon(Icons.report, color: Colors.red, size: 20),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -102,7 +96,9 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                widget.contentType == 'post' ? tr(context, 'report_post') : tr(context, 'report_comment_title'),
+                widget.contentType == 'post'
+                    ? tr(context, 'report_post')
+                    : tr(context, 'report_comment_title'),
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -155,7 +151,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
 
   Widget _buildReasonOption(ModerationReason reason) {
     final isSelected = _selectedReason == reason;
-    
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -165,12 +161,12 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? Theme.of(context).primaryColor.withAlpha(51)
               : AppTheme.textFieldBackground(context),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected 
+            color: isSelected
                 ? Theme.of(context).primaryColor
                 : AppTheme.textColor(context).withAlpha(51),
           ),
@@ -178,8 +174,10 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
         child: Row(
           children: [
             Icon(
-              isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-              color: isSelected 
+              isSelected
+                  ? Icons.radio_button_checked
+                  : Icons.radio_button_unchecked,
+              color: isSelected
                   ? Theme.of(context).primaryColor
                   : AppTheme.textColor(context).withAlpha(153),
               size: 20,
@@ -250,14 +248,10 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Theme.of(context).primaryColor,
-              ),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
             ),
           ),
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-          ),
+          style: TextStyle(color: AppTheme.textColor(context)),
         ),
       ],
     );
@@ -300,14 +294,10 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Theme.of(context).primaryColor,
-              ),
+              borderSide: BorderSide(color: Theme.of(context).primaryColor),
             ),
           ),
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-          ),
+          style: TextStyle(color: AppTheme.textColor(context)),
         ),
       ],
     );
@@ -362,7 +352,8 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
 
   bool _canSubmit() {
     if (_selectedReason == null) return false;
-    if (_selectedReason == ModerationReason.other && _customReasonController.text.trim().isEmpty) {
+    if (_selectedReason == ModerationReason.other &&
+        _customReasonController.text.trim().isEmpty) {
       return false;
     }
     return true;
@@ -383,10 +374,10 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
         contentOwnerId: widget.contentOwnerId,
         contentOwnerName: widget.contentOwnerName,
         reason: _selectedReason!,
-        customReason: _selectedReason == ModerationReason.other 
+        customReason: _selectedReason == ModerationReason.other
             ? _customReasonController.text.trim()
             : null,
-        description: _descriptionController.text.trim().isNotEmpty 
+        description: _descriptionController.text.trim().isNotEmpty
             ? _descriptionController.text.trim()
             : null,
         reportedAt: DateTime.now(),
@@ -395,7 +386,7 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       );
 
       widget.onReportSubmitted(report);
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -410,7 +401,9 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tr(context, 'failed_submit_report').replaceAll('{error}', '$e')),
+            content: Text(
+              tr(context, 'failed_submit_report').replaceAll('{error}', '$e'),
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -443,5 +436,4 @@ class _ReportContentDialogState extends State<ReportContentDialog> {
         return tr(context, 'other');
     }
   }
-
 }

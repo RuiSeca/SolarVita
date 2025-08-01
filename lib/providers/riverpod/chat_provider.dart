@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/chat_service.dart';
-import '../../models/chat_conversation.dart';
-import '../../models/chat_message.dart';
+import '../../services/chat/chat_service.dart';
+import '../../models/chat/chat_conversation.dart';
+import '../../models/chat/chat_message.dart';
 
 // Chat Service Provider
 final chatServiceProvider = Provider<ChatService>((ref) {
@@ -9,16 +9,18 @@ final chatServiceProvider = Provider<ChatService>((ref) {
 });
 
 // User Conversations Stream Provider
-final userConversationsProvider = StreamProvider.autoDispose<List<ChatConversation>>((ref) {
-  final chatService = ref.watch(chatServiceProvider);
-  return chatService.getUserConversations();
-});
+final userConversationsProvider =
+    StreamProvider.autoDispose<List<ChatConversation>>((ref) {
+      final chatService = ref.watch(chatServiceProvider);
+      return chatService.getUserConversations();
+    });
 
 // Specific Conversation Messages Provider
-final conversationMessagesProvider = StreamProvider.autoDispose.family<List<ChatMessage>, String>((ref, conversationId) {
-  final chatService = ref.watch(chatServiceProvider);
-  return chatService.getMessages(conversationId);
-});
+final conversationMessagesProvider = StreamProvider.autoDispose
+    .family<List<ChatMessage>, String>((ref, conversationId) {
+      final chatService = ref.watch(chatServiceProvider);
+      return chatService.getMessages(conversationId);
+    });
 
 // Total Unread Count Provider
 final totalUnreadCountProvider = StreamProvider.autoDispose<int>((ref) {
@@ -27,10 +29,11 @@ final totalUnreadCountProvider = StreamProvider.autoDispose<int>((ref) {
 });
 
 // Chat Search Results Provider
-final chatSearchProvider = FutureProvider.autoDispose.family<List<ChatMessage>, String>((ref, query) {
-  final chatService = ref.watch(chatServiceProvider);
-  return chatService.searchMessages(query);
-});
+final chatSearchProvider = FutureProvider.autoDispose
+    .family<List<ChatMessage>, String>((ref, query) {
+      final chatService = ref.watch(chatServiceProvider);
+      return chatService.searchMessages(query);
+    });
 
 // Selected Conversation State Provider
 final selectedConversationProvider = StateProvider<String?>((ref) => null);
@@ -50,11 +53,7 @@ class ChatUIState {
     this.isTyping = false,
   });
 
-  ChatUIState copyWith({
-    bool? isLoading,
-    String? error,
-    bool? isTyping,
-  }) {
+  ChatUIState copyWith({bool? isLoading, String? error, bool? isTyping}) {
     return ChatUIState(
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
@@ -63,9 +62,10 @@ class ChatUIState {
   }
 }
 
-final chatUIStateProvider = StateNotifierProvider<ChatUIStateNotifier, ChatUIState>((ref) {
-  return ChatUIStateNotifier();
-});
+final chatUIStateProvider =
+    StateNotifierProvider<ChatUIStateNotifier, ChatUIState>((ref) {
+      return ChatUIStateNotifier();
+    });
 
 class ChatUIStateNotifier extends StateNotifier<ChatUIState> {
   ChatUIStateNotifier() : super(const ChatUIState());
@@ -91,7 +91,7 @@ class ChatUIStateNotifier extends StateNotifier<ChatUIState> {
 final chatActionsProvider = Provider<ChatActions>((ref) {
   final chatService = ref.watch(chatServiceProvider);
   final chatUINotifier = ref.watch(chatUIStateProvider.notifier);
-  
+
   return ChatActions(chatService, chatUINotifier);
 });
 
@@ -105,8 +105,10 @@ class ChatActions {
     try {
       _uiNotifier.setLoading(true);
       _uiNotifier.clearError();
-      
-      final conversationId = await _chatService.getOrCreateConversation(otherUserId);
+
+      final conversationId = await _chatService.getOrCreateConversation(
+        otherUserId,
+      );
       return conversationId;
     } catch (e) {
       _uiNotifier.setError('Failed to create conversation: $e');
@@ -116,11 +118,15 @@ class ChatActions {
     }
   }
 
-  Future<bool> sendMessage(String conversationId, String receiverId, String content) async {
+  Future<bool> sendMessage(
+    String conversationId,
+    String receiverId,
+    String content,
+  ) async {
     try {
       _uiNotifier.setLoading(true);
       _uiNotifier.clearError();
-      
+
       await _chatService.sendMessage(
         conversationId: conversationId,
         receiverId: receiverId,
@@ -135,11 +141,15 @@ class ChatActions {
     }
   }
 
-  Future<bool> shareActivity(String conversationId, String receiverId, activity) async {
+  Future<bool> shareActivity(
+    String conversationId,
+    String receiverId,
+    activity,
+  ) async {
     try {
       _uiNotifier.setLoading(true);
       _uiNotifier.clearError();
-      
+
       await _chatService.sendActivityShare(
         conversationId: conversationId,
         receiverId: receiverId,
@@ -168,7 +178,7 @@ class ChatActions {
     try {
       _uiNotifier.setLoading(true);
       _uiNotifier.clearError();
-      
+
       await _chatService.deleteConversation(conversationId);
       return true;
     } catch (e) {

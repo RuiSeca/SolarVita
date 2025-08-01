@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/recipe_service.dart';
+import '../../services/meal/recipe_service.dart';
 
 part 'meal_provider.g.dart';
 
@@ -64,7 +64,8 @@ class MealNotifier extends _$MealNotifier {
   // Track most recently used queries/categories
   final List<String> _recentKeys = [];
   // Maximum number of searches to keep in cache
-  static const int _maxCacheSize = 15; // Increased cache size for better performance
+  static const int _maxCacheSize =
+      15; // Increased cache size for better performance
 
   @override
   MealState build() {
@@ -77,7 +78,13 @@ class MealNotifier extends _$MealNotifier {
   void _preloadPopularCategories() {
     Future.delayed(const Duration(milliseconds: 1000), () async {
       // Preload the most commonly accessed categories
-      final popularCategories = ['chicken', 'beef', 'pasta', 'vegetarian', 'seafood'];
+      final popularCategories = [
+        'chicken',
+        'beef',
+        'pasta',
+        'vegetarian',
+        'seafood',
+      ];
       for (String category in popularCategories) {
         try {
           final mealService = ref.read(mealServiceProvider);
@@ -130,7 +137,7 @@ class MealNotifier extends _$MealNotifier {
     try {
       final mealService = ref.read(mealServiceProvider);
       List<Map<String, dynamic>> meals;
-      
+
       if (normalizedCategory == 'all') {
         meals = await mealService.getAllMeals();
       } else {
@@ -161,27 +168,29 @@ class MealNotifier extends _$MealNotifier {
 
       // Start loading detailed meal info in the background
       _loadDetailedMealsInBackground(normalizedCategory, meals);
-
     } catch (e) {
       String errorMessage;
       String errorDetails;
-
 
       if (e is SocketException) {
         errorMessage = 'Network error';
         errorDetails = 'Please check your internet connection and try again.';
       } else if (e is TimeoutException) {
         errorMessage = 'Connection timeout';
-        errorDetails = 'The server is taking too long to respond. Please try again later.';
+        errorDetails =
+            'The server is taking too long to respond. Please try again later.';
       } else if (e.toString().contains('Failed to load meal details')) {
         errorMessage = 'Data loading error';
-        errorDetails = 'Some meals in this category could not be loaded. Please try again later.';
+        errorDetails =
+            'Some meals in this category could not be loaded. Please try again later.';
       } else if (e.toString().contains('Failed to load category meals')) {
         errorMessage = 'Category error';
-        errorDetails = 'Unable to load meals for this category. The category might be temporarily unavailable.';
+        errorDetails =
+            'Unable to load meals for this category. The category might be temporarily unavailable.';
       } else {
         errorMessage = 'Unexpected error';
-        errorDetails = 'Something went wrong while loading meals. Please try again.';
+        errorDetails =
+            'Something went wrong while loading meals. Please try again.';
       }
 
       state = state.copyWith(
@@ -194,7 +203,10 @@ class MealNotifier extends _$MealNotifier {
   }
 
   // Load detailed meal information in the background
-  Future<void> _loadDetailedMealsInBackground(String category, List<Map<String, dynamic>> basicMeals) async {
+  Future<void> _loadDetailedMealsInBackground(
+    String category,
+    List<Map<String, dynamic>> basicMeals,
+  ) async {
     try {
       // Only load details for basic meals
       final basicMealIds = basicMeals
@@ -209,7 +221,9 @@ class MealNotifier extends _$MealNotifier {
       state = state.copyWith(isLoadingDetails: true);
 
       final mealService = ref.read(mealServiceProvider);
-      final detailedMeals = await mealService.getMealsByCategoryDetailed(category);
+      final detailedMeals = await mealService.getMealsByCategoryDetailed(
+        category,
+      );
 
       // Only update if we're still on the same category
       if (state.currentCategory == category && state.meals != null) {
@@ -217,7 +231,8 @@ class MealNotifier extends _$MealNotifier {
         final updatedMeals = state.meals!.map((basicMeal) {
           // Find corresponding detailed meal
           final detailedMeal = detailedMeals.firstWhere(
-            (detailed) => detailed['id'] == (basicMeal['id'] ?? basicMeal['idMeal']),
+            (detailed) =>
+                detailed['id'] == (basicMeal['id'] ?? basicMeal['idMeal']),
             orElse: () => <String, dynamic>{},
           );
 
@@ -225,17 +240,15 @@ class MealNotifier extends _$MealNotifier {
             // Replace basic meal with detailed meal data
             return {
               ...detailedMeal,
-              'isFavorite': basicMeal['isFavorite'] ?? false, // Preserve favorite status
+              'isFavorite':
+                  basicMeal['isFavorite'] ?? false, // Preserve favorite status
             };
           }
           return basicMeal; // Keep basic meal if no detailed version found
         }).toList();
 
         // Update state with detailed meals
-        state = state.copyWith(
-          meals: updatedMeals,
-          isLoadingDetails: false,
-        );
+        state = state.copyWith(meals: updatedMeals, isLoadingDetails: false);
 
         // Update cache with detailed meals
         final cacheKey = 'category_${category.toLowerCase()}';
@@ -308,7 +321,6 @@ class MealNotifier extends _$MealNotifier {
         errorMessage: null,
         errorDetails: null,
       );
-
     } catch (e) {
       String errorMessage;
       String errorDetails;
@@ -318,10 +330,12 @@ class MealNotifier extends _$MealNotifier {
         errorDetails = 'Please check your internet connection and try again.';
       } else if (e is TimeoutException) {
         errorMessage = 'Connection timeout';
-        errorDetails = 'The server is taking too long to respond. Please try again later.';
+        errorDetails =
+            'The server is taking too long to respond. Please try again later.';
       } else {
         errorMessage = 'Unexpected error';
-        errorDetails = 'Something went wrong while searching meals. Please try again.';
+        errorDetails =
+            'Something went wrong while searching meals. Please try again.';
       }
 
       state = state.copyWith(
@@ -364,10 +378,7 @@ class MealNotifier extends _$MealNotifier {
 
   void clearError() {
     if (state.hasError) {
-      state = state.copyWith(
-        errorMessage: null,
-        errorDetails: null,
-      );
+      state = state.copyWith(errorMessage: null, errorDetails: null);
     }
   }
 
@@ -377,10 +388,7 @@ class MealNotifier extends _$MealNotifier {
 
     final updatedMeals = state.meals!.map((meal) {
       if (meal['id'] == mealId) {
-        return {
-          ...meal,
-          'isFavorite': isFavorite,
-        };
+        return {...meal, 'isFavorite': isFavorite};
       }
       return meal;
     }).toList();
@@ -392,10 +400,7 @@ class MealNotifier extends _$MealNotifier {
     for (final entry in _cache.entries) {
       final updatedCachedMeals = entry.value.map((meal) {
         if (meal['id'] == mealId) {
-          return {
-            ...meal,
-            'isFavorite': isFavorite,
-          };
+          return {...meal, 'isFavorite': isFavorite};
         }
         return meal;
       }).toList();
@@ -405,10 +410,7 @@ class MealNotifier extends _$MealNotifier {
 
   // Get cache info for debugging
   Map<String, int> getCacheInfo() {
-    return {
-      'cacheSize': _cache.length,
-      'recentKeysCount': _recentKeys.length,
-    };
+    return {'cacheSize': _cache.length, 'recentKeysCount': _recentKeys.length};
   }
 }
 
@@ -436,7 +438,6 @@ String? mealsErrorMessage(Ref ref) {
   final mealState = ref.watch(mealNotifierProvider);
   return mealState.errorMessage;
 }
-
 
 @riverpod
 String? mealsErrorDetails(Ref ref) {

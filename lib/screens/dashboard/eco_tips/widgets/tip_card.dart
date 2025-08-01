@@ -1,16 +1,13 @@
 // widgets/tip_card.dart
 import 'package:flutter/material.dart';
-import '../../../../models/eco_tip.dart';
+import '../../../../models/eco/eco_tip.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../../../widgets/common/oriented_image.dart';
 
 class TipCard extends StatelessWidget {
   final EcoTip tip;
 
-  const TipCard({
-    required this.tip,
-    super.key,
-  });
+  const TipCard({required this.tip, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -72,9 +69,7 @@ class TipCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   tr(context, tip.descriptionKey),
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    height: 1.5,
-                  ),
+                  style: theme.textTheme.bodyMedium?.copyWith(height: 1.5),
                 ),
                 const SizedBox(height: 16),
                 Row(

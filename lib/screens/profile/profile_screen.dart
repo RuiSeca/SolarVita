@@ -9,10 +9,10 @@ import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../providers/riverpod/health_data_provider.dart';
-import '../../services/social_service.dart';
-import '../../services/data_sync_service.dart';
-import '../../models/supporter.dart';
-import 'supporter_requests_screen.dart';
+import '../../services/database/social_service.dart';
+import '../../services/chat/data_sync_service.dart';
+import '../../models/user/supporter.dart';
+import 'supporter/supporter_requests_screen.dart';
 import '../../utils/translation_helper.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -30,7 +30,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   void initState() {
     super.initState();
     _initializeCachedStream();
-    
+
     // Sync data to Firebase when profile loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncCurrentDataToFirebase();
@@ -46,20 +46,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       // First, sync supporter count to ensure accuracy (silent background sync)
       await _autoSyncSupporterCount();
-      
+
       // Small delay to prevent jarring refresh
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // Refresh other data in parallel to speed things up
       await Future.wait([
         ref.read(userProgressNotifierProvider.notifier).refresh(),
         ref.read(healthDataNotifierProvider.notifier).syncHealthData(),
         _syncCurrentDataToFirebase(),
       ]);
-      
+
       // Refresh supporter requests cache
       _initializeCachedStream();
-      
     } catch (e) {
       // Don't block refresh on individual failures
       debugPrint('Refresh error: $e');
@@ -71,7 +70,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userProfile = ref.read(userProfileNotifierProvider).value;
       final userProgress = ref.read(userProgressNotifierProvider).value;
       final healthData = ref.read(healthDataNotifierProvider).value;
-      
+
       if (userProfile != null && userProgress != null && healthData != null) {
         await DataSyncService().syncAllUserData(
           progress: userProgress,
@@ -91,7 +90,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final wasFixed = await _socialService.autoSyncSupporterCount();
       if (wasFixed) {
         // Silently refresh the user profile without triggering loading state
-        await ref.read(userProfileNotifierProvider.notifier).silentRefreshSupporterCount();
+        await ref
+            .read(userProfileNotifierProvider.notifier)
+            .silentRefreshSupporterCount();
       }
     } catch (e) {
       // Silent fail for auto-sync
@@ -101,7 +102,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
-    
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
@@ -113,26 +114,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 parent: AlwaysScrollableScrollPhysics(),
               ),
               child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const ModernProfileHeader(),
-                _SupporterRequestNotification(stream: _supporterRequestsStream!),
-                const SizedBox(height: 8),
-                const DailyGoalsProgressWidget(),
-                const SizedBox(height: 8),
-                const ModernWeeklySummary(),
-                const SizedBox(height: 24),
-                const ModernActionGrid(),
-                const SizedBox(height: 24),
-                const ModernAchievementsSection(),
-                const SizedBox(height: 32),
-              ],
-            ),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const ModernProfileHeader(),
+                  _SupporterRequestNotification(
+                    stream: _supporterRequestsStream!,
+                  ),
+                  const SizedBox(height: 8),
+                  const DailyGoalsProgressWidget(),
+                  const SizedBox(height: 8),
+                  const ModernWeeklySummary(),
+                  const SizedBox(height: 24),
+                  const ModernActionGrid(),
+                  const SizedBox(height: 24),
+                  const ModernAchievementsSection(),
+                  const SizedBox(height: 32),
+                ],
+              ),
             ),
           ),
-          loading: () => const Center(
-            child: CircularProgressIndicator(),
-          ),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stackTrace) => Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -169,22 +170,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ),
     );
   }
-
 }
 
 class _SupporterRequestNotification extends StatefulWidget {
   const _SupporterRequestNotification({required this.stream});
-  
+
   final Stream<List<SupporterRequest>> stream;
 
   @override
-  State<_SupporterRequestNotification> createState() => _SupporterRequestNotificationState();
+  State<_SupporterRequestNotification> createState() =>
+      _SupporterRequestNotificationState();
 }
 
-class _SupporterRequestNotificationState extends State<_SupporterRequestNotification> {
+class _SupporterRequestNotificationState
+    extends State<_SupporterRequestNotification> {
   List<SupporterRequest>? _cachedRequests;
   DateTime? _lastUpdate;
-  
+
   // Cache duration - only update every 30 seconds to reduce rebuilds
   static const _cacheDuration = Duration(seconds: 30);
 
@@ -194,27 +196,27 @@ class _SupporterRequestNotificationState extends State<_SupporterRequestNotifica
       stream: widget.stream,
       builder: (context, snapshot) {
         final now = DateTime.now();
-        
+
         // Use cached data if it's recent and valid
-        if (_cachedRequests != null && 
-            _lastUpdate != null && 
+        if (_cachedRequests != null &&
+            _lastUpdate != null &&
             now.difference(_lastUpdate!) < _cacheDuration) {
           final pendingRequests = _cachedRequests!;
-          
+
           if (pendingRequests.isEmpty) {
             return const SizedBox.shrink();
           }
           return _SupporterRequestCard(count: pendingRequests.length);
         }
-        
+
         // Update cache with new data
         if (snapshot.hasData && snapshot.data != null) {
           _cachedRequests = snapshot.data!;
           _lastUpdate = now;
         }
-        
+
         final pendingRequests = snapshot.data ?? _cachedRequests ?? [];
-        
+
         if (pendingRequests.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -227,7 +229,7 @@ class _SupporterRequestNotificationState extends State<_SupporterRequestNotifica
 
 class _SupporterRequestCard extends StatelessWidget {
   const _SupporterRequestCard({required this.count});
-  
+
   final int count;
 
   @override
@@ -308,9 +310,12 @@ class _SupporterRequestCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        count == 1 
+                        count == 1
                             ? tr(context, 'you_have_one_supporter_request')
-                            : tr(context, 'you_have_supporter_requests').replaceAll('{count}', count.toString()),
+                            : tr(
+                                context,
+                                'you_have_supporter_requests',
+                              ).replaceAll('{count}', count.toString()),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.primaryColor,

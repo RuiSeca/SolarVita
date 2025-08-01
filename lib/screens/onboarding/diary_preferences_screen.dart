@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
-import '../../models/user_profile.dart';
-import '../../services/user_profile_service.dart';
+import '../../models/user/user_profile.dart';
+import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../main.dart';
 
@@ -10,16 +10,23 @@ class DiaryPreferencesScreen extends ConsumerStatefulWidget {
   const DiaryPreferencesScreen({super.key});
 
   @override
-  ConsumerState<DiaryPreferencesScreen> createState() => _DiaryPreferencesScreenState();
+  ConsumerState<DiaryPreferencesScreen> createState() =>
+      _DiaryPreferencesScreenState();
 }
 
-class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen> {
+class _DiaryPreferencesScreenState
+    extends ConsumerState<DiaryPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   bool _isLoading = false;
 
   bool _enableDailyReminders = true;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 20, minute: 0);
-  final List<String> _selectedTrackingCategories = ['workout', 'nutrition', 'mood', 'sustainability'];
+  final List<String> _selectedTrackingCategories = [
+    'workout',
+    'nutrition',
+    'mood',
+    'sustainability',
+  ];
   bool _enableMoodTracking = true;
   bool _enableGoalTracking = true;
   bool _enableProgressPhotos = false;
@@ -84,16 +91,16 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'Set up your personal diary',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Customize your diary experience to track your progress and reflect on your journey.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -105,9 +112,9 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'Daily Reminders',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         SwitchListTile(
@@ -139,9 +146,9 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'What would you like to track in your diary?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -174,9 +181,9 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'Diary Features',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         SwitchListTile(
@@ -219,14 +226,16 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'Privacy Settings',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         SwitchListTile(
           title: const Text('Private by Default'),
-          subtitle: const Text('Keep diary entries private unless you choose to share'),
+          subtitle: const Text(
+            'Keep diary entries private unless you choose to share',
+          ),
           value: _privateByDefault,
           onChanged: (bool value) {
             setState(() {
@@ -244,9 +253,9 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       children: [
         Text(
           'Default Template',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._templateOptions.map((template) {
@@ -288,9 +297,10 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
   }
 
   String _formatCategoryName(String category) {
-    return category.split('_').map((word) => 
-      word[0].toUpperCase() + word.substring(1)
-    ).join(' ');
+    return category
+        .split('_')
+        .map((word) => word[0].toUpperCase() + word.substring(1))
+        .join(' ');
   }
 
   String _formatTemplateName(String template) {
@@ -370,9 +380,11 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
 
       if (mounted) {
         // Update the provider first
-        final userProfileProvider = ref.read(userProfileNotifierProvider.notifier);
+        final userProfileProvider = ref.read(
+          userProfileNotifierProvider.notifier,
+        );
         await userProfileProvider.refreshUserProfile();
-        
+
         // Check mounted again after async operation
         if (mounted) {
           // Navigate to main app, clearing all previous routes
@@ -386,11 +398,9 @@ class _DiaryPreferencesScreenState extends ConsumerState<DiaryPreferencesScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error completing setup: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error completing setup: $e')));
       }
     } finally {
       if (mounted) {

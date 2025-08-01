@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../../theme/app_theme.dart';
-import '../add_friend_screen.dart';
-import '../supporters_list_screen.dart';
-import '../supporter_activity_feed_screen.dart';
-import '../eco_impact_screen.dart';
+import '../screens/add_friend_screen.dart';
+import '../supporter/supporters_list_screen.dart';
+import '../supporter/supporter_activity_feed_screen.dart';
+import '../screens/eco_impact_screen.dart';
 import '../debug_menu_screen.dart';
 import 'dart:ui';
 import '../../../utils/translation_helper.dart';
@@ -196,11 +196,7 @@ class ModernActionGrid extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          icon,
-                          color: Colors.white,
-                          size: 20,
-                        ),
+                        child: Icon(icon, color: Colors.white, size: 20),
                       ),
                       Icon(
                         Icons.arrow_forward_ios,

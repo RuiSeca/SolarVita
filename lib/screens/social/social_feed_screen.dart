@@ -5,13 +5,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import 'dart:ui';
-import '../../models/social_post.dart';
+import '../../models/social/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../providers/riverpod/firebase_social_provider.dart';
-import '../../services/social_service.dart';
+import '../../services/database/social_service.dart';
 import 'create_post_screen.dart';
 import 'post_templates_screen.dart';
 
@@ -44,32 +44,28 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation controller
     _bottomBarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _bottomBarController, 
-      curve: Curves.easeInOutCubic,
-    ));
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _bottomBarController,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _bottomBarController, 
-      curve: Curves.easeInOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _bottomBarController, curve: Curves.easeInOut),
+    );
 
     // Start with bottom bar visible
     _bottomBarController.forward();
-    
+
     _scrollController.addListener(_onScroll);
     _setupScrollListener();
   }
@@ -84,11 +80,13 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
   void _setupScrollListener() {
     _scrollController.addListener(() {
-      if (_scrollController.position.userScrollDirection == ScrollDirection.reverse) {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
         if (_isBottomBarVisible) {
           _updateBottomBarVisibility(false);
         }
-      } else if (_scrollController.position.userScrollDirection == ScrollDirection.forward) {
+      } else if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.forward) {
         if (!_isBottomBarVisible) {
           _updateBottomBarVisibility(true);
         }
@@ -140,7 +138,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
-    
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: _buildAppBar(),
@@ -175,12 +173,14 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
           ),
           Consumer(
             builder: (context, ref, child) {
-              final postsAsync = ref.watch(socialPostsFeedProvider(
-                visibility: _filterVisibility,
-                pillars: _selectedPillars,
-                limit: 50,
-              ));
-              
+              final postsAsync = ref.watch(
+                socialPostsFeedProvider(
+                  visibility: _filterVisibility,
+                  pillars: _selectedPillars,
+                  limit: 50,
+                ),
+              );
+
               return postsAsync.when(
                 data: (posts) => Text(
                   '${posts.length} posts',
@@ -225,8 +225,8 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     return PopupMenuButton<String>(
       icon: Icon(
         Icons.filter_list,
-        color: _selectedFilter != 'all' 
-            ? Colors.white 
+        color: _selectedFilter != 'all'
+            ? Colors.white
             : AppTheme.textColor(context),
       ),
       onSelected: (value) {
@@ -244,8 +244,8 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               Icon(
                 Icons.public,
                 size: 20,
-                color: _selectedFilter == 'all' 
-                    ? Theme.of(context).primaryColor 
+                color: _selectedFilter == 'all'
+                    ? Theme.of(context).primaryColor
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
@@ -260,8 +260,8 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               Icon(
                 Icons.people,
                 size: 20,
-                color: _selectedFilter == 'supporters' 
-                    ? Theme.of(context).primaryColor 
+                color: _selectedFilter == 'supporters'
+                    ? Theme.of(context).primaryColor
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
@@ -276,8 +276,8 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               Icon(
                 Icons.public,
                 size: 20,
-                color: _selectedFilter == 'public' 
-                    ? Theme.of(context).primaryColor 
+                color: _selectedFilter == 'public'
+                    ? Theme.of(context).primaryColor
                     : AppTheme.textColor(context),
               ),
               const SizedBox(width: 8),
@@ -292,11 +292,13 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   Widget _buildFeedContent() {
     return Consumer(
       builder: (context, ref, child) {
-        final postsAsync = ref.watch(socialPostsFeedProvider(
-          visibility: _filterVisibility,
-          pillars: _selectedPillars,
-          limit: 50,
-        ));
+        final postsAsync = ref.watch(
+          socialPostsFeedProvider(
+            visibility: _filterVisibility,
+            pillars: _selectedPillars,
+            limit: 50,
+          ),
+        );
 
         return postsAsync.when(
           data: (posts) => _buildPostsList(posts),
@@ -337,7 +339,8 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
             padding: const EdgeInsets.only(bottom: 16),
             child: SocialPostCard(
               post: post,
-              onReaction: (postId, reaction) => _handleReaction(postId, reaction),
+              onReaction: (postId, reaction) =>
+                  _handleReaction(postId, reaction),
               showSupporterTag: _shouldShowSupporterTag(post),
             ),
           );
@@ -389,21 +392,24 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
               Navigator.push(
                 context,
                 PageRouteBuilder(
-                  pageBuilder: (context, animation, secondaryAnimation) => const CreatePostScreen(),
-                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                    const begin = Offset(0.0, 1.0);
-                    const end = Offset.zero;
-                    const curve = Curves.easeOutCubic;
+                  pageBuilder: (context, animation, secondaryAnimation) =>
+                      const CreatePostScreen(),
+                  transitionsBuilder:
+                      (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(0.0, 1.0);
+                        const end = Offset.zero;
+                        const curve = Curves.easeOutCubic;
 
-                    var tween = Tween(begin: begin, end: end).chain(
-                      CurveTween(curve: curve),
-                    );
+                        var tween = Tween(
+                          begin: begin,
+                          end: end,
+                        ).chain(CurveTween(curve: curve));
 
-                    return SlideTransition(
-                      position: animation.drive(tween),
-                      child: child,
-                    );
-                  },
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
                   transitionDuration: const Duration(milliseconds: 400),
                   reverseTransitionDuration: const Duration(milliseconds: 300),
                 ),
@@ -427,11 +433,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.withAlpha(128),
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
             tr(context, 'something_wrong'),
@@ -484,7 +486,9 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                 height: 100,
                 decoration: BoxDecoration(
                   color: AppTheme.cardColor(context).withAlpha(200),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                   border: Border.all(
                     color: AppTheme.textColor(context).withAlpha(26),
                     width: 1,
@@ -492,12 +496,13 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
                 ),
                 child: SafeArea(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
-                        Expanded(
-                          child: _buildCreatePostButton(),
-                        ),
+                        Expanded(child: _buildCreatePostButton()),
                         const SizedBox(width: 12),
                         _buildTemplatesButton(),
                       ],
@@ -542,21 +547,24 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
             Navigator.push(
               context,
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const CreatePostScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.elasticOut;
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const CreatePostScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.elasticOut;
 
-                  var tween = Tween(begin: begin, end: end).chain(
-                    CurveTween(curve: curve),
-                  );
+                      var tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
 
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
-                },
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
                 transitionDuration: const Duration(milliseconds: 800),
                 reverseTransitionDuration: const Duration(milliseconds: 500),
               ),
@@ -591,10 +599,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: Theme.of(context).primaryColor,
-          width: 2,
-        ),
+        border: Border.all(color: Theme.of(context).primaryColor, width: 2),
       ),
       child: Material(
         color: Colors.transparent,
@@ -605,21 +610,24 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
             Navigator.push(
               context,
               PageRouteBuilder(
-                pageBuilder: (context, animation, secondaryAnimation) => const PostTemplatesScreen(),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.elasticOut;
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const PostTemplatesScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.elasticOut;
 
-                  var tween = Tween(begin: begin, end: end).chain(
-                    CurveTween(curve: curve),
-                  );
+                      var tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
 
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
-                },
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
                 transitionDuration: const Duration(milliseconds: 800),
                 reverseTransitionDuration: const Duration(milliseconds: 500),
               ),
@@ -699,23 +707,16 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
   void _handleReaction(String postId, ReactionType reaction) async {
     final failedAddReaction = tr(context, 'failed_add_reaction');
-    
+
     try {
-      await ref.read(socialPostActionsProvider.notifier).reactToPost(postId, reaction);
+      await ref
+          .read(socialPostActionsProvider.notifier)
+          .reactToPost(postId, reaction);
       HapticFeedback.lightImpact();
     } catch (e) {
       _showErrorSnackBar(failedAddReaction.replaceAll('{error}', '$e'));
     }
   }
-
-
-
-
-
-
-
-
-
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -729,15 +730,16 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
   bool _shouldShowSupporterTag(SocialPost post) {
     // Only show supporter tag in public filter for users we're supporting
-    return _selectedFilter == 'public' && _supportedUserIds.contains(post.userId);
+    return _selectedFilter == 'public' &&
+        _supportedUserIds.contains(post.userId);
   }
 
   Future<void> _loadSupportedUserIds(List<SocialPost> posts) async {
     if (_selectedFilter != 'public') return;
-    
+
     final userIds = posts.map((post) => post.userId).toSet();
     final supportedIds = <String>{};
-    
+
     for (final userId in userIds) {
       try {
         final isSupporting = await _socialService.isSupporting(userId);
@@ -748,12 +750,11 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
         // Ignore errors for individual checks
       }
     }
-    
+
     if (mounted) {
       setState(() {
         _supportedUserIds = supportedIds;
       });
     }
   }
-
 }

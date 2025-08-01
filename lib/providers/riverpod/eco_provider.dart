@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/carbon_activity.dart';
-import '../../models/eco_metrics.dart';
-import '../../models/food_analysis.dart';
-import '../../services/eco_service.dart';
-import '../../services/meal_eco_integration_service.dart';
+import '../../models/eco/carbon_activity.dart';
+import '../../models/eco/eco_metrics.dart';
+import '../../models/food/food_analysis.dart';
+import '../../services/database/eco_service.dart';
+import '../../services/meal/meal_eco_integration_service.dart';
 
 // Eco service provider
 final ecoServiceProvider = Provider<EcoService>((ref) {
@@ -22,15 +22,16 @@ final userEcoMetricsProvider = StreamProvider<EcoMetrics>((ref) {
 });
 
 // User's eco activities stream with optional filtering
-final userEcoActivitiesProvider = StreamProvider.family<List<EcoActivity>, EcoActivitiesQuery>((ref, query) {
-  final ecoService = ref.watch(ecoServiceProvider);
-  return ecoService.getUserEcoActivities(
-    type: query.type,
-    limit: query.limit,
-    startDate: query.startDate,
-    endDate: query.endDate,
-  );
-});
+final userEcoActivitiesProvider =
+    StreamProvider.family<List<EcoActivity>, EcoActivitiesQuery>((ref, query) {
+      final ecoService = ref.watch(ecoServiceProvider);
+      return ecoService.getUserEcoActivities(
+        type: query.type,
+        limit: query.limit,
+        startDate: query.startDate,
+        endDate: query.endDate,
+      );
+    });
 
 // Recent eco activities (last 10)
 final recentEcoActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
@@ -41,7 +42,10 @@ final recentEcoActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
 // Activities by type providers
 final transportActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
   final ecoService = ref.watch(ecoServiceProvider);
-  return ecoService.getUserEcoActivities(type: EcoActivityType.transport, limit: 20);
+  return ecoService.getUserEcoActivities(
+    type: EcoActivityType.transport,
+    limit: 20,
+  );
 });
 
 final foodActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
@@ -51,17 +55,26 @@ final foodActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
 
 final energyActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
   final ecoService = ref.watch(ecoServiceProvider);
-  return ecoService.getUserEcoActivities(type: EcoActivityType.energy, limit: 20);
+  return ecoService.getUserEcoActivities(
+    type: EcoActivityType.energy,
+    limit: 20,
+  );
 });
 
 final wasteActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
   final ecoService = ref.watch(ecoServiceProvider);
-  return ecoService.getUserEcoActivities(type: EcoActivityType.waste, limit: 20);
+  return ecoService.getUserEcoActivities(
+    type: EcoActivityType.waste,
+    limit: 20,
+  );
 });
 
 final consumptionActivitiesProvider = StreamProvider<List<EcoActivity>>((ref) {
   final ecoService = ref.watch(ecoServiceProvider);
-  return ecoService.getUserEcoActivities(type: EcoActivityType.consumption, limit: 20);
+  return ecoService.getUserEcoActivities(
+    type: EcoActivityType.consumption,
+    limit: 20,
+  );
 });
 
 // Carbon saved analytics
@@ -70,7 +83,9 @@ final carbonSavedLast30DaysProvider = FutureProvider<double>((ref) {
   return ecoService.getCarbonSavedLast30Days();
 });
 
-final activityCountsByTypeProvider = FutureProvider<Map<EcoActivityType, int>>((ref) {
+final activityCountsByTypeProvider = FutureProvider<Map<EcoActivityType, int>>((
+  ref,
+) {
   final ecoService = ref.watch(ecoServiceProvider);
   return ecoService.getActivityCountsByType();
 });
@@ -121,13 +136,13 @@ class EcoActivityActions {
   Future<String> addActivity(EcoActivity activity) async {
     try {
       final activityId = await _ecoService.addEcoActivity(activity);
-      
+
       // Invalidate relevant providers to refresh data
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _ref.invalidate(carbonSavedLast30DaysProvider);
       _ref.invalidate(activityCountsByTypeProvider);
-      
+
       // Invalidate specific type provider
       switch (activity.type) {
         case EcoActivityType.transport:
@@ -146,7 +161,7 @@ class EcoActivityActions {
           _ref.invalidate(consumptionActivitiesProvider);
           break;
       }
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to add eco activity: $e');
@@ -154,16 +169,24 @@ class EcoActivityActions {
   }
 
   // Quick activity logging methods
-  Future<String> logTransportActivity(String activity, {double distance = 1.0, String? notes}) async {
+  Future<String> logTransportActivity(
+    String activity, {
+    double distance = 1.0,
+    String? notes,
+  }) async {
     try {
-      final activityId = await _ecoService.logTransportActivity(activity, distance: distance, notes: notes);
-      
+      final activityId = await _ecoService.logTransportActivity(
+        activity,
+        distance: distance,
+        notes: notes,
+      );
+
       // Refresh providers
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _ref.invalidate(transportActivitiesProvider);
       _ref.invalidate(carbonSavedLast30DaysProvider);
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to log transport activity: $e');
@@ -172,30 +195,39 @@ class EcoActivityActions {
 
   Future<String> logFoodActivity(String activity, {String? notes}) async {
     try {
-      final activityId = await _ecoService.logFoodActivity(activity, notes: notes);
-      
+      final activityId = await _ecoService.logFoodActivity(
+        activity,
+        notes: notes,
+      );
+
       // Refresh providers
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _ref.invalidate(foodActivitiesProvider);
       _ref.invalidate(carbonSavedLast30DaysProvider);
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to log food activity: $e');
     }
   }
 
-  Future<String> logConsumptionActivity(String activity, {String? notes}) async {
+  Future<String> logConsumptionActivity(
+    String activity, {
+    String? notes,
+  }) async {
     try {
-      final activityId = await _ecoService.logConsumptionActivity(activity, notes: notes);
-      
+      final activityId = await _ecoService.logConsumptionActivity(
+        activity,
+        notes: notes,
+      );
+
       // Refresh providers
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _ref.invalidate(consumptionActivitiesProvider);
       _ref.invalidate(carbonSavedLast30DaysProvider);
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to log consumption activity: $e');
@@ -203,7 +235,13 @@ class EcoActivityActions {
   }
 
   // Meal logging methods
-  Future<String?> logMealActivity(String mealCategory, {int? calories, bool isCustomMeal = false, String? mealName, String? notes}) async {
+  Future<String?> logMealActivity(
+    String mealCategory, {
+    int? calories,
+    bool isCustomMeal = false,
+    String? mealName,
+    String? notes,
+  }) async {
     try {
       final activityId = await _ecoService.logMealActivity(
         mealCategory,
@@ -212,13 +250,13 @@ class EcoActivityActions {
         mealName: mealName,
         notes: notes,
       );
-      
+
       // Refresh providers
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _ref.invalidate(foodActivitiesProvider);
       _ref.invalidate(carbonSavedLast30DaysProvider);
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to log meal activity: $e');
@@ -264,7 +302,9 @@ class EcoActivityActions {
   Future<String?> onFoodAnalysisLogged(FoodAnalysis foodAnalysis) async {
     try {
       final mealEcoService = _ref.read(mealEcoIntegrationProvider);
-      final activityId = await mealEcoService.onFoodAnalysisLogged(foodAnalysis);
+      final activityId = await mealEcoService.onFoodAnalysisLogged(
+        foodAnalysis,
+      );
 
       if (activityId != null) {
         // Refresh providers only if activity was created
@@ -285,12 +325,11 @@ class EcoActivityActions {
   Future<void> updateActivity(String activityId, EcoActivity activity) async {
     try {
       await _ecoService.updateEcoActivity(activityId, activity);
-      
+
       // Refresh all providers since we don't recalculate metrics on update
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _invalidateActivityProviders();
-      
     } catch (e) {
       throw Exception('Failed to update eco activity: $e');
     }
@@ -300,12 +339,11 @@ class EcoActivityActions {
   Future<void> deleteActivity(String activityId) async {
     try {
       await _ecoService.deleteEcoActivity(activityId);
-      
+
       // Refresh all providers since we don't recalculate metrics on delete
       _ref.invalidate(userEcoMetricsProvider);
       _ref.invalidate(recentEcoActivitiesProvider);
       _invalidateActivityProviders();
-      
     } catch (e) {
       throw Exception('Failed to delete eco activity: $e');
     }
@@ -325,7 +363,7 @@ class EcoActivityActions {
         notes: notes,
         autoGenerate: autoGenerate,
       );
-      
+
       if (activityId != null) {
         // Refresh providers
         _ref.invalidate(userEcoMetricsProvider);
@@ -333,7 +371,7 @@ class EcoActivityActions {
         _ref.invalidate(transportActivitiesProvider);
         _ref.invalidate(carbonSavedLast30DaysProvider);
       }
-      
+
       return activityId;
     } catch (e) {
       throw Exception('Failed to log transportation activity: $e');
@@ -371,13 +409,13 @@ final todaysActivitiesProvider = Provider<AsyncValue<List<EcoActivity>>>((ref) {
   final today = DateTime.now();
   final startOfDay = DateTime(today.year, today.month, today.day);
   final endOfDay = startOfDay.add(const Duration(days: 1));
-  
+
   final query = EcoActivitiesQuery(
     startDate: startOfDay,
     endDate: endOfDay,
     limit: 20,
   );
-  
+
   return ref.watch(userEcoActivitiesProvider(query));
 });
 
@@ -385,19 +423,26 @@ final todaysActivitiesProvider = Provider<AsyncValue<List<EcoActivity>>>((ref) {
 final thisWeekCarbonSavedProvider = FutureProvider<double>((ref) async {
   final today = DateTime.now();
   final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-  final startOfWeekMidnight = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-  
-  final query = EcoActivitiesQuery(
-    startDate: startOfWeekMidnight,
-    limit: 100,
+  final startOfWeekMidnight = DateTime(
+    startOfWeek.year,
+    startOfWeek.month,
+    startOfWeek.day,
   );
-  
+
+  final query = EcoActivitiesQuery(startDate: startOfWeekMidnight, limit: 100);
+
   final activities = await ref.watch(userEcoActivitiesProvider(query).future);
-  return activities.fold<double>(0.0, (sum, activity) => sum + activity.carbonSaved);
+  return activities.fold<double>(
+    0.0,
+    (sum, activity) => sum + activity.carbonSaved,
+  );
 });
 
 // Meal carbon savings potential provider
-final mealCarbonPotentialProvider = Provider.family<double, MealCarbonQuery>((ref, query) {
+final mealCarbonPotentialProvider = Provider.family<double, MealCarbonQuery>((
+  ref,
+  query,
+) {
   return EcoService.calculateMealCarbonSaved(
     query.mealCategory,
     calories: query.calories,
@@ -406,18 +451,22 @@ final mealCarbonPotentialProvider = Provider.family<double, MealCarbonQuery>((re
 });
 
 // Meal sustainability tip provider
-final mealSustainabilityTipProvider = Provider.family<String, String>((ref, mealCategory) {
+final mealSustainabilityTipProvider = Provider.family<String, String>((
+  ref,
+  mealCategory,
+) {
   final mealEcoService = ref.watch(mealEcoIntegrationProvider);
   return mealEcoService.getSustainabilityTip(mealCategory);
 });
 
 // Transportation carbon calculation provider
-final transportationCarbonPotentialProvider = Provider.family<double, TransportationCarbonQuery>((ref, query) {
-  return EcoService.calculateTransportationCarbonSaved(
-    steps: query.steps,
-    activeMinutes: query.activeMinutes,
-  );
-});
+final transportationCarbonPotentialProvider =
+    Provider.family<double, TransportationCarbonQuery>((ref, query) {
+      return EcoService.calculateTransportationCarbonSaved(
+        steps: query.steps,
+        activeMinutes: query.activeMinutes,
+      );
+    });
 
 // Query class for meal carbon calculations
 class MealCarbonQuery {
@@ -441,7 +490,8 @@ class MealCarbonQuery {
           isCustomMeal == other.isCustomMeal;
 
   @override
-  int get hashCode => mealCategory.hashCode ^ calories.hashCode ^ isCustomMeal.hashCode;
+  int get hashCode =>
+      mealCategory.hashCode ^ calories.hashCode ^ isCustomMeal.hashCode;
 }
 
 // Query class for transportation carbon calculations

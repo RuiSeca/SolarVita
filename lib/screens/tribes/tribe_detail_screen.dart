@@ -3,11 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 // import 'package:share_plus/share_plus.dart';
-import '../../models/tribe.dart';
-import '../../models/tribe_member.dart';
-import '../../models/tribe_post.dart';
-import '../../models/social_post.dart';
-import '../../services/tribe_service.dart';
+import '../../models/tribe/tribe.dart';
+import '../../models/tribe/tribe_member.dart';
+import '../../models/tribe/tribe_post.dart';
+import '../../models/social/social_post.dart';
+import '../../services/database/tribe_service.dart';
 import '../../theme/app_theme.dart';
 import '../social/post_comments_screen.dart';
 import 'create_tribe_post_screen.dart';
@@ -16,11 +16,7 @@ class TribeDetailScreen extends ConsumerStatefulWidget {
   final String tribeId;
   final String? inviteCode;
 
-  const TribeDetailScreen({
-    super.key,
-    required this.tribeId,
-    this.inviteCode,
-  });
+  const TribeDetailScreen({super.key, required this.tribeId, this.inviteCode});
 
   @override
   ConsumerState<TribeDetailScreen> createState() => _TribeDetailScreenState();
@@ -31,7 +27,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   final TribeService _tribeService = TribeService();
   late TabController _tabController;
   final ScrollController _scrollController = ScrollController();
-  
+
   bool _isJoining = false;
   bool _showFloatingButton = false;
   TribeMember? _currentUserMember;
@@ -62,10 +58,16 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   Future<void> _loadMembershipStatus() async {
     final currentUserId = _tribeService.currentUserId;
     if (currentUserId == null) return;
-    
-    final isMember = await _tribeService.isUserTribeMember(widget.tribeId, currentUserId);
+
+    final isMember = await _tribeService.isUserTribeMember(
+      widget.tribeId,
+      currentUserId,
+    );
     if (isMember && mounted) {
-      final member = await _tribeService.getTribeMember(widget.tribeId, currentUserId);
+      final member = await _tribeService.getTribeMember(
+        widget.tribeId,
+        currentUserId,
+      );
       setState(() {
         _currentUserMember = member;
       });
@@ -96,7 +98,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   Widget _buildTribeScaffold(Tribe tribe) {
     final theme = Theme.of(context);
     final isMember = _currentUserMember != null;
-    
+
     return Scaffold(
       body: NestedScrollView(
         controller: _scrollController,
@@ -148,7 +150,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                 ],
               ),
             ),
-            
+
             // Tab Content
             Expanded(
               child: TabBarView(
@@ -176,7 +178,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildTribeHeader(Tribe tribe) {
     final theme = Theme.of(context);
-    
+
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -197,11 +199,13 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               child: CachedNetworkImage(
                 imageUrl: tribe.coverImage!,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: theme.primaryColor.withValues(alpha: 0.2)),
-                errorWidget: (context, url, error) => Container(color: theme.primaryColor.withValues(alpha: 0.2)),
+                placeholder: (context, url) =>
+                    Container(color: theme.primaryColor.withValues(alpha: 0.2)),
+                errorWidget: (context, url, error) =>
+                    Container(color: theme.primaryColor.withValues(alpha: 0.2)),
               ),
             ),
-          
+
           // Gradient Overlay
           Positioned.fill(
             child: Container(
@@ -217,7 +221,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               ),
             ),
           ),
-          
+
           // Content
           Positioned(
             bottom: 24,
@@ -238,9 +242,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                     style: const TextStyle(fontSize: 24),
                   ),
                 ),
-                
+
                 const SizedBox(height: 12),
-                
+
                 // Tribe Name
                 Text(
                   tribe.name,
@@ -250,9 +254,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                     color: Colors.white,
                   ),
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 // Quick Stats
                 Row(
                   children: [
@@ -302,7 +306,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildPostsTab(Tribe tribe) {
     final isMember = _currentUserMember != null;
-    
+
     return StreamBuilder<List<TribePost>>(
       stream: _tribeService.getTribePosts(tribe.id),
       builder: (context, snapshot) {
@@ -327,12 +331,16 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                     color: AppTheme.cardColor(context),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Theme.of(context).dividerColor.withValues(alpha: 0.2),
+                      color: Theme.of(
+                        context,
+                      ).dividerColor.withValues(alpha: 0.2),
                     ),
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                      backgroundColor: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.1),
                       child: Icon(
                         Icons.add,
                         color: Theme.of(context).primaryColor,
@@ -343,12 +351,10 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                   ),
                 ),
               ),
-            
+
             // Posts List
             if (posts.isEmpty)
-              SliverFillRemaining(
-                child: _buildEmptyPostsState(isMember),
-              )
+              SliverFillRemaining(child: _buildEmptyPostsState(isMember))
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
@@ -391,7 +397,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildAboutTab(Tribe tribe) {
     final theme = Theme.of(context);
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -401,14 +407,11 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
           _buildInfoCard(
             title: 'Description',
             icon: Icons.description,
-            child: Text(
-              tribe.description,
-              style: theme.textTheme.bodyMedium,
-            ),
+            child: Text(tribe.description, style: theme.textTheme.bodyMedium),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Category
           _buildInfoCard(
             title: 'Category',
@@ -418,9 +421,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               avatar: Text(tribe.getCategoryIcon()),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Created Info
           _buildInfoCard(
             title: 'Tribe Info',
@@ -437,7 +440,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               ],
             ),
           ),
-          
+
           if (tribe.tags.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildInfoCard(
@@ -446,14 +449,18 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: tribe.tags.map((tag) => Chip(
-                  label: Text('#$tag'),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                )).toList(),
+                children: tribe.tags
+                    .map(
+                      (tag) => Chip(
+                        label: Text('#$tag'),
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ],
-          
+
           if (tribe.location != null) ...[
             const SizedBox(height: 16),
             _buildInfoCard(
@@ -473,16 +480,14 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     required Widget child,
   }) {
     final theme = Theme.of(context);
-    
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,15 +513,13 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildPostCard(TribePost post) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -538,7 +541,10 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
             subtitle: Text(post.getTimeAgo()),
             trailing: post.isAnnouncement
                 ? Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
@@ -554,7 +560,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
                   )
                 : null,
           ),
-          
+
           // Post Content
           if (post.title != null) ...[
             Padding(
@@ -567,12 +573,12 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
               ),
             ),
           ],
-          
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Text(post.content),
           ),
-          
+
           // Post Actions
           Padding(
             padding: const EdgeInsets.all(8),
@@ -604,16 +610,14 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildMemberCard(TribeMember member) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -658,15 +662,13 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Widget _buildJoinBar(Tribe tribe) {
     final theme = Theme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         border: Border(
-          top: BorderSide(
-            color: theme.dividerColor.withValues(alpha: 0.2),
-          ),
+          top: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2)),
         ),
       ),
       child: SafeArea(
@@ -711,7 +713,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
             Icon(
               Icons.forum_outlined,
               size: 64,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -748,7 +752,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
             Icon(
               Icons.people_outline,
               size: 64,
-              color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
+              color: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.color?.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 16),
             Text(
@@ -803,7 +809,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays > 365) {
       return '${(difference.inDays / 365).floor()} year${difference.inDays > 730 ? 's' : ''} ago';
     } else if (difference.inDays > 30) {
@@ -817,11 +823,11 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
   Future<void> _joinTribe(Tribe tribe) async {
     setState(() => _isJoining = true);
-    
+
     try {
       await _tribeService.joinTribe(tribe.id, inviteCode: widget.inviteCode);
       await _loadMembershipStatus();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -862,9 +868,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
       await _tribeService.likeTribePost(post.id);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -901,7 +907,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     final message = tribe.isPrivate && tribe.inviteCode != null
         ? 'Join our tribe "${tribe.name}" on SolarVita with invite code: ${tribe.inviteCode}'
         : 'Check out the "${tribe.name}" tribe on SolarVita!';
-    
+
     Clipboard.setData(ClipboardData(text: message));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Invite message copied to clipboard!')),

@@ -7,10 +7,10 @@ import '../../../../utils/translation_helper.dart';
 import '../../../../providers/riverpod/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
-import '../../../../services/social_service.dart';
-import '../../../../models/privacy_settings.dart';
-import '../../../../models/social_activity.dart';
-import '../../../../services/supporter_profile_service.dart';
+import '../../../../services/database/social_service.dart';
+import '../../../../models/user/privacy_settings.dart';
+import '../../../../models/social/social_activity.dart';
+import '../../../../services/database/supporter_profile_service.dart';
 
 class PrivacyScreen extends ConsumerStatefulWidget {
   const PrivacyScreen({super.key});
@@ -21,8 +21,9 @@ class PrivacyScreen extends ConsumerStatefulWidget {
 
 class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   final SocialService _socialService = SocialService();
-  final SupporterProfileService _supporterProfileService = SupporterProfileService();
-  
+  final SupporterProfileService _supporterProfileService =
+      SupporterProfileService();
+
   // Privacy settings state
   bool _dataCollection = true;
   bool _analyticsTracking = true;
@@ -125,15 +126,15 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       // Update both old social service and new supporter profile service
       await _socialService.updatePrivacySettings(updatedSettings);
       await _supporterProfileService.updatePrivacySettings(updatedSettings);
-      
+
       setState(() {
         _socialPrivacySettings = updatedSettings;
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Privacy settings updated successfully'),
+            content: Text(tr(context, 'privacy_settings_updated')),
             backgroundColor: Colors.green,
           ),
         );
@@ -142,7 +143,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating privacy setting: $e'),
+            content: Text(tr(context, 'error_updating_privacy_setting').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -194,14 +195,14 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   Widget _buildSocialPrivacySection() {
     return _buildSection(
       context,
-      title: 'Supporter Privacy Settings',
-      subtitle: 'Control what your supporters can see on your profile and in real-time',
+      title: tr(context, 'supporter_privacy_settings'),
+      subtitle: tr(context, 'control_supporters_visibility'),
       children: [
         _buildDefaultPostVisibilityTile(),
         _buildSwitchTile(
           context,
-          title: 'Show Profile in Search',
-          subtitle: 'Allow others to find your profile in user search',
+          title: tr(context, 'show_profile_in_search'),
+          subtitle: tr(context, 'allow_profile_search'),
           value: _showProfileInSearch,
           onChanged: (value) {
             setState(() => _showProfileInSearch = value);
@@ -211,8 +212,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Allow Supporter Requests',
-          subtitle: 'Let other users send you supporter requests',
+          title: tr(context, 'allow_supporter_requests'),
+          subtitle: tr(context, 'let_users_send_requests'),
           value: _allowFriendRequests,
           onChanged: (value) {
             setState(() => _allowFriendRequests = value);
@@ -222,8 +223,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Share Workout Stats with Supporters',
-          subtitle: 'Let supporters see your daily steps, calories, strikes, and fitness progress',
+          title: tr(context, 'share_workout_stats'),
+          subtitle: tr(context, 'share_workout_stats_desc'),
           value: _showWorkoutStats,
           onChanged: (value) {
             setState(() => _showWorkoutStats = value);
@@ -233,8 +234,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Share Nutrition Stats with Supporters',
-          subtitle: 'Let supporters see your meal tracking and calorie information',
+          title: tr(context, 'share_nutrition_stats'),
+          subtitle: tr(context, 'share_nutrition_stats_desc'),
           value: _showNutritionStats,
           onChanged: (value) {
             setState(() => _showNutritionStats = value);
@@ -244,8 +245,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Share Eco Score with Supporters',
-          subtitle: 'Let supporters see your sustainability score and eco-friendly actions',
+          title: tr(context, 'share_eco_score'),
+          subtitle: tr(context, 'share_eco_score_desc'),
           value: _showEcoScore,
           onChanged: (value) {
             setState(() => _showEcoScore = value);
@@ -255,8 +256,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Share Achievements with Supporters',
-          subtitle: 'Let supporters see your badges, milestones, and accomplishments',
+          title: tr(context, 'share_achievements'),
+          subtitle: tr(context, 'share_achievements_desc'),
           value: _showAchievements,
           onChanged: (value) {
             setState(() => _showAchievements = value);
@@ -266,8 +267,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
         _buildSwitchTile(
           context,
-          title: 'Allow Challenge Invites',
-          subtitle: 'Let supporters invite you to community challenges',
+          title: tr(context, 'allow_challenge_invites'),
+          subtitle: tr(context, 'allow_challenge_invites_desc'),
           value: _allowChallengeInvites,
           onChanged: (value) {
             setState(() => _allowChallengeInvites = value);
@@ -287,21 +288,17 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           color: AppColors.primary.withAlpha(26),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          Icons.visibility,
-          color: AppColors.primary,
-          size: 20,
-        ),
+        child: Icon(Icons.visibility, color: AppColors.primary, size: 20),
       ),
       title: Text(
-        'Default Post Visibility',
+        tr(context, 'default_post_visibility'),
         style: TextStyle(
           color: AppTheme.textColor(context),
           fontWeight: FontWeight.w500,
         ),
       ),
       subtitle: Text(
-        'Who can see your activities by default',
+        tr(context, 'who_can_see_activities'),
         style: TextStyle(
           color: AppTheme.textColor(context).withAlpha(179),
           fontSize: 14,
@@ -316,23 +313,25 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           }
         },
         items: PostVisibility.values
-            .map((visibility) => DropdownMenuItem(
-                  value: visibility,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _getVisibilityIcon(visibility),
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _getVisibilityText(visibility),
-                        style: TextStyle(color: AppTheme.textColor(context)),
-                      ),
-                    ],
-                  ),
-                ))
+            .map(
+              (visibility) => DropdownMenuItem(
+                value: visibility,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _getVisibilityIcon(visibility),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _getVisibilityText(visibility),
+                      style: TextStyle(color: AppTheme.textColor(context)),
+                    ),
+                  ],
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -352,11 +351,11 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
   String _getVisibilityText(PostVisibility visibility) {
     switch (visibility) {
       case PostVisibility.supportersOnly:
-        return 'Supporters Only';
+        return tr(context, 'supporters_only');
       case PostVisibility.community:
-        return 'Community';
+        return tr(context, 'community');
       case PostVisibility.public:
-        return 'Public';
+        return tr(context, 'public');
     }
   }
 
@@ -501,11 +500,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           color: AppColors.primary.withAlpha(26),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          Icons.schedule,
-          color: AppColors.primary,
-          size: 20,
-        ),
+        child: Icon(Icons.schedule, color: AppColors.primary, size: 20),
       ),
       title: Text(
         tr(context, 'data_retention_period'),
@@ -530,14 +525,15 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           }
         },
         items: [3, 6, 12, 24, 36]
-            .map((months) => DropdownMenuItem(
-                  value: months,
-                  child: Text(
-                    tr(context, 'months_count')
-                        .replaceAll('{count}', '$months'),
-                    style: TextStyle(color: AppTheme.textColor(context)),
-                  ),
-                ))
+            .map(
+              (months) => DropdownMenuItem(
+                value: months,
+                child: Text(
+                  tr(context, 'months_count').replaceAll('{count}', '$months'),
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
+              ),
+            )
             .toList(),
       ),
     );
@@ -841,16 +837,26 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildGDPRRight(tr(context, 'right_to_access'),
-                  tr(context, 'right_to_access_desc')),
-              _buildGDPRRight(tr(context, 'right_to_rectification'),
-                  tr(context, 'right_to_rectification_desc')),
-              _buildGDPRRight(tr(context, 'right_to_erasure'),
-                  tr(context, 'right_to_erasure_desc')),
-              _buildGDPRRight(tr(context, 'right_to_portability'),
-                  tr(context, 'right_to_portability_desc')),
-              _buildGDPRRight(tr(context, 'right_to_object'),
-                  tr(context, 'right_to_object_desc')),
+              _buildGDPRRight(
+                tr(context, 'right_to_access'),
+                tr(context, 'right_to_access_desc'),
+              ),
+              _buildGDPRRight(
+                tr(context, 'right_to_rectification'),
+                tr(context, 'right_to_rectification_desc'),
+              ),
+              _buildGDPRRight(
+                tr(context, 'right_to_erasure'),
+                tr(context, 'right_to_erasure_desc'),
+              ),
+              _buildGDPRRight(
+                tr(context, 'right_to_portability'),
+                tr(context, 'right_to_portability_desc'),
+              ),
+              _buildGDPRRight(
+                tr(context, 'right_to_object'),
+                tr(context, 'right_to_object_desc'),
+              ),
             ],
           ),
         ),
@@ -863,7 +869,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             onPressed: () {
               Navigator.pop(context);
               _openUrl(
-                  'mailto:privacy@solarvita.com?subject=GDPR Rights Request');
+                'mailto:privacy@solarvita.com?subject=${Uri.encodeComponent(tr(context, 'gdpr_rights_request_subject'))}',
+              );
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: Text(

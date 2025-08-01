@@ -1,9 +1,10 @@
 // lib/screens/social/post_templates_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/post_template.dart';
-import '../../models/social_post.dart';
+import '../../models/posts/post_template.dart';
+import '../../models/social/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
+import '../../utils/template_localization.dart';
 import 'template_post_creator_screen.dart';
 
 class PostTemplatesScreen extends StatefulWidget {
@@ -16,7 +17,7 @@ class PostTemplatesScreen extends StatefulWidget {
 class _PostTemplatesScreenState extends State<PostTemplatesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
@@ -139,10 +140,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
         dividerColor: Colors.transparent,
         labelColor: Colors.white,
         unselectedLabelColor: AppTheme.textColor(context),
-        labelStyle: const TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        labelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w600,
@@ -159,22 +157,38 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
 
   Widget _buildWeeklyWinsTab() {
     final templates = WeeklyWinsTemplate.getWeeklyWinsTemplates();
-    return _buildTemplateGrid(templates);
+    final localizedTemplates = TemplateLocalization.getLocalizedTemplates(
+      context,
+      templates,
+    );
+    return _buildTemplateGrid(localizedTemplates);
   }
 
   Widget _buildAchievementsTab() {
     final templates = WeeklyWinsTemplate.getAchievementTemplates();
-    return _buildTemplateGrid(templates);
+    final localizedTemplates = TemplateLocalization.getLocalizedTemplates(
+      context,
+      templates,
+    );
+    return _buildTemplateGrid(localizedTemplates);
   }
 
   Widget _buildGratitudeTab() {
     final templates = WeeklyWinsTemplate.getGratitudeTemplates();
-    return _buildTemplateGrid(templates);
+    final localizedTemplates = TemplateLocalization.getLocalizedTemplates(
+      context,
+      templates,
+    );
+    return _buildTemplateGrid(localizedTemplates);
   }
 
   Widget _buildAllTemplatesTab() {
     final templates = WeeklyWinsTemplate.getAllTemplates();
-    return _buildTemplateGrid(templates);
+    final localizedTemplates = TemplateLocalization.getLocalizedTemplates(
+      context,
+      templates,
+    );
+    return _buildTemplateGrid(localizedTemplates);
   }
 
   Widget _buildTemplateGrid(List<PostTemplate> templates) {
@@ -204,9 +218,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppTheme.textColor(context).withAlpha(26),
-          ),
+          border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(13),
@@ -225,14 +237,10 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
                 color: template.color.withAlpha(26),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                template.icon,
-                color: template.color,
-                size: 24,
-              ),
+              child: Icon(template.icon, color: template.color, size: 24),
             ),
             const SizedBox(width: 16),
-            
+
             // Template info
             Expanded(
               child: Column(
@@ -291,7 +299,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
                 ],
               ),
             ),
-            
+
             // Use template button
             Container(
               padding: const EdgeInsets.all(8),
@@ -299,11 +307,7 @@ class _PostTemplatesScreenState extends State<PostTemplatesScreen>
                 color: template.color.withAlpha(26),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                Icons.arrow_forward,
-                color: template.color,
-                size: 20,
-              ),
+              child: Icon(Icons.arrow_forward, color: template.color, size: 20),
             ),
           ],
         ),

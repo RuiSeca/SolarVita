@@ -10,11 +10,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Import Firebase options
 import 'firebase_options.dart';
-import 'services/notification_service.dart';
-import 'services/firebase_push_notification_service.dart';
-import 'services/data_sync_service.dart';
-import 'services/chat_notification_service.dart';
-import 'services/strike_calculation_service.dart';
+import 'services/database/notification_service.dart';
+import 'services/database/firebase_push_notification_service.dart';
+import 'services/chat/data_sync_service.dart';
+import 'services/chat/chat_notification_service.dart';
+import 'services/user/strike_calculation_service.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
@@ -35,7 +35,7 @@ import 'providers/riverpod/theme_provider.dart';
 import 'providers/riverpod/language_provider.dart';
 import 'providers/riverpod/user_profile_provider.dart';
 import 'providers/riverpod/auth_provider.dart' as auth;
-import 'models/user_profile.dart';
+import 'models/user/user_profile.dart';
 
 // Global flag to track Firebase initialization
 bool isFirebaseAvailable = false;
@@ -82,11 +82,13 @@ void main() async {
         // androidProvider: AndroidProvider.playIntegrity,
         // appleProvider: AppleProvider.appAttest,
       );
-      
+
       // Only get token in debug mode to avoid unnecessary requests
       if (const bool.fromEnvironment('dart.vm.product') == false) {
         final token = await FirebaseAppCheck.instance.getToken();
-        debugPrint('[FirebaseAppCheck] Debug token available: ${token != null}');
+        debugPrint(
+          '[FirebaseAppCheck] Debug token available: ${token != null}',
+        );
       }
     } catch (e) {
       debugPrint('Firebase App Check initialization failed: $e');
@@ -102,7 +104,9 @@ void main() async {
       await firebasePushService.initialize();
       debugPrint('Firebase Push Notification Service initialized successfully');
     } catch (e, st) {
-      debugPrint('Firebase Push Notification Service initialization failed: $e\n$st');
+      debugPrint(
+        'Firebase Push Notification Service initialization failed: $e\n$st',
+      );
     }
 
     isFirebaseAvailable = true;
@@ -123,10 +127,11 @@ void main() async {
   // Initialize strike calculation service for streak notifications
   if (notificationService != null) {
     try {
-      final strikeService = StrikeCalculationService(notificationService.localNotifications);
+      final strikeService = StrikeCalculationService(
+        notificationService.localNotifications,
+      );
       await strikeService.initialize();
       debugPrint('Strike calculation service initialized successfully');
-      
     } catch (e, st) {
       debugPrint('Strike calculation service initialization failed: $e\n$st');
     }
@@ -215,9 +220,7 @@ class SolarVitaApp extends ConsumerWidget {
       },
       loading: () => const MaterialApp(
         home: Scaffold(
-          body: Center(
-            child: LottieLoadingWidget(width: 80, height: 80)
-          )
+          body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
         ),
       ),
       error: (error, stack) => MaterialApp(
@@ -241,9 +244,7 @@ class SolarVitaApp extends ConsumerWidget {
           data: (userProfile) {
             if (userProfile == null) {
               return const Scaffold(
-                body: Center(
-                  child: LottieLoadingWidget(width: 80, height: 80)
-                )
+                body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
               );
             }
 
@@ -254,9 +255,7 @@ class SolarVitaApp extends ConsumerWidget {
             return const MainNavigationScreen();
           },
           loading: () => const Scaffold(
-            body: Center(
-              child: LottieLoadingWidget(width: 80, height: 80)
-            )
+            body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
           ),
           error: (error, stack) => Scaffold(
             body: Center(
@@ -277,9 +276,7 @@ class SolarVitaApp extends ConsumerWidget {
         );
       },
       loading: () => const Scaffold(
-        body: Center(
-          child: LottieLoadingWidget(width: 80, height: 80)
-        )
+        body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
       ),
       error: (error, stack) =>
           Scaffold(body: Center(child: Text('Authentication error: $error'))),
@@ -346,8 +343,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             label: tr(context, 'nav_dashboard'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.search), 
-            label: tr(context, 'nav_search')
+            icon: const Icon(Icons.search),
+            label: tr(context, 'nav_search'),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.health_and_safety),
@@ -358,8 +355,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             label: tr(context, 'nav_solar_ai'),
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.person), 
-            label: tr(context, 'nav_profile')
+            icon: const Icon(Icons.person),
+            label: tr(context, 'nav_profile'),
           ),
         ],
       ),

@@ -1,6 +1,6 @@
 // lib/widgets/social/post_template_selector.dart
 import 'package:flutter/material.dart';
-import '../../models/post_template.dart';
+import '../../models/posts/post_template.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 
@@ -15,7 +15,8 @@ class PostTemplateSelectorSheet extends StatefulWidget {
   });
 
   @override
-  State<PostTemplateSelectorSheet> createState() => _PostTemplateSelectorSheetState();
+  State<PostTemplateSelectorSheet> createState() =>
+      _PostTemplateSelectorSheetState();
 }
 
 class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
@@ -47,7 +48,9 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
   }
 
   List<PostTemplate> _getTemplatesForCategory(TemplateCategory category) {
-    return _templates.where((template) => template.category == category).toList();
+    return _templates
+        .where((template) => template.category == category)
+        .toList();
   }
 
   @override
@@ -87,10 +90,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.close,
-                    color: AppTheme.textColor(context),
-                  ),
+                  icon: Icon(Icons.close, color: AppTheme.textColor(context)),
                 ),
               ],
             ),
@@ -117,10 +117,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
               tabs: TemplateCategory.values.map((category) {
                 return Tab(
                   text: _getCategoryDisplayName(category),
-                  icon: Icon(
-                    _getCategoryIcon(category),
-                    size: 20,
-                  ),
+                  icon: Icon(_getCategoryIcon(category), size: 20),
                 );
               }).toList(),
             ),
@@ -190,9 +187,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
       ),
       child: InkWell(
         onTap: () => widget.onTemplateSelected(template),
@@ -211,11 +206,7 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
                       color: template.color.withAlpha(51),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      template.icon,
-                      color: template.color,
-                      size: 24,
-                    ),
+                    child: Icon(template.icon, color: template.color, size: 24),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -301,7 +292,10 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
                   runSpacing: 4,
                   children: template.suggestedContent.take(3).map((idea) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: template.color.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
@@ -384,5 +378,4 @@ class _PostTemplateSelectorSheetState extends State<PostTemplateSelectorSheet>
         return Icons.favorite;
     }
   }
-
 }

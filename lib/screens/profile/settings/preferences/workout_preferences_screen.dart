@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
 import '../../../../providers/riverpod/user_profile_provider.dart';
-import '../../../../models/user_profile.dart';
+import '../../../../models/user/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class WorkoutPreferencesScreen extends ConsumerStatefulWidget {
@@ -15,7 +15,8 @@ class WorkoutPreferencesScreen extends ConsumerStatefulWidget {
       _WorkoutPreferencesScreenState();
 }
 
-class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScreen> {
+class _WorkoutPreferencesScreenState
+    extends ConsumerState<WorkoutPreferencesScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -86,10 +87,12 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
   void _loadUserPreferences() {
     final userProfileProvider = ref.read(userProfileNotifierProvider);
     final workoutPrefs = userProfileProvider.value?.workoutPreferences;
-    
+
     if (workoutPrefs != null) {
       setState(() {
-        _selectedWorkoutTypes = List<String>.from(workoutPrefs.preferredWorkoutTypes);
+        _selectedWorkoutTypes = List<String>.from(
+          workoutPrefs.preferredWorkoutTypes,
+        );
         _workoutFrequency = workoutPrefs.workoutFrequencyPerWeek;
         _sessionDuration = workoutPrefs.sessionDurationMinutes;
         _fitnessLevel = workoutPrefs.fitnessLevel;
@@ -116,12 +119,14 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
         preferredTime: _preferredTime,
       );
 
-      await ref.read(userProfileNotifierProvider.notifier).updateWorkoutPreferences(updatedWorkoutPrefs);
+      await ref
+          .read(userProfileNotifierProvider.notifier)
+          .updateWorkoutPreferences(updatedWorkoutPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Workout preferences updated successfully'),
+          SnackBar(
+            content: Text(tr(context, 'workout_preferences_updated')),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -130,7 +135,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating preferences: $e'),
+            content: Text(tr(context, 'error_updating_preferences').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -143,8 +148,6 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       }
     }
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +239,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildWorkoutTypesSection() {
     return _buildSection(
-      title: 'Workout Types',
+      title: tr(context, 'workout_types'),
       icon: Icons.fitness_center,
       children: [
         Padding(
@@ -245,7 +248,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select your preferred workout types:',
+                tr(context, 'select_preferred_workout_types'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -257,13 +260,16 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                 runSpacing: 8,
                 children: _workoutTypeOptions.map((type) {
                   final isSelected = _selectedWorkoutTypes.contains(type);
+                  final translationKey = type.toLowerCase().replaceAll(' ', '_').replaceAll('/', '_');
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(type),
+                    label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -287,7 +293,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildFrequencyAndDurationSection() {
     return _buildSection(
-      title: 'Frequency & Duration',
+      title: tr(context, 'frequency_duration'),
       icon: Icons.schedule,
       children: [
         Padding(
@@ -296,7 +302,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Workouts per week',
+                tr(context, 'workouts_per_week'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 16,
@@ -308,7 +314,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                 min: 1,
                 max: 7,
                 divisions: 6,
-                label: '$_workoutFrequency times',
+                label: tr(context, 'times_label').replaceAll('{count}', '$_workoutFrequency'),
                 onChanged: (value) {
                   setState(() {
                     _workoutFrequency = value.round();
@@ -317,7 +323,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
               ),
               const SizedBox(height: 20),
               Text(
-                'Session duration (minutes)',
+                tr(context, 'session_duration_minutes'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 16,
@@ -329,7 +335,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                 min: 15,
                 max: 120,
                 divisions: 21,
-                label: '$_sessionDuration min',
+                label: tr(context, 'min_label').replaceAll('{count}', '$_sessionDuration'),
                 onChanged: (value) {
                   setState(() {
                     _sessionDuration = value.round();
@@ -345,7 +351,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildFitnessLevelSection() {
     return _buildSection(
-      title: 'Fitness Level',
+      title: tr(context, 'fitness_level'),
       icon: Icons.trending_up,
       children: [
         Padding(
@@ -381,7 +387,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildFitnessGoalsSection() {
     return _buildSection(
-      title: 'Fitness Goals',
+      title: tr(context, 'fitness_goals'),
       icon: Icons.emoji_events,
       iconColor: AppColors.gold,
       children: [
@@ -391,7 +397,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select your fitness goals:',
+                tr(context, 'select_fitness_goals'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -403,13 +409,16 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                 runSpacing: 8,
                 children: _goalOptions.map((goal) {
                   final isSelected = _selectedGoals.contains(goal);
+                  final translationKey = goal.toLowerCase().replaceAll(' ', '_');
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(goal),
+                    label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -433,7 +442,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildAvailableDaysSection() {
     return _buildSection(
-      title: 'Available Days',
+      title: tr(context, 'available_days'),
       icon: Icons.calendar_today,
       children: [
         Padding(
@@ -442,7 +451,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select days you are available to workout:',
+                tr(context, 'select_available_days'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -458,7 +467,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                     });
                   },
                   title: Text(
-                    entry.key.toUpperCase(),
+                    tr(context, entry.key),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontWeight: FontWeight.w500,
@@ -476,7 +485,7 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
   Widget _buildPreferredTimeSection() {
     return _buildSection(
-      title: 'Preferred Time',
+      title: tr(context, 'preferred_time'),
       icon: Icons.access_time,
       children: [
         Padding(
@@ -531,18 +540,12 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
                   width: 20,
                   child: LottieLoadingWidget(width: 20, height: 20),
                 )
-              : const Text(
-                  'Save Preferences',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+              : Text(
+                  tr(context, 'save_preferences'),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         ),
       ),
     );
   }
-
-
-
 }

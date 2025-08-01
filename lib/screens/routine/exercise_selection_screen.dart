@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../models/workout_routine.dart';
+import '../../models/exercise/workout_routine.dart';
 import '../../providers/riverpod/exercise_provider.dart';
 import '../../providers/routine_providers.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
@@ -20,10 +20,12 @@ class ExerciseSelectionScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ExerciseSelectionScreen> createState() => _ExerciseSelectionScreenState();
+  ConsumerState<ExerciseSelectionScreen> createState() =>
+      _ExerciseSelectionScreenState();
 }
 
-class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScreen> {
+class _ExerciseSelectionScreenState
+    extends ConsumerState<ExerciseSelectionScreen> {
   String _selectedMuscleGroup = 'pectorals';
   bool _isLoading = false;
   final Set<String> _selectedExercises = {};
@@ -66,10 +68,7 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -89,16 +88,14 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
       body: Column(
         children: [
           _buildMuscleGroupSelector(),
-          Expanded(
-            child: _buildExerciseList(),
-          ),
+          Expanded(child: _buildExerciseList()),
         ],
       ),
       floatingActionButton: _selectedExercises.isNotEmpty
           ? FloatingActionButton.extended(
               onPressed: _isLoading ? null : _addSelectedExercises,
               backgroundColor: AppTheme.primaryColor,
-              icon: _isLoading 
+              icon: _isLoading
                   ? SizedBox(
                       width: 20,
                       height: 20,
@@ -145,7 +142,7 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
                 final muscleGroup = _muscleGroups.keys.elementAt(index);
                 final displayName = _muscleGroups[muscleGroup]!;
                 final isSelected = _selectedMuscleGroup == muscleGroup;
-                
+
                 return Padding(
                   padding: const EdgeInsets.only(right: 12),
                   child: FilterChip(
@@ -161,13 +158,15 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
                     selectedColor: AppTheme.primaryColor.withAlpha(51),
                     checkmarkColor: AppTheme.primaryColor,
                     labelStyle: TextStyle(
-                      color: isSelected 
+                      color: isSelected
                           ? AppTheme.primaryColor
                           : AppTheme.textColor(context),
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                     side: BorderSide(
-                      color: isSelected 
+                      color: isSelected
                           ? AppTheme.primaryColor
                           : AppTheme.textColor(context).withAlpha(51),
                     ),
@@ -185,28 +184,31 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
     return Consumer(
       builder: (context, ref, child) {
         final exerciseState = ref.watch(exerciseNotifierProvider);
-        
+
         if (exerciseState.isLoading) {
           return const Center(child: LottieLoadingWidget());
         }
 
         if (exerciseState.hasError) {
-          return _buildErrorState(exerciseState.errorMessage ?? 'Unknown error');
+          return _buildErrorState(
+            exerciseState.errorMessage ?? 'Unknown error',
+          );
         }
 
-        if (!exerciseState.hasData || exerciseState.exercises?.isEmpty == true) {
+        if (!exerciseState.hasData ||
+            exerciseState.exercises?.isEmpty == true) {
           return _buildEmptyState();
         }
 
         final exercises = exerciseState.exercises!;
-        
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: exercises.length,
           itemBuilder: (context, index) {
             final exercise = exercises[index];
             final isSelected = _selectedExercises.contains(exercise.title);
-            
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: _buildExerciseCard(exercise, isSelected),
@@ -231,12 +233,12 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected 
+          color: isSelected
               ? AppTheme.primaryColor.withAlpha(26)
               : AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected 
+            color: isSelected
                 ? AppTheme.primaryColor
                 : AppTheme.primaryColor.withAlpha(26),
             width: isSelected ? 2 : 1,
@@ -271,11 +273,7 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.timer,
-                        color: AppTheme.primaryColor,
-                        size: 16,
-                      ),
+                      Icon(Icons.timer, color: AppTheme.primaryColor, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         exercise.duration,
@@ -317,11 +315,7 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Icon(
-                        Icons.star,
-                        color: Colors.amber,
-                        size: 16,
-                      ),
+                      Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
                       Text(
                         exercise.rating.toString(),
@@ -339,23 +333,17 @@ class _ExerciseSelectionScreenState extends ConsumerState<ExerciseSelectionScree
               width: 24,
               height: 24,
               decoration: BoxDecoration(
-                color: isSelected 
-                    ? AppTheme.primaryColor
-                    : Colors.transparent,
+                color: isSelected ? AppTheme.primaryColor : Colors.transparent,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isSelected 
+                  color: isSelected
                       ? AppTheme.primaryColor
                       : AppTheme.textColor(context).withAlpha(102),
                   width: 2,
                 ),
               ),
               child: isSelected
-                  ? const Icon(
-                      Icons.check,
-                      color: Colors.white,
-                      size: 16,
-                    )
+                  ? const Icon(Icons.check, color: Colors.white, size: 16)
                   : null,
             ),
           ],

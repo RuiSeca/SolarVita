@@ -5,7 +5,7 @@ import '../../providers/riverpod/offline_cache_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/chat/message_bubble.dart';
 import '../../theme/app_theme.dart';
-import '../../services/chat_notification_service.dart';
+import '../../services/chat/chat_notification_service.dart';
 import 'conversation_info_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -29,17 +29,20 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   @override
   void initState() {
     super.initState();
     // Mark conversation as read when entering
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(conversationReadTrackerProvider.notifier)
+      ref
+          .read(conversationReadTrackerProvider.notifier)
           .markConversationAsViewed(widget.conversationId);
-      
+
       // Set current conversation for notification service
-      ChatNotificationService().setCurrentChatConversation(widget.conversationId);
+      ChatNotificationService().setCurrentChatConversation(
+        widget.conversationId,
+      );
     });
   }
 
@@ -70,7 +73,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentUser = ref.watch(currentUserProvider);
-    final messagesAsync = ref.watch(conversationMessagesProvider(widget.conversationId));
+    final messagesAsync = ref.watch(
+      conversationMessagesProvider(widget.conversationId),
+    );
     final isOnline = ref.watch(connectivityStatusProvider);
     final pendingSyncCount = ref.watch(pendingSyncItemsCountProvider);
     final chatActions = ref.read(chatActionsProvider.notifier);
@@ -81,10 +86,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         backgroundColor: AppTheme.cardColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
@@ -96,11 +98,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ? NetworkImage(widget.otherUserPhotoURL!)
                   : null,
               child: widget.otherUserPhotoURL == null
-                  ? Icon(
-                      Icons.person,
-                      size: 16,
-                      color: AppTheme.primaryColor,
-                    )
+                  ? Icon(Icons.person, size: 16, color: AppTheme.primaryColor)
                   : null,
             ),
             const SizedBox(width: 12),
@@ -137,10 +135,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ),
           IconButton(
-            icon: Icon(
-              Icons.info_outline,
-              color: AppTheme.textColor(context),
-            ),
+            icon: Icon(Icons.info_outline, color: AppTheme.textColor(context)),
             onPressed: () {
               Navigator.push(
                 context,
@@ -160,7 +155,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Column(
         children: [
           // Offline indicator
-          if (!isOnline) 
+          if (!isOnline)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -175,10 +170,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                   const Spacer(),
                   pendingSyncCount.when(
-                    data: (count) => count > 0 
+                    data: (count) => count > 0
                         ? Text(
                             '$count pending',
-                            style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontSize: 12,
+                            ),
                           )
                         : const SizedBox.shrink(),
                     loading: () => const SizedBox.shrink(),
@@ -205,14 +203,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   controller: _scrollController,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   itemCount: messages.length,
-                  reverse: true, // Show oldest messages first (reverse the descending order)
+                  reverse:
+                      true, // Show oldest messages first (reverse the descending order)
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isCurrentUser = message.senderId == currentUser?.uid;
-                    
+
                     // Show avatar only on first message from each sender (cleaner UX)
                     // Following UX research: use color differentiation instead of per-message avatars
-                    final showAvatar = index == messages.length - 1 ||
+                    final showAvatar =
+                        index == messages.length - 1 ||
                         messages[index + 1].senderId != message.senderId;
 
                     return MessageBubble(
@@ -227,9 +227,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   },
                 );
               },
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -272,24 +270,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Start a conversation',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
             'Send a message to ${widget.otherUserName}',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.grey[500],
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey[500]),
           ),
         ],
       ),
@@ -299,7 +293,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildMessageInput(ChatActions chatActions) {
     final theme = Theme.of(context);
     final chatState = ref.watch(chatActionsProvider);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -317,15 +311,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             // Add attachment button
             IconButton(
-              icon: Icon(
-                Icons.add,
-                color: theme.primaryColor,
-              ),
+              icon: Icon(Icons.add, color: theme.primaryColor),
               onPressed: () {
                 _showAttachmentOptions(context);
               },
             ),
-            
+
             // Message input field
             Expanded(
               child: Container(
@@ -340,27 +331,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   controller: _messageController,
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[500],
-                    ),
+                    hintStyle: TextStyle(color: Colors.grey[500]),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
                     ),
                   ),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                  ),
+                  style: TextStyle(color: AppTheme.textColor(context)),
                   maxLines: null,
                   textCapitalization: TextCapitalization.sentences,
                   onSubmitted: (_) => _sendMessage(chatActions),
                 ),
               ),
             ),
-            
+
             const SizedBox(width: 8),
-            
+
             // Send button
             Container(
               decoration: BoxDecoration(
@@ -377,14 +364,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
                   ),
-                  orElse: () => const Icon(
-                    Icons.send,
-                    color: Colors.white,
-                  ),
+                  orElse: () => const Icon(Icons.send, color: Colors.white),
                 ),
                 onPressed: chatState.maybeWhen(
                   loading: () => null,
-                  orElse: () => () => _sendMessage(chatActions),
+                  orElse: () =>
+                      () => _sendMessage(chatActions),
                 ),
               ),
             ),
@@ -399,7 +384,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (content.isEmpty) return;
 
     _messageController.clear();
-    
+
     try {
       await chatActions.sendTextMessage(
         conversationId: widget.conversationId,
@@ -440,18 +425,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-              
+
               const Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
                   'Share Content',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
               ),
-              
+
               _buildAttachmentOption(
                 context,
                 icon: Icons.camera_alt,
@@ -462,7 +444,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _showComingSoon(context, 'Camera feature');
                 },
               ),
-              
+
               _buildAttachmentOption(
                 context,
                 icon: Icons.photo_library,
@@ -473,7 +455,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _showComingSoon(context, 'Gallery feature');
                 },
               ),
-              
+
               _buildAttachmentOption(
                 context,
                 icon: Icons.fitness_center,
@@ -484,7 +466,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _showComingSoon(context, 'Activity sharing');
                 },
               ),
-              
+
               _buildAttachmentOption(
                 context,
                 icon: Icons.location_on,
@@ -495,7 +477,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _showComingSoon(context, 'Location sharing');
                 },
               ),
-              
+
               const SizedBox(height: 16),
             ],
           ),
@@ -518,15 +500,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: Theme.of(context).primaryColor,
-        ),
+        child: Icon(icon, color: Theme.of(context).primaryColor),
       ),
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w500),
-      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       subtitle: Text(subtitle),
       onTap: onTap,
     );

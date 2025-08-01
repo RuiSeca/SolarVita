@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/supporter.dart';
-import '../../../models/privacy_settings.dart';
-import '../../../models/user_progress.dart';
-import '../../../models/health_data.dart';
+import '../../../models/user/supporter.dart';
+import '../../../models/user/privacy_settings.dart';
+import '../../../models/user/user_progress.dart';
+import '../../../models/health/health_data.dart';
 import 'dart:ui';
 
 class SupporterProfileHeader extends ConsumerWidget {
@@ -94,8 +94,10 @@ class SupporterProfileHeader extends ConsumerWidget {
                               padding: const EdgeInsets.all(3),
                               child: CircleAvatar(
                                 radius: 35,
-                                backgroundImage: supporter.photoURL != null 
-                                    ? CachedNetworkImageProvider(supporter.photoURL!) 
+                                backgroundImage: supporter.photoURL != null
+                                    ? CachedNetworkImageProvider(
+                                        supporter.photoURL!,
+                                      )
                                     : null,
                                 backgroundColor: AppTheme.cardColor(context),
                                 child: supporter.photoURL == null
@@ -136,7 +138,7 @@ class SupporterProfileHeader extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(width: 20),
-                        
+
                         // User Info
                         Expanded(
                           child: Column(
@@ -156,7 +158,9 @@ class SupporterProfileHeader extends ConsumerWidget {
                                 Text(
                                   '@${supporter.username}',
                                   style: TextStyle(
-                                    color: AppTheme.textColor(context).withAlpha(153),
+                                    color: AppTheme.textColor(
+                                      context,
+                                    ).withAlpha(153),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -175,7 +179,9 @@ class SupporterProfileHeader extends ConsumerWidget {
                                   Text(
                                     _getPublicLevelInfo(context),
                                     style: TextStyle(
-                                      color: AppTheme.textColor(context).withAlpha(179),
+                                      color: AppTheme.textColor(
+                                        context,
+                                      ).withAlpha(179),
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -187,9 +193,9 @@ class SupporterProfileHeader extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Quick Stats Row
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -208,7 +214,10 @@ class SupporterProfileHeader extends ConsumerWidget {
                             child: _buildQuickStat(
                               context,
                               Icons.people_outline,
-                              (actualSupporterCount ?? supporter.supportersCount ?? 0).toString(),
+                              (actualSupporterCount ??
+                                      supporter.supportersCount ??
+                                      0)
+                                  .toString(),
                               tr(context, 'supporters'),
                             ),
                           ),
@@ -245,10 +254,7 @@ class SupporterProfileHeader extends ConsumerWidget {
 
   Widget _buildLevelBadge(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 4,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -257,10 +263,7 @@ class SupporterProfileHeader extends ConsumerWidget {
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primary.withAlpha(77),
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.primary.withAlpha(77), width: 1),
       ),
       child: Text(
         _getLevelTitle(context),
@@ -273,15 +276,16 @@ class SupporterProfileHeader extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickStat(BuildContext context, IconData icon, String value, String label) {
+  Widget _buildQuickStat(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: AppColors.primary,
-          size: 20,
-        ),
+        Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 4),
         Text(
           value,
@@ -304,11 +308,7 @@ class SupporterProfileHeader extends ConsumerWidget {
   }
 
   Widget _buildDivider() {
-    return Container(
-      width: 1,
-      height: 40,
-      color: Colors.white.withAlpha(51),
-    );
+    return Container(width: 1, height: 40, color: Colors.white.withAlpha(51));
   }
 
   String _getLevelTitle(BuildContext context) {
@@ -332,7 +332,8 @@ class SupporterProfileHeader extends ConsumerWidget {
   }
 
   String _getStreakDisplay(BuildContext context) {
-    if (privacySettings?.showWorkoutStats == true && supporterProgress != null) {
+    if (privacySettings?.showWorkoutStats == true &&
+        supporterProgress != null) {
       return supporterProgress!.currentStrikes.toString();
     }
     return tr(context, 'private');

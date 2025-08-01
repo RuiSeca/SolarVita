@@ -7,7 +7,7 @@ import 'package:solar_vitas/theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
-import '../../widgets/social_feed_tabs.dart';
+import '../../widgets/social/social_feed_tabs.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../social/create_post_screen.dart';
 

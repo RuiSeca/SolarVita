@@ -1,6 +1,6 @@
 // widgets/carbon_tracker.dart
 import 'package:flutter/material.dart';
-import '../../../../models/carbon_activity.dart';
+import '../../../../models/eco/carbon_activity.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
 class CarbonTracker extends StatelessWidget {
@@ -75,10 +75,7 @@ class CarbonTracker extends StatelessWidget {
                       color: theme.primaryColor.withAlpha(25),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(
-                      activity.icon,
-                      color: theme.primaryColor,
-                    ),
+                    child: Icon(activity.icon, color: theme.primaryColor),
                   ),
                   title: Text(
                     tr(context, activity.nameKey),
@@ -122,17 +119,14 @@ class CarbonTracker extends StatelessWidget {
         children: [
           Icon(icon, color: color),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          Text(title, style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 4),
           Text(
             value,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),

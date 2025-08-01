@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../models/eco_tip.dart';
+import '../../../models/eco/eco_tip.dart';
 import 'widgets/tip_card.dart';
 import 'widgets/sustainable_product_card.dart';
 import 'widgets/carbon_tracker.dart';
-import '../../../../models/carbon_activity.dart';
+import '../../../models/eco/carbon_activity.dart';
 import '../../../../providers/riverpod/eco_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
@@ -93,17 +93,14 @@ class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
           SliverPadding(
             padding: const EdgeInsets.all(16),
             sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final tip = _tips[index];
-                  if (_selectedCategory == 'category_all' ||
-                      tip.category == _selectedCategory) {
-                    return TipCard(tip: tip);
-                  }
-                  return const SizedBox.shrink();
-                },
-                childCount: _tips.length,
-              ),
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final tip = _tips[index];
+                if (_selectedCategory == 'category_all' ||
+                    tip.category == _selectedCategory) {
+                  return TipCard(tip: tip);
+                }
+                return const SizedBox.shrink();
+              }, childCount: _tips.length),
             ),
           ),
           // Carbon Tracker section
@@ -112,23 +109,28 @@ class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
               padding: const EdgeInsets.all(16),
               child: recentActivitiesAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stack) => Center(
-                  child: Text('Error loading carbon tracker: $error'),
-                ),
+                error: (error, stack) =>
+                    Center(child: Text('Error loading carbon tracker: $error')),
                 data: (ecoActivities) {
                   // Convert EcoActivity to CarbonActivity for compatibility
                   final carbonActivities = ecoActivities
                       .map((eco) => CarbonActivity.fromEcoActivity(eco))
                       .toList();
-                  
+
                   return carbonLast30DaysAsync.when(
                     loading: () => CarbonTracker(
                       activities: carbonActivities,
-                      totalSaved: carbonActivities.fold(0.0, (sum, activity) => sum + activity.co2Saved),
+                      totalSaved: carbonActivities.fold(
+                        0.0,
+                        (sum, activity) => sum + activity.co2Saved,
+                      ),
                     ),
                     error: (error, stack) => CarbonTracker(
                       activities: carbonActivities,
-                      totalSaved: carbonActivities.fold(0.0, (sum, activity) => sum + activity.co2Saved),
+                      totalSaved: carbonActivities.fold(
+                        0.0,
+                        (sum, activity) => sum + activity.co2Saved,
+                      ),
                     ),
                     data: (totalSaved) => CarbonTracker(
                       activities: carbonActivities,
@@ -171,9 +173,12 @@ class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
         selected: isSelected,
-        label: Text(tr(context, category),
-            style: TextStyle(
-                color: isSelected ? Colors.white : theme.primaryColor)),
+        label: Text(
+          tr(context, category),
+          style: TextStyle(
+            color: isSelected ? Colors.white : theme.primaryColor,
+          ),
+        ),
         onSelected: (selected) {
           setState(() {
             _selectedCategory = category;

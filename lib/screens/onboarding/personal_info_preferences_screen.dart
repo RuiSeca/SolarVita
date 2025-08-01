@@ -4,7 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../widgets/common/lottie_loading_widget.dart';
-import '../../services/user_profile_service.dart';
+import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import 'workout_preferences_screen.dart';
 
@@ -12,10 +12,12 @@ class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
   const PersonalInfoPreferencesScreen({super.key});
 
   @override
-  ConsumerState<PersonalInfoPreferencesScreen> createState() => _PersonalInfoPreferencesScreenState();
+  ConsumerState<PersonalInfoPreferencesScreen> createState() =>
+      _PersonalInfoPreferencesScreenState();
 }
 
-class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPreferencesScreen> {
+class _PersonalInfoPreferencesScreenState
+    extends ConsumerState<PersonalInfoPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
@@ -28,7 +30,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
   late TextEditingController _heightController;
   late TextEditingController _weightController;
   late TextEditingController _ageController;
-  
+
   String _activityLevel = 'Intermediate';
   String _weeklyActivity = '3-4 times';
   String _gender = 'prefer_not_to_say';
@@ -36,7 +38,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
 
   final List<String> _activityLevelOptions = [
     'Beginner',
-    'Intermediate', 
+    'Intermediate',
     'Advanced',
   ];
 
@@ -46,11 +48,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
     '5+ times',
   ];
 
-  final List<String> _genderOptions = [
-    'male',
-    'female',
-    'prefer_not_to_say',
-  ];
+  final List<String> _genderOptions = ['male', 'female', 'prefer_not_to_say'];
 
   @override
   void initState() {
@@ -82,7 +80,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
         maxHeight: 800,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
@@ -102,17 +100,17 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
 
   Future<String?> _uploadProfileImage() async {
     if (_imageFile == null) return null;
-    
+
     try {
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('profile_images')
           .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-      
+
       final uploadTask = storageRef.putFile(_imageFile!);
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       if (mounted) {
@@ -172,16 +170,16 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       children: [
         Text(
           'Tell us about yourself',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'This information helps us personalize your fitness experience.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -201,11 +199,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
                     : null,
                 backgroundColor: Colors.grey[300],
                 child: _imageFile == null
-                    ? Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.grey[600],
-                      )
+                    ? Icon(Icons.person, size: 60, color: Colors.grey[600])
                     : null,
               ),
               Positioned(
@@ -234,20 +228,17 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
         const SizedBox(height: 16),
         Text(
           'Add a profile picture (optional)',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
         ),
-        if (_imageFile != null)
-          const SizedBox(height: 8),
+        if (_imageFile != null) const SizedBox(height: 8),
         if (_imageFile != null)
           TextButton.icon(
             onPressed: _removeProfileImage,
             icon: const Icon(Icons.delete_outline, size: 18),
             label: const Text('Remove picture'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red[600],
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red[600]),
           ),
       ],
     );
@@ -259,9 +250,9 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       children: [
         Text(
           'Basic Information',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         TextFormField(
@@ -356,9 +347,9 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       children: [
         Text(
           'Physical Information',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         Row(
@@ -441,9 +432,9 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       children: [
         Text(
           'Fitness Level',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
@@ -454,10 +445,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
             border: OutlineInputBorder(),
           ),
           items: _activityLevelOptions.map((level) {
-            return DropdownMenuItem(
-              value: level,
-              child: Text(level),
-            );
+            return DropdownMenuItem(value: level, child: Text(level));
           }).toList(),
           onChanged: (value) {
             setState(() {
@@ -474,10 +462,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
             border: OutlineInputBorder(),
           ),
           items: _weeklyActivityOptions.map((frequency) {
-            return DropdownMenuItem(
-              value: frequency,
-              child: Text(frequency),
-            );
+            return DropdownMenuItem(value: frequency, child: Text(frequency));
           }).toList(),
           onChanged: (value) {
             setState(() {
@@ -526,12 +511,15 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       try {
         // Check username availability
         final username = _usernameController.text.trim();
-        final isUsernameAvailable = await _userProfileService.isUsernameAvailable(username);
+        final isUsernameAvailable = await _userProfileService
+            .isUsernameAvailable(username);
         if (!isUsernameAvailable) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Username is already taken. Please choose a different one.'),
+                content: Text(
+                  'Username is already taken. Please choose a different one.',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -546,8 +534,10 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
         final imageUrl = await _uploadProfileImage();
 
         final profile = await _userProfileService.getOrCreateUserProfile();
-        final updatedAdditionalData = Map<String, dynamic>.from(profile.additionalData);
-        
+        final updatedAdditionalData = Map<String, dynamic>.from(
+          profile.additionalData,
+        );
+
         updatedAdditionalData.addAll({
           'phone': _phoneController.text,
           'height': _heightController.text,
@@ -564,13 +554,15 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
           photoURL: imageUrl,
           additionalData: updatedAdditionalData,
         );
-        
+
         await _userProfileService.updateUserProfile(updatedProfile);
 
         if (mounted) {
           // Update the provider
-          ref.read(userProfileNotifierProvider.notifier).setUserProfile(updatedProfile);
-          
+          ref
+              .read(userProfileNotifierProvider.notifier)
+              .setUserProfile(updatedProfile);
+
           // Navigate to workout preferences
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -581,9 +573,7 @@ class _PersonalInfoPreferencesScreenState extends ConsumerState<PersonalInfoPref
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving personal information: $e'),
-            ),
+            SnackBar(content: Text('Error saving personal information: $e')),
           );
         }
       } finally {

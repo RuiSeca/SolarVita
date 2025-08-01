@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../models/exercise_log.dart';
-import '../../models/personal_record.dart';
-import '../../services/exercise_tracking_service.dart';
-import '../../services/exercise_routine_sync_service.dart';
+import '../../models/exercise/exercise_log.dart';
+import '../../models/user/personal_record.dart';
+import '../../services/exercises/exercise_tracking_service.dart';
+import '../../services/exercises/exercise_routine_sync_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../providers/routine_providers.dart';
@@ -64,8 +64,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
     if (widget.existingLog != null) {
       // Editing an existing log
       _exerciseId = widget.existingLog!.exerciseId;
-      _exerciseNameController =
-          TextEditingController(text: widget.existingLog!.exerciseName);
+      _exerciseNameController = TextEditingController(
+        text: widget.existingLog!.exerciseName,
+      );
       _selectedDate = widget.existingLog!.date;
       _selectedTime = TimeOfDay.fromDateTime(widget.existingLog!.date);
       _sets = List.from(widget.existingLog!.sets);
@@ -73,7 +74,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
     } else {
       // Creating a new log
       _exerciseId = widget.exerciseId ?? '';
-      _exerciseNameController = TextEditingController(text: widget.initialExerciseName ?? '');
+      _exerciseNameController = TextEditingController(
+        text: widget.initialExerciseName ?? '',
+      );
       _selectedDate = DateTime.now();
       _selectedTime = TimeOfDay.now();
       _sets = [ExerciseSet(setNumber: 1, weight: 0, reps: 0)];
@@ -99,15 +102,19 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
         .toList();
 
     _distanceControllers = _sets
-        .map((set) =>
-            TextEditingController(text: set.distance?.toString() ?? ''))
+        .map(
+          (set) => TextEditingController(text: set.distance?.toString() ?? ''),
+        )
         .toList();
 
     _durationControllers = _sets
-        .map((set) => TextEditingController(
+        .map(
+          (set) => TextEditingController(
             text: set.duration != null
                 ? "${set.duration!.inMinutes}:${(set.duration!.inSeconds % 60).toString().padLeft(2, '0')}"
-                : ''))
+                : '',
+          ),
+        )
         .toList();
   }
 
@@ -124,7 +131,8 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
 
     if (result != null && result is WorkoutItem) {
       setState(() {
-        _exerciseId = result.title.hashCode.toString(); // Use same ID format as dynamic duration service
+        _exerciseId = result.title.hashCode
+            .toString(); // Use same ID format as dynamic duration service
         _exerciseNameController.text = result.title;
       });
       // Load auto-fill data for the new exercise
@@ -144,7 +152,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
         _exerciseId,
         routineId: widget.routineId,
       );
-      final personalRecords = await _syncService.getPersonalRecordsForExercise(_exerciseId);
+      final personalRecords = await _syncService.getPersonalRecordsForExercise(
+        _exerciseId,
+      );
 
       setState(() {
         _autoFillData = autoFillData;
@@ -163,7 +173,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
 
     final lastLog = _autoFillData['lastLog'];
     final lastSets = lastLog['sets'] as List<dynamic>?;
-    
+
     if (lastSets != null && lastSets.isNotEmpty) {
       setState(() {
         // Clear current sets
@@ -176,23 +186,26 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
         // Apply last log data
         for (int i = 0; i < lastSets.length; i++) {
           final setData = lastSets[i] as Map<String, dynamic>;
-          
-          _sets.add(ExerciseSet(
-            setNumber: i + 1,
-            weight: setData['weight']?.toDouble() ?? 0.0,
-            reps: setData['reps'] ?? 0,
-            distance: setData['distance']?.toDouble(),
-            duration: setData['duration'] != null 
-                ? Duration(seconds: setData['duration']) 
-                : null,
-          ));
+
+          _sets.add(
+            ExerciseSet(
+              setNumber: i + 1,
+              weight: setData['weight']?.toDouble() ?? 0.0,
+              reps: setData['reps'] ?? 0,
+              distance: setData['distance']?.toDouble(),
+              duration: setData['duration'] != null
+                  ? Duration(seconds: setData['duration'])
+                  : null,
+            ),
+          );
         }
 
         // Initialize controllers with the new data
         _initializeSetControllers();
 
         // Apply notes if available
-        if (lastLog['notes'] != null && lastLog['notes'].toString().isNotEmpty) {
+        if (lastLog['notes'] != null &&
+            lastLog['notes'].toString().isNotEmpty) {
           _notesController.text = lastLog['notes'];
         }
       });
@@ -278,24 +291,30 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
         duration = _sets.last.duration;
       }
 
-      _sets.add(ExerciseSet(
-        setNumber: newSetNumber,
-        weight: weight,
-        reps: reps,
-        distance: distance,
-        duration: duration,
-      ));
+      _sets.add(
+        ExerciseSet(
+          setNumber: newSetNumber,
+          weight: weight,
+          reps: reps,
+          distance: distance,
+          duration: duration,
+        ),
+      );
 
       // Add controllers for the new set
       _weightControllers.add(TextEditingController(text: weight.toString()));
       _repsControllers.add(TextEditingController(text: reps.toString()));
-      _distanceControllers
-          .add(TextEditingController(text: distance?.toString() ?? ''));
+      _distanceControllers.add(
+        TextEditingController(text: distance?.toString() ?? ''),
+      );
       _durationControllers = _sets
-          .map((set) => TextEditingController(
+          .map(
+            (set) => TextEditingController(
               text: set.duration != null
                   ? "${set.duration!.inMinutes}:${(set.duration!.inSeconds % 60).toString().padLeft(2, '0')}"
-                  : ''))
+                  : '',
+            ),
+          )
           .toList();
     });
   }
@@ -398,15 +417,15 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
           // Clear cache first to ensure fresh data
           final syncService = ref.read(exerciseRoutineSyncServiceProvider);
           syncService.clearProgressCache(widget.routineId!);
-          
+
           // Invalidate all related providers
           ref.invalidate(weeklyProgressProvider(widget.routineId!));
           ref.invalidate(routineStatsProvider(widget.routineId!));
           ref.invalidate(routineManagerProvider);
-          
+
           // Providers will refresh automatically after invalidation
         }
-        
+
         // Navigate to exercise history after successful log
         Future.delayed(const Duration(milliseconds: 100), () {
           if (mounted) {
@@ -437,9 +456,11 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existingLog != null
-            ? tr(context, 'edit_log')
-            : tr(context, 'log_exercise')),
+        title: Text(
+          widget.existingLog != null
+              ? tr(context, 'edit_log')
+              : tr(context, 'log_exercise'),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -449,10 +470,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
             // Exercise selection
             Text(
               tr(context, 'exercise'),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -664,7 +682,8 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d*$')),
+                              RegExp(r'^\d*\.?\d*$'),
+                            ),
                           ],
                           decoration: InputDecoration(
                             border: OutlineInputBorder(
@@ -715,8 +734,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
                       width: 40,
                       child: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed:
-                            _sets.length > 1 ? () => _removeSet(index) : null,
+                        onPressed: _sets.length > 1
+                            ? () => _removeSet(index)
+                            : null,
                       ),
                     ),
                   ],
@@ -739,10 +759,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
             // Notes
             Text(
               tr(context, 'notes'),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -814,9 +831,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.primaryColor.withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -901,7 +916,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            ..._personalRecords.take(3).map((record) => _buildPersonalRecordItem(record)),
+            ..._personalRecords
+                .take(3)
+                .map((record) => _buildPersonalRecordItem(record)),
           ],
         ],
       ),
@@ -931,7 +948,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          wasThisWeek 
+          wasThisWeek
               ? tr(context, 'earlier_this_week')
               : DateFormat.MMMd().format(DateTime.parse(lastLog['date'])),
           style: TextStyle(
@@ -955,7 +972,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
   Widget _buildPersonalRecordItem(PersonalRecord record) {
     IconData icon;
     Color color;
-    
+
     switch (record.recordType) {
       case 'Max Weight':
         icon = Icons.fitness_center;
@@ -984,11 +1001,7 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
               color: color.withAlpha(26),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 16,
-            ),
+            child: Icon(icon, color: color, size: 16),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1004,7 +1017,11 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
                   ),
                 ),
                 Text(
-                  '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume') ? 'kg' : record.recordType.contains('Distance') ? 'km' : ''}',
+                  '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume')
+                      ? 'kg'
+                      : record.recordType.contains('Distance')
+                      ? 'km'
+                      : ''}',
                   style: TextStyle(
                     color: AppTheme.textColor(context).withAlpha(179),
                     fontSize: 11,

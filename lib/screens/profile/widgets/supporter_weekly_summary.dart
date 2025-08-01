@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/privacy_settings.dart';
+import '../../../models/user/privacy_settings.dart';
 
 class SupporterWeeklySummary extends ConsumerWidget {
   final String supporterId;
@@ -99,10 +99,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: isVisible
-              ? [
-                  color.withValues(alpha: 0.1),
-                  color.withValues(alpha: 0.05),
-                ]
+              ? [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)]
               : [
                   Colors.grey.withValues(alpha: 0.1),
                   Colors.grey.withValues(alpha: 0.05),
@@ -110,7 +107,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isVisible 
+          color: isVisible
               ? color.withValues(alpha: 0.3)
               : Colors.grey.withValues(alpha: 0.3),
           width: 1,
@@ -124,7 +121,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isVisible 
+                  color: isVisible
                       ? color.withValues(alpha: 0.2)
                       : Colors.grey.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -137,11 +134,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
               ),
               const Spacer(),
               if (!isVisible)
-                Icon(
-                  Icons.visibility_off,
-                  color: Colors.grey[500],
-                  size: 16,
-                ),
+                Icon(Icons.visibility_off, color: Colors.grey[500], size: 16),
             ],
           ),
           const Spacer(),
@@ -173,10 +166,7 @@ class SupporterWeeklySummary extends ConsumerWidget {
             ),
             Text(
               tr(context, 'shared_privately'),
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
             ),
           ],
           const SizedBox(height: 2),

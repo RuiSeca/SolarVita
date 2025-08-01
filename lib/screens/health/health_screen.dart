@@ -12,8 +12,8 @@ import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
-import '../../models/health_data.dart';
-import '../../models/user_progress.dart';
+import '../../models/health/health_data.dart';
+import '../../models/user/user_progress.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
@@ -41,15 +41,25 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     // Initialize animation controllers for each stat
     _iconAnimationControllers = {
       'steps': AnimationController(
-          duration: const Duration(milliseconds: 1000), vsync: this),
+        duration: const Duration(milliseconds: 1000),
+        vsync: this,
+      ),
       'active': AnimationController(
-          duration: const Duration(milliseconds: 800), vsync: this),
+        duration: const Duration(milliseconds: 800),
+        vsync: this,
+      ),
       'calories': AnimationController(
-          duration: const Duration(milliseconds: 1200), vsync: this),
+        duration: const Duration(milliseconds: 1200),
+        vsync: this,
+      ),
       'sleep': AnimationController(
-          duration: const Duration(milliseconds: 1500), vsync: this),
+        duration: const Duration(milliseconds: 1500),
+        vsync: this,
+      ),
       'heart': AnimationController(
-          duration: const Duration(milliseconds: 600), vsync: this),
+        duration: const Duration(milliseconds: 600),
+        vsync: this,
+      ),
     };
 
     _loadWaterIntake();
@@ -67,19 +77,20 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
   // Calculate heart rate progress based on age-based target zones
   double _calculateHeartRateProgress(double heartRate) {
     if (heartRate <= 0) return 0.0;
-    
+
     // Estimated age-based calculation (can be improved with actual user age)
     const estimatedAge = 30; // Default assumption
     final maxHeartRate = 220 - estimatedAge;
     final targetZoneMin = maxHeartRate * 0.5; // 50% of max
     final targetZoneMax = maxHeartRate * 0.85; // 85% of max
-    
+
     if (heartRate < targetZoneMin) {
       // Below target zone - show partial progress
       return (heartRate / targetZoneMin * 0.5).clamp(0.0, 0.5);
     } else if (heartRate <= targetZoneMax) {
       // In target zone - excellent progress
-      return 0.5 + ((heartRate - targetZoneMin) / (targetZoneMax - targetZoneMin) * 0.5);
+      return 0.5 +
+          ((heartRate - targetZoneMin) / (targetZoneMax - targetZoneMin) * 0.5);
     } else {
       // Above target zone - cap at 100% but indicate it's high
       return 1.0;
@@ -214,7 +225,11 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildHealthDataStatus(healthDataAsync, permissionsStatus, lastSyncAsync),
+                _buildHealthDataStatus(
+                  healthDataAsync,
+                  permissionsStatus,
+                  lastSyncAsync,
+                ),
                 const SizedBox(height: 20),
                 _buildUserOverviewCard(context),
                 const SizedBox(height: 20),
@@ -277,7 +292,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 ),
                 child: ClipOval(
                   child: OrientedImage(
-                    imageUrl: 'assets/images/health/health_profile/profile.webp',
+                    imageUrl:
+                        'assets/images/health/health_profile/profile.webp',
                     fit: BoxFit.cover,
                     width: 60,
                     height: 60,
@@ -344,7 +360,10 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     );
   }
 
-  Widget _buildSyncButton(AsyncValue<HealthData> healthDataAsync, AsyncValue<HealthPermissionStatus> permissionsStatus) {
+  Widget _buildSyncButton(
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<HealthPermissionStatus> permissionsStatus,
+  ) {
     return permissionsStatus.when(
       data: (permissions) {
         if (!permissions.isGranted) {
@@ -375,7 +394,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
           onPressed: healthDataAsync.isLoading
               ? null
               : () async {
-                  final notifier = ref.read(healthDataNotifierProvider.notifier);
+                  final notifier = ref.read(
+                    healthDataNotifierProvider.notifier,
+                  );
                   await notifier.syncHealthData();
                 },
           icon: healthDataAsync.isLoading
@@ -416,11 +437,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
           );
         },
-        icon: Icon(
-          Icons.error,
-          color: Colors.red,
-          size: 24,
-        ),
+        icon: Icon(Icons.error, color: Colors.red, size: 24),
         tooltip: tr(context, 'fix_health_data_setup'),
       ),
     );
@@ -446,11 +463,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.health_and_safety,
-                  color: Colors.orange,
-                  size: 20,
-                ),
+                Icon(Icons.health_and_safety, color: Colors.orange, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -485,9 +498,12 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         return lastSyncAsync.when(
           data: (lastSync) {
             final syncText = lastSync != null
-                ? tr(context, 'last_sync').replaceAll('{time}', _formatSyncTime(context, lastSync))
+                ? tr(
+                    context,
+                    'last_sync',
+                  ).replaceAll('{time}', _formatSyncTime(context, lastSync))
                 : tr(context, 'health_data_connected');
-            
+
             return Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -500,11 +516,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               ),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 20,
-                  ),
+                  Icon(Icons.check_circle, color: Colors.green, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -516,11 +528,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                     ),
                   ),
                   if (healthDataAsync.value?.isDataAvailable == true)
-                    Icon(
-                      Icons.sync,
-                      color: Colors.green,
-                      size: 16,
-                    ),
+                    Icon(Icons.sync, color: Colors.green, size: 16),
                 ],
               ),
             );
@@ -568,11 +576,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.error,
-                  color: Colors.red,
-                  size: 20,
-                ),
+                Icon(Icons.error, color: Colors.red, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -631,11 +635,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.error,
-              color: Colors.red,
-              size: 20,
-            ),
+            Icon(Icons.error, color: Colors.red, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -659,35 +659,58 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     if (difference.inMinutes < 1) {
       return tr(context, 'just_now');
     } else if (difference.inMinutes < 60) {
-      return tr(context, 'minutes_ago').replaceAll('{minutes}', difference.inMinutes.toString());
+      return tr(
+        context,
+        'minutes_ago',
+      ).replaceAll('{minutes}', difference.inMinutes.toString());
     } else if (difference.inHours < 24) {
-      return tr(context, 'hours_ago').replaceAll('{hours}', difference.inHours.toString());
+      return tr(
+        context,
+        'hours_ago',
+      ).replaceAll('{hours}', difference.inHours.toString());
     } else {
-      return tr(context, 'days_ago').replaceAll('{days}', difference.inDays.toString());
+      return tr(
+        context,
+        'days_ago',
+      ).replaceAll('{days}', difference.inDays.toString());
     }
   }
 
-  Widget _buildStatsGrid(BuildContext context, AsyncValue<HealthData> healthDataAsync) {
+  Widget _buildStatsGrid(
+    BuildContext context,
+    AsyncValue<HealthData> healthDataAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         // Get user's actual daily goals from user progress provider
         final userProgressAsync = ref.watch(userProgressNotifierProvider);
-        
+
         // Calculate progress values using actual user goals
         final userProgress = userProgressAsync.value;
-        final stepsGoal = userProgress?.dailyGoals.stepsGoal.toDouble() ?? 8000.0;
-        final activeGoal = userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 45.0;
-        final caloriesGoal = userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 2000.0;
-        final sleepGoal = userProgress?.dailyGoals.sleepHoursGoal.toDouble() ?? 8.0;
-        
+        final stepsGoal =
+            userProgress?.dailyGoals.stepsGoal.toDouble() ?? 8000.0;
+        final activeGoal =
+            userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 45.0;
+        final caloriesGoal =
+            userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 2000.0;
+        final sleepGoal =
+            userProgress?.dailyGoals.sleepHoursGoal.toDouble() ?? 8.0;
+
         final stepsProgress = (healthData.steps / stepsGoal).clamp(0.0, 1.0);
-        final activeProgress = (healthData.activeMinutes / activeGoal).clamp(0.0, 1.0);
-        final caloriesProgress = (healthData.caloriesBurned / caloriesGoal).clamp(0.0, 1.0);
-        final sleepProgress = (healthData.sleepHours / sleepGoal).clamp(0.0, 1.0);
-        
+        final activeProgress = (healthData.activeMinutes / activeGoal).clamp(
+          0.0,
+          1.0,
+        );
+        final caloriesProgress = (healthData.caloriesBurned / caloriesGoal)
+            .clamp(0.0, 1.0);
+        final sleepProgress = (healthData.sleepHours / sleepGoal).clamp(
+          0.0,
+          1.0,
+        );
+
         // Calculate proper heart rate progress based on target zones (resting: 60-70, target: 70-85% max)
-        final heartRateProgress = healthData.heartRate > 0 
-            ? _calculateHeartRateProgress(healthData.heartRate) 
+        final heartRateProgress = healthData.heartRate > 0
+            ? _calculateHeartRateProgress(healthData.heartRate)
             : 0.0;
 
         return Padding(
@@ -747,7 +770,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               _buildHorizontalStatCard(
                 context,
                 Icons.favorite,
-                healthData.heartRate > 0 ? '${healthData.heartRate.toInt()} BPM' : 'N/A',
+                healthData.heartRate > 0
+                    ? '${healthData.heartRate.toInt()} BPM'
+                    : 'N/A',
                 tr(context, 'heart_rate'),
                 tr(context, 'cardiovascular_health'),
                 heartRateProgress,
@@ -904,7 +929,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 return Transform.translate(
                   offset: Offset(
                     _getAnimationOffset(
-                        statType, _iconAnimationControllers[statType]!.value),
+                      statType,
+                      _iconAnimationControllers[statType]!.value,
+                    ),
                     0,
                   ),
                   child: Container(
@@ -914,11 +941,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                       color: iconColor.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(
-                      icon,
-                      color: iconColor,
-                      size: 20,
-                    ),
+                    child: Icon(icon, color: iconColor, size: 20),
                   ),
                 );
               },
@@ -992,8 +1015,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                     child: Text(
                       subtitle,
                       style: TextStyle(
-                        color:
-                            AppTheme.textColor(context).withValues(alpha: 0.6),
+                        color: AppTheme.textColor(
+                          context,
+                        ).withValues(alpha: 0.6),
                         fontSize: 10,
                       ),
                       maxLines: 1,
@@ -1054,10 +1078,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => StatDetailPage(
-            statType: statType,
-            color: color,
-          ),
+          builder: (_) => StatDetailPage(statType: statType, color: color),
         ),
       );
     }
@@ -1177,12 +1198,16 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                         ),
                       ),
                       Text(
-                        isGoalReached 
+                        isGoalReached
                             ? tr(context, 'goal_completed_tap_to_manage')
-                            : tr(context, 'tap_to_add_250ml').replaceAll('{goal}', (waterDailyLimit * 1000).toInt().toString()),
+                            : tr(context, 'tap_to_add_250ml').replaceAll(
+                                '{goal}',
+                                (waterDailyLimit * 1000).toInt().toString(),
+                              ),
                         style: TextStyle(
-                          color: AppTheme.textColor(context)
-                              .withValues(alpha: 0.6),
+                          color: AppTheme.textColor(
+                            context,
+                          ).withValues(alpha: 0.6),
                           fontSize: 9,
                         ),
                       ),
@@ -1359,7 +1384,6 @@ class StatItem extends StatelessWidget {
   }
 }
 
-
 class StatDetailPage extends ConsumerWidget {
   final String statType;
   final Color color;
@@ -1374,7 +1398,7 @@ class StatDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final healthDataAsync = ref.watch(healthDataNotifierProvider);
     final userProgressAsync = ref.watch(userProgressNotifierProvider);
-    
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
@@ -1382,10 +1406,7 @@ class StatDetailPage extends ConsumerWidget {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.textColor(context)),
         ),
         title: Text(
           _getStatTitle(context, statType),
@@ -1437,7 +1458,11 @@ class StatDetailPage extends ConsumerWidget {
                       const SizedBox(height: 12), // Reduced from 16
                       Flexible(
                         child: Text(
-                          _getStatValue(statType, healthDataAsync, userProgressAsync),
+                          _getStatValue(
+                            statType,
+                            healthDataAsync,
+                            userProgressAsync,
+                          ),
                           style: TextStyle(
                             color: AppTheme.textColor(context),
                             fontSize: 32, // Reduced from 36
@@ -1452,8 +1477,9 @@ class StatDetailPage extends ConsumerWidget {
                         child: Text(
                           _getStatSubtitle(context, statType),
                           style: TextStyle(
-                            color: AppTheme.textColor(context)
-                                .withValues(alpha: 0.7),
+                            color: AppTheme.textColor(
+                              context,
+                            ).withValues(alpha: 0.7),
                             fontSize: 14, // Reduced from 16
                           ),
                           textAlign: TextAlign.center,
@@ -1467,7 +1493,13 @@ class StatDetailPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // Details cards
-            ..._getDetailCards(context, statType, color, healthDataAsync, userProgressAsync),
+            ..._getDetailCards(
+              context,
+              statType,
+              color,
+              healthDataAsync,
+              userProgressAsync,
+            ),
           ],
         ),
       ),
@@ -1508,7 +1540,11 @@ class StatDetailPage extends ConsumerWidget {
     }
   }
 
-  String _getStatValue(String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+  String _getStatValue(
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<UserProgress> userProgressAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         switch (statType) {
@@ -1521,7 +1557,9 @@ class StatDetailPage extends ConsumerWidget {
           case 'sleep':
             return '${healthData.sleepHours.toStringAsFixed(1)}h';
           case 'heart':
-            return healthData.heartRate > 0 ? '${healthData.heartRate.toInt()}' : 'N/A';
+            return healthData.heartRate > 0
+                ? '${healthData.heartRate.toInt()}'
+                : 'N/A';
           default:
             return '0';
         }
@@ -1549,13 +1587,23 @@ class StatDetailPage extends ConsumerWidget {
   }
 
   List<Widget> _getDetailCards(
-      BuildContext context, String statType, Color color, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+    BuildContext context,
+    String statType,
+    Color color,
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<UserProgress> userProgressAsync,
+  ) {
     return [
       _buildDetailCard(
         context,
         tr(context, 'today_goal'),
         _getTodayGoal(context, statType, healthDataAsync, userProgressAsync),
-        _getTodayProgress(context, statType, healthDataAsync, userProgressAsync),
+        _getTodayProgress(
+          context,
+          statType,
+          healthDataAsync,
+          userProgressAsync,
+        ),
         color,
       ),
       const SizedBox(height: 16),
@@ -1577,8 +1625,13 @@ class StatDetailPage extends ConsumerWidget {
     ];
   }
 
-  Widget _buildDetailCard(BuildContext context, String title, String value,
-      double progress, Color color) {
+  Widget _buildDetailCard(
+    BuildContext context,
+    String title,
+    String value,
+    double progress,
+    Color color,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -1609,8 +1662,9 @@ class StatDetailPage extends ConsumerWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color:
-                            AppTheme.textColor(context).withValues(alpha: 0.7),
+                        color: AppTheme.textColor(
+                          context,
+                        ).withValues(alpha: 0.7),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1644,7 +1698,12 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getTodayGoal(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+  String _getTodayGoal(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<UserProgress> userProgressAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         return userProgressAsync.when(
@@ -1660,12 +1719,17 @@ class StatDetailPage extends ConsumerWidget {
                 final goal = userProgress.dailyGoals.caloriesBurnGoal;
                 return '${StatDetailPage._formatNumber(healthData.caloriesBurned)} / ${StatDetailPage._formatNumber(goal)} cal';
               case 'sleep':
-                final goal = userProgress.dailyGoals.sleepHoursGoal.toStringAsFixed(1);
+                final goal = userProgress.dailyGoals.sleepHoursGoal
+                    .toStringAsFixed(1);
                 return '${healthData.sleepHours.toStringAsFixed(1)} / $goal hrs';
               case 'heart':
                 if (healthData.heartRate > 0) {
                   final hr = healthData.heartRate.toInt();
-                  final status = hr < 60 ? tr(context, 'low') : hr > 100 ? tr(context, 'high') : tr(context, 'normal');
+                  final status = hr < 60
+                      ? tr(context, 'low')
+                      : hr > 100
+                      ? tr(context, 'high')
+                      : tr(context, 'normal');
                   return '$hr BPM ($status)';
                 }
                 return tr(context, 'no_data');
@@ -1682,7 +1746,12 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  double _getTodayProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync, AsyncValue<UserProgress> userProgressAsync) {
+  double _getTodayProgress(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+    AsyncValue<UserProgress> userProgressAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         return userProgressAsync.when(
@@ -1692,10 +1761,12 @@ class StatDetailPage extends ConsumerWidget {
                 final goal = userProgress.dailyGoals.stepsGoal.toDouble();
                 return (healthData.steps / goal).clamp(0.0, 1.0);
               case 'active':
-                final goal = userProgress.dailyGoals.activeMinutesGoal.toDouble();
+                final goal = userProgress.dailyGoals.activeMinutesGoal
+                    .toDouble();
                 return (healthData.activeMinutes / goal).clamp(0.0, 1.0);
               case 'calories':
-                final goal = userProgress.dailyGoals.caloriesBurnGoal.toDouble();
+                final goal = userProgress.dailyGoals.caloriesBurnGoal
+                    .toDouble();
                 return (healthData.caloriesBurned / goal).clamp(0.0, 1.0);
               case 'sleep':
                 final goal = userProgress.dailyGoals.sleepHoursGoal;
@@ -1724,7 +1795,11 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getBestWeek(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
+  String _getBestWeek(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         switch (statType) {
@@ -1755,7 +1830,11 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  double _getWeeklyProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
+  double _getWeeklyProgress(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         switch (statType) {
@@ -1779,19 +1858,29 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  String _getDataStatus(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
+  String _getDataStatus(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         final lastUpdated = healthData.lastUpdated;
         final hoursAgo = DateTime.now().difference(lastUpdated).inHours;
-        
+
         if (healthData.isDataAvailable) {
           if (hoursAgo < 1) {
             return tr(context, 'real_time_sync');
           } else if (hoursAgo < 24) {
-            return tr(context, 'synced_hours_ago').replaceAll('{hours}', hoursAgo.toString());
+            return tr(
+              context,
+              'synced_hours_ago',
+            ).replaceAll('{hours}', hoursAgo.toString());
           } else {
-            return tr(context, 'last_sync_days_ago').replaceAll('{days}', (hoursAgo / 24).round().toString());
+            return tr(
+              context,
+              'last_sync_days_ago',
+            ).replaceAll('{days}', (hoursAgo / 24).round().toString());
           }
         } else {
           return tr(context, 'no_health_data_connected');
@@ -1802,12 +1891,18 @@ class StatDetailPage extends ConsumerWidget {
     );
   }
 
-  double _getDataStatusProgress(BuildContext context, String statType, AsyncValue<HealthData> healthDataAsync) {
+  double _getDataStatusProgress(
+    BuildContext context,
+    String statType,
+    AsyncValue<HealthData> healthDataAsync,
+  ) {
     return healthDataAsync.when(
       data: (healthData) {
         if (!healthData.isDataAvailable) return 0.0;
-        
-        final hoursAgo = DateTime.now().difference(healthData.lastUpdated).inHours;
+
+        final hoursAgo = DateTime.now()
+            .difference(healthData.lastUpdated)
+            .inHours;
         if (hoursAgo < 1) return 1.0;
         if (hoursAgo < 6) return 0.8;
         if (hoursAgo < 24) return 0.6;

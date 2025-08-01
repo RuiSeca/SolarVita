@@ -4,11 +4,11 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/firebase_social_posts_service.dart';
-import '../../services/firebase_comments_service.dart';
-import '../../models/social_post.dart';
-import '../../models/post_comment.dart';
-import '../../models/user_mention.dart';
+import '../../services/database/firebase_social_posts_service.dart';
+import '../../services/database/firebase_comments_service.dart';
+import '../../models/social/social_post.dart';
+import '../../models/posts/post_comment.dart';
+import '../../models/user/user_mention.dart';
 import 'auth_provider.dart';
 
 part 'firebase_social_provider.g.dart';
@@ -28,7 +28,8 @@ FirebaseCommentsService firebaseCommentsService(Ref ref) {
 // SOCIAL POSTS PROVIDERS
 
 @riverpod
-Stream<List<SocialPost>> socialPostsFeed(Ref ref, {
+Stream<List<SocialPost>> socialPostsFeed(
+  Ref ref, {
   int limit = 20,
   PostVisibility? visibility,
   List<PostPillar>? pillars,
@@ -68,7 +69,8 @@ Future<List<SocialPost>> trendingPosts(Ref ref, {int limit = 20}) async {
 }
 
 @riverpod
-Future<List<SocialPost>> searchPosts(Ref ref, {
+Future<List<SocialPost>> searchPosts(
+  Ref ref, {
   required String query,
   List<PostPillar>? pillars,
   PostVisibility? visibility,
@@ -86,19 +88,31 @@ Future<List<SocialPost>> searchPosts(Ref ref, {
 // COMMENTS PROVIDERS
 
 @riverpod
-Stream<List<PostComment>> postComments(Ref ref, String postId, {int limit = 50}) {
+Stream<List<PostComment>> postComments(
+  Ref ref,
+  String postId, {
+  int limit = 50,
+}) {
   final service = ref.watch(firebaseCommentsServiceProvider);
   return service.getPostComments(postId, limit: limit);
 }
 
 @riverpod
-Stream<List<CommentThread>> commentThreads(Ref ref, String postId, {int limit = 20}) {
+Stream<List<CommentThread>> commentThreads(
+  Ref ref,
+  String postId, {
+  int limit = 20,
+}) {
   final service = ref.watch(firebaseCommentsServiceProvider);
   return service.getCommentThreads(postId, limit: limit);
 }
 
 @riverpod
-Stream<List<PostComment>> commentReplies(Ref ref, String commentId, {int limit = 20}) {
+Stream<List<PostComment>> commentReplies(
+  Ref ref,
+  String commentId, {
+  int limit = 20,
+}) {
   final service = ref.watch(firebaseCommentsServiceProvider);
   return service.getCommentReplies(commentId, limit: limit);
 }
@@ -132,7 +146,7 @@ class SocialPostActions extends _$SocialPostActions {
     Map<String, dynamic>? templateData,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseSocialPostsServiceProvider);
       final post = await service.createPost(
@@ -147,7 +161,7 @@ class SocialPostActions extends _$SocialPostActions {
         templateId: templateId,
         templateData: templateData,
       );
-      
+
       state = const AsyncValue.data(null);
       return post;
     } catch (error, stackTrace) {
@@ -169,7 +183,7 @@ class SocialPostActions extends _$SocialPostActions {
     String? editReason,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseSocialPostsServiceProvider);
       final post = await service.updatePost(
@@ -184,7 +198,7 @@ class SocialPostActions extends _$SocialPostActions {
         tags: tags,
         editReason: editReason,
       );
-      
+
       state = const AsyncValue.data(null);
       return post;
     } catch (error, stackTrace) {
@@ -195,7 +209,7 @@ class SocialPostActions extends _$SocialPostActions {
 
   Future<void> deletePost(String postId) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseSocialPostsServiceProvider);
       await service.deletePost(postId);
@@ -232,7 +246,7 @@ class SocialPostActions extends _$SocialPostActions {
     String? details,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseSocialPostsServiceProvider);
       await service.reportPost(
@@ -273,7 +287,7 @@ class CommentActions extends _$CommentActions {
     List<MentionInfo>? mentions,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseCommentsServiceProvider);
       final comment = await service.createComment(
@@ -283,7 +297,7 @@ class CommentActions extends _$CommentActions {
         mediaFile: mediaFile,
         mentions: mentions,
       );
-      
+
       state = const AsyncValue.data(null);
       return comment;
     } catch (error, stackTrace) {
@@ -300,7 +314,7 @@ class CommentActions extends _$CommentActions {
     List<MentionInfo>? mentions,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseCommentsServiceProvider);
       final comment = await service.updateComment(
@@ -310,7 +324,7 @@ class CommentActions extends _$CommentActions {
         removeMedia: removeMedia,
         mentions: mentions,
       );
-      
+
       state = const AsyncValue.data(null);
       return comment;
     } catch (error, stackTrace) {
@@ -321,7 +335,7 @@ class CommentActions extends _$CommentActions {
 
   Future<void> deleteComment(String commentId) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseCommentsServiceProvider);
       await service.deleteComment(commentId);
@@ -344,7 +358,7 @@ class CommentActions extends _$CommentActions {
 
   Future<void> togglePinComment(String commentId, String postId) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseCommentsServiceProvider);
       await service.togglePinComment(commentId, postId);
@@ -361,7 +375,7 @@ class CommentActions extends _$CommentActions {
     String? details,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseCommentsServiceProvider);
       await service.reportComment(
@@ -376,7 +390,8 @@ class CommentActions extends _$CommentActions {
     }
   }
 
-  Future<List<PostComment>> loadMoreReplies(String commentId, {
+  Future<List<PostComment>> loadMoreReplies(
+    String commentId, {
     int limit = 10,
     DocumentSnapshot? lastDoc,
   }) async {
@@ -419,29 +434,27 @@ Stream<List<SocialPost>> currentUserPosts(Ref ref, {int limit = 20}) {
   if (currentUser == null) {
     return Stream.value([]);
   }
-  
+
   final service = ref.watch(firebaseSocialPostsServiceProvider);
   return service.getUserPosts(currentUser.uid, limit: limit);
 }
 
 /// Post by pillar filter
 @riverpod
-Stream<List<SocialPost>> postsByPillar(Ref ref, PostPillar pillar, {int limit = 20}) {
+Stream<List<SocialPost>> postsByPillar(
+  Ref ref,
+  PostPillar pillar, {
+  int limit = 20,
+}) {
   final service = ref.watch(firebaseSocialPostsServiceProvider);
-  return service.getPostsFeed(
-    limit: limit,
-    pillars: [pillar],
-  );
+  return service.getPostsFeed(limit: limit, pillars: [pillar]);
 }
 
 /// Public posts only
 @riverpod
 Stream<List<SocialPost>> publicPosts(Ref ref, {int limit = 20}) {
   final service = ref.watch(firebaseSocialPostsServiceProvider);
-  return service.getPostsFeed(
-    limit: limit,
-    visibility: PostVisibility.public,
-  );
+  return service.getPostsFeed(limit: limit, visibility: PostVisibility.public);
 }
 
 /// Convenience provider for comment count
@@ -463,7 +476,7 @@ Future<int> postReactionCount(Ref ref, String postId) async {
 Future<ReactionType?> userPostReaction(Ref ref, String postId) async {
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser == null) return null;
-  
+
   final post = await ref.watch(socialPostProvider(postId).future);
   return post?.getUserReaction(currentUser.uid);
 }
@@ -473,7 +486,7 @@ Future<ReactionType?> userPostReaction(Ref ref, String postId) async {
 Future<ReactionType?> userCommentReaction(Ref ref, String commentId) async {
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser == null) return null;
-  
+
   final comment = await ref.watch(postCommentProvider(commentId).future);
   return comment?.getUserReaction(currentUser.uid);
 }

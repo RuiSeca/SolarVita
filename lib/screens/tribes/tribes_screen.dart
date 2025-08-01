@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../models/tribe.dart';
-import '../../services/tribe_service.dart';
+import '../../models/tribe/tribe.dart';
+import '../../services/database/tribe_service.dart';
 import '../../theme/app_theme.dart';
 import 'create_tribe_screen.dart';
 import 'tribe_detail_screen.dart';
@@ -19,7 +19,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
   final TribeService _tribeService = TribeService();
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
-  
+
   String _searchQuery = '';
   TribeCategory? _selectedCategory;
 
@@ -39,7 +39,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
@@ -60,11 +60,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
                 color: theme.primaryColor,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.add,
-                color: Colors.white,
-                size: 20,
-              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 20),
             ),
             tooltip: 'Create or Join Tribe',
           ),
@@ -112,7 +108,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
               ),
             ),
           ),
-          
+
           // Tab selector
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -143,15 +139,12 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
               ],
             ),
           ),
-          
+
           // Tab content
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildMyTribesTab(),
-                _buildDiscoverTab(),
-              ],
+              children: [_buildMyTribesTab(), _buildDiscoverTab()],
             ),
           ),
         ],
@@ -194,7 +187,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
       children: [
         // Category filter chips
         _buildCategoryFilter(),
-        
+
         // Discover tribes list
         Expanded(
           child: StreamBuilder<List<Tribe>>(
@@ -219,7 +212,10 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
                 padding: const EdgeInsets.all(16),
                 itemCount: filteredTribes.length,
                 itemBuilder: (context, index) {
-                  return _buildTribeCard(filteredTribes[index], isMyTribe: false);
+                  return _buildTribeCard(
+                    filteredTribes[index],
+                    isMyTribe: false,
+                  );
                 },
               );
             },
@@ -241,7 +237,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
           if (index == 0) {
             return _buildCategoryChip(null, 'All', '🌟');
           }
-          
+
           final category = TribeCategory.values[index - 1];
           final tribe = Tribe(
             id: '',
@@ -252,7 +248,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
             category: category,
             createdAt: DateTime.now(),
           );
-          
+
           return _buildCategoryChip(
             category,
             tribe.getCategoryName(),
@@ -266,7 +262,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
   Widget _buildCategoryChip(TribeCategory? category, String name, String icon) {
     final isSelected = _selectedCategory == category;
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(right: 8),
       child: FilterChip(
@@ -286,7 +282,9 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : theme.textTheme.bodyMedium?.color,
+                color: isSelected
+                    ? Colors.white
+                    : theme.textTheme.bodyMedium?.color,
               ),
             ),
           ],
@@ -296,8 +294,8 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isSelected 
-                ? theme.primaryColor 
+            color: isSelected
+                ? theme.primaryColor
                 : theme.dividerColor.withValues(alpha: 0.3),
           ),
         ),
@@ -307,15 +305,13 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Widget _buildTribeCard(Tribe tribe, {required bool isMyTribe}) {
     final theme = Theme.of(context);
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: theme.dividerColor.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -336,7 +332,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
           children: [
             // Cover image or gradient header
             _buildTribeHeader(tribe, theme),
-            
+
             // Content
             Padding(
               padding: const EdgeInsets.all(16),
@@ -387,21 +383,23 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(height: 8),
-                  
+
                   // Description
                   Text(
                     tribe.description,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.8),
+                      color: theme.textTheme.bodySmall?.color?.withValues(
+                        alpha: 0.8,
+                      ),
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
+
                   const SizedBox(height: 12),
-                  
+
                   // Bottom row with category, visibility, and action
                   Row(
                     children: [
@@ -434,18 +432,20 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(width: 8),
-                      
+
                       // Visibility indicator
                       Icon(
                         tribe.isPrivate ? Icons.lock : Icons.public,
                         size: 14,
-                        color: theme.textTheme.bodySmall?.color?.withValues(alpha: 0.6),
+                        color: theme.textTheme.bodySmall?.color?.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
-                      
+
                       const Spacer(),
-                      
+
                       // Action button
                       _buildTribeActionButton(tribe, isMyTribe),
                     ],
@@ -476,7 +476,9 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
       ),
       child: tribe.coverImage != null
           ? ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: CachedNetworkImage(
                 imageUrl: tribe.coverImage!,
                 height: 120,
@@ -513,7 +515,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Widget _buildTribeActionButton(Tribe tribe, bool isMyTribe) {
     final theme = Theme.of(context);
-    
+
     if (isMyTribe) {
       return TextButton(
         onPressed: () => Navigator.push(
@@ -526,9 +528,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
           backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           minimumSize: Size.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: Text(
           'Open',
@@ -546,9 +546,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
           backgroundColor: theme.primaryColor,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           minimumSize: Size.zero,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
           'Join',
@@ -564,7 +562,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Widget _buildEmptyMyTribesState() {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -594,7 +592,9 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
             Text(
               'Join tribes to connect with like-minded people and share your journey',
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                color: theme.textTheme.bodyMedium?.color?.withValues(
+                  alpha: 0.7,
+                ),
               ),
               textAlign: TextAlign.center,
             ),
@@ -620,7 +620,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Widget _buildEmptyDiscoverState() {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -654,18 +654,14 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Widget _buildErrorState(String message) {
     final theme = Theme.of(context);
-    
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: theme.colorScheme.error,
-            ),
+            Icon(Icons.error_outline, size: 64, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
               'Something went wrong',
@@ -693,21 +689,27 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   List<Tribe> _filterTribes(List<Tribe> tribes) {
     var filtered = tribes;
-    
+
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((tribe) {
         return tribe.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               tribe.description.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-               tribe.getCategoryName().toLowerCase().contains(_searchQuery.toLowerCase());
+            tribe.description.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            ) ||
+            tribe.getCategoryName().toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
       }).toList();
     }
-    
+
     // Filter by category
     if (_selectedCategory != null) {
-      filtered = filtered.where((tribe) => tribe.category == _selectedCategory).toList();
+      filtered = filtered
+          .where((tribe) => tribe.category == _selectedCategory)
+          .toList();
     }
-    
+
     return filtered;
   }
 
@@ -763,10 +765,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
                   color: Colors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.lock_outline,
-                  color: Colors.orange,
-                ),
+                child: const Icon(Icons.lock_outline, color: Colors.orange),
               ),
               title: const Text('Join with Code'),
               subtitle: const Text('Enter invite code for private tribe'),
@@ -784,7 +783,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   void _showJoinByCodeDialog() {
     final TextEditingController codeController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -854,7 +853,7 @@ class _TribesScreenState extends ConsumerState<TribesScreen>
 
   Future<void> _joinTribeByCode(String code) async {
     if (code.isEmpty) return;
-    
+
     try {
       await _tribeService.joinTribeByInviteCode(code);
       if (mounted) {

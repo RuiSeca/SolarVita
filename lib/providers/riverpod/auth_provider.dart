@@ -1,10 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/auth_service.dart';
+import '../../services/auth/auth_service.dart';
 
 part 'auth_provider.g.dart';
-
 
 // Auth service provider (already defined in user_profile_provider.dart but redefined here for clarity)
 @riverpod
@@ -25,17 +24,9 @@ class AuthState {
   final bool isLoading;
   final String? errorMessage;
 
-  const AuthState({
-    this.user,
-    this.isLoading = false,
-    this.errorMessage,
-  });
+  const AuthState({this.user, this.isLoading = false, this.errorMessage});
 
-  AuthState copyWith({
-    User? user,
-    bool? isLoading,
-    String? errorMessage,
-  }) {
+  AuthState copyWith({User? user, bool? isLoading, String? errorMessage}) {
     return AuthState(
       user: user ?? this.user,
       isLoading: isLoading ?? this.isLoading,
@@ -54,7 +45,7 @@ class AuthNotifier extends _$AuthNotifier {
   AuthState build() {
     // Listen to auth state changes and update our state accordingly
     final authStateStream = ref.watch(authStateChangesProvider);
-    
+
     return authStateStream.when(
       data: (user) => AuthState(user: user),
       loading: () => const AuthState(isLoading: true),
@@ -144,7 +135,7 @@ class AuthNotifier extends _$AuthNotifier {
     try {
       final authService = ref.read(authServiceProvider);
       await authService.reloadCurrentUser();
-      
+
       // The auth state stream will automatically update our state
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -157,16 +148,13 @@ class AuthNotifier extends _$AuthNotifier {
       state = state.copyWith(isLoading: true, errorMessage: null);
 
       final result = await operation();
-      
+
       // Clear loading state - the auth state stream will update the user
       state = state.copyWith(isLoading: false);
-      
+
       return result;
     } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: e.toString(),
-      );
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
       return false;
     }
   }

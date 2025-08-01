@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
-import '../../models/user_profile.dart';
-import '../../services/user_profile_service.dart';
+import '../../models/user/user_profile.dart';
+import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import 'diary_preferences_screen.dart';
 
@@ -10,10 +10,12 @@ class SustainabilityPreferencesScreen extends ConsumerStatefulWidget {
   const SustainabilityPreferencesScreen({super.key});
 
   @override
-  ConsumerState<SustainabilityPreferencesScreen> createState() => _SustainabilityPreferencesScreenState();
+  ConsumerState<SustainabilityPreferencesScreen> createState() =>
+      _SustainabilityPreferencesScreenState();
 }
 
-class _SustainabilityPreferencesScreenState extends ConsumerState<SustainabilityPreferencesScreen> {
+class _SustainabilityPreferencesScreenState
+    extends ConsumerState<SustainabilityPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   bool _isLoading = false;
 
@@ -40,11 +42,7 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
     'Green Home',
   ];
 
-  final List<String> _carbonTargetOptions = [
-    'low',
-    'moderate',
-    'high',
-  ];
+  final List<String> _carbonTargetOptions = ['low', 'moderate', 'high'];
 
   final List<String> _categoryOptions = [
     'Energy',
@@ -95,16 +93,16 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'Let\'s set up your sustainability goals',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Help us understand your environmental priorities so we can provide personalized eco-tips and tracking.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -116,9 +114,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'What are your sustainability goals?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -151,9 +149,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'What\'s your carbon footprint reduction target?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._carbonTargetOptions.map((target) {
@@ -179,9 +177,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'What would you like to track?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         CheckboxListTile(
@@ -234,9 +232,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'Which eco-categories interest you most?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -269,9 +267,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       children: [
         Text(
           'Eco-Tips Preferences',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         SwitchListTile(
@@ -379,8 +377,10 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
 
       if (mounted) {
         // Update the provider with the latest profile
-        await ref.read(userProfileNotifierProvider.notifier).refreshUserProfile();
-        
+        await ref
+            .read(userProfileNotifierProvider.notifier)
+            .refreshUserProfile();
+
         // Check mounted again after async operation
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -392,11 +392,9 @@ class _SustainabilityPreferencesScreenState extends ConsumerState<Sustainability
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving preferences: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving preferences: $e')));
       }
     } finally {
       if (mounted) {

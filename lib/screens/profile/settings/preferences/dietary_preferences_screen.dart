@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
 import '../../../../providers/riverpod/user_profile_provider.dart';
-import '../../../../models/user_profile.dart';
+import '../../../../models/user/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class DietaryPreferencesScreen extends ConsumerStatefulWidget {
@@ -14,7 +14,8 @@ class DietaryPreferencesScreen extends ConsumerStatefulWidget {
       _DietaryPreferencesScreenState();
 }
 
-class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScreen> {
+class _DietaryPreferencesScreenState
+    extends ConsumerState<DietaryPreferencesScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -85,7 +86,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
   void _loadUserPreferences() {
     final userProfileProvider = ref.read(userProfileNotifierProvider);
     final dietaryPrefs = userProfileProvider.value?.dietaryPreferences;
-    
+
     if (dietaryPrefs != null) {
       setState(() {
         _selectedDietType = dietaryPrefs.dietType;
@@ -148,12 +149,14 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
         snackTime: _formatTimeOfDay(_snackTime),
       );
 
-      await ref.read(userProfileNotifierProvider.notifier).updateDietaryPreferences(updatedDietaryPrefs);
+      await ref
+          .read(userProfileNotifierProvider.notifier)
+          .updateDietaryPreferences(updatedDietaryPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Dietary preferences updated successfully'),
+          SnackBar(
+            content: Text(tr(context, 'dietary_preferences_updated')),
             backgroundColor: Colors.green,
           ),
         );
@@ -162,7 +165,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating preferences: $e'),
+            content: Text(tr(context, 'error_updating_preferences').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -234,7 +237,11 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
         Row(
           children: [
             if (icon != null) ...[
-              Icon(icon, color: iconColor ?? Theme.of(context).primaryColor, size: 24),
+              Icon(
+                icon,
+                color: iconColor ?? Theme.of(context).primaryColor,
+                size: 24,
+              ),
               const SizedBox(width: 8),
             ],
             Expanded(
@@ -266,7 +273,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildDietTypeSection() {
     return _buildSection(
-      title: 'Diet Type',
+      title: tr(context, 'diet_type'),
       icon: Icons.restaurant,
       children: [
         Padding(
@@ -284,7 +291,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                     });
                   },
                   title: Text(
-                    type.toUpperCase().replaceAll('_', ' '),
+                    tr(context, type),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontWeight: FontWeight.w500,
@@ -302,7 +309,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildAllergiesSection() {
     return _buildSection(
-      title: 'Allergies',
+      title: tr(context, 'allergies'),
       icon: Icons.warning,
       iconColor: Colors.red,
       children: [
@@ -312,7 +319,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select any allergies you have:',
+                tr(context, 'select_allergies'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -326,11 +333,13 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                   final isSelected = _allergies.contains(allergy);
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(allergy),
+                    label: Text(tr(context, allergy.toLowerCase())),
                     selectedColor: Colors.red,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -354,7 +363,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildRestrictionsSection() {
     return _buildSection(
-      title: 'Dietary Restrictions',
+      title: tr(context, 'dietary_restrictions'),
       icon: Icons.block,
       iconColor: Colors.orange,
       children: [
@@ -364,7 +373,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select any dietary restrictions:',
+                tr(context, 'select_dietary_restrictions'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -378,11 +387,13 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                   final isSelected = _restrictions.contains(restriction);
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(restriction),
+                    label: Text(tr(context, restriction.toLowerCase().replaceAll(' ', '_'))),
                     selectedColor: Theme.of(context).primaryColor,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -406,41 +417,51 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildSustainabilitySection() {
     return _buildSection(
-      title: 'Sustainability Preferences',
+      title: tr(context, 'sustainability_preferences_section'),
       icon: Icons.eco,
       iconColor: Colors.green,
       children: [
         SwitchListTile(
-          title: Text('Prefer Organic',
-              style: TextStyle(color: AppTheme.textColor(context))),
+          title: Text(
+            tr(context, 'prefer_organic'),
+            style: TextStyle(color: AppTheme.textColor(context)),
+          ),
           value: _preferOrganic,
           onChanged: (value) => setState(() => _preferOrganic = value),
           activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
-          title: Text('Prefer Local',
-              style: TextStyle(color: AppTheme.textColor(context))),
+          title: Text(
+            tr(context, 'prefer_local'),
+            style: TextStyle(color: AppTheme.textColor(context)),
+          ),
           value: _preferLocal,
           onChanged: (value) => setState(() => _preferLocal = value),
           activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
-          title: Text('Prefer Seasonal',
-              style: TextStyle(color: AppTheme.textColor(context))),
+          title: Text(
+            tr(context, 'prefer_seasonal'),
+            style: TextStyle(color: AppTheme.textColor(context)),
+          ),
           value: _preferSeasonal,
           onChanged: (value) => setState(() => _preferSeasonal = value),
           activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
-          title: Text('Reduce Meat Consumption',
-              style: TextStyle(color: AppTheme.textColor(context))),
+          title: Text(
+            tr(context, 'reduce_meat_consumption'),
+            style: TextStyle(color: AppTheme.textColor(context)),
+          ),
           value: _reduceMeatConsumption,
           onChanged: (value) => setState(() => _reduceMeatConsumption = value),
           activeColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
-          title: Text('Sustainable Seafood',
-              style: TextStyle(color: AppTheme.textColor(context))),
+          title: Text(
+            tr(context, 'sustainable_seafood'),
+            style: TextStyle(color: AppTheme.textColor(context)),
+          ),
           value: _sustainableSeafood,
           onChanged: (value) => setState(() => _sustainableSeafood = value),
           activeColor: Theme.of(context).primaryColor,
@@ -451,7 +472,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildNutritionGoalsSection() {
     return _buildSection(
-      title: 'Nutrition Goals',
+      title: tr(context, 'nutrition_goals'),
       icon: Icons.pie_chart,
       iconColor: Colors.blue,
       children: [
@@ -461,39 +482,39 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSliderTile(
-                'Daily Calorie Goal',
+                tr(context, 'daily_calorie_goal'),
                 _dailyCalorieGoal.toDouble(),
                 1200,
                 3000,
                 (value) => setState(() => _dailyCalorieGoal = value.round()),
-                '$_dailyCalorieGoal kcal',
+                tr(context, 'kcal_label').replaceAll('{count}', '$_dailyCalorieGoal'),
               ),
               const SizedBox(height: 16),
               _buildSliderTile(
-                'Protein %',
+                tr(context, 'protein_percentage'),
                 _proteinPercentage.toDouble(),
                 10,
                 40,
                 (value) => setState(() => _proteinPercentage = value.round()),
-                '$_proteinPercentage%',
+                tr(context, 'percentage_label').replaceAll('{count}', '$_proteinPercentage'),
               ),
               const SizedBox(height: 16),
               _buildSliderTile(
-                'Carbs %',
+                tr(context, 'carbs_percentage'),
                 _carbsPercentage.toDouble(),
                 20,
                 70,
                 (value) => setState(() => _carbsPercentage = value.round()),
-                '$_carbsPercentage%',
+                tr(context, 'percentage_label').replaceAll('{count}', '$_carbsPercentage'),
               ),
               const SizedBox(height: 16),
               _buildSliderTile(
-                'Fat %',
+                tr(context, 'fat_percentage'),
                 _fatPercentage.toDouble(),
                 15,
                 50,
                 (value) => setState(() => _fatPercentage = value.round()),
-                '$_fatPercentage%',
+                tr(context, 'percentage_label').replaceAll('{count}', '$_fatPercentage'),
               ),
             ],
           ),
@@ -504,7 +525,7 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
 
   Widget _buildMealPlanningSection() {
     return _buildSection(
-      title: 'Meal Planning',
+      title: tr(context, 'meal_planning'),
       icon: Icons.schedule,
       iconColor: Colors.purple,
       children: [
@@ -514,26 +535,31 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSliderTile(
-                'Meals per Day',
+                tr(context, 'meals_per_day'),
                 _mealsPerDay.toDouble(),
                 2,
                 6,
                 (value) => setState(() => _mealsPerDay = value.round()),
-                '$_mealsPerDay meals',
+                tr(context, 'meals_label').replaceAll('{count}', '$_mealsPerDay'),
               ),
               const SizedBox(height: 16),
               SwitchListTile(
-                title: Text('Enable Snacks',
-                    style: TextStyle(color: AppTheme.textColor(context))),
+                title: Text(
+                  tr(context, 'enable_snacks'),
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
                 value: _enableSnacks,
                 onChanged: (value) => setState(() => _enableSnacks = value),
                 activeColor: Theme.of(context).primaryColor,
               ),
               SwitchListTile(
-                title: Text('Intermittent Fasting',
-                    style: TextStyle(color: AppTheme.textColor(context))),
+                title: Text(
+                  tr(context, 'intermittent_fasting'),
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
                 value: _intermittentFasting,
-                onChanged: (value) => setState(() => _intermittentFasting = value),
+                onChanged: (value) =>
+                    setState(() => _intermittentFasting = value),
                 activeColor: Theme.of(context).primaryColor,
               ),
             ],
@@ -543,8 +569,14 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
     );
   }
 
-  Widget _buildSliderTile(String title, double value, double min, double max,
-      ValueChanged<double> onChanged, String displayValue) {
+  Widget _buildSliderTile(
+    String title,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+    String displayValue,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -605,12 +637,9 @@ class _DietaryPreferencesScreenState extends ConsumerState<DietaryPreferencesScr
                 width: 20,
                 child: LottieLoadingWidget(width: 20, height: 20),
               )
-            : const Text(
-                'Save Preferences',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+            : Text(
+                tr(context, 'save_preferences'),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
       ),
     );

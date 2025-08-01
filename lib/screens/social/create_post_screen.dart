@@ -5,10 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'dart:io';
-import '../../models/social_post.dart';
-import '../../models/user_mention.dart';
-import '../../models/post_template.dart';
-import '../../models/content_moderation.dart';
+import '../../models/social/social_post.dart';
+import '../../models/user/user_mention.dart';
+import '../../models/posts/post_template.dart';
+import '../../models/moderation/content_moderation.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
@@ -22,11 +22,7 @@ class CreatePostScreen extends ConsumerStatefulWidget {
   final PostType? initialPostType;
   final Map<String, dynamic>? sourceData;
 
-  const CreatePostScreen({
-    super.key,
-    this.initialPostType,
-    this.sourceData,
-  });
+  const CreatePostScreen({super.key, this.initialPostType, this.sourceData});
 
   @override
   ConsumerState<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -35,7 +31,7 @@ class CreatePostScreen extends ConsumerStatefulWidget {
 class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   final _contentController = TextEditingController();
   final _imagePicker = ImagePicker();
-  
+
   PostType _selectedPostType = PostType.reflection;
   PostVisibility _selectedVisibility = PostVisibility.supporters;
   List<PostPillar> _selectedPillars = [];
@@ -58,12 +54,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   void _handleSourceData() {
     if (widget.sourceData != null) {
       final data = widget.sourceData!;
-      
+
       // Pre-fill content from template
       if (data['pre_filled_content'] != null) {
         _contentController.text = data['pre_filled_content'];
       }
-      
+
       // Set default pillars from template
       if (data['default_pillars'] != null) {
         final pillarStrings = List<String>.from(data['default_pillars']);
@@ -190,7 +186,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? Theme.of(context).primaryColor
@@ -237,7 +236,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
             GestureDetector(
               onTap: _showTemplateSelector,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).primaryColor.withAlpha(51),
                   borderRadius: BorderRadius.circular(16),
@@ -348,7 +350,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: isDisabled 
+          color: isDisabled
               ? AppTheme.textColor(context).withAlpha(26)
               : Theme.of(context).primaryColor.withAlpha(51),
           borderRadius: BorderRadius.circular(20),
@@ -362,8 +364,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              icon, 
-              size: 16, 
+              icon,
+              size: 16,
               color: isDisabled
                   ? AppTheme.textColor(context).withAlpha(128)
                   : Theme.of(context).primaryColor,
@@ -387,8 +389,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
   Widget _buildMediaPreview() {
     final allMedia = [
-      ..._selectedImages.map((file) => MediaPreviewItem(file: file, isVideo: false)),
-      ..._selectedVideos.map((file) => MediaPreviewItem(file: file, isVideo: true)),
+      ..._selectedImages.map(
+        (file) => MediaPreviewItem(file: file, isVideo: false),
+      ),
+      ..._selectedVideos.map(
+        (file) => MediaPreviewItem(file: file, isVideo: true),
+      ),
     ];
 
     return Column(
@@ -418,10 +424,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // Enhanced media grid with reordering
         SizedBox(
-          height: allMedia.length > 3 ? 260 : 130, // Adjust height for multiple rows
+          height: allMedia.length > 3
+              ? 260
+              : 130, // Adjust height for multiple rows
           child: ReorderableListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: allMedia.length,
@@ -430,32 +438,29 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               return AnimatedBuilder(
                 animation: animation,
                 builder: (context, child) {
-                  return Transform.scale(
-                    scale: 1.1,
-                    child: child,
-                  );
+                  return Transform.scale(scale: 1.1, child: child);
                 },
                 child: child,
               );
             },
             itemBuilder: (context, index) {
               final media = allMedia[index];
-              return _buildEnhancedMediaItem(media, index, key: ValueKey(media.file.path));
+              return _buildEnhancedMediaItem(
+                media,
+                index,
+                key: ValueKey(media.file.path),
+              );
             },
           ),
         ),
-        
+
         // Media limit indicator
         if (allMedia.length >= 5)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  size: 14,
-                  color: Colors.orange,
-                ),
+                Icon(Icons.info_outline, size: 14, color: Colors.orange),
                 const SizedBox(width: 4),
                 Text(
                   tr(context, 'max_files_per_post'),
@@ -472,7 +477,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     );
   }
 
-  Widget _buildEnhancedMediaItem(MediaPreviewItem media, int index, {required Key key}) {
+  Widget _buildEnhancedMediaItem(
+    MediaPreviewItem media,
+    int index, {
+    required Key key,
+  }) {
     return Container(
       key: key,
       width: 120,
@@ -507,7 +516,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                     ),
             ),
           ),
-          
+
           // Media type indicator
           Positioned(
             bottom: 6,
@@ -539,7 +548,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
             ),
           ),
-          
+
           // Order indicator
           Positioned(
             top: 6,
@@ -564,7 +573,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
               ),
             ),
           ),
-          
+
           // Remove button
           Positioned(
             top: 6,
@@ -578,15 +587,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 1),
                 ),
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 12,
-                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 12),
               ),
             ),
           ),
-          
+
           // Drag handle for reordering
           if (index < _getMediaCount() - 1 || _getMediaCount() > 1)
             Positioned(
@@ -609,7 +614,6 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       ),
     );
   }
-
 
   Widget _buildPillarSelector() {
     return Column(
@@ -640,7 +644,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? _getPillarColor(pillar)
@@ -741,8 +748,8 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   }
 
   Widget _buildPostPreview() {
-    if (_contentController.text.isEmpty && 
-        _selectedImages.isEmpty && 
+    if (_contentController.text.isEmpty &&
+        _selectedImages.isEmpty &&
         _selectedVideos.isEmpty) {
       return const SizedBox.shrink();
     }
@@ -777,7 +784,11 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: Theme.of(context).primaryColor,
-                    child: const Icon(Icons.person, color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -799,9 +810,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                 const SizedBox(height: 12),
                 Text(
                   _contentController.text,
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                  ),
+                  style: TextStyle(color: AppTheme.textColor(context)),
                 ),
               ],
               if (_selectedPillars.isNotEmpty) ...[
@@ -810,7 +819,10 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   spacing: 4,
                   children: _selectedPillars.map((pillar) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: _getPillarColor(pillar).withAlpha(51),
                         borderRadius: BorderRadius.circular(8),
@@ -837,15 +849,18 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
   // Helper methods
   bool _canPost() {
     return _contentController.text.trim().isNotEmpty ||
-           _selectedImages.isNotEmpty ||
-           _selectedVideos.isNotEmpty;
+        _selectedImages.isNotEmpty ||
+        _selectedVideos.isNotEmpty;
   }
 
   List<String> _extractTags(String content) {
     // Extract hashtags from content
     final hashtagRegex = RegExp(r'#(\w+)');
     final matches = hashtagRegex.allMatches(content);
-    return matches.map((match) => match.group(1)!.toLowerCase()).toSet().toList();
+    return matches
+        .map((match) => match.group(1)!.toLowerCase())
+        .toSet()
+        .toList();
   }
 
   bool _canAddMoreMedia() {
@@ -861,28 +876,30 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final maxFilesError = tr(context, 'max_files_error');
     final onlyXImagesAdded = tr(context, 'only_x_images_added');
     final failedPickImages = tr(context, 'failed_pick_images');
-    
+
     try {
       final List<XFile> images = await _imagePicker.pickMultiImage();
       if (images.isNotEmpty) {
         // Check media limit
         final totalMedia = _selectedImages.length + _selectedVideos.length;
         final availableSlots = 10 - totalMedia;
-        
+
         if (availableSlots <= 0) {
           _showErrorMessage(maxFilesError);
           return;
         }
-        
+
         final imagesToAdd = images.take(availableSlots).toList();
-        
+
         setState(() {
           _selectedImages.addAll(imagesToAdd.map((xfile) => File(xfile.path)));
         });
-        
+
         // Show warning if some images were not added
         if (images.length > imagesToAdd.length) {
-          _showWarningMessage(onlyXImagesAdded.replaceAll('{count}', '${imagesToAdd.length}'));
+          _showWarningMessage(
+            onlyXImagesAdded.replaceAll('{count}', '${imagesToAdd.length}'),
+          );
         }
       }
     } catch (e) {
@@ -894,7 +911,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final maxFilesError = tr(context, 'max_files_error');
     final videoTooLarge = tr(context, 'video_too_large');
     final failedPickVideo = tr(context, 'failed_pick_video');
-    
+
     try {
       final XFile? video = await _imagePicker.pickVideo(
         source: ImageSource.gallery,
@@ -903,22 +920,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       if (video != null) {
         // Check media limit
         final totalMedia = _selectedImages.length + _selectedVideos.length;
-        
+
         if (totalMedia >= 10) {
           _showErrorMessage(maxFilesError);
           return;
         }
-        
+
         // Check video file size (limit to 100MB)
         final file = File(video.path);
         final fileSize = await file.length();
         const maxSize = 100 * 1024 * 1024; // 100MB in bytes
-        
+
         if (fileSize > maxSize) {
           _showErrorMessage(videoTooLarge);
           return;
         }
-        
+
         setState(() {
           _selectedVideos.add(file);
         });
@@ -942,8 +959,12 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     setState(() {
       // Create combined media list for reordering
       final allMedia = [
-        ..._selectedImages.map((file) => MediaPreviewItem(file: file, isVideo: false)),
-        ..._selectedVideos.map((file) => MediaPreviewItem(file: file, isVideo: true)),
+        ..._selectedImages.map(
+          (file) => MediaPreviewItem(file: file, isVideo: false),
+        ),
+        ..._selectedVideos.map(
+          (file) => MediaPreviewItem(file: file, isVideo: true),
+        ),
       ];
 
       // Perform reordering
@@ -956,7 +977,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       // Separate back to images and videos lists
       _selectedImages.clear();
       _selectedVideos.clear();
-      
+
       for (final media in allMedia) {
         if (media.isVideo) {
           _selectedVideos.add(media.file);
@@ -995,13 +1016,14 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       builder: (context) => PostTemplateSelectorSheet(
         onTemplateSelected: (template) {
           Navigator.pop(context); // Close the template selector
-          
+
           if (template.hasVariables) {
             // Navigate to variable input screen
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TemplateVariableInputScreen(template: template),
+                builder: (context) =>
+                    TemplateVariableInputScreen(template: template),
               ),
             );
           } else {
@@ -1070,10 +1092,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
                   ),
                   child: Text(
                     tr(context, 'video_preview'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -1089,7 +1108,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
     final postCreatedSuccess = tr(context, 'post_created_success');
     final peopleNotified = tr(context, 'people_notified');
     final postUnderReview = tr(context, 'post_under_review');
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -1098,30 +1117,33 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
       // Content moderation check
       final content = _contentController.text.trim();
       final moderationResult = ContentModerationService.analyzeContent(content);
-      
+
       if (moderationResult.flagged) {
         _showModerationWarning(moderationResult);
         return;
       }
 
       // Create post using Firebase service
-      final post = await ref.read(socialPostActionsProvider.notifier).createPost(
-        content: content,
-        pillars: _selectedPillars,
-        visibility: _selectedVisibility,
-        type: _selectedPostType,
-        mediaFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
-        videoFiles: _selectedVideos.isNotEmpty ? _selectedVideos : null,
-        tags: _extractTags(content),
-        autoGenerated: false,
-        templateId: widget.sourceData?['template_id'],
-        templateData: widget.sourceData,
-      );
+      final post = await ref
+          .read(socialPostActionsProvider.notifier)
+          .createPost(
+            content: content,
+            pillars: _selectedPillars,
+            visibility: _selectedVisibility,
+            type: _selectedPostType,
+            mediaFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
+            videoFiles: _selectedVideos.isNotEmpty ? _selectedVideos : null,
+            tags: _extractTags(content),
+            autoGenerated: false,
+            templateId: widget.sourceData?['template_id'],
+            templateData: widget.sourceData,
+          );
 
       // Show success message
       String successMessage = postCreatedSuccess;
       if (_mentions.isNotEmpty) {
-        successMessage += ' ${peopleNotified.replaceAll('{count}', '${_mentions.length}')}';
+        successMessage +=
+            ' ${peopleNotified.replaceAll('{count}', '${_mentions.length}')}';
       }
       if (moderationResult.requiresHumanReview) {
         successMessage += ' $postUnderReview';
@@ -1132,7 +1154,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(successMessage),
-            backgroundColor: moderationResult.requiresHumanReview ? Colors.orange : Colors.green,
+            backgroundColor: moderationResult.requiresHumanReview
+                ? Colors.orange
+                : Colors.green,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 3),
           ),
@@ -1144,7 +1168,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tr(context, 'failed_create_post').replaceAll('{error}', '$e')),
+            content: Text(
+              tr(context, 'failed_create_post').replaceAll('{error}', '$e'),
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -1167,10 +1193,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         backgroundColor: AppTheme.cardColor(context),
         title: Row(
           children: [
-            Icon(
-              Icons.warning,
-              color: Colors.orange,
-            ),
+            Icon(Icons.warning, color: Colors.orange),
             const SizedBox(width: 8),
             Text(
               tr(context, 'content_review'),
@@ -1187,9 +1210,7 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
           children: [
             Text(
               tr(context, 'content_guidelines_violation'),
-              style: TextStyle(
-                color: AppTheme.textColor(context),
-              ),
+              style: TextStyle(color: AppTheme.textColor(context)),
             ),
             if (result.explanation != null) ...[
               const SizedBox(height: 8),
@@ -1248,20 +1269,22 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
 
     try {
       final content = _contentController.text.trim();
-      
+
       // Create post but mark for review
-      final post = await ref.read(socialPostActionsProvider.notifier).createPost(
-        content: content,
-        pillars: _selectedPillars,
-        visibility: _selectedVisibility,
-        type: _selectedPostType,
-        mediaFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
-        videoFiles: _selectedVideos.isNotEmpty ? _selectedVideos : null,
-        tags: _extractTags(content),
-        autoGenerated: false,
-        templateId: widget.sourceData?['template_id'],
-        templateData: widget.sourceData,
-      );
+      final post = await ref
+          .read(socialPostActionsProvider.notifier)
+          .createPost(
+            content: content,
+            pillars: _selectedPillars,
+            visibility: _selectedVisibility,
+            type: _selectedPostType,
+            mediaFiles: _selectedImages.isNotEmpty ? _selectedImages : null,
+            videoFiles: _selectedVideos.isNotEmpty ? _selectedVideos : null,
+            tags: _extractTags(content),
+            autoGenerated: false,
+            templateId: widget.sourceData?['template_id'],
+            templateData: widget.sourceData,
+          );
 
       if (mounted) {
         HapticFeedback.lightImpact();
@@ -1280,7 +1303,9 @@ class _CreatePostScreenState extends ConsumerState<CreatePostScreen> {
         HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tr(context, 'failed_create_post').replaceAll('{error}', '$e')),
+            content: Text(
+              tr(context, 'failed_create_post').replaceAll('{error}', '$e'),
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),

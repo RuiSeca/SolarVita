@@ -1,6 +1,6 @@
 // lib/screens/social/template_variable_input_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/post_template.dart';
+import '../../models/posts/post_template.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
@@ -9,16 +9,15 @@ import 'create_post_screen.dart';
 class TemplateVariableInputScreen extends StatefulWidget {
   final PostTemplate template;
 
-  const TemplateVariableInputScreen({
-    super.key,
-    required this.template,
-  });
+  const TemplateVariableInputScreen({super.key, required this.template});
 
   @override
-  State<TemplateVariableInputScreen> createState() => _TemplateVariableInputScreenState();
+  State<TemplateVariableInputScreen> createState() =>
+      _TemplateVariableInputScreenState();
 }
 
-class _TemplateVariableInputScreenState extends State<TemplateVariableInputScreen> {
+class _TemplateVariableInputScreenState
+    extends State<TemplateVariableInputScreen> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, String> _dropdownValues = {};
   final _formKey = GlobalKey<FormState>();
@@ -96,9 +95,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       decoration: BoxDecoration(
         color: widget.template.color.withAlpha(26),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.template.color.withAlpha(51),
-        ),
+        border: Border.all(color: widget.template.color.withAlpha(51)),
       ),
       child: Row(
         children: [
@@ -165,7 +162,8 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
         ),
         const SizedBox(height: 16),
         ...widget.template.placeholders.map((placeholder) {
-          final prompt = widget.template.variablePrompts[placeholder] ?? placeholder;
+          final prompt =
+              widget.template.variablePrompts[placeholder] ?? placeholder;
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildVariableInput(placeholder, prompt),
@@ -205,7 +203,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
           ],
         ),
         const SizedBox(height: 8),
-        
+
         if (isDropdown)
           _buildDropdownField(placeholder)
         else
@@ -219,9 +217,7 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(51),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(51)),
       ),
       child: TextFormField(
         controller: _controllers[placeholder],
@@ -234,16 +230,15 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
           border: InputBorder.none,
           contentPadding: const EdgeInsets.all(16),
         ),
-        style: TextStyle(
-          color: AppTheme.textColor(context),
-          fontSize: 16,
-        ),
-        validator: isRequired ? (value) {
-          if (value == null || value.trim().isEmpty) {
-            return tr(context, 'field_required');
-          }
-          return null;
-        } : null,
+        style: TextStyle(color: AppTheme.textColor(context), fontSize: 16),
+        validator: isRequired
+            ? (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return tr(context, 'field_required');
+                }
+                return null;
+              }
+            : null,
         onChanged: (value) => setState(() {}), // Trigger preview update
       ),
     );
@@ -251,36 +246,26 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
 
   Widget _buildDropdownField(String placeholder) {
     final options = _getDropdownOptions(placeholder);
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(51),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(51)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _dropdownValues[placeholder],
           hint: Text(
             _getPlaceholderHint(placeholder),
-            style: TextStyle(
-              color: AppTheme.textColor(context).withAlpha(128),
-            ),
+            style: TextStyle(color: AppTheme.textColor(context).withAlpha(128)),
           ),
           isExpanded: true,
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-            fontSize: 16,
-          ),
+          style: TextStyle(color: AppTheme.textColor(context), fontSize: 16),
           dropdownColor: AppTheme.cardColor(context),
           items: options.map((option) {
-            return DropdownMenuItem<String>(
-              value: option,
-              child: Text(option),
-            );
+            return DropdownMenuItem<String>(value: option, child: Text(option));
           }).toList(),
           onChanged: (value) {
             setState(() {
@@ -295,10 +280,11 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
 
   Widget _buildPreview() {
     final userInputs = <String, String>{};
-    
+
     // Collect current values
     for (final placeholder in widget.template.placeholders) {
-      final value = _dropdownValues[placeholder] ?? _controllers[placeholder]?.text ?? '';
+      final value =
+          _dropdownValues[placeholder] ?? _controllers[placeholder]?.text ?? '';
       userInputs[placeholder] = value.isNotEmpty ? value : '[$placeholder]';
     }
 
@@ -367,7 +353,10 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
     // Check if all required fields are filled
     for (final placeholder in widget.template.placeholders) {
       if (_isRequiredField(placeholder)) {
-        final value = _dropdownValues[placeholder] ?? _controllers[placeholder]?.text ?? '';
+        final value =
+            _dropdownValues[placeholder] ??
+            _controllers[placeholder]?.text ??
+            '';
         if (value.trim().isEmpty) {
           return false;
         }
@@ -387,7 +376,8 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       // Collect user inputs
       final userInputs = <String, String>{};
       for (final placeholder in widget.template.placeholders) {
-        userInputs[placeholder] = _dropdownValues[placeholder] ?? _controllers[placeholder]!.text;
+        userInputs[placeholder] =
+            _dropdownValues[placeholder] ?? _controllers[placeholder]!.text;
       }
 
       // Generate the post content
@@ -401,7 +391,9 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
             initialPostType: widget.template.postType,
             sourceData: {
               'pre_filled_content': generatedContent,
-              'default_pillars': widget.template.defaultPillars.map((p) => p.toString()).toList(),
+              'default_pillars': widget.template.defaultPillars
+                  .map((p) => p.toString())
+                  .toList(),
             },
           ),
         ),
@@ -410,7 +402,9 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tr(context, 'failed_generate_post').replaceAll('{error}', '$e')),
+            content: Text(
+              tr(context, 'failed_generate_post').replaceAll('{error}', '$e'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -429,12 +423,23 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
   }
 
   bool _isRequiredField(String placeholder) {
-    const optionalFields = ['additional_notes', 'prep_tips', 'weekly_reflection', 'cooking_tip'];
+    const optionalFields = [
+      'additional_notes',
+      'prep_tips',
+      'weekly_reflection',
+      'cooking_tip',
+    ];
     return !optionalFields.contains(placeholder);
   }
 
   bool _isLongTextField(String placeholder) {
-    const longTextFields = ['additional_notes', 'journey', 'encouragement', 'advice', 'call_to_action'];
+    const longTextFields = [
+      'additional_notes',
+      'journey',
+      'encouragement',
+      'advice',
+      'call_to_action',
+    ];
     return longTextFields.contains(placeholder);
   }
 
@@ -450,15 +455,31 @@ class _TemplateVariableInputScreenState extends State<TemplateVariableInputScree
       'challenge': tr(context, 'what_was_difficult'),
       'additional_notes': tr(context, 'extra_thoughts_optional'),
     };
-    return hints[placeholder] ?? tr(context, 'enter_field').replaceAll('{field}', placeholder);
+    return hints[placeholder] ??
+        tr(context, 'enter_field').replaceAll('{field}', placeholder);
   }
 
   List<String> _getDropdownOptions(String placeholder) {
     switch (placeholder) {
       case 'feeling':
-        return ['amazing', 'energized', 'proud', 'accomplished', 'motivated', 'tired but satisfied'];
+        return [
+          'amazing',
+          'energized',
+          'proud',
+          'accomplished',
+          'motivated',
+          'tired but satisfied',
+        ];
       case 'workout_type':
-        return [tr(context, 'strength_training'), tr(context, 'cardio'), tr(context, 'yoga'), tr(context, 'hiit'), tr(context, 'pilates'), tr(context, 'running'), tr(context, 'cycling')];
+        return [
+          tr(context, 'strength_training'),
+          tr(context, 'cardio'),
+          tr(context, 'yoga'),
+          tr(context, 'hiit'),
+          tr(context, 'pilates'),
+          tr(context, 'running'),
+          tr(context, 'cycling'),
+        ];
       case 'unit':
         return ['lbs', 'kg'];
       default:

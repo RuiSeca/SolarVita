@@ -74,5 +74,20 @@
     "getting_started_daily_goals": "¡Comenzando con objetivos diarios!",
     "perfect_day_all_goals": "¡Día perfecto! ¡Todos los objetivos completados!",
     "goals_completed_today": "{count}/5 objetivos completados hoy",
-    "error_prefix": "Error: "
+    "error_prefix": "Error: ",
+    "level_health_rookie": "Novato de Salud",
+    "level_wellness_warrior": "Guerrero del Bienestar",
+    "level_eco_enthusiast": "Entusiasta Ecológico",
+    "level_health_champion": "Campeón de Salud",
+    "level_eco_master": "Maestro Ecológico",
+    "level_solar_guardian": "Guardián Solar",
+    "level_vitality_legend": "Leyenda de Vitalidad",
+    "level_eco_sage": "Sabio Ecológico",
+    "level_solar_titan": "Titán Solar",
+    "level_ultimate_eco_warrior": "Guerrero Ecológico Supremo",
+    "goal_steps": "Pasos",
+    "goal_active_minutes": "Minutos Activos",
+    "goal_calories_burn": "Quema de Calorías",
+    "goal_water_intake": "Consumo de Agua",
+    "goal_sleep_quality": "Calidad del Sueño"
 }

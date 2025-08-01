@@ -7,19 +7,17 @@ import '../../theme/app_theme.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../providers/riverpod/firebase_user_profile_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
-import '../../models/user_profile.dart';
+import '../../models/user/user_profile.dart';
 import 'widgets/enhanced_profile_header.dart';
 
 class EnhancedProfileScreen extends ConsumerStatefulWidget {
   final String? userId; // If null, shows current user's profile
-  
-  const EnhancedProfileScreen({
-    super.key,
-    this.userId,
-  });
+
+  const EnhancedProfileScreen({super.key, this.userId});
 
   @override
-  ConsumerState<EnhancedProfileScreen> createState() => _EnhancedProfileScreenState();
+  ConsumerState<EnhancedProfileScreen> createState() =>
+      _EnhancedProfileScreenState();
 }
 
 class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
@@ -31,7 +29,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Update activity when viewing profile
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(activityTrackerProvider.notifier).trackActivity();
@@ -48,8 +46,8 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
     _isCurrentUser = widget.userId == null || widget.userId == currentUser?.uid;
-    
-    final profileProvider = _isCurrentUser 
+
+    final profileProvider = _isCurrentUser
         ? currentUserProfileProvider
         : userProfileProvider(widget.userId!);
 
@@ -68,9 +66,9 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
         child: Consumer(
           builder: (context, ref, child) {
             final profileAsync = ref.watch(profileProvider);
-            
+
             return profileAsync.when(
-              data: (profile) => profile != null 
+              data: (profile) => profile != null
                   ? _buildProfileContent(context, profile)
                   : _buildNotFoundState(),
               loading: () => const Center(child: LottieLoadingWidget()),
@@ -163,9 +161,11 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
           SliverToBoxAdapter(
             child: Consumer(
               builder: (context, ref, child) {
-                final completionAsync = ref.watch(profileCompletionStatusProvider);
+                final completionAsync = ref.watch(
+                  profileCompletionStatusProvider,
+                );
                 return completionAsync.when(
-                  data: (status) => status.isComplete 
+                  data: (status) => status.isComplete
                       ? const SizedBox.shrink()
                       : Card(
                           margin: const EdgeInsets.all(16.0),
@@ -176,7 +176,9 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
                               children: [
                                 Text(
                                   'Complete Your Profile (${status.completionPercentage}%)',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 LinearProgressIndicator(
@@ -184,7 +186,8 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
                                 ),
                                 const SizedBox(height: 8),
                                 ElevatedButton(
-                                  onPressed: () => _navigateToEditProfile(profile),
+                                  onPressed: () =>
+                                      _navigateToEditProfile(profile),
                                   child: const Text('Complete Profile'),
                                 ),
                               ],
@@ -207,14 +210,26 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
                 final statsAsync = _isCurrentUser
                     ? ref.watch(currentUserSocialStatsProvider)
                     : ref.watch(userSocialStatsProvider(profile.uid));
-                
+
                 return statsAsync.when(
                   data: (stats) => Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatColumn('Posts', stats['postsCount']?.toString() ?? '0', () => _scrollToPostsTab()),
-                      _buildStatColumn('Followers', stats['followersCount']?.toString() ?? '0', () => _navigateToFollowers(profile.uid)),
-                      _buildStatColumn('Following', stats['followingCount']?.toString() ?? '0', () => _navigateToFollowing(profile.uid)),
+                      _buildStatColumn(
+                        'Posts',
+                        stats['postsCount']?.toString() ?? '0',
+                        () => _scrollToPostsTab(),
+                      ),
+                      _buildStatColumn(
+                        'Followers',
+                        stats['followersCount']?.toString() ?? '0',
+                        () => _navigateToFollowers(profile.uid),
+                      ),
+                      _buildStatColumn(
+                        'Following',
+                        stats['followingCount']?.toString() ?? '0',
+                        () => _navigateToFollowing(profile.uid),
+                      ),
                     ],
                   ),
                   loading: () => const CircularProgressIndicator(),
@@ -249,7 +264,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
             controller: _tabController,
             children: [
               _buildPostsTab(profile.uid),
-              _isCurrentUser 
+              _isCurrentUser
                   ? _buildSavedPostsTab()
                   : _buildRestrictedTab('Saved posts are private'),
               _buildAboutTab(profile),
@@ -264,10 +279,13 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
     return Consumer(
       builder: (context, ref, child) {
         final savedPostsAsync = ref.watch(savedPostsProvider());
-        
+
         return savedPostsAsync.when(
           data: (posts) => posts.isEmpty
-              ? _buildEmptyState('No saved posts yet', 'Posts you save will appear here')
+              ? _buildEmptyState(
+                  'No saved posts yet',
+                  'Posts you save will appear here',
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: posts.length,
@@ -298,32 +316,45 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
             _buildAboutSection('Bio', profile.bio!),
             const SizedBox(height: 24),
           ],
-          
+
           if (profile.interests.isNotEmpty) ...[
-            _buildAboutSection('Interests', null, children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: profile.interests.map((interest) => Chip(
-                  label: Text(interest),
-                  backgroundColor: Theme.of(context).primaryColor.withAlpha(51),
-                  labelStyle: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                )).toList(),
-              ),
-            ]),
+            _buildAboutSection(
+              'Interests',
+              null,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: profile.interests
+                      .map(
+                        (interest) => Chip(
+                          label: Text(interest),
+                          backgroundColor: Theme.of(
+                            context,
+                          ).primaryColor.withAlpha(51),
+                          labelStyle: TextStyle(
+                            color: Theme.of(context).primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
           ],
-          
+
           _buildAboutSection('Member Since', _formatDate(profile.createdAt)),
-          
+
           if (profile.lastActive != null) ...[
             const SizedBox(height: 16),
-            _buildAboutSection('Last Active', _formatLastActive(profile.lastActive!)),
+            _buildAboutSection(
+              'Last Active',
+              _formatLastActive(profile.lastActive!),
+            ),
           ],
-          
+
           if (profile.isVerified) ...[
             const SizedBox(height: 16),
             _buildAboutSection('Verification', 'Verified User ✅'),
@@ -333,7 +364,11 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
     );
   }
 
-  Widget _buildAboutSection(String title, String? content, {List<Widget>? children}) {
+  Widget _buildAboutSection(
+    String title,
+    String? content, {
+    List<Widget>? children,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -462,11 +497,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.withAlpha(128),
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.withAlpha(128)),
           const SizedBox(height: 16),
           Text(
             'Something went wrong',
@@ -527,14 +558,12 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
 
   void _showAvatarPreview(String? photoURL) {
     if (photoURL == null || photoURL.isEmpty) return;
-    
+
     showDialog(
       context: context,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
-        child: InteractiveViewer(
-          child: Image.network(photoURL),
-        ),
+        child: InteractiveViewer(child: Image.network(photoURL)),
       ),
     );
   }
@@ -542,8 +571,10 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   void _toggleFollowUser(String userId) async {
     try {
       HapticFeedback.lightImpact();
-      await ref.read(userProfileActionsProvider.notifier).toggleFollowUser(userId);
-      
+      await ref
+          .read(userProfileActionsProvider.notifier)
+          .toggleFollowUser(userId);
+
       // Refresh follow status and stats
       ref.invalidate(isFollowingUserProvider(userId));
       ref.invalidate(userSocialStatsProvider(userId));
@@ -616,9 +647,9 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   }
 
   void _shareProfile(UserProfile profile) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share feature coming soon!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Share feature coming soon!')));
   }
 
   void _reportUser(UserProfile profile) {
@@ -628,15 +659,15 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   }
 
   void _blockUser(UserProfile profile) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Block feature coming soon!')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Block feature coming soon!')));
   }
 
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
-    
+
     if (difference.inDays > 365) {
       final years = (difference.inDays / 365).floor();
       return '$years ${years == 1 ? 'year' : 'years'} ago';
@@ -653,7 +684,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
   String _formatLastActive(DateTime lastActive) {
     final now = DateTime.now();
     final difference = now.difference(lastActive);
-    
+
     if (difference.inMinutes < 5) {
       return 'Active now';
     } else if (difference.inHours < 1) {
@@ -674,10 +705,7 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
         children: [
           Text(
             count,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
           Text(
@@ -696,15 +724,13 @@ class _EnhancedProfileScreenState extends ConsumerState<EnhancedProfileScreen>
     return Consumer(
       builder: (context, ref, child) {
         final postsAsync = ref.watch(userPostsProvider(userId));
-        
+
         return postsAsync.when(
           data: (posts) {
             if (posts.isEmpty) {
-              return const Center(
-                child: Text('No posts yet'),
-              );
+              return const Center(child: Text('No posts yet'));
             }
-            
+
             return ListView.builder(
               itemCount: posts.length,
               itemBuilder: (context, index) {
@@ -756,11 +782,12 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: AppTheme.surfaceColor(context),
-      child: tabBar,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: AppTheme.surfaceColor(context), child: tabBar);
   }
 
   @override

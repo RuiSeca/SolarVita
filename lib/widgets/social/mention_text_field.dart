@@ -1,6 +1,6 @@
 // lib/widgets/social/mention_text_field.dart
 import 'package:flutter/material.dart';
-import '../../models/user_mention.dart';
+import '../../models/user/user_mention.dart';
 import '../../theme/app_theme.dart';
 import 'user_autocomplete_widget.dart';
 
@@ -37,7 +37,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
   List<MentionInfo> _mentions = [];
   String _currentMentionQuery = '';
   int _mentionStartIndex = -1;
-  
+
   @override
   void initState() {
     super.initState();
@@ -58,12 +58,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
   void _onTextChanged() {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-    
+
     widget.onTextChanged?.call(text);
-    
+
     // Parse mentions in the text
     _updateMentions(text);
-    
+
     // Check for active mention typing
     _checkForMentionTyping(text, selection);
   }
@@ -71,14 +71,14 @@ class _MentionTextFieldState extends State<MentionTextField> {
   void _updateMentions(String text) {
     final RegExp mentionRegex = RegExp(r'@(\w+)');
     final matches = mentionRegex.allMatches(text);
-    
+
     final newMentions = <MentionInfo>[];
-    
+
     for (final match in matches) {
       // Check if this mention is already in our list
       final existingMention = _mentions.firstWhere(
-        (mention) => mention.startIndex == match.start && 
-                    mention.endIndex == match.end,
+        (mention) =>
+            mention.startIndex == match.start && mention.endIndex == match.end,
         orElse: () => MentionInfo(
           startIndex: -1,
           endIndex: -1,
@@ -87,12 +87,12 @@ class _MentionTextFieldState extends State<MentionTextField> {
           displayName: '',
         ),
       );
-      
+
       if (existingMention.startIndex != -1) {
         newMentions.add(existingMention);
       }
     }
-    
+
     _mentions = newMentions;
     widget.onMentionsChanged?.call(_mentions);
   }
@@ -102,9 +102,9 @@ class _MentionTextFieldState extends State<MentionTextField> {
       _removeOverlay();
       return;
     }
-    
+
     final cursorPosition = selection.baseOffset;
-    
+
     // Find the last @ symbol before cursor position
     int mentionStart = -1;
     for (int i = cursorPosition - 1; i >= 0; i--) {
@@ -115,16 +115,17 @@ class _MentionTextFieldState extends State<MentionTextField> {
         break;
       }
     }
-    
+
     if (mentionStart != -1) {
       // Check if there's a space or end of string after the cursor
-      bool validMentionEnd = cursorPosition == text.length || 
-                            text[cursorPosition] == ' ' || 
-                            text[cursorPosition] == '\n';
-      
+      bool validMentionEnd =
+          cursorPosition == text.length ||
+          text[cursorPosition] == ' ' ||
+          text[cursorPosition] == '\n';
+
       if (validMentionEnd) {
         final mentionText = text.substring(mentionStart + 1, cursorPosition);
-        
+
         // Only show autocomplete if mention is valid (letters, numbers, underscore)
         if (RegExp(r'^[a-zA-Z0-9_]*$').hasMatch(mentionText)) {
           _mentionStartIndex = mentionStart;
@@ -134,19 +135,20 @@ class _MentionTextFieldState extends State<MentionTextField> {
         }
       }
     }
-    
+
     _removeOverlay();
   }
 
   void _showAutocomplete() {
     _removeOverlay();
-    
-    final renderBox = _textFieldKey.currentContext?.findRenderObject() as RenderBox?;
+
+    final renderBox =
+        _textFieldKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
-    
+
     final position = renderBox.localToGlobal(Offset.zero);
     final size = renderBox.size;
-    
+
     _overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
         left: position.dx,
@@ -163,21 +165,24 @@ class _MentionTextFieldState extends State<MentionTextField> {
         ),
       ),
     );
-    
+
     Overlay.of(context).insert(_overlayEntry!);
   }
 
   void _onUserSelected(MentionableUser user) {
     final text = widget.controller.text;
     final selection = widget.controller.selection;
-    
+
     // Use the actual cursor position if available, otherwise fall back to calculated position
     final cursorPosition = selection.isValid ? selection.baseOffset : -1;
-    final mentionEndIndex = cursorPosition >= 0 ? cursorPosition : _mentionStartIndex + 1 + _currentMentionQuery.length;
-    
+    final mentionEndIndex = cursorPosition >= 0
+        ? cursorPosition
+        : _mentionStartIndex + 1 + _currentMentionQuery.length;
+
     // Replace the partial mention with the complete username
-    final newText = '${text.substring(0, _mentionStartIndex)}@${user.userName}${text.substring(mentionEndIndex)}';
-    
+    final newText =
+        '${text.substring(0, _mentionStartIndex)}@${user.userName}${text.substring(mentionEndIndex)}';
+
     // Create mention info
     final mentionInfo = MentionInfo(
       startIndex: _mentionStartIndex,
@@ -186,10 +191,10 @@ class _MentionTextFieldState extends State<MentionTextField> {
       userName: user.userName,
       displayName: user.displayName,
     );
-    
+
     // Add to mentions list
     _mentions.add(mentionInfo);
-    
+
     // Update text and cursor position with more precise positioning
     widget.controller.value = TextEditingValue(
       text: newText,
@@ -197,7 +202,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
         offset: _mentionStartIndex + user.userName.length + 1,
       ),
     );
-    
+
     _removeOverlay();
     widget.onMentionsChanged?.call(_mentions);
   }
@@ -215,9 +220,7 @@ class _MentionTextFieldState extends State<MentionTextField> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(51),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(51)),
       ),
       child: TextField(
         controller: widget.controller,
@@ -231,10 +234,9 @@ class _MentionTextFieldState extends State<MentionTextField> {
           ),
           border: InputBorder.none,
         ),
-        style: widget.textStyle ?? TextStyle(
-          color: AppTheme.textColor(context),
-          fontSize: 16,
-        ),
+        style:
+            widget.textStyle ??
+            TextStyle(color: AppTheme.textColor(context), fontSize: 16),
       ),
     );
   }

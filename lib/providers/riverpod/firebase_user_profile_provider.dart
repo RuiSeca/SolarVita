@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
-import '../../services/firebase_user_profile_service.dart';
-import '../../models/user_profile.dart';
-import '../../models/social_post.dart';
+import '../../services/database/firebase_user_profile_service.dart';
+import '../../models/user/user_profile.dart';
+import '../../models/social/social_post.dart';
 import 'auth_provider.dart';
 
 part 'firebase_user_profile_provider.g.dart';
@@ -51,9 +51,13 @@ Future<List<UserProfile>> recommendedUsers(Ref ref, {int limit = 10}) async {
 }
 
 @riverpod
-Future<List<UserProfile>> searchUsers(Ref ref, String query, {int limit = 20}) async {
+Future<List<UserProfile>> searchUsers(
+  Ref ref,
+  String query, {
+  int limit = 20,
+}) async {
   if (query.trim().isEmpty) return [];
-  
+
   final service = ref.watch(firebaseUserProfileServiceProvider);
   return service.searchUsers(query, limit: limit);
 }
@@ -82,7 +86,7 @@ Stream<List<SocialPost>> userPosts(Ref ref, String userId, {int limit = 20}) {
 Stream<List<SocialPost>> currentUserPosts(Ref ref, {int limit = 20}) {
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser == null) return Stream.value([]);
-  
+
   final service = ref.watch(firebaseUserProfileServiceProvider);
   return service.getUserPosts(currentUser.uid, limit: limit);
 }
@@ -114,7 +118,7 @@ class UserProfileActions extends _$UserProfileActions {
     Map<String, dynamic>? additionalData,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseUserProfileServiceProvider);
       final updatedProfile = await service.updateUserProfile(
@@ -127,12 +131,12 @@ class UserProfileActions extends _$UserProfileActions {
         isPublic: isPublic,
         additionalData: additionalData,
       );
-      
+
       state = const AsyncValue.data(null);
-      
+
       // Invalidate related providers to trigger refresh
       ref.invalidate(currentUserProfileProvider);
-      
+
       return updatedProfile;
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -144,7 +148,7 @@ class UserProfileActions extends _$UserProfileActions {
     try {
       final service = ref.read(firebaseUserProfileServiceProvider);
       await service.toggleFollowUser(targetUserId);
-      
+
       // Invalidate related providers
       ref.invalidate(isFollowingUserProvider);
       ref.invalidate(userSocialStatsProvider);
@@ -169,13 +173,13 @@ class UserProfileActions extends _$UserProfileActions {
 
   Future<void> deleteAccount() async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseUserProfileServiceProvider);
       await service.deleteUserAccount();
-      
+
       state = const AsyncValue.data(null);
-      
+
       // Clear all cached data
       ref.invalidate(currentUserProfileProvider);
       ref.invalidate(currentUserProvider);
@@ -209,13 +213,9 @@ class UserProfileActions extends _$UserProfileActions {
 Future<Map<String, int>> currentUserSocialStats(Ref ref) async {
   final currentUser = ref.watch(currentUserProvider);
   if (currentUser == null) {
-    return {
-      'postsCount': 0,
-      'followersCount': 0,
-      'followingCount': 0,
-    };
+    return {'postsCount': 0, 'followersCount': 0, 'followingCount': 0};
   }
-  
+
   return ref.watch(userSocialStatsProvider(currentUser.uid).future);
 }
 
@@ -223,14 +223,16 @@ Future<Map<String, int>> currentUserSocialStats(Ref ref) async {
 @riverpod
 Future<bool> isUsernameAvailable(Ref ref, String username) async {
   if (username.trim().isEmpty) return false;
-  
+
   try {
-    final results = await ref.read(userProfileActionsProvider.notifier)
+    final results = await ref
+        .read(userProfileActionsProvider.notifier)
         .searchUsers(username, limit: 1);
-    
+
     // Check for exact match
-    return !results.any((user) => 
-        user.username?.toLowerCase() == username.toLowerCase());
+    return !results.any(
+      (user) => user.username?.toLowerCase() == username.toLowerCase(),
+    );
   } catch (e) {
     return false;
   }
@@ -248,7 +250,7 @@ Future<Map<String, String>> userDisplayInfo(Ref ref, String userId) async {
         'photoURL': '',
       };
     }
-    
+
     return {
       'displayName': profile.displayName,
       'username': profile.username ?? '@${profile.displayName.toLowerCase()}',

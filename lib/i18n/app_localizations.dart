@@ -33,6 +33,11 @@ class AppLocalizations {
     'dietary_preferences',
     'settings',
     'social',
+    'account_settings',
+    'profile_notifications',
+    'profile_privacy',
+    'profile_sustainability',
+    'preferences_settings',
   ];
 
   AppLocalizations(this.locale);

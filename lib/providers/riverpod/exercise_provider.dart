@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/exercise_service.dart';
+import '../../services/exercises/exercise_service.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 
 part 'exercise_provider.g.dart';
-
 
 // Service provider
 @riverpod
@@ -101,7 +100,9 @@ class ExerciseNotifier extends _$ExerciseNotifier {
 
     try {
       final exerciseService = ref.read(exerciseServiceProvider);
-      final exercises = await exerciseService.getExercisesByTarget(normalizedTarget);
+      final exercises = await exerciseService.getExercisesByTarget(
+        normalizedTarget,
+      );
 
       if (exercises.isEmpty) {
         state = state.copyWith(
@@ -124,7 +125,6 @@ class ExerciseNotifier extends _$ExerciseNotifier {
         errorMessage: null,
         errorDetails: null,
       );
-
     } catch (e) {
       String errorMessage;
       String errorDetails;
@@ -138,10 +138,12 @@ class ExerciseNotifier extends _$ExerciseNotifier {
         errorDetails = 'Please check your internet connection and try again.';
       } else if (e is TimeoutException) {
         errorMessage = 'Connection timeout';
-        errorDetails = 'The server is taking too long to respond. Please try again later.';
+        errorDetails =
+            'The server is taking too long to respond. Please try again later.';
       } else {
         errorMessage = 'Unexpected error';
-        errorDetails = 'Something went wrong while loading exercises. Please try again.';
+        errorDetails =
+            'Something went wrong while loading exercises. Please try again.';
       }
 
       state = state.copyWith(
@@ -150,7 +152,6 @@ class ExerciseNotifier extends _$ExerciseNotifier {
         errorMessage: errorMessage,
         errorDetails: errorDetails,
       );
-
     }
   }
 
@@ -175,7 +176,6 @@ class ExerciseNotifier extends _$ExerciseNotifier {
 
     // Remove targets not in the recent list
     _cache.removeWhere((key, _) => !targetsToKeep.contains(key));
-
   }
 
   void clearExercises() {
@@ -190,10 +190,7 @@ class ExerciseNotifier extends _$ExerciseNotifier {
 
   void clearError() {
     if (state.hasError) {
-      state = state.copyWith(
-        errorMessage: null,
-        errorDetails: null,
-      );
+      state = state.copyWith(errorMessage: null, errorDetails: null);
     }
   }
 

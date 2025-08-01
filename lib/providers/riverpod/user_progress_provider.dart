@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../services/strike_calculation_service.dart';
-import '../../services/notification_service.dart';
-import '../../models/user_progress.dart';
-import '../../models/health_data.dart';
+import '../../services/user/strike_calculation_service.dart';
+import '../../services/database/notification_service.dart';
+import '../../models/user/user_progress.dart';
+import '../../models/health/health_data.dart';
 
 // Strike calculation service provider
-final strikeCalculationServiceProvider = Provider<StrikeCalculationService>((ref) {
+final strikeCalculationServiceProvider = Provider<StrikeCalculationService>((
+  ref,
+) {
   final notificationService = NotificationService();
   return StrikeCalculationService(notificationService.localNotifications);
 });
@@ -20,13 +22,13 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
   @override
   Future<UserProgress> build() async {
     _strikeService = ref.read(strikeCalculationServiceProvider);
-    
+
     // Initialize the strike service
     await _strikeService.initialize();
-    
+
     // Set up periodic updates every 5 minutes
     _setupPeriodicUpdates();
-    
+
     // Get initial progress
     return await _strikeService.getUserProgress();
   }
@@ -44,26 +46,28 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
   Future<void> updateProgress(HealthData healthData) async {
     await _updateProgressWithRetry(healthData);
   }
-  
+
   Future<void> _updateProgressWithRetry(HealthData healthData) async {
     const maxRetries = 3;
     int retryCount = 0;
-    
+
     while (retryCount < maxRetries) {
       try {
         state = const AsyncValue.loading();
-        final updatedProgress = await _strikeService.calculateStrikes(healthData);
+        final updatedProgress = await _strikeService.calculateStrikes(
+          healthData,
+        );
         state = AsyncValue.data(updatedProgress);
         return; // Success - exit retry loop
       } catch (error, stackTrace) {
         retryCount++;
-        
+
         if (retryCount >= maxRetries) {
           // Final retry failed
           state = AsyncValue.error(error, stackTrace);
           return;
         }
-        
+
         // Wait before retry with exponential backoff
         await Future.delayed(Duration(milliseconds: 500 * retryCount));
       }
@@ -110,9 +114,10 @@ class UserProgressNotifier extends AsyncNotifier<UserProgress> {
 }
 
 // Provider instance
-final userProgressNotifierProvider = AsyncNotifierProvider<UserProgressNotifier, UserProgress>(
-  () => UserProgressNotifier(),
-);
+final userProgressNotifierProvider =
+    AsyncNotifierProvider<UserProgressNotifier, UserProgress>(
+      () => UserProgressNotifier(),
+    );
 
 // Convenience providers for common data access
 final currentStrikesProvider = Provider<int>((ref) {
@@ -142,14 +147,7 @@ final currentLevelProvider = Provider<int>((ref) {
   );
 });
 
-final levelTitleProvider = Provider<String>((ref) {
-  final progressAsync = ref.watch(userProgressNotifierProvider);
-  return progressAsync.when(
-    data: (progress) => progress.levelTitle,
-    loading: () => 'Health Rookie',
-    error: (_, __) => 'Health Rookie',
-  );
-});
+// Removed levelTitleProvider - use progress.levelTitle(context) directly in widgets
 
 final levelIconProvider = Provider<String>((ref) {
   final progressAsync = ref.watch(userProgressNotifierProvider);
@@ -214,7 +212,10 @@ final completedGoalsCountProvider = Provider<int>((ref) {
   );
 });
 
-final isGoalCompletedProvider = Provider.family<bool, GoalType>((ref, goalType) {
+final isGoalCompletedProvider = Provider.family<bool, GoalType>((
+  ref,
+  goalType,
+) {
   final todayGoals = ref.watch(todayGoalsCompletedProvider);
   return todayGoals[goalType.key] ?? false;
 });
@@ -241,7 +242,7 @@ final progressSummaryProvider = Provider<String>((ref) {
 final streakStatusProvider = Provider<String>((ref) {
   final strikes = ref.watch(currentStrikesProvider);
   final level = ref.watch(currentLevelProvider);
-  
+
   if (strikes == 0) {
     return 'Start your health journey! 🌱';
   } else if (strikes == 1) {

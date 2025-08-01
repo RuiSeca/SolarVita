@@ -1,7 +1,7 @@
 // lib/screens/social/template_post_creator_screen.dart
 import 'package:flutter/material.dart';
-import '../../models/post_template.dart';
-import '../../models/social_post.dart';
+import '../../models/posts/post_template.dart';
+import '../../models/social/social_post.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import 'create_post_screen.dart';
@@ -9,20 +9,18 @@ import 'create_post_screen.dart';
 class TemplatePostCreatorScreen extends StatefulWidget {
   final PostTemplate template;
 
-  const TemplatePostCreatorScreen({
-    super.key,
-    required this.template,
-  });
+  const TemplatePostCreatorScreen({super.key, required this.template});
 
   @override
-  State<TemplatePostCreatorScreen> createState() => _TemplatePostCreatorScreenState();
+  State<TemplatePostCreatorScreen> createState() =>
+      _TemplatePostCreatorScreenState();
 }
 
 class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
   final Map<String, TextEditingController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
   final _formKey = GlobalKey<FormState>();
-  
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +33,6 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
       _focusNodes[placeholder] = FocusNode();
     }
   }
-
 
   @override
   void dispose() {
@@ -106,9 +103,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
           ],
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: widget.template.color.withAlpha(77),
-        ),
+        border: Border.all(color: widget.template.color.withAlpha(77)),
       ),
       child: Row(
         children: [
@@ -174,12 +169,13 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        
+
         ...widget.template.placeholders.asMap().entries.map((entry) {
           final index = entry.key;
           final placeholder = entry.value;
-          final prompt = widget.template.variablePrompts[placeholder] ?? placeholder;
-          
+          final prompt =
+              widget.template.variablePrompts[placeholder] ?? placeholder;
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: _buildInputField(
@@ -188,7 +184,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
               isLast: index == widget.template.placeholders.length - 1,
             ),
           );
-        })
+        }),
       ],
     );
   }
@@ -223,13 +219,19 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
             focusNode: _focusNodes[placeholder],
             maxLines: _isLongFormField(placeholder) ? null : 1,
             minLines: _isLongFormField(placeholder) ? 3 : 1,
-            keyboardType: _isLongFormField(placeholder) ? TextInputType.multiline : TextInputType.text,
-            textInputAction: isLast ? TextInputAction.done : TextInputAction.next,
+            keyboardType: _isLongFormField(placeholder)
+                ? TextInputType.multiline
+                : TextInputType.text,
+            textInputAction: isLast
+                ? TextInputAction.done
+                : TextInputAction.next,
             onFieldSubmitted: (_) {
               if (!isLast) {
-                final nextIndex = widget.template.placeholders.indexOf(placeholder) + 1;
+                final nextIndex =
+                    widget.template.placeholders.indexOf(placeholder) + 1;
                 if (nextIndex < widget.template.placeholders.length) {
-                  final nextPlaceholder = widget.template.placeholders[nextIndex];
+                  final nextPlaceholder =
+                      widget.template.placeholders[nextIndex];
                   _focusNodes[nextPlaceholder]?.requestFocus();
                 }
               }
@@ -243,10 +245,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 16,
-            ),
+            style: TextStyle(color: AppTheme.textColor(context), fontSize: 16),
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
                 return tr(context, 'field_required');
@@ -255,9 +254,10 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
             },
           ),
         ),
-        
+
         // Suggestions for this field
-        if (widget.template.suggestedContent.isNotEmpty && _shouldShowSuggestions(placeholder))
+        if (widget.template.suggestedContent.isNotEmpty &&
+            _shouldShowSuggestions(placeholder))
           _buildSuggestions(placeholder),
       ],
     );
@@ -283,9 +283,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
               decoration: BoxDecoration(
                 color: widget.template.color.withAlpha(26),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: widget.template.color.withAlpha(77),
-                ),
+                border: Border.all(color: widget.template.color.withAlpha(77)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -355,7 +353,11 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: Theme.of(context).primaryColor,
-                    child: const Icon(Icons.person, color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -368,7 +370,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Generated content
               Text(
                 _generatePreviewContent(),
@@ -378,7 +380,7 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   color: AppTheme.textColor(context),
                 ),
               ),
-              
+
               // Pillar tags
               if (widget.template.defaultPillars.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -386,7 +388,10 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   spacing: 6,
                   children: widget.template.defaultPillars.map((pillar) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _getPillarColor(pillar).withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
@@ -421,7 +426,9 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
               onPressed: () => Navigator.pop(context),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                side: BorderSide(color: AppTheme.textColor(context).withAlpha(77)),
+                side: BorderSide(
+                  color: AppTheme.textColor(context).withAlpha(77),
+                ),
               ),
               child: Text(
                 tr(context, 'cancel'),
@@ -441,7 +448,9 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                 backgroundColor: widget.template.color,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                disabledBackgroundColor: AppTheme.textColor(context).withAlpha(51),
+                disabledBackgroundColor: AppTheme.textColor(
+                  context,
+                ).withAlpha(51),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -449,14 +458,18 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
                   Icon(
                     Icons.create,
                     size: 18,
-                    color: _canCreatePost() ? Colors.white : AppTheme.textColor(context).withAlpha(128),
+                    color: _canCreatePost()
+                        ? Colors.white
+                        : AppTheme.textColor(context).withAlpha(128),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     tr(context, 'create_post'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: _canCreatePost() ? Colors.white : AppTheme.textColor(context).withAlpha(128),
+                      color: _canCreatePost()
+                          ? Colors.white
+                          : AppTheme.textColor(context).withAlpha(128),
                     ),
                   ),
                 ],
@@ -470,7 +483,14 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
 
   // Helper methods
   bool _isLongFormField(String placeholder) {
-    return ['details', 'journey', 'feeling', 'insight', 'advice', 'reason'].contains(placeholder);
+    return [
+      'details',
+      'journey',
+      'feeling',
+      'insight',
+      'advice',
+      'reason',
+    ].contains(placeholder);
   }
 
   String _getHintText(String placeholder) {
@@ -488,12 +508,16 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
       case 'time':
         return tr(context, 'time_example');
       default:
-        return tr(context, 'enter_placeholder').replaceAll('{placeholder}', placeholder.replaceAll('_', ' '));
+        return tr(
+          context,
+          'enter_placeholder',
+        ).replaceAll('{placeholder}', placeholder.replaceAll('_', ' '));
     }
   }
 
   bool _shouldShowSuggestions(String placeholder) {
-    return placeholder == 'achievement' && widget.template.suggestedContent.isNotEmpty;
+    return placeholder == 'achievement' &&
+        widget.template.suggestedContent.isNotEmpty;
   }
 
   List<String> _getSuggestionsForField(String placeholder) {
@@ -507,13 +531,17 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
     final inputs = <String, String>{};
     for (final placeholder in widget.template.placeholders) {
       final value = _controllers[placeholder]?.text.trim() ?? '';
-      inputs[placeholder] = value.isEmpty ? '[${placeholder.replaceAll('_', ' ')}]' : value;
+      inputs[placeholder] = value.isEmpty
+          ? '[${placeholder.replaceAll('_', ' ')}]'
+          : value;
     }
     return widget.template.generateContent(inputs);
   }
 
   bool _canCreatePost() {
-    return _controllers.values.every((controller) => controller.text.trim().isNotEmpty);
+    return _controllers.values.every(
+      (controller) => controller.text.trim().isNotEmpty,
+    );
   }
 
   void _createPostFromTemplate() {
@@ -537,7 +565,9 @@ class _TemplatePostCreatorScreenState extends State<TemplatePostCreatorScreen> {
             'template_title': widget.template.title,
             'user_inputs': inputs,
             'pre_filled_content': generatedContent,
-            'default_pillars': widget.template.defaultPillars.map((p) => p.toString()).toList(),
+            'default_pillars': widget.template.defaultPillars
+                .map((p) => p.toString())
+                .toList(),
           },
         ),
       ),

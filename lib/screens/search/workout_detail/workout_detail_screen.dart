@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/exercise_image.dart';
-import '../../../services/exercise_tracking_service.dart'; // Import tracking service
-import '../../../services/exercise_routine_sync_service.dart';
-import '../../../models/exercise_log.dart';
-import '../../../models/personal_record.dart';
+import '../../../services/exercises/exercise_tracking_service.dart'; // Import tracking service
+import '../../../services/exercises/exercise_routine_sync_service.dart';
+import '../../../models/exercise/exercise_log.dart';
+import '../../../models/user/personal_record.dart';
 import '../../exercise_history/log_exercise_screen.dart'; // Import log screen
 import '../../exercise_history/exercise_history_screen.dart';
 import 'models/workout_step.dart';
@@ -48,7 +48,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   final Map<String, bool> _expandedSteps = {};
   final ExerciseTrackingService _trackingService = ExerciseTrackingService();
   final ExerciseRoutineSyncService _syncService = ExerciseRoutineSyncService();
-  
+
   List<ExerciseLog> _recentLogs = [];
   List<PersonalRecord> _personalRecords = [];
   bool _isLoadingData = false;
@@ -65,7 +65,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
 
   Future<void> _loadExerciseData() async {
     if (_isLoadingData) return;
-    
+
     setState(() {
       _isLoadingData = true;
     });
@@ -73,8 +73,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     try {
       final exerciseId = _generateExerciseId(widget.categoryTitle);
       final logs = await _trackingService.getLogsForExercise(exerciseId);
-      final records = await _syncService.getPersonalRecordsForExercise(exerciseId);
-      
+      final records = await _syncService.getPersonalRecordsForExercise(
+        exerciseId,
+      );
+
       setState(() {
         _recentLogs = logs.take(3).toList();
         _personalRecords = records;
@@ -95,9 +97,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       body: CustomScrollView(
         slivers: [
           _buildSliverAppBar(context),
-          SliverToBoxAdapter(
-            child: _buildContent(context),
-          ),
+          SliverToBoxAdapter(child: _buildContent(context)),
         ],
       ),
     );
@@ -123,10 +123,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    AppTheme.surfaceColor(context),
-                  ],
+                  colors: [Colors.transparent, AppTheme.surfaceColor(context)],
                 ),
               ),
             ),
@@ -140,10 +137,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             color: AppTheme.surfaceColor(context).withAlpha(204),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          child: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
         ),
         onPressed: () => Navigator.pop(context),
       ),
@@ -156,10 +150,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               color: AppTheme.surfaceColor(context).withAlpha(204),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.history,
-              color: AppTheme.textColor(context),
-            ),
+            child: Icon(Icons.history, color: AppTheme.textColor(context)),
           ),
           onPressed: () => _navigateToExerciseHistory(),
           tooltip: tr(context, 'view_exercise_history'),
@@ -184,7 +175,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
           const SizedBox(height: 24),
           _buildWorkoutOverview(context),
           const SizedBox(height: 24),
-          
+
           // Smart logging section
           if (_personalRecords.isNotEmpty || _recentLogs.isNotEmpty) ...[
             _buildSmartLoggingSection(context),
@@ -253,11 +244,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
-              Icons.star,
-              color: Colors.amber,
-              size: 20,
-            ),
+            const Icon(Icons.star, color: Colors.amber, size: 20),
             const SizedBox(width: 4),
             Text(
               widget.rating.toString(),
@@ -279,7 +266,9 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     padding: const EdgeInsets.only(left: 12),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppTheme.primaryColor.withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
@@ -294,8 +283,10 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            tr(context,
-                                'tracked'), // or 'You\'re tracking this'
+                            tr(
+                              context,
+                              'tracked',
+                            ), // or 'You\'re tracking this'
                             style: TextStyle(
                               fontSize: 12,
                               color: AppTheme.primaryColor,
@@ -321,16 +312,28 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem(context, Icons.timer, widget.duration, 'Duration'),
-        _buildStatItem(context, Icons.local_fire_department,
-            widget.caloriesBurn, 'Calories'),
         _buildStatItem(
-            context, Icons.fitness_center, widget.difficulty, 'Level'),
+          context,
+          Icons.local_fire_department,
+          widget.caloriesBurn,
+          'Calories',
+        ),
+        _buildStatItem(
+          context,
+          Icons.fitness_center,
+          widget.difficulty,
+          'Level',
+        ),
       ],
     );
   }
 
   Widget _buildStatItem(
-      BuildContext context, IconData icon, String value, String label) {
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Column(
       children: [
         Container(
@@ -339,11 +342,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             color: AppTheme.primaryColor.withAlpha(26),
             shape: BoxShape.circle,
           ),
-          child: Icon(
-            icon,
-            color: AppTheme.primaryColor,
-            size: 24,
-          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 24),
         ),
         const SizedBox(height: 8),
         Text(
@@ -369,12 +368,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: widget.routineId != null 
+        color: widget.routineId != null
             ? AppTheme.primaryColor.withAlpha(26)
             : Colors.grey.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: widget.routineId != null 
+          color: widget.routineId != null
               ? AppTheme.primaryColor.withAlpha(51)
               : Colors.grey.withAlpha(51),
         ),
@@ -383,7 +382,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         children: [
           Icon(
             widget.routineId != null ? Icons.schedule : Icons.fitness_center,
-            color: widget.routineId != null 
+            color: widget.routineId != null
                 ? AppTheme.primaryColor
                 : Colors.grey,
             size: 20,
@@ -394,7 +393,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.routineId != null 
+                  widget.routineId != null
                       ? tr(context, 'part_of_routine')
                       : tr(context, 'standalone_exercise'),
                   style: TextStyle(
@@ -466,9 +465,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             decoration: BoxDecoration(
               color: AppTheme.cardColor(context),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppTheme.primaryColor.withAlpha(26),
-              ),
+              border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
             ),
             child: Row(
               children: [
@@ -520,8 +517,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
         ),
         if (isExpanded)
           Container(
-            margin:
-                const EdgeInsets.only(left: 36, right: 12, top: 8, bottom: 16),
+            margin: const EdgeInsets.only(
+              left: 36,
+              right: 12,
+              top: 8,
+              bottom: 16,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -546,33 +547,35 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
                     ),
                   ),
                 const SizedBox(height: 12),
-                ...step.instructions.map((instruction) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            margin: const EdgeInsets.only(top: 6, right: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryColor,
-                              shape: BoxShape.circle,
+                ...step.instructions.map(
+                  (instruction) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          margin: const EdgeInsets.only(top: 6, right: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            instruction,
+                            style: TextStyle(
+                              color: AppTheme.textColor(context),
+                              fontSize: 14,
+                              height: 1.5,
                             ),
                           ),
-                          Expanded(
-                            child: Text(
-                              instruction,
-                              style: TextStyle(
-                                color: AppTheme.textColor(context),
-                                fontSize: 14,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -584,9 +587,12 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   void _logExercise() async {
     // For routine exercises, use the exercise title as ID to ensure proper completion tracking
     // For standalone exercises, use the generated ID
-    final exerciseId = widget.routineId != null 
-        ? widget.categoryTitle  // Use exact title for routine exercises
-        : _generateExerciseId(widget.categoryTitle); // Use generated ID for standalone
+    final exerciseId = widget.routineId != null
+        ? widget
+              .categoryTitle // Use exact title for routine exercises
+        : _generateExerciseId(
+            widget.categoryTitle,
+          ); // Use generated ID for standalone
 
     final result = await Navigator.push(
       context,
@@ -611,13 +617,16 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        
+
         // If this was a routine exercise, notify parent to refresh
         if (widget.routineId != null) {
           // Small delay to ensure snackbar shows, then return to parent
           Future.delayed(const Duration(milliseconds: 1500), () {
             if (mounted) {
-              Navigator.pop(context, true); // Return true to indicate exercise was logged
+              Navigator.pop(
+                context,
+                true,
+              ); // Return true to indicate exercise was logged
             }
           });
         }
@@ -657,20 +666,14 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryColor.withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.analytics,
-                color: AppTheme.primaryColor,
-                size: 20,
-              ),
+              Icon(Icons.analytics, color: AppTheme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'your_progress'),
@@ -696,9 +699,13 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
             ),
             const SizedBox(height: 12),
             Row(
-              children: _personalRecords.take(3).map((record) => Expanded(
-                child: _buildPersonalRecordCard(record),
-              )).toList(),
+              children: _personalRecords
+                  .take(3)
+                  .map(
+                    (record) =>
+                        Expanded(child: _buildPersonalRecordCard(record)),
+                  )
+                  .toList(),
             ),
             const SizedBox(height: 16),
           ],
@@ -739,7 +746,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
   Widget _buildPersonalRecordCard(PersonalRecord record) {
     IconData icon;
     Color color;
-    
+
     switch (record.recordType) {
       case 'Max Weight':
         icon = Icons.fitness_center;
@@ -764,16 +771,18 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
       decoration: BoxDecoration(
         color: color.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withAlpha(51),
-        ),
+        border: Border.all(color: color.withAlpha(51)),
       ),
       child: Column(
         children: [
           Icon(icon, color: color, size: 20),
           const SizedBox(height: 8),
           Text(
-            '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume') ? 'kg' : record.recordType.contains('Distance') ? 'km' : ''}',
+            '${record.value.toStringAsFixed(record.recordType == 'Max Reps' ? 0 : 1)}${record.recordType.contains('Weight') || record.recordType.contains('Volume')
+                ? 'kg'
+                : record.recordType.contains('Distance')
+                ? 'km'
+                : ''}',
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 14,

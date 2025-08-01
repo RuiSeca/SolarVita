@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../../models/sustainable_products.dart';
+import '../../../../models/eco/sustainable_products.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
 class SustainableProductsSection extends StatelessWidget {
@@ -63,7 +63,9 @@ class SustainableProductsSection extends StatelessWidget {
               Text(
                 tr(context, 'sustainable_products_subtitle'),
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyLarge
+                  color: theme
+                      .textTheme
+                      .bodyLarge
                       ?.color, // Use body text color from theme
                   fontSize: 14,
                 ),
@@ -116,7 +118,9 @@ class SustainableProductsSection extends StatelessWidget {
                           height: 42, // Further reduced height for description
                           child: Text(
                             tr(context, product.descriptionKey),
-                            style: theme.textTheme.bodyMedium?.copyWith(fontSize: 12),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontSize: 12,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -131,17 +135,24 @@ class SustainableProductsSection extends StatelessWidget {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.local_offer,
-                                  color: Colors.green, size: 20),
+                              const Icon(
+                                Icons.local_offer,
+                                color: Colors.green,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Flexible(
                                 // Add this
                                 child: Text(
                                   tr(context, 'sustainable_products_discount')
-                                      .replaceAll('{discount}',
-                                          '${product.discountPercentage}')
                                       .replaceAll(
-                                          '{code}', product.discountCode),
+                                        '{discount}',
+                                        '${product.discountPercentage}',
+                                      )
+                                      .replaceAll(
+                                        '{code}',
+                                        product.discountCode,
+                                      ),
                                   style: const TextStyle(
                                     color: Colors.orange,
                                     fontWeight: FontWeight.bold,

@@ -1,7 +1,7 @@
 // lib/widgets/social/comment_reaction_widget.dart
 import 'package:flutter/material.dart';
-import '../../models/social_post.dart';
-import '../../models/post_comment.dart' as pc;
+import '../../models/social/social_post.dart';
+import '../../models/posts/post_comment.dart' as pc;
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 
@@ -49,14 +49,18 @@ class CommentReactionWidget extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(16),
               border: hasReacted
-                  ? Border.all(color: _getReactionColor(userReaction).withAlpha(102))
+                  ? Border.all(
+                      color: _getReactionColor(userReaction).withAlpha(102),
+                    )
                   : null,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
-                  hasReacted ? _getReactionIcon(userReaction) : Icons.favorite_border,
+                  hasReacted
+                      ? _getReactionIcon(userReaction)
+                      : Icons.favorite_border,
                   size: 16,
                   color: hasReacted
                       ? _getReactionColor(userReaction)
@@ -89,7 +93,7 @@ class CommentReactionWidget extends StatelessWidget {
 
   Widget _buildReactionBreakdown(BuildContext context) {
     final reactionCounts = <ReactionType, int>{};
-    
+
     // Count reactions by type
     for (final reaction in comment.reactions.values) {
       reactionCounts[reaction] = (reactionCounts[reaction] ?? 0) + 1;
@@ -103,9 +107,7 @@ class CommentReactionWidget extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppTheme.textColor(context).withAlpha(26),
-          ),
+          border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -129,7 +131,10 @@ class CommentReactionWidget extends StatelessWidget {
     return uniqueReactions.length > 1;
   }
 
-  void _showReactionDetails(BuildContext context, Map<ReactionType, int> reactionCounts) {
+  void _showReactionDetails(
+    BuildContext context,
+    Map<ReactionType, int> reactionCounts,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardColor(context),

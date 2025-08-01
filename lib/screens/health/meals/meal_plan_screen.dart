@@ -14,7 +14,7 @@ import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
-import '../../../services/data_sync_service.dart';
+import '../../../services/chat/data_sync_service.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
 import 'meal_search_screen.dart';
@@ -52,7 +52,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     'thursday',
     'friday',
     'saturday',
-    'sunday'
+    'sunday',
   ];
 
   // Current selections
@@ -74,15 +74,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize to today's day (Monday = 0, Sunday = 6)
     final today = DateTime.now();
     _selectedDayIndex = today.weekday - 1; // Convert to 0-6 index
-    
-    _pageController = PageController(
-      viewportFraction: 0.8,
-      initialPage: 1,
-    );
+
+    _pageController = PageController(viewportFraction: 0.8, initialPage: 1);
     _startCarouselTimer();
     _loadSavedData(); // Load saved data when screen initializes
   }
@@ -115,16 +112,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   // Helper method to ensure nutrition values have units
   String _ensureUnit(String value, String unit) {
     if (value.isEmpty || value == '0') return '0$unit';
-    
+
     // If the value already has the unit, return as is
     if (value.endsWith(unit)) return value;
-    
+
     // If it's just a number, add the unit
     final numberMatch = RegExp(r'^(\d+(?:\.\d+)?)$').firstMatch(value);
     if (numberMatch != null) {
       return '$value$unit';
     }
-    
+
     // If it has a different unit or is malformed, return as is
     return value;
   }
@@ -139,9 +136,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         child: const Icon(Icons.restaurant, size: 30, color: Colors.grey),
       );
     }
-    
-    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
-    
+
+    final isLocalFile =
+        imagePath.startsWith('/') || imagePath.startsWith('file://');
+
     if (isLocalFile) {
       final file = File(imagePath.replaceFirst('file://', ''));
       if (file.existsSync()) {
@@ -167,7 +165,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         );
       }
     }
-    
+
     return CachedNetworkImage(
       imageUrl: imagePath,
       width: 70,
@@ -180,11 +178,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         height: 70,
         color: AppTheme.cardColor(context),
         child: const Center(
-          child: SizedBox(
-            width: 40,
-            height: 40,
-            child: LottieLoadingWidget(),
-          ),
+          child: SizedBox(width: 40, height: 40, child: LottieLoadingWidget()),
         ),
       ),
       errorWidget: (context, url, error) => Container(
@@ -216,58 +210,62 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   }
 
   // Get suggested meals from previous day
-  Map<String, List<Map<String, dynamic>>> _getSuggestedMealsFromPreviousDay(int dayIndex) {
+  Map<String, List<Map<String, dynamic>>> _getSuggestedMealsFromPreviousDay(
+    int dayIndex,
+  ) {
     final previousDayIndex = dayIndex == 0 ? 6 : dayIndex - 1;
     final previousDayMeals = _weeklyMealData[previousDayIndex];
-    
+
     if (previousDayMeals == null || previousDayMeals.isEmpty) {
-      return {
-        'breakfast': [],
-        'lunch': [],
-        'dinner': [],
-        'snacks': [],
-      };
+      return {'breakfast': [], 'lunch': [], 'dinner': [], 'snacks': []};
     }
-    
+
     // Create suggested meals with isSuggested flag
     final suggestedMeals = <String, List<Map<String, dynamic>>>{};
-    
+
     for (final mealTime in _mealTimes) {
       suggestedMeals[mealTime] = [];
       final previousMeals = previousDayMeals[mealTime] ?? [];
       final currentMeals = _mealData[mealTime] ?? [];
-      
+
       // Only suggest if the current meal time slot is completely empty
       if (currentMeals.isEmpty) {
         for (final meal in previousMeals) {
           final suggestedMeal = Map<String, dynamic>.from(meal);
           suggestedMeal['isSuggested'] = true;
           suggestedMeal['originalId'] = meal['id']; // Keep track of original ID
-          suggestedMeal['id'] = '${meal['id']}_suggested_${dayIndex}_$mealTime'; // Unique ID for suggestion
+          suggestedMeal['id'] =
+              '${meal['id']}_suggested_${dayIndex}_$mealTime'; // Unique ID for suggestion
           suggestedMeals[mealTime]!.add(suggestedMeal);
         }
       }
     }
-    
+
     return suggestedMeals;
   }
 
   // Accept a suggested meal (convert to regular meal)
-  void _acceptSuggestedMeal(String mealTime, Map<String, dynamic> suggestedMeal) {
+  void _acceptSuggestedMeal(
+    String mealTime,
+    Map<String, dynamic> suggestedMeal,
+  ) {
     setState(() {
       // Remove the suggested meal
-      _mealData[mealTime]?.removeWhere((meal) => meal['id'] == suggestedMeal['id']);
-      
+      _mealData[mealTime]?.removeWhere(
+        (meal) => meal['id'] == suggestedMeal['id'],
+      );
+
       // Create a regular meal from the suggestion
       final acceptedMeal = Map<String, dynamic>.from(suggestedMeal);
       acceptedMeal.remove('isSuggested');
-      acceptedMeal['id'] = acceptedMeal['originalId'] ?? DateTime.now().toString();
+      acceptedMeal['id'] =
+          acceptedMeal['originalId'] ?? DateTime.now().toString();
       acceptedMeal.remove('originalId');
-      
+
       // Add as regular meal
       _mealData[mealTime]!.add(acceptedMeal);
     });
-    
+
     _saveMealData();
   }
 
@@ -276,7 +274,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     setState(() {
       _mealData[mealTime]?.removeWhere((meal) => meal['id'] == suggestedMealId);
     });
-    
+
     _saveMealData();
   }
 
@@ -320,7 +318,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   // Add these methods to the _MealPlanScreenState class
 
-// Load saved data from SharedPreferences
+  // Load saved data from SharedPreferences
   Future<void> _loadSavedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -342,18 +340,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           });
 
           // Load current day's data
-          _mealData = _weeklyMealData[_selectedDayIndex] ??
-              {
-                'breakfast': [],
-                'lunch': [],
-                'dinner': [],
-                'snacks': [],
-              };
-          
+          _mealData =
+              _weeklyMealData[_selectedDayIndex] ??
+              {'breakfast': [], 'lunch': [], 'dinner': [], 'snacks': []};
+
           // Check if the current day has no regular meals and add suggestions
           if (!_hasRegularMeals()) {
-            final suggestedMeals = _getSuggestedMealsFromPreviousDay(_selectedDayIndex);
-            
+            final suggestedMeals = _getSuggestedMealsFromPreviousDay(
+              _selectedDayIndex,
+            );
+
             // Add suggested meals to current day data
             for (final mealTime in _mealTimes) {
               final suggestions = suggestedMeals[mealTime] ?? [];
@@ -366,7 +362,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       // Load favorite meals
       final savedFavorites = prefs.getStringList(_favoriteMealsKey);
       setState(() {
-        _favoriteMeals.clear(); // Clear existing favorites to prevent duplicates
+        _favoriteMeals
+            .clear(); // Clear existing favorites to prevent duplicates
         if (savedFavorites != null) {
           _favoriteMeals.addAll(savedFavorites);
         }
@@ -379,7 +376,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           final decodedData = json.decode(favoriteMealsJson);
           if (decodedData is List) {
             setState(() {
-              _favoriteMealsList.clear(); // Clear existing data to prevent duplicates
+              _favoriteMealsList
+                  .clear(); // Clear existing data to prevent duplicates
               _favoriteMealsList = List<Map<String, dynamic>>.from(decodedData);
             });
           }
@@ -391,14 +389,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           _favoriteMealsList.clear(); // Clear if no data found
         });
       }
-      
+
       // Debug logging
     } catch (e) {
       logger.d('Error loading saved data: $e');
     }
   }
 
-// Save meal data to SharedPreferences and sync to Firebase
+  // Save meal data to SharedPreferences and sync to Firebase
   Future<void> _saveMealData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -416,7 +414,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       // Save both weekly data and favorites
       await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
       await prefs.setStringList(_favoriteMealsKey, _favoriteMeals.toList());
-      await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
+      await prefs.setString(
+        'favorite_meals_data',
+        json.encode(_favoriteMealsList),
+      );
 
       // Sync today's meals to Firebase for supporters to see
       await _syncTodaysMealsToFirebase();
@@ -430,21 +431,24 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     try {
       final today = DateTime.now();
       final currentDayIndex = today.weekday - 1; // Convert to 0-6 index
-      
+
       // Only sync if we're viewing today's meals
       if (_selectedDayIndex == currentDayIndex) {
         // Sync meals and get back the processed data with Firebase URLs
-        final processedMeals = await DataSyncService().syncDailyMealsWithReturn(_mealData);
-        
+        final processedMeals = await DataSyncService().syncDailyMealsWithReturn(
+          _mealData,
+        );
+
         if (processedMeals != null) {
           // Update local storage with Firebase URLs
           setState(() {
             _mealData = processedMeals;
           });
-          
+
           // Update weekly data
-          _weeklyMealData[_selectedDayIndex] = Map<String, List<Map<String, dynamic>>>.from(_mealData);
-          
+          _weeklyMealData[_selectedDayIndex] =
+              Map<String, List<Map<String, dynamic>>>.from(_mealData);
+
           // Save updated data locally
           final prefs = await SharedPreferences.getInstance();
           final dataToSave = {};
@@ -452,7 +456,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             dataToSave[key.toString()] = value;
           });
           await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
-          
         }
       }
     } catch (e) {
@@ -461,8 +464,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     }
   }
 
-// Add a meal to the current day with validation
-  bool _addMealToDay(String mealTime, Map<String, dynamic> meal, {bool showConflictMessage = true}) {
+  // Add a meal to the current day with validation
+  bool _addMealToDay(
+    String mealTime,
+    Map<String, dynamic> meal, {
+    bool showConflictMessage = true,
+  }) {
     // Check if the slot is available
     if (!_canAddMealToSlot(mealTime)) {
       if (showConflictMessage && mounted) {
@@ -475,20 +482,32 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     final formattedMeal = {
       'id': meal['id'],
       'titleKey': meal['titleKey'],
-      'name': meal['titleKey'] ?? meal['name'] ?? 'Unnamed Meal', // For supporter profile compatibility
+      'name':
+          meal['titleKey'] ??
+          meal['name'] ??
+          'Unnamed Meal', // For supporter profile compatibility
       'imagePath': meal['imagePath'],
-      'image': meal['imagePath'] ?? meal['image'], // For supporter profile compatibility
-      'calories': meal['nutritionFacts']?['calories']?.toString() ?? meal['calories']?.toString() ?? '0', // For supporter profile compatibility
+      'image':
+          meal['imagePath'] ??
+          meal['image'], // For supporter profile compatibility
+      'calories':
+          meal['nutritionFacts']?['calories']?.toString() ??
+          meal['calories']?.toString() ??
+          '0', // For supporter profile compatibility
       'servings': meal['servings'] ?? 1, // For supporter profile compatibility
       'prepTime': meal['prepTime'], // For supporter profile compatibility
       'description': meal['description'], // For supporter profile compatibility
       'nutritionFacts': {
-        'calories': meal['nutritionFacts']?['calories']?.toString() ?? meal['calories']?.toString() ?? '0',
+        'calories':
+            meal['nutritionFacts']?['calories']?.toString() ??
+            meal['calories']?.toString() ??
+            '0',
         'protein': _ensureUnit(meal['nutritionFacts']?['protein'] ?? '0', 'g'),
         'carbs': _ensureUnit(meal['nutritionFacts']?['carbs'] ?? '0', 'g'),
         'fat': _ensureUnit(meal['nutritionFacts']?['fat'] ?? '0', 'g'),
       },
-      'nutrition': meal['nutritionFacts'] ?? {}, // For supporter profile compatibility
+      'nutrition':
+          meal['nutritionFacts'] ?? {}, // For supporter profile compatibility
       'ingredients': meal['ingredients'] ?? [],
       'measures': meal['measures'] ?? [],
       'instructions': meal['instructions'] ?? [],
@@ -502,7 +521,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         _mealData[mealTime] = [];
       }
       // Prevent duplicate meals
-      if (!_mealData[mealTime]!.any((m) => m['id']?.toString() == formattedMeal['id']?.toString())) {
+      if (!_mealData[mealTime]!.any(
+        (m) => m['id']?.toString() == formattedMeal['id']?.toString(),
+      )) {
         _mealData[mealTime]!.add(formattedMeal);
       }
     });
@@ -512,7 +533,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return true;
   }
 
-// Remove a meal from the current day
+  // Remove a meal from the current day
   void _removeMealFromDay(String mealTime, String mealId) {
     setState(() {
       _mealData[mealTime]?.removeWhere((meal) => meal['id'] == mealId);
@@ -520,7 +541,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     _saveMealData();
   }
 
-// Toggle meal favorite status
+  // Toggle meal favorite status
   Future<void> _toggleFavorite(String? mealId) async {
     if (mealId == null || mealId.isEmpty) return;
 
@@ -534,10 +555,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       } else {
         // Add to favorites
         _favoriteMeals.add(id);
-        
+
         // Find the meal data to add to favorites list
         Map<String, dynamic>? mealToAdd;
-        
+
         // Search in weekly data
         for (var dayData in _weeklyMealData.values) {
           for (var mealTimeData in dayData.values) {
@@ -551,7 +572,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           }
           if (mealToAdd != null) break;
         }
-        
+
         // Search in current day data if not found
         if (mealToAdd == null) {
           for (var mealTimeData in _mealData.values) {
@@ -564,9 +585,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             if (mealToAdd != null) break;
           }
         }
-        
+
         // Add to favorites list if found
-        if (mealToAdd != null && !_favoriteMealsList.any((meal) => meal['id']?.toString() == id)) {
+        if (mealToAdd != null &&
+            !_favoriteMealsList.any((meal) => meal['id']?.toString() == id)) {
           mealToAdd['isFavorite'] = true;
           _favoriteMealsList.add(mealToAdd);
         }
@@ -607,12 +629,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
     final nutritionFactsValue = meal['nutritionFacts'] != null
         ? Map<String, dynamic>.from(meal['nutritionFacts'])
-        : {
-            'calories': '0',
-            'protein': '0g',
-            'carbs': '0g',
-            'fat': '0g',
-          };
+        : {'calories': '0', 'protein': '0g', 'carbs': '0g', 'fat': '0g'};
 
     final result = await Navigator.push<Map<String, dynamic>>(
       context,
@@ -652,7 +669,6 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       }
     }
   }
-
 
   void _showAddMealOptions(BuildContext context, String mealTime) {
     setState(() {
@@ -703,7 +719,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       'nutritionFacts': newMeal['nutritionFacts'],
                       'ingredients': newMeal['ingredients'],
                       'measures': List<String>.filled(
-                          (newMeal['ingredients'] as List).length, '1'),
+                        (newMeal['ingredients'] as List).length,
+                        '1',
+                      ),
                       'instructions': newMeal['instructions'],
                       'area': '',
                       'category': '',
@@ -715,38 +733,39 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               },
             ),
             ListTile(
-                leading: const Icon(Icons.search, color: AppColors.primary),
-                title: Text(
-                  tr(context, 'search_meals'),
-                  style: TextStyle(color: AppTheme.textColor(context)),
-                ),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => MealSearchScreen(
-                        selectedDayIndex:
-                            _selectedDayIndex, // ensure this variable is defined in your state
-                        currentMealTime:
-                            _currentMealTime, // ensure this variable is defined in your state
-                      ),
+              leading: const Icon(Icons.search, color: AppColors.primary),
+              title: Text(
+                tr(context, 'search_meals'),
+                style: TextStyle(color: AppTheme.textColor(context)),
+              ),
+              onTap: () async {
+                Navigator.pop(context);
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => MealSearchScreen(
+                      selectedDayIndex:
+                          _selectedDayIndex, // ensure this variable is defined in your state
+                      currentMealTime:
+                          _currentMealTime, // ensure this variable is defined in your state
                     ),
-                  );
-                  
-                  // Refresh favorites data when returning from search
-                  await _loadSavedData();
-                  
-                  if (result != null && mounted) {
-                    if (result is Map<String, dynamic>) {
-                      if (result['action'] == 'add_meal') {
-                        _addMealToDay(result['mealTime'], result['meal']);
-                      } else {
-                        _addMealToDay(_currentMealTime, result);
-                      }
+                  ),
+                );
+
+                // Refresh favorites data when returning from search
+                await _loadSavedData();
+
+                if (result != null && mounted) {
+                  if (result is Map<String, dynamic>) {
+                    if (result['action'] == 'add_meal') {
+                      _addMealToDay(result['mealTime'], result['meal']);
+                    } else {
+                      _addMealToDay(_currentMealTime, result);
                     }
                   }
-                }),
+                }
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.favorite, color: AppColors.primary),
               title: Text(
@@ -776,7 +795,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   if (selectedMeal is Map<String, dynamic>) {
                     if (selectedMeal['action'] == 'add_meal') {
                       _addMealToDay(
-                          selectedMeal['mealTime'], selectedMeal['meal']);
+                        selectedMeal['mealTime'],
+                        selectedMeal['meal'],
+                      );
                     } else {
                       _addMealToDay(_currentMealTime, selectedMeal);
                     }
@@ -819,10 +840,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               });
               Navigator.pop(context);
             },
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -865,8 +883,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     builder: (context) => MealEditScreen(
                       mealTitle: meal['titleKey'],
                       imagePath: meal['imagePath'],
-                      nutritionFacts:
-                          Map<String, String>.from(meal['nutritionFacts']),
+                      nutritionFacts: Map<String, String>.from(
+                        meal['nutritionFacts'],
+                      ),
                       ingredients: List<String>.from(meal['ingredients']),
                       instructions: List<String>.from(meal['instructions']),
                     ),
@@ -913,8 +932,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           ),
           const Spacer(),
           IconButton(
-            icon:
-                Icon(Icons.calendar_month, color: AppTheme.textColor(context)),
+            icon: Icon(
+              Icons.calendar_month,
+              color: AppTheme.textColor(context),
+            ),
             onPressed: () {},
           ),
         ],
@@ -930,13 +951,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: _weekDays.length,
-        itemExtent: 72.0, // Fixed width for horizontal day selector items (width + margin)
+        itemExtent:
+            72.0, // Fixed width for horizontal day selector items (width + margin)
         itemBuilder: (context, index) {
           final isSelected = _selectedDayIndex == index;
           final today = DateTime.now();
           final todayIndex = today.weekday - 1; // Convert to 0-6 index
           final isToday = index == todayIndex;
-          
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -948,18 +970,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 _selectedDayIndex = index;
 
                 // Load saved meals for selected day or empty
-                _mealData = _weeklyMealData[index] ??
-                    {
-                      'breakfast': [],
-                      'lunch': [],
-                      'dinner': [],
-                      'snacks': [],
-                    };
-                
+                _mealData =
+                    _weeklyMealData[index] ??
+                    {'breakfast': [], 'lunch': [], 'dinner': [], 'snacks': []};
+
                 // Check if the selected day has no regular meals and add suggestions
                 if (!_hasRegularMeals()) {
-                  final suggestedMeals = _getSuggestedMealsFromPreviousDay(index);
-                  
+                  final suggestedMeals = _getSuggestedMealsFromPreviousDay(
+                    index,
+                  );
+
                   // Add suggested meals to current day data
                   for (final mealTime in _mealTimes) {
                     final suggestions = suggestedMeals[mealTime] ?? [];
@@ -978,7 +998,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     : AppTheme.cardColor(context),
                 borderRadius: BorderRadius.circular(12),
                 border: isSelected
-                    ? Border.all(color: AppColors.primary.withValues(alpha: 0.8), width: 2)
+                    ? Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.8),
+                        width: 2,
+                      )
                     : Border.all(color: Colors.transparent, width: 2),
                 boxShadow: isSelected
                     ? [
@@ -998,15 +1021,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     Text(
                       'Today',
                       style: TextStyle(
-                        color: isSelected
-                            ? Colors.white
-                            : AppColors.primary,
+                        color: isSelected ? Colors.white : AppColors.primary,
                         fontSize: 9,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   if (isToday) const SizedBox(height: 2),
-                  
+
                   // Day name
                   Text(
                     tr(context, _weekDays[index]).substring(0, 3).toUpperCase(),
@@ -1019,7 +1040,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  
+
                   // Day number
                   Text(
                     '${index + 1}',
@@ -1063,8 +1084,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             child: GestureDetector(
               onTap: () async {
                 if (index == 0) {
-                  final navigator =
-                      Navigator.of(context); // Guarda o contexto antes do await
+                  final navigator = Navigator.of(
+                    context,
+                  ); // Guarda o contexto antes do await
                   final newMeal = await navigator.push(
                     MaterialPageRoute(
                       builder: (context) => const MealEditScreen(),
@@ -1082,7 +1104,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       'nutritionFacts': newMeal['nutritionFacts'],
                       'ingredients': newMeal['ingredients'],
                       'measures': List<String>.filled(
-                          (newMeal['ingredients'] as List).length, '1'),
+                        (newMeal['ingredients'] as List).length,
+                        '1',
+                      ),
                       'instructions': newMeal['instructions'],
                       'area': '',
                       'category': '',
@@ -1092,8 +1116,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                   }
                 } else if (index == 1) {
                   final navigator = Navigator.of(context);
-                  final scaffoldMessenger =
-                      ScaffoldMessenger.of(context); // Guarda antes do await
+                  final scaffoldMessenger = ScaffoldMessenger.of(
+                    context,
+                  ); // Guarda antes do await
 
                   final result = await navigator.push(
                     MaterialPageRoute(
@@ -1113,7 +1138,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
                   if (result is Map<String, dynamic> &&
                       result['action'] == 'add_meal') {
-                    final success = _addMealToDay(result['mealTime'], result['meal']);
+                    final success = _addMealToDay(
+                      result['mealTime'],
+                      result['meal'],
+                    );
 
                     if (!mounted) return;
 
@@ -1135,10 +1163,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(
-                      carouselImages[index],
-                      fit: BoxFit.cover,
-                    ),
+                    Image.asset(carouselImages[index], fit: BoxFit.cover),
                     Positioned(
                       bottom: 8,
                       left: 8,
@@ -1180,21 +1205,41 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNutritionItem(context, 'calories',
-              nutrition['calories']!.toStringAsFixed(0), 'kcal'),
-          _buildNutritionItem(context, 'protein',
-              nutrition['protein']!.toStringAsFixed(0), 'g'),
           _buildNutritionItem(
-              context, 'carbs', nutrition['carbs']!.toStringAsFixed(0), 'g'),
+            context,
+            'calories',
+            nutrition['calories']!.toStringAsFixed(0),
+            'kcal',
+          ),
           _buildNutritionItem(
-              context, 'fat', nutrition['fat']!.toStringAsFixed(0), 'g'),
+            context,
+            'protein',
+            nutrition['protein']!.toStringAsFixed(0),
+            'g',
+          ),
+          _buildNutritionItem(
+            context,
+            'carbs',
+            nutrition['carbs']!.toStringAsFixed(0),
+            'g',
+          ),
+          _buildNutritionItem(
+            context,
+            'fat',
+            nutrition['fat']!.toStringAsFixed(0),
+            'g',
+          ),
         ],
       ),
     );
   }
 
   Widget _buildNutritionItem(
-      BuildContext context, String title, String value, String unit) {
+    BuildContext context,
+    String title,
+    String value,
+    String unit,
+  ) {
     return Column(
       children: [
         Text(
@@ -1281,9 +1326,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 ),
                 child: SingleChildScrollView(
                   // Make items scrollable
-                  child: Column(
-                    children: _buildMealItems(context, mealTime),
-                  ),
+                  child: Column(children: _buildMealItems(context, mealTime)),
                 ),
               ),
             ],
@@ -1308,13 +1351,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         borderRadius: BorderRadius.circular(8),
         child:
             meal['imagePath'] != null && meal['imagePath'].toString().isNotEmpty
-                ? _buildImageWidget(meal['imagePath'])
-                : Container(
-                    width: 70,
-                    height: 70,
-                    color: AppTheme.cardColor(context),
-                    child: const Icon(Icons.restaurant, size: 30),
-                  ),
+            ? _buildImageWidget(meal['imagePath'])
+            : Container(
+                width: 70,
+                height: 70,
+                color: AppTheme.cardColor(context),
+                child: const Icon(Icons.restaurant, size: 30),
+              ),
       );
     }
 
@@ -1341,7 +1384,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: meal['imagePath'] != null && meal['imagePath'].toString().isNotEmpty
+                child:
+                    meal['imagePath'] != null &&
+                        meal['imagePath'].toString().isNotEmpty
                     ? _buildImageWidget(meal['imagePath'])
                     : Container(
                         width: 70,
@@ -1381,7 +1426,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           setState(() {
             _mealData.forEach((mealTime, meals) {
               meals.removeWhere(
-                  (m) => m['id']?.toString() == meal['id']?.toString());
+                (m) => m['id']?.toString() == meal['id']?.toString(),
+              );
             });
           });
           _saveMealData();
@@ -1394,12 +1440,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSuggested 
+          color: isSuggested
               ? AppTheme.cardColor(context).withValues(alpha: 0.6)
               : AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
-          border: isSuggested 
-              ? Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1)
+          border: isSuggested
+              ? Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1,
+                )
               : null,
           boxShadow: isSuggested
               ? [
@@ -1439,17 +1488,21 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       Text(
                         meal['titleKey']?.toString() ?? 'Unnamed Meal',
                         style: TextStyle(
-                          color: isSuggested 
-                              ? AppTheme.textColor(context).withValues(alpha: 0.7)
+                          color: isSuggested
+                              ? AppTheme.textColor(
+                                  context,
+                                ).withValues(alpha: 0.7)
                               : AppTheme.textColor(context),
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          fontStyle: isSuggested ? FontStyle.italic : FontStyle.normal,
+                          fontStyle: isSuggested
+                              ? FontStyle.italic
+                              : FontStyle.normal,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      
+
                       // Suggested meal indicator
                       if (isSuggested) ...[
                         const SizedBox(height: 4),
@@ -1465,7 +1518,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                               child: Text(
                                 'From yesterday',
                                 style: TextStyle(
-                                  color: AppColors.primary.withValues(alpha: 0.7),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.7,
+                                  ),
                                   fontSize: 11,
                                   fontStyle: FontStyle.italic,
                                 ),
@@ -1527,8 +1582,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                                   color: AppTheme.cardColor(context),
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color: AppTheme.textColor(context)
-                                        .withAlpha(26),
+                                    color: AppTheme.textColor(
+                                      context,
+                                    ).withAlpha(26),
                                   ),
                                 ),
                                 child: Row(
@@ -1579,7 +1635,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                             // Find which meal time this meal belongs to
                             String? mealTime;
                             for (final time in _mealTimes) {
-                              if (_mealData[time]?.any((m) => m['id'] == meal['id']) == true) {
+                              if (_mealData[time]?.any(
+                                    (m) => m['id'] == meal['id'],
+                                  ) ==
+                                  true) {
                                 mealTime = time;
                                 break;
                               }
@@ -1600,15 +1659,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         ),
                         child: IconButton(
                           iconSize: 20,
-                          icon: const Icon(
-                            Icons.cancel,
-                            color: Colors.red,
-                          ),
+                          icon: const Icon(Icons.cancel, color: Colors.red),
                           onPressed: () {
                             // Find which meal time this meal belongs to
                             String? mealTime;
                             for (final time in _mealTimes) {
-                              if (_mealData[time]?.any((m) => m['id'] == meal['id']) == true) {
+                              if (_mealData[time]?.any(
+                                    (m) => m['id'] == meal['id'],
+                                  ) ==
+                                  true) {
                                 mealTime = time;
                                 break;
                               }
@@ -1671,17 +1730,37 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     for (var mealList in _mealData.values) {
       for (var meal in mealList) {
         if (meal['nutritionFacts'] != null) {
-          totalCalories += double.tryParse(meal['nutritionFacts']['calories']
-                  ?.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          totalCalories +=
+              double.tryParse(
+                meal['nutritionFacts']['calories']?.replaceAll(
+                  RegExp(r'[^0-9.]'),
+                  '',
+                ),
+              ) ??
               0;
-          totalProtein += double.tryParse(meal['nutritionFacts']['protein']
-                  ?.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          totalProtein +=
+              double.tryParse(
+                meal['nutritionFacts']['protein']?.replaceAll(
+                  RegExp(r'[^0-9.]'),
+                  '',
+                ),
+              ) ??
               0;
-          totalCarbs += double.tryParse(meal['nutritionFacts']['carbs']
-                  ?.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          totalCarbs +=
+              double.tryParse(
+                meal['nutritionFacts']['carbs']?.replaceAll(
+                  RegExp(r'[^0-9.]'),
+                  '',
+                ),
+              ) ??
               0;
-          totalFat += double.tryParse(meal['nutritionFacts']['fat']
-                  ?.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          totalFat +=
+              double.tryParse(
+                meal['nutritionFacts']['fat']?.replaceAll(
+                  RegExp(r'[^0-9.]'),
+                  '',
+                ),
+              ) ??
               0;
         }
       }

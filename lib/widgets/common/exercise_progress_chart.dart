@@ -2,14 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../models/exercise_log.dart';
+import '../../models/exercise/exercise_log.dart';
 import '../../theme/app_theme.dart';
 
-enum ChartMetric {
-  weight,
-  volume,
-  reps,
-}
+enum ChartMetric { weight, volume, reps }
 
 class ExerciseProgressChart extends StatefulWidget {
   final List<ExerciseLog> logs;
@@ -49,10 +45,10 @@ class _ExerciseProgressChartState extends State<ExerciseProgressChart> {
   void _filterLogs() {
     // Filter logs by time span
     final cutoffDate = DateTime.now().subtract(Duration(days: widget.timeSpan));
-    _filteredLogs = widget.logs
-        .where((log) => log.date.isAfter(cutoffDate))
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date)); // Sort by date (oldest first)
+    _filteredLogs =
+        widget.logs.where((log) => log.date.isAfter(cutoffDate)).toList()..sort(
+          (a, b) => a.date.compareTo(b.date),
+        ); // Sort by date (oldest first)
   }
 
   @override
@@ -61,9 +57,7 @@ class _ExerciseProgressChartState extends State<ExerciseProgressChart> {
       return Center(
         child: Text(
           'No data available for the selected period',
-          style: TextStyle(
-            color: AppTheme.textColor(context).withAlpha(77),
-          ),
+          style: TextStyle(color: AppTheme.textColor(context).withAlpha(77)),
         ),
       );
     }
@@ -75,17 +69,12 @@ class _ExerciseProgressChartState extends State<ExerciseProgressChart> {
         children: [
           Text(
             _getChartTitle(),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           SizedBox(
             height: 250,
-            child: RepaintBoundary(
-              child: LineChart(_createLineChart()),
-            ),
+            child: RepaintBoundary(child: LineChart(_createLineChart())),
           ),
         ],
       ),
@@ -119,12 +108,8 @@ class _ExerciseProgressChartState extends State<ExerciseProgressChart> {
       ),
       titlesData: FlTitlesData(
         show: true,
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
+        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,

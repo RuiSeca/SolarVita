@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../models/workout_routine.dart';
+import '../../models/exercise/workout_routine.dart';
 import '../../providers/routine_providers.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'routine_detail_screen.dart';
@@ -31,18 +31,12 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: Icon(
-              Icons.add,
-              color: AppTheme.primaryColor,
-            ),
+            icon: Icon(Icons.add, color: AppTheme.primaryColor),
             onPressed: () => _createNewRoutine(),
           ),
         ],
@@ -50,7 +44,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
       body: Consumer(
         builder: (context, ref, child) {
           final routineManagerAsync = ref.watch(routineManagerProvider);
-          
+
           return routineManagerAsync.when(
             loading: () => const Center(child: LottieLoadingWidget()),
             error: (error, stack) => _buildErrorState(error.toString()),
@@ -166,9 +160,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
             onPressed: () => _showTemplates(),
             icon: const Icon(Icons.library_books),
             label: Text(tr(context, 'browse_templates')),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.primaryColor,
-            ),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryColor),
           ),
         ],
       ),
@@ -184,9 +176,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryColor.withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,11 +245,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: AppTheme.primaryColor,
-            size: 24,
-          ),
+          Icon(icon, color: AppTheme.primaryColor, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
@@ -367,10 +353,12 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        ...routineManager.routines.map((routine) => Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildRoutineCard(routine),
-        )),
+        ...routineManager.routines.map(
+          (routine) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildRoutineCard(routine),
+          ),
+        ),
       ],
     );
   }
@@ -381,12 +369,12 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isActive 
+          color: isActive
               ? AppTheme.primaryColor.withAlpha(26)
               : AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isActive 
+            color: isActive
                 ? AppTheme.primaryColor
                 : AppTheme.primaryColor.withAlpha(26),
             width: isActive ? 2 : 1,
@@ -486,11 +474,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: AppTheme.primaryColor,
-          size: 16,
-        ),
+        Icon(icon, color: AppTheme.primaryColor, size: 16),
         const SizedBox(width: 4),
         Text(
           '$value $label',
@@ -505,7 +489,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
 
   void _createNewRoutine() async {
     final routineManager = await ref.read(routineManagerProvider.future);
-    
+
     if (routineManager.availableSlots <= 0) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -521,9 +505,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
     if (mounted) {
       final result = await Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => const RoutineCreationScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const RoutineCreationScreen()),
       );
 
       if (result == true) {
@@ -554,12 +536,14 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              ...templates.map((template) => ListTile(
-                title: Text(template.name),
-                subtitle: Text(template.description ?? ''),
-                trailing: const Icon(Icons.add),
-                onTap: () => _useTemplate(template),
-              )),
+              ...templates.map(
+                (template) => ListTile(
+                  title: Text(template.name),
+                  subtitle: Text(template.description ?? ''),
+                  trailing: const Icon(Icons.add),
+                  onTap: () => _useTemplate(template),
+                ),
+              ),
             ],
           ),
         ),
@@ -569,7 +553,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
 
   void _useTemplate(WorkoutRoutine template) async {
     Navigator.pop(context); // Close bottom sheet
-    
+
     final result = await Navigator.push(
       context,
       MaterialPageRoute(

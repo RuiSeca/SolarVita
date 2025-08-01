@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../models/workout_routine.dart';
-import '../../models/weekly_progress.dart';
+import '../../models/exercise/workout_routine.dart';
+import '../../models/user/weekly_progress.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 import '../../screens/search/workout_detail/workout_detail_screen.dart';
 import '../../widgets/common/exercise_image.dart';
 import '../../providers/routine_providers.dart';
-import '../../services/dynamic_duration_service.dart';
-import '../../services/exercise_tracking_service.dart';
+import '../../services/exercises/dynamic_duration_service.dart';
+import '../../services/exercises/exercise_tracking_service.dart';
 import 'exercise_selection_screen.dart';
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
@@ -31,7 +31,8 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   late DailyWorkout _currentDay;
   bool _isLoading = false;
   WeeklyProgress? _weeklyProgress;
-  final DynamicDurationService _dynamicDurationService = DynamicDurationService();
+  final DynamicDurationService _dynamicDurationService =
+      DynamicDurationService();
 
   @override
   void initState() {
@@ -55,26 +56,17 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context, _currentRoutine),
         ),
         actions: [
           if (!_currentDay.isRestDay)
             IconButton(
-              icon: Icon(
-                Icons.add,
-                color: AppTheme.primaryColor,
-              ),
+              icon: Icon(Icons.add, color: AppTheme.primaryColor),
               onPressed: () => _addExercise(),
             ),
           PopupMenuButton<String>(
-            icon: Icon(
-              Icons.more_vert,
-              color: AppTheme.textColor(context),
-            ),
+            icon: Icon(Icons.more_vert, color: AppTheme.textColor(context)),
             onSelected: _handleMenuAction,
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -83,13 +75,17 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                   children: [
                     Icon(
                       _currentDay.isRestDay ? Icons.fitness_center : Icons.bed,
-                      color: _currentDay.isRestDay ? AppTheme.primaryColor : Colors.orange,
+                      color: _currentDay.isRestDay
+                          ? AppTheme.primaryColor
+                          : Colors.orange,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
-                    Text(_currentDay.isRestDay 
-                        ? tr(context, 'make_workout_day')
-                        : tr(context, 'make_rest_day')),
+                    Text(
+                      _currentDay.isRestDay
+                          ? tr(context, 'make_workout_day')
+                          : tr(context, 'make_rest_day'),
+                    ),
                   ],
                 ),
               ),
@@ -98,11 +94,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                   value: 'clear_all',
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.clear_all,
-                        color: Colors.red,
-                        size: 20,
-                      ),
+                      const Icon(Icons.clear_all, color: Colors.red, size: 20),
                       const SizedBox(width: 8),
                       Text(
                         tr(context, 'clear_all_exercises'),
@@ -133,15 +125,18 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Consumer(
               builder: (context, ref, child) {
-                final progressAsync = ref.watch(weeklyProgressProvider(_currentRoutine.id));
+                final progressAsync = ref.watch(
+                  weeklyProgressProvider(_currentRoutine.id),
+                );
                 return progressAsync.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => _currentDay.isRestDay 
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (error, stack) => _currentDay.isRestDay
                       ? _buildRestDayContent()
                       : _buildWorkoutContent(),
                   data: (progress) {
                     _weeklyProgress = progress;
-                    return _currentDay.isRestDay 
+                    return _currentDay.isRestDay
                         ? _buildRestDayContent()
                         : _buildWorkoutContent();
                   },
@@ -165,11 +160,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.bed,
-              size: 80,
-              color: Colors.orange,
-            ),
+            Icon(Icons.bed, size: 80, color: Colors.orange),
             const SizedBox(height: 24),
             Text(
               tr(context, 'rest_day'),
@@ -230,7 +221,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -303,7 +297,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -314,9 +311,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               onPressed: () => _toggleRestDay(),
               icon: const Icon(Icons.bed),
               label: Text(tr(context, 'make_rest_day')),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.orange,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.orange),
             ),
           ],
         ),
@@ -330,9 +325,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryColor.withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -358,7 +351,9 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FutureBuilder<DynamicWorkoutDuration>(
-                  future: _dynamicDurationService.calculateDayDynamicDuration(_currentDay),
+                  future: _dynamicDurationService.calculateDayDynamicDuration(
+                    _currentDay,
+                  ),
                   builder: (context, snapshot) {
                     if (snapshot.hasData) {
                       final duration = snapshot.data!;
@@ -373,9 +368,14 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                       // Fallback: Calculate dynamic duration synchronously for each exercise
                       int totalDynamicMinutes = 0;
                       for (final exercise in _currentDay.exercises) {
-                        final staticMinutes = _parseDurationToMinutes(exercise.duration);
-                        final plannedSets = exercise.steps.isNotEmpty ? exercise.steps.length : 3;
-                        final dynamicMinutes = (staticMinutes * plannedSets).round();
+                        final staticMinutes = _parseDurationToMinutes(
+                          exercise.duration,
+                        );
+                        final plannedSets = exercise.steps.isNotEmpty
+                            ? exercise.steps.length
+                            : 3;
+                        final dynamicMinutes = (staticMinutes * plannedSets)
+                            .round();
                         totalDynamicMinutes += dynamicMinutes;
                       }
                       return _buildSummaryItem(
@@ -436,11 +436,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   Widget _buildSummaryItem(String title, String value, IconData icon) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: AppTheme.primaryColor,
-          size: 20,
-        ),
+        Icon(icon, color: AppTheme.primaryColor, size: 20),
         const SizedBox(height: 8),
         Text(
           value,
@@ -462,17 +458,19 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  Widget _buildDynamicSummaryItem(String title, String dynamicValue, String staticValue, bool isFaster, IconData icon) {
+  Widget _buildDynamicSummaryItem(
+    String title,
+    String dynamicValue,
+    String staticValue,
+    bool isFaster,
+    IconData icon,
+  ) {
     return Column(
       children: [
         Stack(
           alignment: Alignment.topRight,
           children: [
-            Icon(
-              icon,
-              color: AppTheme.primaryColor,
-              size: 20,
-            ),
+            Icon(icon, color: AppTheme.primaryColor, size: 20),
             if (staticValue != dynamicValue)
               Container(
                 width: 8,
@@ -552,16 +550,29 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           onReorder: _reorderExercises,
           itemBuilder: (context, index) {
             final exercise = _currentDay.exercises[index];
-            return _buildExerciseCard(exercise, index, weeklyProgress, key: ValueKey(exercise.title + index.toString()));
+            return _buildExerciseCard(
+              exercise,
+              index,
+              weeklyProgress,
+              key: ValueKey(exercise.title + index.toString()),
+            );
           },
         ),
       ],
     );
   }
 
-  Widget _buildExerciseCard(WorkoutItem exercise, int index, WeeklyProgress? weeklyProgress, {required Key key}) {
-    final isCompleted = _isExerciseCompletedFromProgress(exercise.title, weeklyProgress);
-    
+  Widget _buildExerciseCard(
+    WorkoutItem exercise,
+    int index,
+    WeeklyProgress? weeklyProgress, {
+    required Key key,
+  }) {
+    final isCompleted = _isExerciseCompletedFromProgress(
+      exercise.title,
+      weeklyProgress,
+    );
+
     return Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 12),
@@ -570,12 +581,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isCompleted 
+            color: isCompleted
                 ? AppTheme.primaryColor.withAlpha(26)
                 : AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isCompleted 
+              color: isCompleted
                   ? AppTheme.primaryColor
                   : AppTheme.primaryColor.withAlpha(26),
               width: isCompleted ? 2 : 1,
@@ -638,18 +649,24 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                         ),
                         const SizedBox(width: 4),
                         FutureBuilder<double>(
-                          future: _dynamicDurationService.calculateDynamicDuration(
-                            exerciseId: exercise.title.hashCode.toString(),
-                            exerciseName: exercise.title,
-                            staticDuration: exercise.duration,
-                            plannedSets: _getPlannedSetsForExercise(exercise), // Get proper sets count
-                          ),
+                          future: _dynamicDurationService
+                              .calculateDynamicDuration(
+                                exerciseId: exercise.title.hashCode.toString(),
+                                exerciseName: exercise.title,
+                                staticDuration: exercise.duration,
+                                plannedSets: _getPlannedSetsForExercise(
+                                  exercise,
+                                ), // Get proper sets count
+                              ),
                           builder: (context, snapshot) {
                             if (snapshot.hasData) {
                               final dynamicMinutes = snapshot.data!.round();
-                              final staticMinutes = _parseDurationToMinutes(exercise.duration);
-                              final isDifferent = dynamicMinutes != staticMinutes;
-                              
+                              final staticMinutes = _parseDurationToMinutes(
+                                exercise.duration,
+                              );
+                              final isDifferent =
+                                  dynamicMinutes != staticMinutes;
+
                               return Flexible(
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -657,16 +674,24 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                                     Text(
                                       '${dynamicMinutes}min',
                                       style: TextStyle(
-                                        color: AppTheme.textColor(context).withAlpha(179),
+                                        color: AppTheme.textColor(
+                                          context,
+                                        ).withAlpha(179),
                                         fontSize: 14,
-                                        fontWeight: isDifferent ? FontWeight.w600 : FontWeight.normal,
+                                        fontWeight: isDifferent
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
                                       ),
                                     ),
                                     if (isDifferent) ...[
                                       const SizedBox(width: 4),
                                       Icon(
-                                        dynamicMinutes < staticMinutes ? Icons.trending_down : Icons.trending_up,
-                                        color: dynamicMinutes < staticMinutes ? Colors.green : Colors.orange,
+                                        dynamicMinutes < staticMinutes
+                                            ? Icons.trending_down
+                                            : Icons.trending_up,
+                                        color: dynamicMinutes < staticMinutes
+                                            ? Colors.green
+                                            : Colors.orange,
                                         size: 12,
                                       ),
                                       const SizedBox(width: 2),
@@ -674,9 +699,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                                         child: Text(
                                           exercise.duration,
                                           style: TextStyle(
-                                            color: AppTheme.textColor(context).withAlpha(102),
+                                            color: AppTheme.textColor(
+                                              context,
+                                            ).withAlpha(102),
                                             fontSize: 11,
-                                            decoration: TextDecoration.lineThrough,
+                                            decoration:
+                                                TextDecoration.lineThrough,
                                           ),
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -690,7 +718,9 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                               return Text(
                                 exercise.duration,
                                 style: TextStyle(
-                                  color: AppTheme.textColor(context).withAlpha(179),
+                                  color: AppTheme.textColor(
+                                    context,
+                                  ).withAlpha(179),
                                   fontSize: 14,
                                 ),
                               );
@@ -730,11 +760,15 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                             return Text(
                               '$loggedSets sets',
                               style: TextStyle(
-                                color: loggedSets > 0 
+                                color: loggedSets > 0
                                     ? AppTheme.primaryColor
-                                    : AppTheme.textColor(context).withAlpha(179),
+                                    : AppTheme.textColor(
+                                        context,
+                                      ).withAlpha(179),
                                 fontSize: 14,
-                                fontWeight: loggedSets > 0 ? FontWeight.w600 : FontWeight.w500,
+                                fontWeight: loggedSets > 0
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
                               ),
                             );
                           },
@@ -757,11 +791,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                           ),
                         ] else ...[
                           const SizedBox(width: 16),
-                          Icon(
-                            Icons.schedule,
-                            color: Colors.orange,
-                            size: 16,
-                          ),
+                          Icon(Icons.schedule, color: Colors.orange, size: 16),
                           const SizedBox(width: 4),
                           Text(
                             tr(context, 'pending'),
@@ -802,11 +832,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                     value: 'remove',
                     child: Row(
                       children: [
-                        const Icon(
-                          Icons.delete,
-                          color: Colors.red,
-                          size: 20,
-                        ),
+                        const Icon(Icons.delete, color: Colors.red, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           tr(context, 'remove'),
@@ -824,11 +850,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  
   int _parseDurationToMinutes(String duration) {
     // Handle different duration formats: "30s", "2m", "90", "1:30", "1.5m", "60-90"
     final lowerDuration = duration.toLowerCase().trim();
-    
+
     // Handle ranges like "60-90" or "60-90s" - use the lowest value
     if (lowerDuration.contains('-')) {
       final parts = lowerDuration.split('-');
@@ -838,25 +863,27 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         return _parseSingleDuration(firstPart);
       }
     }
-    
+
     return _parseSingleDuration(lowerDuration);
   }
-  
+
   int _parseSingleDuration(String duration) {
     final lowerDuration = duration.toLowerCase().trim();
-    
+
     // If it contains 's' (seconds)
     if (lowerDuration.contains('s')) {
-      final seconds = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+      final seconds =
+          int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
       return (seconds / 60).ceil(); // Convert seconds to minutes (round up)
     }
-    
+
     // If it contains 'm' (minutes)
     if (lowerDuration.contains('m')) {
-      final minutes = double.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+      final minutes =
+          double.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
       return minutes.round();
     }
-    
+
     // If it contains ':' (mm:ss format)
     if (lowerDuration.contains(':')) {
       final parts = lowerDuration.split(':');
@@ -866,7 +893,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         return minutes + (seconds / 60).ceil();
       }
     }
-    
+
     // Default: assume it's seconds if just a number
     final number = int.tryParse(lowerDuration.replaceAll(RegExp(r'[^\d]'), ''));
     if (number != null) {
@@ -877,7 +904,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         return number; // Assume minutes
       }
     }
-    
+
     return 0;
   }
 
@@ -887,23 +914,24 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   int _getPlannedSetsForExercise(WorkoutItem exercise) {
     final lowerTitle = exercise.title.toLowerCase();
     final lowerDifficulty = exercise.difficulty.toLowerCase();
-    
+
     // If it's a cardio or time-based exercise, use 1 set
-    if (lowerTitle.contains('run') || 
-        lowerTitle.contains('cycle') || 
+    if (lowerTitle.contains('run') ||
+        lowerTitle.contains('cycle') ||
         lowerTitle.contains('cardio') ||
         lowerTitle.contains('plank') ||
         exercise.duration.contains('min')) {
       return 1;
     }
-    
+
     // For most strength exercises, use 3 sets as standard
     if (lowerDifficulty.contains('beginner')) {
       return 2; // Beginners start with fewer sets
-    } else if (lowerDifficulty.contains('advanced') || lowerDifficulty.contains('expert')) {
+    } else if (lowerDifficulty.contains('advanced') ||
+        lowerDifficulty.contains('expert')) {
       return 4; // Advanced users may do more sets
     }
-    
+
     return 3; // Default for intermediate and most exercises
   }
 
@@ -914,19 +942,28 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       final today = DateTime.now();
       final startOfDay = DateTime(today.year, today.month, today.day);
       final endOfDay = startOfDay.add(const Duration(days: 1));
-      
-      final logs = await ExerciseTrackingService().getLogsByDateRange(startOfDay, endOfDay);
-      
+
+      final logs = await ExerciseTrackingService().getLogsByDateRange(
+        startOfDay,
+        endOfDay,
+      );
+
       // Find logs for this specific exercise
-      final exerciseLogs = logs.where((log) => 
-        log.exerciseId == exerciseId || log.exerciseName == exerciseTitle).toList();
-      
+      final exerciseLogs = logs
+          .where(
+            (log) =>
+                log.exerciseId == exerciseId ||
+                log.exerciseName == exerciseTitle,
+          )
+          .toList();
+
       if (exerciseLogs.isEmpty) {
         return 0;
       }
-      
+
       // Return the number of sets from the most recent log today
-      final latestLog = exerciseLogs.first; // logs are sorted by date (newest first)
+      final latestLog =
+          exerciseLogs.first; // logs are sorted by date (newest first)
       return latestLog.sets.length;
     } catch (e) {
       return 0;
@@ -940,27 +977,29 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     }
     return '${totalCalories}cal';
   }
-  
+
   int _parseCalories(String caloriesStr) {
     // Handle different calorie formats: "150 cal", "150cal", "150", "150-200 cal"
     final lowerCalories = caloriesStr.toLowerCase().trim();
-    
+
     // Handle range formats like "150-200 cal" - take the average
     if (lowerCalories.contains('-')) {
       final parts = lowerCalories.split('-');
       if (parts.length == 2) {
-        final firstNum = int.tryParse(parts[0].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
-        final secondNum = int.tryParse(parts[1].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+        final firstNum =
+            int.tryParse(parts[0].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
+        final secondNum =
+            int.tryParse(parts[1].replaceAll(RegExp(r'[^\d]'), '')) ?? 0;
         return ((firstNum + secondNum) / 2).round();
       }
     }
-    
+
     // Extract first number from the string
     final match = RegExp(r'\d+').firstMatch(lowerCalories);
     if (match != null) {
       return int.tryParse(match.group(0)!) ?? 0;
     }
-    
+
     return 0;
   }
 
@@ -979,11 +1018,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         oldIndex,
         newIndex,
       );
-      
+
       final updatedRoutine = updatedManager.routines.firstWhere(
         (r) => r.id == _currentRoutine.id,
       );
-      
+
       setState(() {
         _currentRoutine = updatedRoutine;
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
@@ -1043,7 +1082,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _currentRoutine = result;
         _currentDay = result.getDayWorkout(_currentDay.dayName);
       });
-      
+
       // Trigger sync immediately when exercises are added to update planned count
       final syncService = ref.read(exerciseRoutineSyncServiceProvider);
       syncService.syncPlannedExercisesWithRoutine(_currentRoutine.id);
@@ -1069,18 +1108,18 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         ),
       ),
     );
-    
+
     // Refresh the screen when returning from exercise detail
     // This ensures exercise completion status is updated immediately
     if (mounted) {
       // Force provider refresh to get latest data
       ref.invalidate(weeklyProgressProvider(_currentRoutine.id));
-      
+
       // Force UI rebuild to show updated durations
       setState(() {
         // Trigger rebuild to refresh dynamic durations
       });
-      
+
       // If an exercise was logged, show additional feedback
       if (result == true) {
         // Extra refresh to ensure immediate updates
@@ -1106,11 +1145,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         _currentDay.dayName,
         index,
       );
-      
+
       final updatedRoutine = updatedManager.routines.firstWhere(
         (r) => r.id == _currentRoutine.id,
       );
-      
+
       setState(() {
         _currentRoutine = updatedRoutine;
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
@@ -1153,11 +1192,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         !_currentDay.isRestDay,
         notes: _currentDay.notes,
       );
-      
+
       final updatedRoutine = updatedManager.routines.firstWhere(
         (r) => r.id == _currentRoutine.id,
       );
-      
+
       setState(() {
         _currentRoutine = updatedRoutine;
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
@@ -1171,9 +1210,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_currentDay.isRestDay 
-                ? tr(context, 'set_as_rest_day')
-                : tr(context, 'set_as_workout_day')),
+            content: Text(
+              _currentDay.isRestDay
+                  ? tr(context, 'set_as_rest_day')
+                  : tr(context, 'set_as_workout_day'),
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -1229,12 +1270,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
         false,
         notes: _currentDay.notes,
       );
-      
+
       // This will clear all exercises by setting it as a workout day with empty exercises
       final updatedRoutine = updatedManager.routines.firstWhere(
         (r) => r.id == _currentRoutine.id,
       );
-      
+
       setState(() {
         _currentRoutine = updatedRoutine;
         _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
@@ -1271,8 +1312,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   }
 
   void _editNotes() async {
-    final notesController = TextEditingController(text: _currentDay.notes ?? '');
-    
+    final notesController = TextEditingController(
+      text: _currentDay.notes ?? '',
+    );
+
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1310,11 +1353,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           _currentDay.isRestDay,
           notes: result.isEmpty ? null : result,
         );
-        
+
         final updatedRoutine = updatedManager.routines.firstWhere(
           (r) => r.id == _currentRoutine.id,
         );
-        
+
         setState(() {
           _currentRoutine = updatedRoutine;
           _currentDay = updatedRoutine.getDayWorkout(_currentDay.dayName);
@@ -1348,7 +1391,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   }
 
   // Helper methods for completion tracking
-  bool _isExerciseCompletedFromProgress(String exerciseTitle, WeeklyProgress? weeklyProgress) {
+  bool _isExerciseCompletedFromProgress(
+    String exerciseTitle,
+    WeeklyProgress? weeklyProgress,
+  ) {
     if (weeklyProgress == null) return false;
     final dayProgress = weeklyProgress.dailyProgress[_currentDay.dayName];
     return dayProgress?.isExerciseCompleted(exerciseTitle) ?? false;
@@ -1365,8 +1411,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
   Widget _buildWeeklyProgressSection() {
     return Consumer(
       builder: (context, ref, child) {
-        final weeklyProgressAsync = ref.watch(weeklyProgressProvider(_currentRoutine.id));
-        
+        final weeklyProgressAsync = ref.watch(
+          weeklyProgressProvider(_currentRoutine.id),
+        );
+
         return weeklyProgressAsync.when(
           loading: () => Container(
             height: 120,
@@ -1379,10 +1427,11 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           error: (error, stack) => const SizedBox.shrink(),
           data: (weeklyProgress) {
             if (weeklyProgress == null) return const SizedBox.shrink();
-            
-            final dayProgress = weeklyProgress.dailyProgress[_currentDay.dayName];
+
+            final dayProgress =
+                weeklyProgress.dailyProgress[_currentDay.dayName];
             if (dayProgress == null) return const SizedBox.shrink();
-            
+
             return _buildWeeklyProgressContent(weeklyProgress, dayProgress);
           },
         );
@@ -1390,16 +1439,16 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  Widget _buildWeeklyProgressContent(WeeklyProgress weeklyProgress, DayProgress dayProgress) {
-
+  Widget _buildWeeklyProgressContent(
+    WeeklyProgress weeklyProgress,
+    DayProgress dayProgress,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryColor.withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1416,7 +1465,10 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor.withAlpha(26),
                   borderRadius: BorderRadius.circular(16),
@@ -1433,7 +1485,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Progress bar
           Container(
             height: 8,
@@ -1442,7 +1494,8 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               borderRadius: BorderRadius.circular(4),
             ),
             child: FractionallySizedBox(
-              widthFactor: _calculateCurrentCompletionPercentage(dayProgress) / 100,
+              widthFactor:
+                  _calculateCurrentCompletionPercentage(dayProgress) / 100,
               child: Container(
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor,
@@ -1452,7 +1505,7 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           // Daily progress breakdown
           Row(
             children: [
@@ -1476,7 +1529,9 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: FutureBuilder<Map<String, dynamic>>(
-                  future: ref.read(exerciseRoutineSyncServiceProvider).getRoutineCompletionStats(_currentRoutine.id),
+                  future: ref
+                      .read(exerciseRoutineSyncServiceProvider)
+                      .getRoutineCompletionStats(_currentRoutine.id),
                   builder: (context, snapshot) {
                     final streak = snapshot.data?['currentStreak'] ?? 0;
                     return _buildProgressItem(
@@ -1495,7 +1550,12 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
     );
   }
 
-  Widget _buildProgressItem(String title, String value, IconData icon, Color color) {
+  Widget _buildProgressItem(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       children: [
         Icon(icon, color: color, size: 20),

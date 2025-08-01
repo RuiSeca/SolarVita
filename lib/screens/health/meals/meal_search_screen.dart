@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../services/recipe_service.dart';
+import '../../../services/meal/recipe_service.dart';
 import '../../../providers/riverpod/meal_provider.dart';
 import 'meal_detail_screen.dart';
 import 'package:logger/logger.dart';
@@ -55,7 +55,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
       if (mounted) {
         final query = _searchController.text.trim();
         if (query.isEmpty) {
-          ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
+          ref
+              .read(mealNotifierProvider.notifier)
+              .loadMealsByCategory(_selectedCategory);
         } else {
           ref.read(mealNotifierProvider.notifier).searchMeals(query);
         }
@@ -67,16 +69,17 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     // Scroll listener can be used for future pagination if needed
   }
 
-
   Future<void> _loadInitialData() async {
     if (!mounted) return;
 
     try {
       // Load categories for the filter
       await _loadCategories();
-      
+
       // Load initial meals using the provider
-      ref.read(mealNotifierProvider.notifier).loadMealsByCategory(_selectedCategory);
+      ref
+          .read(mealNotifierProvider.notifier)
+          .loadMealsByCategory(_selectedCategory);
     } catch (e) {
       logger.d('Error loading initial data: $e');
     }
@@ -97,8 +100,8 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                 {
                   'strCategory': 'All',
                   'strCategoryThumb': '',
-                  'strCategoryDescription': ''
-                }
+                  'strCategoryDescription': '',
+                },
               ];
               for (var category in data['categories']) {
                 _categories.add({
@@ -119,39 +122,43 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
 
       // Fetch categories from API
       final categories = await _mealService.getCategories();
-      
+
       if (!mounted) return;
 
       // Cache the categories
-      await prefs.setString('meal_categories', json.encode({'categories': categories}));
+      await prefs.setString(
+        'meal_categories',
+        json.encode({'categories': categories}),
+      );
 
       setState(() {
         _categories = [
           {
             'strCategory': 'All',
             'strCategoryThumb': '',
-            'strCategoryDescription': 'All available meals'
-          }
+            'strCategoryDescription': 'All available meals',
+          },
         ];
         for (var category in categories) {
           _categories.add({
             'strCategory': category['strCategory']?.toString() ?? '',
             'strCategoryThumb': category['strCategoryThumb']?.toString() ?? '',
-            'strCategoryDescription': category['strCategoryDescription']?.toString() ?? '',
+            'strCategoryDescription':
+                category['strCategoryDescription']?.toString() ?? '',
           });
         }
       });
     } catch (e) {
       logger.d('Categories error: $e');
       if (!mounted) return;
-      
+
       setState(() {
         _categories = [
           {
             'strCategory': 'All',
             'strCategoryThumb': '',
-            'strCategoryDescription': 'All available meals'
-          }
+            'strCategoryDescription': 'All available meals',
+          },
         ];
       });
     }
@@ -161,18 +168,19 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     setState(() {
       _selectedCategory = category;
     });
-    
+
     // Clear search text when switching categories
     _searchController.clear();
-    
+
     // Load meals for the selected category using provider
     ref.read(mealNotifierProvider.notifier).loadMealsByCategory(category);
   }
 
   // Helper method to determine whether to use File or Network image
   Widget _buildImageWidget(String imagePath) {
-    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
-    
+    final isLocalFile =
+        imagePath.startsWith('/') || imagePath.startsWith('file://');
+
     if (isLocalFile) {
       final file = File(imagePath.replaceFirst('file://', ''));
       if (file.existsSync()) {
@@ -187,21 +195,19 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         );
       }
     }
-    
+
     return CachedNetworkImage(
       imageUrl: imagePath,
       width: double.infinity,
       fit: BoxFit.cover,
-      fadeInDuration: const Duration(milliseconds: 200), // Slightly slower for smoother transition
+      fadeInDuration: const Duration(
+        milliseconds: 200,
+      ), // Slightly slower for smoother transition
       fadeOutDuration: const Duration(milliseconds: 100),
       placeholder: (context, url) => Container(
         color: AppTheme.cardColor(context),
         child: const Center(
-          child: SizedBox(
-            width: 60,
-            height: 60,
-            child: LottieLoadingWidget(),
-          ),
+          child: SizedBox(width: 60, height: 60, child: LottieLoadingWidget()),
         ),
       ),
       errorWidget: (context, url, error) => Container(
@@ -211,17 +217,16 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     );
   }
 
-
   Future<void> _loadFavorites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load favorite meal IDs
       final favoriteIds = prefs.getStringList('favorite_meal_ids') ?? [];
       setState(() {
         _favoriteMeals.addAll(favoriteIds);
       });
-      
+
       // Load favorite meals data
       final favoriteMealsJson = prefs.getString('favorite_meals_data');
       if (favoriteMealsJson != null) {
@@ -240,15 +245,20 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
   Future<void> _saveFavorites() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Save favorite meal IDs
       await prefs.setStringList('favorite_meal_ids', _favoriteMeals.toList());
-      
+
       // Save favorite meals data
-      await prefs.setString('favorite_meals_data', json.encode(_favoriteMealsList));
-      
+      await prefs.setString(
+        'favorite_meals_data',
+        json.encode(_favoriteMealsList),
+      );
+
       // Debug logging
-      logger.d('Saved favorites: ${_favoriteMeals.length} IDs, ${_favoriteMealsList.length} meals');
+      logger.d(
+        'Saved favorites: ${_favoriteMeals.length} IDs, ${_favoriteMealsList.length} meals',
+      );
       logger.d('Favorite IDs: ${_favoriteMeals.toList()}');
     } catch (e) {
       logger.d('Error saving favorites: $e');
@@ -266,19 +276,18 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         _favoriteMeals.add(mealId);
         if (mealData != null) {
           // Store the complete meal data for the favorites page
-          _favoriteMealsList.add({
-            ...mealData,
-            'isFavorite': true,
-          });
+          _favoriteMealsList.add({...mealData, 'isFavorite': true});
         }
       }
     });
-    
+
     // Persist the changes
     _saveFavorites();
-    
+
     // Update the meal data in the provider to reflect favorite status
-    ref.read(mealNotifierProvider.notifier).updateMealFavoriteStatus(mealId, _favoriteMeals.contains(mealId));
+    ref
+        .read(mealNotifierProvider.notifier)
+        .updateMealFavoriteStatus(mealId, _favoriteMeals.contains(mealId));
   }
 
   @override
@@ -343,8 +352,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         },
         decoration: InputDecoration(
           hintText: tr(context, 'search_meals_hint'),
-          hintStyle:
-              TextStyle(color: AppTheme.textColor(context).withAlpha(128)),
+          hintStyle: TextStyle(
+            color: AppTheme.textColor(context).withAlpha(128),
+          ),
           prefixIcon: Icon(Icons.search, color: AppTheme.textColor(context)),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
@@ -356,8 +366,10 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
         ),
       ),
     );
@@ -371,7 +383,8 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         itemCount: _categories.length,
-        itemExtent: 80.0, // Increased width to accommodate longer category names
+        itemExtent:
+            80.0, // Increased width to accommodate longer category names
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = category['strCategory'] == _selectedCategory;
@@ -399,8 +412,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                       ],
                       image: category['strCategory'] != 'All'
                           ? DecorationImage(
-                              image:
-                                  CachedNetworkImageProvider(category['strCategoryThumb']!),
+                              image: CachedNetworkImageProvider(
+                                category['strCategoryThumb']!,
+                              ),
                               fit: BoxFit.cover,
                               opacity: isSelected ? 0.7 : 1.0,
                             )
@@ -422,8 +436,9 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                       style: TextStyle(
                         color: AppTheme.textColor(context),
                         fontSize: 11,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                       textAlign: TextAlign.center,
                       maxLines: 2,
@@ -445,7 +460,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     final errorMessage = ref.watch(mealsErrorMessageProvider);
     final meals = ref.watch(mealsProvider);
     final hasData = ref.watch(hasMealsDataProvider);
-    
+
     if (isLoading && meals.isEmpty) {
       return Expanded(
         child: Center(
@@ -584,16 +599,17 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
         try {
           // Get the meal ID
           final mealId = meal['id'] ?? meal['idMeal'] ?? '';
-          
+
           // Check if we have detailed data or just basic info
-          final hasDetailedData = meal['ingredients'] != null && 
-                                 meal['ingredients'] is List && 
-                                 (meal['ingredients'] as List).isNotEmpty &&
-                                 meal['nutritionFacts'] != null &&
-                                 meal['nutritionFacts']['calories'] != 'Loading...';
-          
+          final hasDetailedData =
+              meal['ingredients'] != null &&
+              meal['ingredients'] is List &&
+              (meal['ingredients'] as List).isNotEmpty &&
+              meal['nutritionFacts'] != null &&
+              meal['nutritionFacts']['calories'] != 'Loading...';
+
           Map<String, dynamic> formattedMeal;
-          
+
           if (!hasDetailedData && mealId.isNotEmpty) {
             // Show loading indicator while fetching details
             showDialog(
@@ -603,21 +619,23 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                 child: CircularProgressIndicator(color: AppColors.primary),
               ),
             );
-            
+
             try {
               // Fetch detailed meal data
               final detailedMeal = await _mealService.getMealById(mealId);
               if (mounted) {
                 Navigator.pop(context); // Close loading dialog
               }
-              
+
               formattedMeal = detailedMeal;
             } catch (e) {
               if (mounted) {
                 Navigator.pop(context); // Close loading dialog
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Error loading meal details: ${e.toString()}'),
+                    content: Text(
+                      'Error loading meal details: ${e.toString()}',
+                    ),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -631,12 +649,14 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
               'imagePath': meal['imagePath'] ?? meal['strMealThumb'] ?? '',
               'calories': meal['calories'] ?? 'Loading...',
-              'nutritionFacts': meal['nutritionFacts'] ?? {
-                'calories': 'Loading...',
-                'protein': 'Loading...',
-                'carbs': 'Loading...',
-                'fat': 'Loading...',
-              },
+              'nutritionFacts':
+                  meal['nutritionFacts'] ??
+                  {
+                    'calories': 'Loading...',
+                    'protein': 'Loading...',
+                    'carbs': 'Loading...',
+                    'fat': 'Loading...',
+                  },
               'ingredients': meal['ingredients'] ?? [],
               'measures': meal['measures'] ?? [],
               'instructions': meal['instructions'] ?? ['Loading...'],
@@ -649,38 +669,36 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
 
           if (!mounted) return;
 
-        final result = await Navigator.push<Map<String, dynamic>>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => MealDetailScreen(
-              mealId: formattedMeal['id'],
-              mealTitle: formattedMeal['titleKey'],
-              imagePath: formattedMeal['imagePath'],
-              calories: formattedMeal['calories'],
-              nutritionFacts:
-                  Map<String, dynamic>.from(formattedMeal['nutritionFacts']),
-              ingredients: List<String>.from(formattedMeal['ingredients']),
-              measures: List<String>.from(formattedMeal['measures']),
-              instructions: List<String>.from(formattedMeal['instructions']),
-              area: formattedMeal['area'],
-              category: formattedMeal['category'],
-              isVegan: formattedMeal['isVegan'],
-              youtubeUrl: meal['youtubeUrl'] ?? meal['strYoutube'] ?? '',
-              isFavorite: _favoriteMeals.contains(formattedMeal['id']),
-              onFavoriteToggle: (id) => _toggleFavorite(id, formattedMeal),
-              selectedDayIndex: widget.selectedDayIndex,
-              currentMealTime: widget.currentMealTime,
+          final result = await Navigator.push<Map<String, dynamic>>(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MealDetailScreen(
+                mealId: formattedMeal['id'],
+                mealTitle: formattedMeal['titleKey'],
+                imagePath: formattedMeal['imagePath'],
+                calories: formattedMeal['calories'],
+                nutritionFacts: Map<String, dynamic>.from(
+                  formattedMeal['nutritionFacts'],
+                ),
+                ingredients: List<String>.from(formattedMeal['ingredients']),
+                measures: List<String>.from(formattedMeal['measures']),
+                instructions: List<String>.from(formattedMeal['instructions']),
+                area: formattedMeal['area'],
+                category: formattedMeal['category'],
+                isVegan: formattedMeal['isVegan'],
+                youtubeUrl: meal['youtubeUrl'] ?? meal['strYoutube'] ?? '',
+                isFavorite: _favoriteMeals.contains(formattedMeal['id']),
+                onFavoriteToggle: (id) => _toggleFavorite(id, formattedMeal),
+                selectedDayIndex: widget.selectedDayIndex,
+                currentMealTime: widget.currentMealTime,
+              ),
             ),
-          ),
-        );
+          );
 
           if (!mounted) return;
 
           if (result != null) {
-            final mealPlanResult = {
-              ...result,
-              'meal': formattedMeal,
-            };
+            final mealPlanResult = {...result, 'meal': formattedMeal};
             Navigator.of(context).pop(mealPlanResult);
           }
         } catch (e) {
@@ -697,9 +715,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
       },
       child: Card(
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: _buildMealCardContent(meal),
       ),
     );
@@ -710,95 +726,135 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-            Expanded(
-              flex: 3,
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(20),
-                    ),
-                    child: _buildImageWidget(meal['imagePath'] ?? meal['strMealThumb'] ?? ''),
+          Expanded(
+            flex: 3,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
                   ),
-                  if (meal['isVegan'] == true)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.eco,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'VEGAN',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  child: _buildImageWidget(
+                    meal['imagePath'] ?? meal['strMealThumb'] ?? '',
+                  ),
+                ),
+                if (meal['isVegan'] == true)
                   Positioned(
                     top: 8,
-                    right: 8,
+                    left: 8,
                     child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.cardColor(context).withAlpha(204),
-                        shape: BoxShape.circle,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          _favoriteMeals.contains(meal['id'] ?? meal['idMeal'])
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: _favoriteMeals.contains(meal['id'] ?? meal['idMeal']) ? Colors.red : Colors.grey,
-                          size: 20,
-                        ),
-                        onPressed: () => _toggleFavorite(meal['id'] ?? meal['idMeal'], meal),
-                        padding: const EdgeInsets.all(8),
-                        constraints: const BoxConstraints(),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.eco, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'VEGAN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColor(context).withAlpha(204),
+                      shape: BoxShape.circle,
                     ),
-                    const Spacer(),
-                    Row(
-                      children: [
+                    child: IconButton(
+                      icon: Icon(
+                        _favoriteMeals.contains(meal['id'] ?? meal['idMeal'])
+                            ? Icons.favorite
+                            : Icons.favorite_border,
+                        color:
+                            _favoriteMeals.contains(
+                              meal['id'] ?? meal['idMeal'],
+                            )
+                            ? Colors.red
+                            : Colors.grey,
+                        size: 20,
+                      ),
+                      onPressed: () =>
+                          _toggleFavorite(meal['id'] ?? meal['idMeal'], meal),
+                      padding: const EdgeInsets.all(8),
+                      constraints: const BoxConstraints(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withAlpha(26),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.local_fire_department,
+                                size: 12,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  meal['calories'] ?? 'Loading...',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (meal['area'] != null) ...[
+                        const SizedBox(width: 4),
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -806,25 +862,31 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withAlpha(26),
+                              color: AppTheme.cardColor(context),
                               borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppTheme.textColor(
+                                  context,
+                                ).withAlpha(26),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  Icons.local_fire_department,
+                                  Icons.public,
                                   size: 12,
-                                  color: AppColors.primary,
+                                  color: AppTheme.textColor(context),
                                 ),
                                 const SizedBox(width: 2),
                                 Flexible(
                                   child: Text(
-                                    meal['calories'] ?? 'Loading...',
+                                    meal['area'] ??
+                                        meal['strArea'] ??
+                                        'Unknown',
                                     style: TextStyle(
-                                      color: AppColors.primary,
+                                      color: AppTheme.textColor(context),
                                       fontSize: 10,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -833,54 +895,15 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                             ),
                           ),
                         ),
-                        if (meal['area'] != null) ...[
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.cardColor(context),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color:
-                                      AppTheme.textColor(context).withAlpha(26),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.public,
-                                    size: 12,
-                                    color: AppTheme.textColor(context),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Flexible(
-                                    child: Text(
-                                      meal['area'] ?? meal['strArea'] ?? 'Unknown',
-                                      style: TextStyle(
-                                        color: AppTheme.textColor(context),
-                                        fontSize: 10,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        );
+          ),
+        ],
+      );
     } catch (e) {
       // Return a fallback card
       return SizedBox(
@@ -889,18 +912,11 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 32,
-                color: Colors.grey,
-              ),
+              Icon(Icons.error_outline, size: 32, color: Colors.grey),
               SizedBox(height: 8),
               Text(
                 'Error loading meal',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],
           ),

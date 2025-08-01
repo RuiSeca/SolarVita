@@ -2,10 +2,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../services/social_service.dart';
-import '../../services/firebase_push_notification_service.dart';
-import '../../services/firebase_routine_service.dart';
-import '../../services/routine_service.dart';
+import '../../services/database/social_service.dart';
+import '../../services/database/firebase_push_notification_service.dart';
+import '../../services/database/firebase_routine_service.dart';
+import '../../services/database/routine_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 
@@ -18,8 +18,10 @@ class DebugMenuScreen extends ConsumerStatefulWidget {
 
 class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
   final SocialService _socialService = SocialService();
-  final FirebasePushNotificationService _notificationService = FirebasePushNotificationService();
-  final FirebaseRoutineService _firebaseRoutineService = FirebaseRoutineService();
+  final FirebasePushNotificationService _notificationService =
+      FirebasePushNotificationService();
+  final FirebaseRoutineService _firebaseRoutineService =
+      FirebaseRoutineService();
   final RoutineService _routineService = RoutineService();
   bool _isLoading = false;
   String? _lastResult;
@@ -32,9 +34,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
 
     try {
       final result = await _socialService.checkAndFixMySuppoterCount();
-      
+
       setState(() {
-        _lastResult = 'Supporter Count Check:\n'
+        _lastResult =
+            'Supporter Count Check:\n'
             'User ID: ${result['userId']}\n'
             'Stored Count: ${result['storedCount']}\n'
             'Actual Count: ${result['actualCount']}\n'
@@ -44,8 +47,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
       // Refresh the UI if something was fixed
       if (result['wasFixed'] == true) {
         // Use silent refresh to avoid loading states that might trigger navigation
-        await ref.read(userProfileNotifierProvider.notifier).silentRefreshSupporterCount();
-        
+        await ref
+            .read(userProfileNotifierProvider.notifier)
+            .silentRefreshSupporterCount();
+
         _showSnackBar(
           '✅ Fixed! Count updated from ${result['storedCount']} to ${result['actualCount']}. Changes applied!',
           Colors.green,
@@ -77,12 +82,13 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     try {
       // Get current FCM token
       final token = await _notificationService.getCurrentToken();
-      
+
       // Send test notification
       await _notificationService.sendTestNotification();
-      
+
       setState(() {
-        _lastResult = 'Test Notification Sent!\n'
+        _lastResult =
+            'Test Notification Sent!\n'
             'FCM Token: ${token?.substring(0, 20)}...\n'
             'Check your notification tray.';
       });
@@ -119,9 +125,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
         messagePreview: 'This is a test chat notification!',
         chatId: 'test_chat_123',
       );
-      
+
       setState(() {
-        _lastResult = 'Chat Notification Test:\n'
+        _lastResult =
+            'Chat Notification Test:\n'
             'Sent to: $currentUserId\n'
             'Type: Chat\n'
             'Check your notification tray and Firestore.';
@@ -148,9 +155,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
 
     try {
       final result = await _socialService.debugRelationshipState();
-      
+
       setState(() {
-        _lastResult = 'Relationship Debug:\n'
+        _lastResult =
+            'Relationship Debug:\n'
             'Current User: ${result['currentUserId']}\n'
             'Supporter Requests: ${result['supporterRequests']['total']}\n'
             '- As Requester: ${result['supporterRequests']['asRequester']}\n'
@@ -182,15 +190,21 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
 
     try {
       await _socialService.initializeSupportersCount();
-      
+
       // Use silent refresh to avoid loading states that might trigger navigation
-      await ref.read(userProfileNotifierProvider.notifier).silentRefreshSupporterCount();
-      
+      await ref
+          .read(userProfileNotifierProvider.notifier)
+          .silentRefreshSupporterCount();
+
       setState(() {
-        _lastResult = 'Supporters count initialized successfully. Changes applied!';
+        _lastResult =
+            'Supporters count initialized successfully. Changes applied!';
       });
 
-      _showSnackBar('✅ Supporters count initialized! Changes applied.', Colors.green);
+      _showSnackBar(
+        '✅ Supporters count initialized! Changes applied.',
+        Colors.green,
+      );
     } catch (e) {
       setState(() {
         _lastResult = 'Error: $e';
@@ -212,7 +226,7 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     try {
       // Load local routines
       final manager = await _routineService.loadRoutineManager();
-      
+
       if (manager.routines.isEmpty) {
         setState(() {
           _lastResult = 'No local routines found to sync.';
@@ -237,9 +251,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
           failedRoutines.add(routine.name);
         }
       }
-      
+
       setState(() {
-        _lastResult = 'Firebase Routine Sync Complete:\n'
+        _lastResult =
+            'Firebase Routine Sync Complete:\n'
             'Total Routines: ${manager.routines.length}\n'
             'Successfully Synced: $syncedCount\n'
             'Failed: $failedCount\n\n'
@@ -248,23 +263,29 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
       });
 
       if (failedCount == 0) {
-        _showSnackBar('✅ All $syncedCount routines synced to Firebase!', Colors.green);
+        _showSnackBar(
+          '✅ All $syncedCount routines synced to Firebase!',
+          Colors.green,
+        );
       } else {
-        _showSnackBar('⚠️ $syncedCount synced, $failedCount failed', Colors.orange);
+        _showSnackBar(
+          '⚠️ $syncedCount synced, $failedCount failed',
+          Colors.orange,
+        );
       }
     } catch (e) {
-      final errorMessage = e.toString().contains('permission-denied') 
+      final errorMessage = e.toString().contains('permission-denied')
           ? 'Permission Denied: Please set up Firestore security rules for user_routines collection'
           : 'Error syncing routines: $e';
-      
+
       setState(() {
         _lastResult = errorMessage;
       });
-      
+
       final snackMessage = e.toString().contains('permission-denied')
           ? '🔒 Permission denied - Check Firestore rules'
           : '❌ Sync failed: $e';
-      
+
       _showSnackBar(snackMessage, Colors.red);
     } finally {
       setState(() {
@@ -282,8 +303,10 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     try {
       // Load local routines to get active routine
       final manager = await _routineService.loadRoutineManager();
-      final activeRoutine = manager.routines.where((r) => r.isActive).firstOrNull;
-      
+      final activeRoutine = manager.routines
+          .where((r) => r.isActive)
+          .firstOrNull;
+
       if (activeRoutine == null) {
         setState(() {
           _lastResult = 'No active routine found to sync progress for.';
@@ -294,28 +317,44 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
 
       // Generate basic weekly progress data
       final now = DateTime.now();
-      final currentWeek = ((now.difference(DateTime(now.year, 1, 1)).inDays + DateTime(now.year, 1, 1).weekday - 1) / 7).ceil();
-      
+      final currentWeek =
+          ((now.difference(DateTime(now.year, 1, 1)).inDays +
+                      DateTime(now.year, 1, 1).weekday -
+                      1) /
+                  7)
+              .ceil();
+
       final progressData = <String, dynamic>{
         'routineId': activeRoutine.id,
         'weekOfYear': currentWeek,
         'year': now.year,
-        'weekStartDate': now.subtract(Duration(days: now.weekday - 1)).toIso8601String(),
+        'weekStartDate': now
+            .subtract(Duration(days: now.weekday - 1))
+            .toIso8601String(),
         'dailyProgress': <String, dynamic>{},
         'lastUpdated': now.toIso8601String(),
       };
 
       // Initialize daily progress for each day
-      final dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-      final dailyProgress = progressData['dailyProgress'] as Map<String, dynamic>;
-      
+      final dayNames = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ];
+      final dailyProgress =
+          progressData['dailyProgress'] as Map<String, dynamic>;
+
       for (int i = 0; i < dayNames.length; i++) {
         final dayName = dayNames[i];
         final dayWorkout = activeRoutine.weeklyPlan.firstWhere(
           (day) => day.dayName.toLowerCase() == dayName.toLowerCase(),
           orElse: () => activeRoutine.weeklyPlan.first,
         );
-        
+
         dailyProgress[dayName] = {
           'dayName': dayName,
           'plannedExercises': dayWorkout.exercises.length,
@@ -326,10 +365,13 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
       }
 
       // Sync to Firebase
-      final success = await _firebaseRoutineService.syncWeeklyProgress(progressData);
-      
+      final success = await _firebaseRoutineService.syncWeeklyProgress(
+        progressData,
+      );
+
       setState(() {
-        _lastResult = 'Weekly Progress Sync ${success ? 'Successful' : 'Failed'}:\\n'
+        _lastResult =
+            'Weekly Progress Sync ${success ? 'Successful' : 'Failed'}:\\n'
             'Routine: ${activeRoutine.name}\\n'
             'Week: $currentWeek of ${now.year}\\n'
             'Days Initialized: ${dayNames.length}\\n'
@@ -453,7 +495,8 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
             // Test Chat Notifications
             _buildDebugCard(
               title: 'Test Chat Notifications',
-              description: 'Send a test chat notification to verify message flow',
+              description:
+                  'Send a test chat notification to verify message flow',
               icon: Icons.chat_bubble,
               color: Colors.cyan,
               onTap: _isLoading ? null : _testChatNotification,
@@ -475,7 +518,8 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
             // Initialize Supporters Count
             _buildDebugCard(
               title: 'Initialize Supporters Count',
-              description: 'Force recalculate supporters count from actual data',
+              description:
+                  'Force recalculate supporters count from actual data',
               icon: Icons.refresh,
               color: Colors.purple,
               onTap: _isLoading ? null : _initializeSupportersCount,
@@ -509,7 +553,8 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
             // Sync Weekly Progress to Firebase
             _buildDebugCard(
               title: 'Sync Weekly Progress to Firebase',
-              description: 'Initialize weekly progress data for current routine',
+              description:
+                  'Initialize weekly progress data for current routine',
               icon: Icons.trending_up,
               color: Colors.teal,
               onTap: _isLoading ? null : _syncWeeklyProgressToFirebase,
@@ -602,11 +647,7 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
                   color: color.withAlpha(25),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 24,
-                ),
+                child: Icon(icon, color: color, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(

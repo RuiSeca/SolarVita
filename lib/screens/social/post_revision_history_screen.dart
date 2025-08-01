@@ -1,7 +1,7 @@
 // lib/screens/social/post_revision_history_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../models/post_revision.dart';
+import '../../models/posts/post_revision.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
@@ -9,13 +9,11 @@ import '../../widgets/common/lottie_loading_widget.dart';
 class PostRevisionHistoryScreen extends StatefulWidget {
   final String postId;
 
-  const PostRevisionHistoryScreen({
-    super.key,
-    required this.postId,
-  });
+  const PostRevisionHistoryScreen({super.key, required this.postId});
 
   @override
-  State<PostRevisionHistoryScreen> createState() => _PostRevisionHistoryScreenState();
+  State<PostRevisionHistoryScreen> createState() =>
+      _PostRevisionHistoryScreenState();
 }
 
 class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
@@ -82,7 +80,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
         final revision = _revisions[index];
         final isLatest = index == 0;
         final isFirst = index == _revisions.length - 1;
-        
+
         return _buildRevisionItem(
           revision,
           isLatest: isLatest,
@@ -130,9 +128,9 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                 ),
             ],
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // Revision content
           Expanded(
             child: GestureDetector(
@@ -147,13 +145,15 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                         ? revision.getRevisionColor().withAlpha(77)
                         : AppTheme.textColor(context).withAlpha(26),
                   ),
-                  boxShadow: isLatest ? [
-                    BoxShadow(
-                      color: revision.getRevisionColor().withAlpha(26),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ] : null,
+                  boxShadow: isLatest
+                      ? [
+                          BoxShadow(
+                            color: revision.getRevisionColor().withAlpha(26),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,9 +211,9 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                           ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 8),
-                    
+
                     // User and time
                     Row(
                       children: [
@@ -242,7 +242,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                         ),
                       ],
                     ),
-                    
+
                     // Edit reason
                     if (revision.editReason != null) ...[
                       const SizedBox(height: 8),
@@ -265,7 +265,9 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                                 revision.editReason!,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: AppTheme.textColor(context).withAlpha(153),
+                                  color: AppTheme.textColor(
+                                    context,
+                                  ).withAlpha(153),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -274,9 +276,10 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                         ),
                       ),
                     ],
-                    
+
                     // Changed fields preview
-                    if (revision.changedFields != null && revision.changedFields!.isNotEmpty) ...[
+                    if (revision.changedFields != null &&
+                        revision.changedFields!.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 4,
@@ -302,7 +305,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                         }).toList(),
                       ),
                     ],
-                    
+
                     // Preview of changes
                     if (revision.type == RevisionType.contentEdit) ...[
                       const SizedBox(height: 8),
@@ -324,9 +327,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
       decoration: BoxDecoration(
         color: AppTheme.textFieldBackground(context),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -366,7 +367,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
             ),
             const SizedBox(height: 8),
           ],
-          
+
           if (revision.newContent != null) ...[
             Row(
               children: [
@@ -488,7 +489,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                 ),
               ],
             ),
-            
+
             if (revision.editReason != null) ...[
               const SizedBox(height: 16),
               Text(
@@ -508,7 +509,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -529,7 +530,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
 
   Future<void> _loadRevisions() async {
     final failedLoadRevisions = tr(context, 'failed_load_revisions');
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -568,8 +569,10 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
         userName: 'You',
         timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
         type: RevisionType.contentEdit,
-        previousContent: 'Just completed my morning workout! Feeling energized.',
-        newContent: 'Just completed my morning workout! 💪 Feeling energized and ready to tackle the day.',
+        previousContent:
+            'Just completed my morning workout! Feeling energized.',
+        newContent:
+            'Just completed my morning workout! 💪 Feeling energized and ready to tackle the day.',
         editReason: 'Added emoji and more details',
         changedFields: ['content'],
       ),
@@ -604,10 +607,7 @@ class _PostRevisionHistoryScreenState extends State<PostRevisionHistoryScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 }

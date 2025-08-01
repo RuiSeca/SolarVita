@@ -76,5 +76,20 @@
     "goals_completed_today": "{count}/5 goals completed today",
     "achievements": "Achievements",
     "community": "Community",
-    "error_prefix": "Error: "
+    "error_prefix": "Error: ",
+    "level_health_rookie": "Health Rookie",
+    "level_wellness_warrior": "Wellness Warrior",
+    "level_eco_enthusiast": "Eco Enthusiast",
+    "level_health_champion": "Health Champion",
+    "level_eco_master": "Eco Master",
+    "level_solar_guardian": "Solar Guardian",
+    "level_vitality_legend": "Vitality Legend",
+    "level_eco_sage": "Eco Sage",
+    "level_solar_titan": "Solar Titan",
+    "level_ultimate_eco_warrior": "Ultimate Eco Warrior",
+    "goal_steps": "Steps",
+    "goal_active_minutes": "Active Minutes",
+    "goal_calories_burn": "Calories Burn",
+    "goal_water_intake": "Water Intake",
+    "goal_sleep_quality": "Sleep Quality"
 }

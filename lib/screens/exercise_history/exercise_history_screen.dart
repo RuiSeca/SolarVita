@@ -1,9 +1,9 @@
 // lib/screens/exercise_history/exercise_history_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/exercise_log.dart';
-import '../../models/personal_record.dart';
-import '../../services/exercise_tracking_service.dart';
+import '../../models/exercise/exercise_log.dart';
+import '../../models/user/personal_record.dart';
+import '../../services/exercises/exercise_tracking_service.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import 'exercise_detail_history_screen.dart';
@@ -14,11 +14,7 @@ class ExerciseHistoryScreen extends StatefulWidget {
   final String? exerciseId;
   final String? initialTitle;
 
-  const ExerciseHistoryScreen({
-    super.key,
-    this.exerciseId,
-    this.initialTitle,
-  });
+  const ExerciseHistoryScreen({super.key, this.exerciseId, this.initialTitle});
 
   @override
   State<ExerciseHistoryScreen> createState() => _ExerciseHistoryScreenState();
@@ -51,7 +47,9 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
       // Load logs for a specific exercise
       _logsFuture = _trackingService.getAllLogs().then((allLogs) {
         // Filter for specific exercise
-        final filteredLogs = allLogs.where((log) => log.exerciseId == widget.exerciseId).toList();
+        final filteredLogs = allLogs
+            .where((log) => log.exerciseId == widget.exerciseId)
+            .toList();
         return filteredLogs;
       });
     } else {
@@ -96,9 +94,11 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.exerciseId != null
-            ? tr(context, 'exercise_history_for_title')
-            : tr(context, 'exercise_history')),
+        title: Text(
+          widget.exerciseId != null
+              ? tr(context, 'exercise_history_for_title')
+              : tr(context, 'exercise_history'),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -126,20 +126,15 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          _buildHistoryTab(),
-          _buildChartsTab(),
-          _buildRecordsTab(),
-        ],
+        children: [_buildHistoryTab(), _buildChartsTab(), _buildRecordsTab()],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => LogExerciseScreen(
-                exerciseId: widget.exerciseId,
-              ),
+              builder: (context) =>
+                  LogExerciseScreen(exerciseId: widget.exerciseId),
             ),
           );
 
@@ -181,9 +176,9 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                 const Icon(Icons.fitness_center, size: 64, color: Colors.grey),
                 const SizedBox(height: 16),
                 Text(
-                  widget.exerciseId != null 
-                    ? 'No logs found for this exercise'
-                    : tr(context, 'no_logs_found'),
+                  widget.exerciseId != null
+                      ? 'No logs found for this exercise'
+                      : tr(context, 'no_logs_found'),
                   style: const TextStyle(fontSize: 18, color: Colors.grey),
                 ),
                 const SizedBox(height: 8),
@@ -275,9 +270,7 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
           decoration: BoxDecoration(
             color: AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.primaryColor.withAlpha(26),
-            ),
+            border: Border.all(color: AppTheme.primaryColor.withAlpha(26)),
           ),
           child: Row(
             children: [
@@ -360,7 +353,10 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                 children: [
                   if (log.isPersonalRecord)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.amber,
                         borderRadius: BorderRadius.circular(12),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
+import '../../../../utils/translation_helper.dart';
 import '../../../../providers/riverpod/user_profile_provider.dart';
-import '../../../../models/user_profile.dart';
+import '../../../../models/user/user_profile.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 
 class SustainabilityGoalsScreen extends ConsumerStatefulWidget {
@@ -13,7 +14,8 @@ class SustainabilityGoalsScreen extends ConsumerStatefulWidget {
       _SustainabilityGoalsScreenState();
 }
 
-class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsScreen> {
+class _SustainabilityGoalsScreenState
+    extends ConsumerState<SustainabilityGoalsScreen> {
   bool _isLoading = false;
 
   // Current values - will be populated from UserProfile
@@ -66,12 +68,17 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
 
   void _loadUserPreferences() {
     final userProfileProvider = ref.read(userProfileNotifierProvider);
-    final sustainabilityPrefs = userProfileProvider.value?.sustainabilityPreferences;
-    
+    final sustainabilityPrefs =
+        userProfileProvider.value?.sustainabilityPreferences;
+
     if (sustainabilityPrefs != null) {
       setState(() {
-        _selectedSustainabilityGoals = List<String>.from(sustainabilityPrefs.sustainabilityGoals);
-        _ecoFriendlyActivities = List<String>.from(sustainabilityPrefs.ecoFriendlyActivities);
+        _selectedSustainabilityGoals = List<String>.from(
+          sustainabilityPrefs.sustainabilityGoals,
+        );
+        _ecoFriendlyActivities = List<String>.from(
+          sustainabilityPrefs.ecoFriendlyActivities,
+        );
         _transportMode = sustainabilityPrefs.preferredTransportMode;
       });
     }
@@ -89,12 +96,14 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
         preferredTransportMode: _transportMode,
       );
 
-      await ref.read(userProfileNotifierProvider.notifier).updateSustainabilityPreferences(updatedSustainabilityPrefs);
+      await ref
+          .read(userProfileNotifierProvider.notifier)
+          .updateSustainabilityPreferences(updatedSustainabilityPrefs);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sustainability preferences updated successfully'),
+          SnackBar(
+            content: Text(tr(context, 'sustainability_preferences_updated')),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -103,7 +112,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating preferences: $e'),
+            content: Text(tr(context, 'error_updating_preferences').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );
@@ -125,7 +134,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         title: Text(
-          'Sustainability Preferences',
+          tr(context, 'sustainability_preferences'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontWeight: FontWeight.bold,
@@ -201,7 +210,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
 
   Widget _buildSustainabilityGoalsSection() {
     return _buildSection(
-      title: 'Sustainability Goals',
+      title: tr(context, 'sustainability_goals'),
       icon: Icons.eco,
       children: [
         Padding(
@@ -210,7 +219,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select your sustainability goals:',
+                tr(context, 'select_sustainability_goals'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -221,14 +230,19 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
                 spacing: 8,
                 runSpacing: 8,
                 children: _sustainabilityGoalOptions.map((goal) {
-                  final isSelected = _selectedSustainabilityGoals.contains(goal);
+                  final isSelected = _selectedSustainabilityGoals.contains(
+                    goal,
+                  );
+                  final translationKey = goal.toLowerCase().replaceAll(' ', '_');
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(goal),
+                    label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -252,7 +266,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
 
   Widget _buildEcoActivitiesSection() {
     return _buildSection(
-      title: 'Eco-Friendly Activities',
+      title: tr(context, 'eco_friendly_activities'),
       icon: Icons.nature_people,
       iconColor: Colors.green,
       children: [
@@ -262,7 +276,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Select activities you enjoy:',
+                tr(context, 'select_activities_enjoy'),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 14,
@@ -274,13 +288,16 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
                 runSpacing: 8,
                 children: _ecoActivityOptions.map((activity) {
                   final isSelected = _ecoFriendlyActivities.contains(activity);
+                  final translationKey = activity.toLowerCase().replaceAll(' ', '_').replaceAll('/', '_');
                   return FilterChip(
                     selected: isSelected,
-                    label: Text(activity),
+                    label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : AppTheme.textColor(context),
+                      color: isSelected
+                          ? Colors.white
+                          : AppTheme.textColor(context),
                       fontSize: 12,
                     ),
                     onSelected: (selected) {
@@ -304,7 +321,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
 
   Widget _buildTransportModeSection() {
     return _buildSection(
-      title: 'Preferred Transport Mode',
+      title: tr(context, 'preferred_transport_mode'),
       icon: Icons.directions_bike,
       iconColor: Colors.blue,
       children: [
@@ -323,7 +340,7 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
                     });
                   },
                   title: Text(
-                    mode.toUpperCase().replaceAll('_', ' '),
+                    tr(context, mode),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontWeight: FontWeight.w500,
@@ -358,12 +375,9 @@ class _SustainabilityGoalsScreenState extends ConsumerState<SustainabilityGoalsS
                 width: 20,
                 child: LottieLoadingWidget(width: 20, height: 20),
               )
-            : const Text(
-                'Save Preferences',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+            : Text(
+                tr(context, 'save_preferences'),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
       ),
     );

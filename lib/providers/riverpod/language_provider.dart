@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../models/language.dart';
+import '../../models/languages/language.dart';
 
 part 'language_provider.g.dart';
 
@@ -43,7 +43,7 @@ class LanguageNotifier extends _$LanguageNotifier {
   Future<void> setLanguage(String code) async {
     // Update state optimistically
     state = AsyncValue.data(Locale(code));
-    
+
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageKey, code);
@@ -58,7 +58,7 @@ class LanguageNotifier extends _$LanguageNotifier {
 Language currentLanguage(Ref ref) {
   final localeAsync = ref.watch(languageNotifierProvider);
   final supportedLangs = ref.watch(supportedLanguagesProvider);
-  
+
   return localeAsync.when(
     data: (locale) => supportedLangs.firstWhere(
       (lang) => lang.code == locale.languageCode,

@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../exercise_history/exercise_history_screen.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../services/exercise_tracking_service.dart';
-import '../../models/exercise_log.dart';
-import '../../models/personal_record.dart';
+import '../../services/exercises/exercise_tracking_service.dart';
+import '../../models/exercise/exercise_log.dart';
+import '../../models/user/personal_record.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 
 class ExerciseHistoryTab extends StatelessWidget {
@@ -59,18 +59,10 @@ class ExerciseHistoryTab extends StatelessWidget {
               title: Text(tr(context, 'exercise_history')),
             ),
           ),
-          SliverToBoxAdapter(
-            child: _buildRecentWorkouts(context),
-          ),
-          SliverToBoxAdapter(
-            child: _buildPersonalRecords(context),
-          ),
-          SliverToBoxAdapter(
-            child: _buildActivityOverview(context),
-          ),
-          SliverToBoxAdapter(
-            child: const SizedBox(height: 16),
-          ),
+          SliverToBoxAdapter(child: _buildRecentWorkouts(context)),
+          SliverToBoxAdapter(child: _buildPersonalRecords(context)),
+          SliverToBoxAdapter(child: _buildActivityOverview(context)),
+          SliverToBoxAdapter(child: const SizedBox(height: 16)),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -133,9 +125,7 @@ class ExerciseHistoryTab extends StatelessWidget {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Text(tr(context, 'error_loading_data')),
-                );
+                return Center(child: Text(tr(context, 'error_loading_data')));
               }
 
               final logs = snapshot.data ?? [];
@@ -199,20 +189,22 @@ class ExerciseHistoryTab extends StatelessWidget {
 
               return Column(
                 children: recentLogs
-                    .map((log) => _buildWorkoutCard(
-                          context,
-                          log,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ExerciseHistoryScreen(
-                                  exerciseId: log.exerciseId,
-                                ),
+                    .map(
+                      (log) => _buildWorkoutCard(
+                        context,
+                        log,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ExerciseHistoryScreen(
+                                exerciseId: log.exerciseId,
                               ),
-                            );
-                          },
-                        ))
+                            ),
+                          );
+                        },
+                      ),
+                    )
                     .toList(),
               );
             },
@@ -222,14 +214,15 @@ class ExerciseHistoryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildWorkoutCard(BuildContext context, ExerciseLog log,
-      {required VoidCallback onTap}) {
+  Widget _buildWorkoutCard(
+    BuildContext context,
+    ExerciseLog log, {
+    required VoidCallback onTap,
+  }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
@@ -333,10 +326,7 @@ class ExerciseHistoryTab extends StatelessWidget {
         children: [
           Text(
             tr(context, 'personal_records'),
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           FutureBuilder<List<PersonalRecord>>(
@@ -352,9 +342,7 @@ class ExerciseHistoryTab extends StatelessWidget {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Text(tr(context, 'error_loading_data')),
-                );
+                return Center(child: Text(tr(context, 'error_loading_data')));
               }
 
               final records = snapshot.data ?? [];
@@ -431,32 +419,34 @@ class ExerciseHistoryTab extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          ...recordsList.map((record) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.emoji_events,
-                                      size: 20,
-                                      color: Colors.amber,
+                          ...recordsList.map(
+                            (record) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.emoji_events,
+                                    size: 20,
+                                    color: Colors.amber,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      record.recordType,
+                                      style: const TextStyle(fontSize: 14),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        record.recordType,
-                                        style: const TextStyle(fontSize: 14),
-                                      ),
+                                  ),
+                                  Text(
+                                    _formatRecordValue(record),
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    Text(
-                                      _formatRecordValue(record),
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -480,10 +470,7 @@ class ExerciseHistoryTab extends StatelessWidget {
         children: [
           Text(
             tr(context, 'activity_overview'),
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           FutureBuilder<List<ExerciseLog>>(
@@ -499,9 +486,7 @@ class ExerciseHistoryTab extends StatelessWidget {
               }
 
               if (snapshot.hasError) {
-                return Center(
-                  child: Text(tr(context, 'error_loading_data')),
-                );
+                return Center(child: Text(tr(context, 'error_loading_data')));
               }
 
               final logs = snapshot.data ?? [];
@@ -538,19 +523,26 @@ class ExerciseHistoryTab extends StatelessWidget {
 
               // Calculate some basic stats
               final now = DateTime.now();
-              final startOfWeek = DateTime(now.year, now.month, now.day)
-                  .subtract(Duration(days: now.weekday - 1));
+              final startOfWeek = DateTime(
+                now.year,
+                now.month,
+                now.day,
+              ).subtract(Duration(days: now.weekday - 1));
               final startOfMonth = DateTime(now.year, now.month, 1);
 
-              final workoutsThisWeek =
-                  logs.where((log) => log.date.isAfter(startOfWeek)).length;
-              final workoutsThisMonth =
-                  logs.where((log) => log.date.isAfter(startOfMonth)).length;
+              final workoutsThisWeek = logs
+                  .where((log) => log.date.isAfter(startOfWeek))
+                  .length;
+              final workoutsThisMonth = logs
+                  .where((log) => log.date.isAfter(startOfMonth))
+                  .length;
               final totalWorkouts = logs.length;
 
               // Get unique exercises
-              final uniqueExercises =
-                  logs.map((log) => log.exerciseId).toSet().length;
+              final uniqueExercises = logs
+                  .map((log) => log.exerciseId)
+                  .toSet()
+                  .length;
 
               return Card(
                 elevation: 2,
@@ -611,8 +603,13 @@ class ExerciseHistoryTab extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, String label, String value,
-      Color color, IconData icon) {
+  Widget _buildStatCard(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -625,11 +622,7 @@ class ExerciseHistoryTab extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
+                Icon(icon, color: color, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   label,

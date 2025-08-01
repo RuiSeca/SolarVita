@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../services/location_service.dart';
+import '../../services/user/location_service.dart';
 
 part 'location_provider.g.dart';
 
@@ -23,7 +23,7 @@ class CurrentPositionNotifier extends _$CurrentPositionNotifier {
   Future<void> updatePosition() async {
     state = const AsyncValue.loading();
     final service = ref.read(locationServiceProvider);
-    
+
     try {
       final position = await service.getCurrentPosition();
       state = AsyncValue.data(position);
@@ -35,11 +35,14 @@ class CurrentPositionNotifier extends _$CurrentPositionNotifier {
   Future<void> requestPermissionAndUpdate() async {
     final service = ref.read(locationServiceProvider);
     final hasPermission = await service.requestLocationPermission();
-    
+
     if (hasPermission) {
       await updatePosition();
     } else {
-      state = AsyncValue.error('Location permission denied', StackTrace.current);
+      state = AsyncValue.error(
+        'Location permission denied',
+        StackTrace.current,
+      );
     }
   }
 }
@@ -56,11 +59,11 @@ class LocationPermissionNotifier extends _$LocationPermissionNotifier {
   Future<void> requestPermission() async {
     state = const AsyncValue.loading();
     final service = ref.read(locationServiceProvider);
-    
+
     try {
       final hasPermission = await service.requestLocationPermission();
       state = AsyncValue.data(hasPermission);
-      
+
       // Update position if permission granted
       if (hasPermission) {
         ref.read(currentPositionNotifierProvider.notifier).updatePosition();
@@ -130,7 +133,7 @@ Stream<Position> positionStream(Ref ref) {
 @riverpod
 double currentLocationCarbonSavings(Ref ref) {
   final routes = ref.watch(ecoRoutesNotifierProvider);
-  
+
   // Calculate total potential carbon savings from all eco routes
   return routes.fold<double>(0, (sum, route) {
     return sum + (route['carbonSaved'] as double? ?? 0);
@@ -140,9 +143,11 @@ double currentLocationCarbonSavings(Ref ref) {
 // Helper provider to check if location features are available
 @riverpod
 Future<LocationStatus> locationStatus(Ref ref) async {
-  final hasPermission = await ref.watch(locationPermissionNotifierProvider.future);
+  final hasPermission = await ref.watch(
+    locationPermissionNotifierProvider.future,
+  );
   final serviceEnabled = await ref.watch(locationServiceEnabledProvider.future);
-  
+
   if (!serviceEnabled) {
     return LocationStatus.serviceDisabled;
   } else if (!hasPermission) {
@@ -152,9 +157,4 @@ Future<LocationStatus> locationStatus(Ref ref) async {
   }
 }
 
-enum LocationStatus {
-  available,
-  permissionDenied,
-  serviceDisabled,
-  error,
-}
+enum LocationStatus { available, permissionDenied, serviceDisabled, error }

@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
-import '../../services/ai_service.dart';
-import '../../services/nutritionix_service.dart';
-import '../../models/user_context.dart';
-import '../../models/food_analysis.dart';
+import '../../services/ai/ai_service.dart';
+import '../../services/meal/nutritionix_service.dart';
+import '../../models/user/user_context.dart';
+import '../../models/food/food_analysis.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../exercise_history/exercise_history_screen.dart';
@@ -489,10 +489,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    flex: 1,
-                    child: Container(),
-                  ),
+                  Expanded(flex: 1, child: Container()),
                   Expanded(
                     flex: isTablet ? 1 : 2,
                     child: AspectRatio(
@@ -504,19 +501,18 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                       ),
                     ),
                   ),
-                  Expanded(
-                    flex: 1,
-                    child: Container(),
-                  ),
+                  Expanded(flex: 1, child: Container()),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Other action buttons in grid
               GridView.count(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: isTablet ? 4 : 2, // 4 columns on tablet, 2 on phone
+                crossAxisCount: isTablet
+                    ? 4
+                    : 2, // 4 columns on tablet, 2 on phone
                 mainAxisSpacing: isTablet ? 8 : 16,
                 crossAxisSpacing: isTablet ? 8 : 16,
                 childAspectRatio: isTablet
@@ -927,7 +923,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             }
           } else if (error.errorMsg == 'error_no_match') {
             _logger.w('Speech recognition could not understand the audio');
-            
+
             // Show user-friendly message
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
@@ -954,7 +950,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             }
           } else if (error.errorMsg == 'error_speech_timeout') {
             _logger.w('Speech recognition timed out');
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -969,13 +965,11 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
           } else {
             // Handle other errors generically
             _logger.w('Speech recognition error: ${error.errorMsg}');
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(
-                    'Voice input error. Please try again.',
-                  ),
+                  content: Text('Voice input error. Please try again.'),
                   duration: Duration(seconds: 2),
                   backgroundColor: Colors.red,
                 ),

@@ -5,7 +5,7 @@ import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
-import '../settings_main_screen.dart';
+import '../settings/settings_main_screen.dart';
 
 class ModernProfileHeader extends ConsumerWidget {
   const ModernProfileHeader({super.key});
@@ -13,12 +13,12 @@ class ModernProfileHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
-    
+
     return userProfileAsync.when(
       data: (userProfile) {
         final displayName = userProfile?.displayName ?? 'User';
         final photoURL = userProfile?.photoURL;
-        
+
         return Container(
           margin: const EdgeInsets.all(16),
           child: Stack(
@@ -70,7 +70,9 @@ class ModernProfileHeader extends ConsumerWidget {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     spreadRadius: 0,
                                     blurRadius: 15,
                                     offset: const Offset(0, 5),
@@ -78,59 +80,67 @@ class ModernProfileHeader extends ConsumerWidget {
                                 ],
                               ),
                               padding: const EdgeInsets.all(3),
-                              child: photoURL != null 
-                                ? Container(
-                                    width: 70,
-                                    height: 70,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: ClipOval(
-                                      child: CachedNetworkImage(
-                                        imageUrl: photoURL,
-                                        width: 70,
-                                        height: 70,
-                                        fit: BoxFit.cover,
-                                        memCacheWidth: 140,
-                                        memCacheHeight: 140,
-                                        placeholder: (context, url) => Container(
+                              child: photoURL != null
+                                  ? Container(
+                                      width: 70,
+                                      height: 70,
+                                      decoration: const BoxDecoration(
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: ClipOval(
+                                        child: CachedNetworkImage(
+                                          imageUrl: photoURL,
                                           width: 70,
                                           height: 70,
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.cardColor(context),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.person,
-                                            size: 40,
-                                            color: AppColors.primary,
-                                          ),
-                                        ),
-                                        errorWidget: (context, url, error) => Container(
-                                          width: 70,
-                                          height: 70,
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.cardColor(context),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.person,
-                                            size: 40,
-                                            color: AppColors.primary,
-                                          ),
+                                          fit: BoxFit.cover,
+                                          memCacheWidth: 140,
+                                          memCacheHeight: 140,
+                                          placeholder: (context, url) =>
+                                              Container(
+                                                width: 70,
+                                                height: 70,
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.cardColor(
+                                                    context,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  size: 40,
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              Container(
+                                                width: 70,
+                                                height: 70,
+                                                decoration: BoxDecoration(
+                                                  color: AppTheme.cardColor(
+                                                    context,
+                                                  ),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.person,
+                                                  size: 40,
+                                                  color: AppColors.primary,
+                                                ),
+                                              ),
                                         ),
                                       ),
+                                    )
+                                  : CircleAvatar(
+                                      radius: 35,
+                                      backgroundColor: AppTheme.cardColor(
+                                        context,
+                                      ),
+                                      child: const Icon(
+                                        Icons.person,
+                                        size: 40,
+                                        color: AppColors.primary,
+                                      ),
                                     ),
-                                  )
-                                : CircleAvatar(
-                                    radius: 35,
-                                    backgroundColor: AppTheme.cardColor(context),
-                                    child: const Icon(
-                                      Icons.person,
-                                      size: 40,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
                             ),
                             // Online Status Indicator
                             Positioned(
@@ -148,7 +158,9 @@ class ModernProfileHeader extends ConsumerWidget {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.green.withValues(alpha: 0.5),
+                                      color: Colors.green.withValues(
+                                        alpha: 0.5,
+                                      ),
                                       spreadRadius: 0,
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
@@ -160,7 +172,7 @@ class ModernProfileHeader extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(width: 20),
-                        
+
                         // User Info
                         Expanded(
                           child: Column(
@@ -190,7 +202,9 @@ class ModernProfileHeader extends ConsumerWidget {
                                   ),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: AppColors.primary.withValues(alpha: 0.3),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.3,
+                                    ),
                                     width: 1,
                                   ),
                                 ),
@@ -212,13 +226,24 @@ class ModernProfileHeader extends ConsumerWidget {
                                     size: 16,
                                   ),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    'Level ${ref.watch(currentLevelProvider)} ${ref.watch(levelTitleProvider)}',
-                                    style: TextStyle(
-                                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  Consumer(
+                                    builder: (context, ref, child) {
+                                      final progressAsync = ref.watch(userProgressNotifierProvider);
+                                      return Text(
+                                        progressAsync.when(
+                                          data: (progress) => 'Level ${progress.currentLevel} ${progress.levelTitle(context)}',
+                                          loading: () => 'Level ${ref.watch(currentLevelProvider)} Loading...',
+                                          error: (_, __) => 'Level ${ref.watch(currentLevelProvider)} Error',
+                                        ),
+                                        style: TextStyle(
+                                          color: AppTheme.textColor(
+                                            context,
+                                          ).withValues(alpha: 0.7),
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      );
+                                    },
                                   ),
                                 ],
                               ),
@@ -227,9 +252,9 @@ class ModernProfileHeader extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
                     // Quick Stats Row
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -276,7 +301,7 @@ class ModernProfileHeader extends ConsumerWidget {
                   ],
                 ),
               ),
-              
+
               // Settings Button
               Positioned(
                 top: 16,
@@ -327,9 +352,7 @@ class ModernProfileHeader extends ConsumerWidget {
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(24),
         ),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, stackTrace) => Container(
         height: 200,
@@ -361,15 +384,16 @@ class ModernProfileHeader extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickStat(BuildContext context, IconData icon, String value, String label) {
+  Widget _buildQuickStat(
+    BuildContext context,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          color: AppColors.primary,
-          size: 20,
-        ),
+        Icon(icon, color: AppColors.primary, size: 20),
         const SizedBox(height: 4),
         Text(
           value,

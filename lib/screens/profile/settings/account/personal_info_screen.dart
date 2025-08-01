@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../../../providers/riverpod/user_profile_provider.dart';
-import '../../../../services/user_profile_service.dart';
+import '../../../../services/database/user_profile_service.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 import '../../../../utils/translation_helper.dart';
 
@@ -20,7 +20,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   final UserProfileService _userProfileService = UserProfileService();
   final ImagePicker _picker = ImagePicker();
-  
+
   late TextEditingController _displayNameController;
   late TextEditingController _usernameController;
   late TextEditingController _emailController;
@@ -28,9 +28,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   late TextEditingController _heightController;
   late TextEditingController _weightController;
   late TextEditingController _ageController;
-  
-  String _activityLevel = 'Intermediate';
-  String _weeklyActivity = '3-4 times';
+
+  String _activityLevel = 'intermediate';
+  String _weeklyActivity = 'times_3_4';
   String _gender = 'prefer_not_to_say';
   bool _isLoading = false;
   File? _imageFile;
@@ -60,14 +60,33 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     super.dispose();
   }
 
+  String _validateGender(String? value) {
+    const validGenders = ['male', 'female', 'prefer_not_to_say'];
+    if (value == null) return 'prefer_not_to_say';
+    final normalized = value.toLowerCase();
+    return validGenders.contains(normalized) ? normalized : 'prefer_not_to_say';
+  }
+
+  String _validateActivityLevel(String? value) {
+    const validLevels = ['beginner', 'intermediate', 'advanced'];
+    if (value == null) return 'intermediate';
+    final normalized = value.toLowerCase();
+    return validLevels.contains(normalized) ? normalized : 'intermediate';
+  }
+
+  String _validateWeeklyActivity(String? value) {
+    const validActivities = ['times_1_2', 'times_3_4', 'times_5_plus'];
+    if (value == null) return 'times_3_4';
+    return validActivities.contains(value) ? value : 'times_3_4';
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProfileProvider = ref.watch(userProfileNotifierProvider);
     final userProfile = userProfileProvider.value;
-    
+
     return Builder(
       builder: (context) {
-        
         // Initialize controllers with user data when available
         if (userProfile != null && !_isLoading) {
           _displayNameController.text = userProfile.displayName;
@@ -80,11 +99,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           _heightController.text = additionalData['height'] ?? '';
           _weightController.text = additionalData['weight'] ?? '';
           _ageController.text = additionalData['age'] ?? '';
-          _gender = additionalData['gender'] ?? 'prefer_not_to_say';
-          _activityLevel = additionalData['activityLevel'] ?? 'Intermediate';
-          _weeklyActivity = additionalData['weeklyActivity'] ?? '3-4 times';
+          _gender = _validateGender(additionalData['gender']);
+          _activityLevel = _validateActivityLevel(additionalData['activityLevel']);
+          _weeklyActivity = _validateWeeklyActivity(additionalData['weeklyActivity']);
         }
-        
+
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
@@ -92,9 +111,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
             elevation: 0,
             title: Text(
               tr(context, 'personal_information'),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
             leading: IconButton(
               icon: const Icon(Icons.arrow_back),
@@ -137,7 +156,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         maxHeight: 800,
         imageQuality: 85,
       );
-      
+
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
@@ -147,7 +166,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error picking image: $e'),
+            content: Text('${tr(context, 'error_picking_image')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -157,23 +176,23 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
   Future<String?> _uploadProfileImage() async {
     if (_imageFile == null) return _profileImageUrl;
-    
+
     try {
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('profile_images')
           .child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-      
+
       final uploadTask = storageRef.putFile(_imageFile!);
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error uploading image: $e'),
+            content: Text('${tr(context, 'error_uploading_image')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -191,17 +210,17 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
 
       final currentProfile = ref.read(userProfileNotifierProvider).value;
       if (currentProfile != null) {
-        final updatedProfile = currentProfile.copyWith(
-          photoURL: null,
-        );
-        
+        final updatedProfile = currentProfile.copyWith(photoURL: null);
+
         await _userProfileService.updateUserProfile(updatedProfile);
-        ref.read(userProfileNotifierProvider.notifier).setUserProfile(updatedProfile);
+        ref
+            .read(userProfileNotifierProvider.notifier)
+            .setUserProfile(updatedProfile);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Profile picture removed successfully'),
+            SnackBar(
+              content: Text(tr(context, 'profile_picture_removed_successfully')),
               backgroundColor: Colors.green,
             ),
           );
@@ -211,7 +230,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error removing profile picture: $e'),
+            content: Text('${tr(context, 'error_removing_profile_picture')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -229,18 +248,21 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
     try {
       // Upload profile image if changed
       final imageUrl = await _uploadProfileImage();
-      
+
       // Check username availability if changed
       final currentProfile = ref.read(userProfileNotifierProvider).value;
       if (currentProfile != null) {
         final username = _usernameController.text.trim();
         if (username.isNotEmpty && username != currentProfile.username) {
-          final isUsernameAvailable = await _userProfileService.isUsernameAvailable(username);
+          final isUsernameAvailable = await _userProfileService
+              .isUsernameAvailable(username);
           if (!isUsernameAvailable) {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Username is already taken. Please choose a different one.'),
+                SnackBar(
+                  content: Text(
+                    tr(context, 'username_already_taken'),
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -252,7 +274,9 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           }
         }
 
-        final updatedAdditionalData = Map<String, dynamic>.from(currentProfile.additionalData);
+        final updatedAdditionalData = Map<String, dynamic>.from(
+          currentProfile.additionalData,
+        );
         updatedAdditionalData.addAll({
           'phone': _phoneController.text.trim(),
           'height': _heightController.text.trim(),
@@ -269,20 +293,22 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           photoURL: imageUrl,
           additionalData: updatedAdditionalData,
         );
-        
+
         await _userProfileService.updateUserProfile(updatedProfile);
 
         if (mounted) {
           // Update the provider
-          ref.read(userProfileNotifierProvider.notifier).setUserProfile(updatedProfile);
-          
+          ref
+              .read(userProfileNotifierProvider.notifier)
+              .setUserProfile(updatedProfile);
+
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Personal information updated successfully'),
+            SnackBar(
+              content: Text(tr(context, 'personal_information_updated_successfully')),
               backgroundColor: Colors.green,
             ),
           );
-          
+
           Navigator.pop(context);
         }
       }
@@ -290,7 +316,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving information: $e'),
+            content: Text('${tr(context, 'error_saving_information')}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -309,17 +335,17 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Update your information',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          tr(context, 'update_your_information'),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
-          'Keep your profile information up to date.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
+          tr(context, 'keep_profile_up_to_date'),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -337,15 +363,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
                 backgroundImage: _imageFile != null
                     ? FileImage(_imageFile!)
                     : _profileImageUrl != null
-                        ? NetworkImage(_profileImageUrl!)
-                        : null,
+                    ? NetworkImage(_profileImageUrl!)
+                    : null,
                 backgroundColor: Colors.grey[300],
                 child: _imageFile == null && _profileImageUrl == null
-                    ? Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Colors.grey[600],
-                      )
+                    ? Icon(Icons.person, size: 60, color: Colors.grey[600])
                     : null,
               ),
               Positioned(
@@ -373,10 +395,10 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'Tap to change profile picture (optional)',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+          tr(context, 'tap_to_change_profile_picture'),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
         ),
         if (_profileImageUrl != null || _imageFile != null)
           const SizedBox(height: 8),
@@ -384,10 +406,8 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           TextButton.icon(
             onPressed: _removeProfileImage,
             icon: const Icon(Icons.delete_outline, size: 18),
-            label: const Text('Remove profile picture'),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red[600],
-            ),
+            label: Text(tr(context, 'remove_profile_picture')),
+            style: TextButton.styleFrom(foregroundColor: Colors.red[600]),
           ),
       ],
     );
@@ -398,26 +418,26 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Basic Information',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          tr(context, 'basic_information'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _displayNameController,
-          decoration: const InputDecoration(
-            labelText: 'Display Name',
-            hintText: 'John Doe',
-            prefixIcon: Icon(Icons.person),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'display_name'),
+            hintText: tr(context, 'display_name_hint'),
+            prefixIcon: const Icon(Icons.person),
+            border: const OutlineInputBorder(),
           ),
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter your display name';
+              return tr(context, 'please_enter_display_name');
             }
             if (value.length < 2) {
-              return 'Display name must be at least 2 characters';
+              return tr(context, 'display_name_min_length');
             }
             return null;
           },
@@ -425,26 +445,26 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _usernameController,
-          decoration: const InputDecoration(
-            labelText: 'Username',
-            hintText: 'username123',
-            helperText: 'Letters, numbers, and underscores allowed',
-            prefixIcon: Icon(Icons.alternate_email),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'username'),
+            hintText: tr(context, 'username_hint'),
+            helperText: tr(context, 'username_helper_text'),
+            prefixIcon: const Icon(Icons.alternate_email),
+            border: const OutlineInputBorder(),
           ),
           validator: (value) {
             if (value != null && value.isNotEmpty) {
               if (value.length < 3) {
-                return 'Username must be at least 3 characters';
+                return tr(context, 'username_min_length');
               }
               if (value.length > 20) {
-                return 'Username must be less than 20 characters';
+                return tr(context, 'username_max_length');
               }
               if (value.contains(' ')) {
-                return 'Username cannot contain spaces';
+                return tr(context, 'username_no_spaces');
               }
               if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value)) {
-                return 'Username can contain letters, numbers, and underscores';
+                return tr(context, 'username_allowed_characters');
               }
             }
             return null;
@@ -454,35 +474,38 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         TextFormField(
           controller: _emailController,
           enabled: false,
-          decoration: const InputDecoration(
-            labelText: 'Email',
-            prefixIcon: Icon(Icons.email),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'email'),
+            prefixIcon: const Icon(Icons.email),
+            border: const OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _phoneController,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number (Optional)',
-            hintText: '+1 234 567 8900',
-            prefixIcon: Icon(Icons.phone),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'phone_number_optional'),
+            hintText: tr(context, 'phone_number_hint'),
+            prefixIcon: const Icon(Icons.phone),
+            border: const OutlineInputBorder(),
           ),
           keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _gender,
-          decoration: const InputDecoration(
-            labelText: 'Gender',
-            prefixIcon: Icon(Icons.person_outline),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'gender'),
+            prefixIcon: const Icon(Icons.person_outline),
+            border: const OutlineInputBorder(),
           ),
-          items: const [
-            DropdownMenuItem(value: 'male', child: Text('Male')),
-            DropdownMenuItem(value: 'female', child: Text('Female')),
-            DropdownMenuItem(value: 'prefer_not_to_say', child: Text('Prefer not to say')),
+          items: [
+            DropdownMenuItem(value: 'male', child: Text(tr(context, 'male'))),
+            DropdownMenuItem(value: 'female', child: Text(tr(context, 'female'))),
+            DropdownMenuItem(
+              value: 'prefer_not_to_say',
+              child: Text(tr(context, 'prefer_not_to_say')),
+            ),
           ],
           onChanged: (value) {
             setState(() {
@@ -499,10 +522,10 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Physical Information',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          tr(context, 'physical_information'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         Row(
@@ -510,18 +533,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
             Expanded(
               child: TextFormField(
                 controller: _ageController,
-                decoration: const InputDecoration(
-                  labelText: 'Age',
-                  hintText: '25',
-                  prefixIcon: Icon(Icons.cake),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: tr(context, 'age'),
+                  hintText: tr(context, 'age_hint'),
+                  prefixIcon: const Icon(Icons.cake),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
                     final age = int.tryParse(value);
                     if (age == null || age < 13 || age > 120) {
-                      return 'Please enter a valid age';
+                      return tr(context, 'please_enter_valid_age');
                     }
                   }
                   return null;
@@ -532,18 +555,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
             Expanded(
               child: TextFormField(
                 controller: _heightController,
-                decoration: const InputDecoration(
-                  labelText: 'Height (cm)',
-                  hintText: '175',
-                  prefixIcon: Icon(Icons.height),
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: tr(context, 'height_cm'),
+                  hintText: tr(context, 'height_hint'),
+                  prefixIcon: const Icon(Icons.height),
+                  border: const OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
                   if (value != null && value.isNotEmpty) {
                     final height = int.tryParse(value);
                     if (height == null || height < 100 || height > 250) {
-                      return 'Please enter a valid height';
+                      return tr(context, 'please_enter_valid_height');
                     }
                   }
                   return null;
@@ -555,18 +578,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         const SizedBox(height: 16),
         TextFormField(
           controller: _weightController,
-          decoration: const InputDecoration(
-            labelText: 'Weight (kg)',
-            hintText: '70',
-            prefixIcon: Icon(Icons.monitor_weight),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'weight_kg'),
+            hintText: tr(context, 'weight_hint'),
+            prefixIcon: const Icon(Icons.monitor_weight),
+            border: const OutlineInputBorder(),
           ),
           keyboardType: TextInputType.number,
           validator: (value) {
             if (value != null && value.isNotEmpty) {
               final weight = double.tryParse(value);
               if (weight == null || weight < 30 || weight > 300) {
-                return 'Please enter a valid weight';
+                return tr(context, 'please_enter_valid_weight');
               }
             }
             return null;
@@ -581,23 +604,26 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Fitness Level',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          tr(context, 'fitness_level'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _activityLevel,
-          decoration: const InputDecoration(
-            labelText: 'Current Activity Level',
-            prefixIcon: Icon(Icons.fitness_center),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'current_activity_level'),
+            prefixIcon: const Icon(Icons.fitness_center),
+            border: const OutlineInputBorder(),
           ),
-          items: const [
-            DropdownMenuItem(value: 'Beginner', child: Text('Beginner')),
-            DropdownMenuItem(value: 'Intermediate', child: Text('Intermediate')),
-            DropdownMenuItem(value: 'Advanced', child: Text('Advanced')),
+          items: [
+            DropdownMenuItem(value: 'beginner', child: Text(tr(context, 'beginner'))),
+            DropdownMenuItem(
+              value: 'intermediate',
+              child: Text(tr(context, 'intermediate')),
+            ),
+            DropdownMenuItem(value: 'advanced', child: Text(tr(context, 'advanced'))),
           ],
           onChanged: (value) {
             setState(() {
@@ -608,15 +634,15 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
           value: _weeklyActivity,
-          decoration: const InputDecoration(
-            labelText: 'Weekly Exercise Frequency',
-            prefixIcon: Icon(Icons.calendar_today),
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: tr(context, 'weekly_exercise_frequency'),
+            prefixIcon: const Icon(Icons.calendar_today),
+            border: const OutlineInputBorder(),
           ),
-          items: const [
-            DropdownMenuItem(value: '1-2 times', child: Text('1-2 times')),
-            DropdownMenuItem(value: '3-4 times', child: Text('3-4 times')),
-            DropdownMenuItem(value: '5+ times', child: Text('5+ times')),
+          items: [
+            DropdownMenuItem(value: 'times_1_2', child: Text(tr(context, 'times_1_2'))),
+            DropdownMenuItem(value: 'times_3_4', child: Text(tr(context, 'times_3_4'))),
+            DropdownMenuItem(value: 'times_5_plus', child: Text(tr(context, 'times_5_plus'))),
           ],
           onChanged: (value) {
             setState(() {
@@ -638,7 +664,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
         child: _isLoading
             ? const LottieLoadingWidget(width: 24, height: 24)
-            : const Text('Save Changes'),
+            : Text(tr(context, 'save_changes')),
       ),
     );
   }

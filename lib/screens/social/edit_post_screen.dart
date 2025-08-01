@@ -5,8 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
-import '../../models/social_post.dart';
-import '../../models/post_revision.dart';
+import '../../models/social/social_post.dart';
+import '../../models/posts/post_revision.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
@@ -15,10 +15,7 @@ import 'post_revision_history_screen.dart';
 class EditPostScreen extends StatefulWidget {
   final SocialPost post;
 
-  const EditPostScreen({
-    super.key,
-    required this.post,
-  });
+  const EditPostScreen({super.key, required this.post});
 
   @override
   State<EditPostScreen> createState() => _EditPostScreenState();
@@ -28,13 +25,13 @@ class _EditPostScreenState extends State<EditPostScreen> {
   final _contentController = TextEditingController();
   final _editReasonController = TextEditingController();
   final _imagePicker = ImagePicker();
-  
+
   // Original values for comparison
   late String _originalContent;
   late List<PostPillar> _originalPillars;
   late PostVisibility _originalVisibility;
   late List<String> _originalMediaUrls;
-  
+
   // Current editing values
   List<PostPillar> _selectedPillars = [];
   PostVisibility _selectedVisibility = PostVisibility.supporters;
@@ -54,11 +51,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
     _originalPillars = List.from(widget.post.pillars);
     _originalVisibility = widget.post.visibility;
     _originalMediaUrls = List.from(widget.post.mediaUrls);
-    
+
     _contentController.text = _originalContent;
     _selectedPillars = List.from(_originalPillars);
     _selectedVisibility = _originalVisibility;
-    
+
     _contentController.addListener(_onContentChanged);
   }
 
@@ -70,10 +67,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   bool _detectChanges() {
     return _contentController.text.trim() != _originalContent ||
-           !_listsEqual(_selectedPillars, _originalPillars) ||
-           _selectedVisibility != _originalVisibility ||
-           _newImages.isNotEmpty ||
-           _removedMediaUrls.isNotEmpty;
+        !_listsEqual(_selectedPillars, _originalPillars) ||
+        _selectedVisibility != _originalVisibility ||
+        _newImages.isNotEmpty ||
+        _removedMediaUrls.isNotEmpty;
   }
 
   bool _listsEqual<T>(List<T> a, List<T> b) {
@@ -146,7 +143,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PostRevisionHistoryScreen(postId: widget.post.id),
+                builder: (context) =>
+                    PostRevisionHistoryScreen(postId: widget.post.id),
               ),
             );
           },
@@ -179,9 +177,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.textColor(context).withAlpha(26),
-        ),
+        border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
       ),
       child: Row(
         children: [
@@ -191,11 +187,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               color: Colors.blue.withAlpha(26),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(
-              Icons.edit,
-              color: Colors.blue,
-              size: 20,
-            ),
+            child: const Icon(Icons.edit, color: Colors.blue, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -273,10 +265,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 16,
-            ),
+            style: TextStyle(color: AppTheme.textColor(context), fontSize: 16),
           ),
         ),
       ],
@@ -306,13 +295,13 @@ class _EditPostScreenState extends State<EditPostScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        
+
         // Existing media
         if (widget.post.mediaUrls.isNotEmpty) ...[
           _buildExistingMedia(),
           const SizedBox(height: 8),
         ],
-        
+
         // New media
         if (_newImages.isNotEmpty) _buildNewMedia(),
       ],
@@ -330,9 +319,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
         decoration: BoxDecoration(
           color: AppTheme.cardColor(context),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: AppTheme.textColor(context).withAlpha(26),
-          ),
+          border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
         ),
         child: Text(
           tr(context, 'existing_media_removed'),
@@ -389,11 +376,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   color: Colors.red.withAlpha(204),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 12,
-                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 12),
               ),
             ),
           ),
@@ -475,11 +458,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   color: Colors.red.withAlpha(204),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.close,
-                  color: Colors.white,
-                  size: 12,
-                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 12),
               ),
             ),
           ),
@@ -553,7 +532,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 });
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? _getPillarColor(pillar)
@@ -686,10 +668,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
               border: InputBorder.none,
               contentPadding: const EdgeInsets.all(16),
             ),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 14,
-            ),
+            style: TextStyle(color: AppTheme.textColor(context), fontSize: 14),
           ),
         ),
       ],
@@ -728,7 +707,11 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   CircleAvatar(
                     radius: 16,
                     backgroundColor: Theme.of(context).primaryColor,
-                    child: const Icon(Icons.person, color: Colors.white, size: 16),
+                    child: const Icon(
+                      Icons.person,
+                      color: Colors.white,
+                      size: 16,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
@@ -740,7 +723,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.orange.withAlpha(26),
                       borderRadius: BorderRadius.circular(8),
@@ -757,10 +743,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                 ],
               ),
               const SizedBox(height: 12),
-              
+
               // Content
               Text(
-                _contentController.text.trim().isEmpty 
+                _contentController.text.trim().isEmpty
                     ? tr(context, 'no_content')
                     : _contentController.text,
                 style: TextStyle(
@@ -774,7 +760,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
                       : FontStyle.normal,
                 ),
               ),
-              
+
               // Pillar tags
               if (_selectedPillars.isNotEmpty) ...[
                 const SizedBox(height: 12),
@@ -782,7 +768,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
                   spacing: 6,
                   children: _selectedPillars.map((pillar) {
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: _getPillarColor(pillar).withAlpha(26),
                         borderRadius: BorderRadius.circular(12),
@@ -855,7 +844,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return null;
 
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
       final ref = FirebaseStorage.instance
           .ref()
           .child('posts')
@@ -865,7 +855,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
       final uploadTask = ref.putFile(file);
       final snapshot = await uploadTask.whenComplete(() {});
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      
+
       return downloadUrl;
     } catch (e) {
       debugPrint('Error uploading media file: $e');
@@ -897,12 +887,12 @@ class _EditPostScreenState extends State<EditPostScreen> {
           .collection('posts')
           .doc(widget.post.id)
           .update({
-        'content': _contentController.text.trim(),
-        'mediaUrls': [...widget.post.mediaUrls, ...newMediaUrls],
-        'editedAt': FieldValue.serverTimestamp(),
-        'editCount': FieldValue.increment(1),
-        'lastEditReason': _editReasonController.text.trim(),
-      });
+            'content': _contentController.text.trim(),
+            'mediaUrls': [...widget.post.mediaUrls, ...newMediaUrls],
+            'editedAt': FieldValue.serverTimestamp(),
+            'editCount': FieldValue.increment(1),
+            'lastEditReason': _editReasonController.text.trim(),
+          });
 
       // 3. Create revision entries for tracking changes
       await _createRevisionEntries();
@@ -932,8 +922,8 @@ class _EditPostScreenState extends State<EditPostScreen> {
   }
 
   Future<void> _createRevisionEntries() async {
-    final editReason = _editReasonController.text.trim().isEmpty 
-        ? null 
+    final editReason = _editReasonController.text.trim().isEmpty
+        ? null
         : _editReasonController.text.trim();
 
     // Content change revision
@@ -981,10 +971,10 @@ class _EditPostScreenState extends State<EditPostScreen> {
         postId: widget.post.id,
         userId: widget.post.userId,
         userName: widget.post.userName,
-        type: _newImages.isNotEmpty ? RevisionType.mediaAdd : RevisionType.mediaRemove,
-        previousData: {
-          'mediaUrls': _originalMediaUrls,
-        },
+        type: _newImages.isNotEmpty
+            ? RevisionType.mediaAdd
+            : RevisionType.mediaRemove,
+        previousData: {'mediaUrls': _originalMediaUrls},
         newData: {
           'addedMedia': _newImages.length,
           'removedMedia': _removedMediaUrls,
@@ -1024,10 +1014,7 @@ class _EditPostScreenState extends State<EditPostScreen> {
 
   void _showErrorMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 

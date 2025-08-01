@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../../../models/user_profile.dart';
+import '../../../models/user/user_profile.dart';
 import '../../../theme/app_theme.dart';
 
 class EnhancedProfileHeader extends StatelessWidget {
@@ -46,7 +46,8 @@ class EnhancedProfileHeader extends StatelessWidget {
                   ],
                 ),
                 child: ClipOval(
-                  child: profile.photoURL != null && profile.photoURL!.isNotEmpty
+                  child:
+                      profile.photoURL != null && profile.photoURL!.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: profile.photoURL!,
                           fit: BoxFit.cover,
@@ -81,9 +82,9 @@ class EnhancedProfileHeader extends StatelessWidget {
               ),
             ),
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Display Name and Verification
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -109,7 +110,7 @@ class EnhancedProfileHeader extends StatelessWidget {
               ],
             ],
           ),
-          
+
           // Username
           if (profile.username != null && profile.username!.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -122,7 +123,7 @@ class EnhancedProfileHeader extends StatelessWidget {
               ),
             ),
           ],
-          
+
           // Bio
           if (profile.bio != null && profile.bio!.isNotEmpty) ...[
             const SizedBox(height: 12),
@@ -147,7 +148,7 @@ class EnhancedProfileHeader extends StatelessWidget {
               ),
             ),
           ],
-          
+
           // Interests
           if (profile.interests.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -155,24 +156,32 @@ class EnhancedProfileHeader extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               alignment: WrapAlignment.center,
-              children: profile.interests.take(5).map((interest) => Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withAlpha(26),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(context).primaryColor.withAlpha(77),
-                  ),
-                ),
-                child: Text(
-                  interest,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              )).toList(),
+              children: profile.interests
+                  .take(5)
+                  .map(
+                    (interest) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withAlpha(26),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Theme.of(context).primaryColor.withAlpha(77),
+                        ),
+                      ),
+                      child: Text(
+                        interest,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
             if (profile.interests.length > 5) ...[
               const SizedBox(height: 8),
@@ -186,7 +195,7 @@ class EnhancedProfileHeader extends StatelessWidget {
               ),
             ],
           ],
-          
+
           // Activity Status
           if (!isCurrentUser && profile.lastActive != null) ...[
             const SizedBox(height: 12),
@@ -228,7 +237,7 @@ class EnhancedProfileHeader extends StatelessWidget {
   Color _getActivityColor(DateTime lastActive) {
     final now = DateTime.now();
     final difference = now.difference(lastActive);
-    
+
     if (difference.inMinutes < 5) {
       return Colors.green;
     } else if (difference.inHours < 1) {
@@ -241,7 +250,7 @@ class EnhancedProfileHeader extends StatelessWidget {
   String _getActivityText(DateTime lastActive) {
     final now = DateTime.now();
     final difference = now.difference(lastActive);
-    
+
     if (difference.inMinutes < 5) {
       return 'Active now';
     } else if (difference.inMinutes < 60) {

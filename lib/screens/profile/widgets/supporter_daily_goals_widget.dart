@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/privacy_settings.dart';
-import '../../../models/user_progress.dart';
-import '../../../models/health_data.dart';
+import '../../../models/user/privacy_settings.dart';
+import '../../../models/user/user_progress.dart';
+import '../../../models/health/health_data.dart';
 import '../../../widgets/common/rive_emoji_widget.dart';
 
 class SupporterDailyGoalsWidget extends ConsumerWidget {
@@ -46,11 +46,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.emoji_events,
-                color: AppColors.primary,
-                size: 24,
-              ),
+              Icon(Icons.emoji_events, color: AppColors.primary, size: 24),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'daily_goals_progress'),
@@ -66,9 +62,14 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getMultiplierColor(supporterProgress!.todayMultiplier),
+                        color: _getMultiplierColor(
+                          supporterProgress!.todayMultiplier,
+                        ),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -84,16 +85,15 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
                 )
               else
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    Icons.lock,
-                    color: Colors.grey[600],
-                    size: 16,
-                  ),
+                  child: Icon(Icons.lock, color: Colors.grey[600], size: 16),
                 ),
             ],
           ),
@@ -156,9 +156,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
       ),
     ];
 
-    return Column(
-      children: goals.map((goal) => _buildGoalRow(goal)).toList(),
-    );
+    return Column(children: goals.map((goal) => _buildGoalRow(context, goal)).toList());
   }
 
   Widget _buildPrivateGoalsView(BuildContext context) {
@@ -171,11 +169,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.lock_outline,
-            color: Colors.grey[500],
-            size: 48,
-          ),
+          Icon(Icons.lock_outline, color: Colors.grey[500], size: 48),
           const SizedBox(height: 12),
           Text(
             tr(context, 'daily_goals_shared_privately'),
@@ -188,10 +182,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             tr(context, 'supporter_keeps_daily_progress_private'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -209,11 +200,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.data_usage_outlined,
-            color: Colors.orange[600],
-            size: 48,
-          ),
+          Icon(Icons.data_usage_outlined, color: Colors.orange[600], size: 48),
           const SizedBox(height: 12),
           Text(
             tr(context, 'no_recent_activity'),
@@ -226,10 +213,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             tr(context, 'supporter_hasnt_synced_health_data'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.orange[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.orange[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -237,9 +221,9 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildGoalRow(_GoalItem goal) {
+  Widget _buildGoalRow(BuildContext context, _GoalItem goal) {
     final progressPercent = (goal.current / goal.target).clamp(0.0, 1.0);
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -248,16 +232,13 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: goal.isCompleted 
+              color: goal.isCompleted
                   ? Colors.green.withValues(alpha: 0.2)
                   : AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Center(
-              child: Text(
-                goal.type.icon,
-                style: const TextStyle(fontSize: 16),
-              ),
+              child: Text(goal.type.icon, style: const TextStyle(fontSize: 16)),
             ),
           ),
           const SizedBox(width: 12),
@@ -269,7 +250,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      goal.type.displayName,
+                      goal.type.displayName(context),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -298,11 +279,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           if (goal.isCompleted)
-            Icon(
-              Icons.check_circle,
-              color: Colors.green,
-              size: 20,
-            ),
+            Icon(Icons.check_circle, color: Colors.green, size: 20),
         ],
       ),
     );
@@ -318,18 +295,11 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              Icons.lock_outline,
-              color: Colors.grey[500],
-              size: 20,
-            ),
+            Icon(Icons.lock_outline, color: Colors.grey[500], size: 20),
             const SizedBox(width: 8),
             Text(
               tr(context, 'level_progress_shared_privately'),
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -354,7 +324,10 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  tr(context, 'level').replaceAll('{level}', supporterProgress!.currentLevel.toString()),
+                  tr(context, 'level').replaceAll(
+                    '{level}',
+                    supporterProgress!.currentLevel.toString(),
+                  ),
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
@@ -372,13 +345,13 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          supporterProgress!.isMaxLevel 
+          supporterProgress!.isMaxLevel
               ? tr(context, 'max_level_reached')
-              : tr(context, 'strikes_to_next_level').replaceAll('{strikes}', supporterProgress!.strikesNeededForNextLevel.toString()),
-          style: TextStyle(
-            fontSize: 10,
-            color: AppColors.textSecondary,
-          ),
+              : tr(context, 'strikes_to_next_level').replaceAll(
+                  '{strikes}',
+                  supporterProgress!.strikesNeededForNextLevel.toString(),
+                ),
+          style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
         ),
       ],
     );
@@ -423,7 +396,10 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
         continuousPlay: true,
       );
     } else {
-      text = tr(context, 'goals_completed_today').replaceAll('{count}', completedCount.toString());
+      text = tr(
+        context,
+        'goals_completed_today',
+      ).replaceAll('{count}', completedCount.toString());
       emojiWidget = RiveEmojiWidget(
         emojiType: EmojiType.fromGoalCount(completedCount),
         size: 24,
@@ -475,12 +451,18 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
 
   Color _getMultiplierColor(int multiplier) {
     switch (multiplier) {
-      case 1: return Colors.grey;
-      case 2: return Colors.blue;
-      case 3: return Colors.orange;
-      case 4: return Colors.purple;
-      case 5: return Colors.red;
-      default: return Colors.grey;
+      case 1:
+        return Colors.grey;
+      case 2:
+        return Colors.blue;
+      case 3:
+        return Colors.orange;
+      case 4:
+        return Colors.purple;
+      case 5:
+        return Colors.red;
+      default:
+        return Colors.grey;
     }
   }
 }

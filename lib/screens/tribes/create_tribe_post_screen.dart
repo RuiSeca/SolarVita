@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/tribe.dart';
-import '../../models/tribe_post.dart';
-import '../../services/tribe_service.dart';
+import '../../models/tribe/tribe.dart';
+import '../../models/tribe/tribe_post.dart';
+import '../../services/database/tribe_service.dart';
 import '../../theme/app_theme.dart';
 
 class CreateTribePostScreen extends ConsumerStatefulWidget {
   final Tribe tribe;
 
-  const CreateTribePostScreen({
-    super.key,
-    required this.tribe,
-  });
+  const CreateTribePostScreen({super.key, required this.tribe});
 
   @override
-  ConsumerState<CreateTribePostScreen> createState() => _CreateTribePostScreenState();
+  ConsumerState<CreateTribePostScreen> createState() =>
+      _CreateTribePostScreenState();
 }
 
 class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
@@ -22,9 +20,9 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
   final _tagsController = TextEditingController();
-  
+
   final TribeService _tribeService = TribeService();
-  
+
   TribePostType _postType = TribePostType.text;
   bool _isAnnouncement = false;
   bool _isLoading = false;
@@ -55,7 +53,7 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
 
   Future<void> _createPost() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isLoading = true;
     });
@@ -64,8 +62,8 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
       await _tribeService.createTribePost(
         tribeId: widget.tribe.id,
         content: _contentController.text.trim(),
-        title: _titleController.text.trim().isNotEmpty 
-            ? _titleController.text.trim() 
+        title: _titleController.text.trim().isNotEmpty
+            ? _titleController.text.trim()
             : null,
         type: _postType,
         isAnnouncement: _isAnnouncement,
@@ -102,7 +100,7 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Post in ${widget.tribe.name}'),
@@ -167,12 +165,9 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
               const SizedBox(height: 24),
 
               // Post Type Selection
-              Text(
-                'Post Type',
-                style: theme.textTheme.labelLarge,
-              ),
+              Text('Post Type', style: theme.textTheme.labelLarge),
               const SizedBox(height: 8),
-              
+
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -217,7 +212,9 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
                             ).getPostTypeText(),
                             style: TextStyle(
                               fontSize: 12,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                             ),
                           ),
                         ],
@@ -286,12 +283,9 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
               const SizedBox(height: 24),
 
               // Tags Section
-              Text(
-                'Tags',
-                style: theme.textTheme.labelLarge,
-              ),
+              Text('Tags', style: theme.textTheme.labelLarge),
               const SizedBox(height: 8),
-              
+
               TextFormField(
                 controller: _tagsController,
                 decoration: InputDecoration(
@@ -308,19 +302,30 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
                 ),
                 onFieldSubmitted: (value) => _addTag(value.trim()),
               ),
-              
+
               if (_tags.isNotEmpty) ...[
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 4,
-                  children: _tags.map((tag) => Chip(
-                    label: Text('#$tag', style: const TextStyle(fontSize: 12)),
-                    deleteIcon: const Icon(Icons.close, size: 16),
-                    onDeleted: () => _removeTag(tag),
-                    backgroundColor: theme.primaryColor.withValues(alpha: 0.1),
-                    side: BorderSide(color: theme.primaryColor.withValues(alpha: 0.3)),
-                  )).toList(),
+                  children: _tags
+                      .map(
+                        (tag) => Chip(
+                          label: Text(
+                            '#$tag',
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          deleteIcon: const Icon(Icons.close, size: 16),
+                          onDeleted: () => _removeTag(tag),
+                          backgroundColor: theme.primaryColor.withValues(
+                            alpha: 0.1,
+                          ),
+                          side: BorderSide(
+                            color: theme.primaryColor.withValues(alpha: 0.3),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
 
@@ -357,11 +362,7 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(
-                          Icons.info,
-                          color: theme.primaryColor,
-                          size: 20,
-                        ),
+                        Icon(Icons.info, color: theme.primaryColor, size: 20),
                         const SizedBox(width: 8),
                         Text(
                           'Community Guidelines',
@@ -406,17 +407,25 @@ class _CreateTribePostScreenState extends ConsumerState<CreateTribePostScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         )
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              _postType == TribePostType.text ? '💬' : 
-                              _postType == TribePostType.question ? '❓' :
-                              _postType == TribePostType.achievement ? '🏆' :
-                              _postType == TribePostType.announcement ? '📢' :
-                              _postType == TribePostType.event ? '📅' : '📸',
+                              _postType == TribePostType.text
+                                  ? '💬'
+                                  : _postType == TribePostType.question
+                                  ? '❓'
+                                  : _postType == TribePostType.achievement
+                                  ? '🏆'
+                                  : _postType == TribePostType.announcement
+                                  ? '📢'
+                                  : _postType == TribePostType.event
+                                  ? '📅'
+                                  : '📸',
                               style: const TextStyle(fontSize: 18),
                             ),
                             const SizedBox(width: 8),

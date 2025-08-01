@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
-import '../../services/firebase_chat_service.dart';
-import '../../models/chat_message.dart';
-import '../../models/chat_conversation.dart';
+import '../../services/database/firebase_chat_service.dart';
+import '../../models/chat/chat_message.dart';
+import '../../models/chat/chat_conversation.dart';
 import 'offline_cache_provider.dart';
 
 part 'firebase_chat_provider.g.dart';
@@ -23,39 +23,53 @@ FirebaseChatService firebaseChatService(Ref ref) {
 @riverpod
 Stream<List<ChatConversation>> userConversations(Ref ref) {
   final service = ref.watch(firebaseChatServiceProvider);
-  
-  return service.getUserConversations().asyncMap((conversations) async {
-    // Cache conversations when online
-    if (ref.read(connectivityStatusProvider)) {
-      await ref.read(cacheManagerProvider.notifier).cacheChatConversations(conversations);
-    }
-    return conversations;
-  }).handleError((error) async {
-    // Fallback to cached data on error
-    final cachedConversations = await ref.read(cachedChatConversationsProvider.future);
-    return cachedConversations ?? <ChatConversation>[];
-  });
+
+  return service
+      .getUserConversations()
+      .asyncMap((conversations) async {
+        // Cache conversations when online
+        if (ref.read(connectivityStatusProvider)) {
+          await ref
+              .read(cacheManagerProvider.notifier)
+              .cacheChatConversations(conversations);
+        }
+        return conversations;
+      })
+      .handleError((error) async {
+        // Fallback to cached data on error
+        final cachedConversations = await ref.read(
+          cachedChatConversationsProvider.future,
+        );
+        return cachedConversations ?? <ChatConversation>[];
+      });
 }
 
 @riverpod
 Stream<List<ChatMessage>> conversationMessages(
-  Ref ref, 
+  Ref ref,
   String conversationId, {
   int limit = 50,
 }) {
   final service = ref.watch(firebaseChatServiceProvider);
-  
-  return service.getConversationMessages(conversationId, limit: limit).asyncMap((messages) async {
-    // Cache messages when online
-    if (ref.read(connectivityStatusProvider)) {
-      await ref.read(cacheManagerProvider.notifier).cacheChatMessages(conversationId, messages);
-    }
-    return messages;
-  }).handleError((error) async {
-    // Fallback to cached data on error
-    final cachedMessages = await ref.read(cachedChatMessagesProvider(conversationId).future);
-    return cachedMessages ?? <ChatMessage>[];
-  });
+
+  return service
+      .getConversationMessages(conversationId, limit: limit)
+      .asyncMap((messages) async {
+        // Cache messages when online
+        if (ref.read(connectivityStatusProvider)) {
+          await ref
+              .read(cacheManagerProvider.notifier)
+              .cacheChatMessages(conversationId, messages);
+        }
+        return messages;
+      })
+      .handleError((error) async {
+        // Fallback to cached data on error
+        final cachedMessages = await ref.read(
+          cachedChatMessagesProvider(conversationId).future,
+        );
+        return cachedMessages ?? <ChatMessage>[];
+      });
 }
 
 @riverpod
@@ -97,7 +111,7 @@ Future<List<ChatMessage>> searchMessages(
   int limit = 20,
 }) async {
   if (query.trim().isEmpty) return [];
-  
+
   final service = ref.watch(firebaseChatServiceProvider);
   return service.searchMessages(
     conversationId: conversationId,
@@ -125,11 +139,11 @@ class ChatActions extends _$ChatActions {
     Map<String, dynamic>? metadata,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final isOnline = ref.read(connectivityStatusProvider);
-      
+
       if (isOnline) {
         final message = await service.sendMessage(
           conversationId: conversationId,
@@ -137,7 +151,7 @@ class ChatActions extends _$ChatActions {
           replyToMessageId: replyToMessageId,
           metadata: metadata,
         );
-        
+
         state = const AsyncValue.data(null);
         return message;
       } else {
@@ -149,9 +163,11 @@ class ChatActions extends _$ChatActions {
           'metadata': metadata,
           'messageType': 'text',
         };
-        
-        await ref.read(offlineSyncManagerProvider.notifier).queueMessageSend(messageData);
-        
+
+        await ref
+            .read(offlineSyncManagerProvider.notifier)
+            .queueMessageSend(messageData);
+
         // Create a temporary message for UI
         final tempMessage = ChatMessage(
           messageId: 'temp_${DateTime.now().millisecondsSinceEpoch}',
@@ -165,7 +181,7 @@ class ChatActions extends _$ChatActions {
           replyToMessageId: replyToMessageId,
           metadata: metadata,
         );
-        
+
         state = const AsyncValue.data(null);
         return tempMessage;
       }
@@ -184,7 +200,7 @@ class ChatActions extends _$ChatActions {
     Map<String, dynamic>? metadata,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final message = await service.sendMediaMessage(
@@ -195,7 +211,7 @@ class ChatActions extends _$ChatActions {
         replyToMessageId: replyToMessageId,
         metadata: metadata,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (error, stackTrace) {
@@ -212,7 +228,7 @@ class ChatActions extends _$ChatActions {
     String? replyToMessageId,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final message = await service.sendLocationMessage(
@@ -222,7 +238,7 @@ class ChatActions extends _$ChatActions {
         locationName: locationName,
         replyToMessageId: replyToMessageId,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (error, stackTrace) {
@@ -237,7 +253,7 @@ class ChatActions extends _$ChatActions {
     String? replyToMessageId,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final message = await service.sendWorkoutMessage(
@@ -245,7 +261,7 @@ class ChatActions extends _$ChatActions {
         workoutData: workoutData,
         replyToMessageId: replyToMessageId,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (error, stackTrace) {
@@ -260,7 +276,7 @@ class ChatActions extends _$ChatActions {
     String? replyToMessageId,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final message = await service.sendAchievementMessage(
@@ -268,7 +284,7 @@ class ChatActions extends _$ChatActions {
         achievementData: achievementData,
         replyToMessageId: replyToMessageId,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (error, stackTrace) {
@@ -277,7 +293,10 @@ class ChatActions extends _$ChatActions {
     }
   }
 
-  Future<void> markMessageAsRead(String conversationId, String messageId) async {
+  Future<void> markMessageAsRead(
+    String conversationId,
+    String messageId,
+  ) async {
     try {
       final service = ref.read(firebaseChatServiceProvider);
       await service.markMessageAsRead(conversationId, messageId);
@@ -303,7 +322,7 @@ class ChatActions extends _$ChatActions {
     required String newContent,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       final message = await service.editMessage(
@@ -311,7 +330,7 @@ class ChatActions extends _$ChatActions {
         messageId: messageId,
         newContent: newContent,
       );
-      
+
       state = const AsyncValue.data(null);
       return message;
     } catch (error, stackTrace) {
@@ -326,7 +345,7 @@ class ChatActions extends _$ChatActions {
     bool deleteForEveryone = false,
   }) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       await service.deleteMessage(
@@ -334,7 +353,7 @@ class ChatActions extends _$ChatActions {
         messageId: messageId,
         deleteForEveryone: deleteForEveryone,
       );
-      
+
       state = const AsyncValue.data(null);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -344,13 +363,13 @@ class ChatActions extends _$ChatActions {
 
   Future<void> deleteConversation(String conversationId) async {
     state = const AsyncValue.loading();
-    
+
     try {
       final service = ref.read(firebaseChatServiceProvider);
       await service.deleteConversation(conversationId);
-      
+
       state = const AsyncValue.data(null);
-      
+
       // Invalidate conversations list
       ref.invalidate(userConversationsProvider);
     } catch (error, stackTrace) {
@@ -391,7 +410,10 @@ Future<int> activeConversationsCount(Ref ref) async {
 
 /// Get conversation by ID
 @riverpod
-Future<ChatConversation?> conversationById(Ref ref, String conversationId) async {
+Future<ChatConversation?> conversationById(
+  Ref ref,
+  String conversationId,
+) async {
   final conversationsAsync = ref.watch(userConversationsProvider);
   return conversationsAsync.when(
     data: (conversations) => conversations
@@ -405,7 +427,9 @@ Future<ChatConversation?> conversationById(Ref ref, String conversationId) async
 /// Get last message for conversation
 @riverpod
 Future<ChatMessage?> lastMessage(Ref ref, String conversationId) async {
-  final messagesAsync = ref.watch(conversationMessagesProvider(conversationId, limit: 1));
+  final messagesAsync = ref.watch(
+    conversationMessagesProvider(conversationId, limit: 1),
+  );
   return messagesAsync.when(
     data: (messages) => messages.isNotEmpty ? messages.first : null,
     loading: () => null,
@@ -423,37 +447,49 @@ Future<bool> hasUnreadMessages(Ref ref) async {
 /// Get conversation participants info
 @riverpod
 Future<List<Map<String, String>>> conversationParticipants(
-  Ref ref, 
+  Ref ref,
   String conversationId,
 ) async {
-  final conversation = await ref.watch(conversationByIdProvider(conversationId).future);
+  final conversation = await ref.watch(
+    conversationByIdProvider(conversationId).future,
+  );
   if (conversation == null) return [];
 
   return conversation.participantData.entries
-      .map((entry) => {
-            'id': entry.key,
-            'name': (entry.value['displayName'] as String?) ?? 'Unknown User',
-            'avatar': (entry.value['photoURL'] as String?) ?? '',
-            'username': (entry.value['username'] as String?) ?? '',
-          })
+      .map(
+        (entry) => {
+          'id': entry.key,
+          'name': (entry.value['displayName'] as String?) ?? 'Unknown User',
+          'avatar': (entry.value['photoURL'] as String?) ?? '',
+          'username': (entry.value['username'] as String?) ?? '',
+        },
+      )
       .toList();
 }
 
 /// Typing indicator text
 @riverpod
 Future<String> typingIndicatorText(Ref ref, String conversationId) async {
-  final typingUsers = await ref.watch(typingUsersProvider(conversationId).future);
-  final participants = await ref.watch(conversationParticipantsProvider(conversationId).future);
-  
+  final typingUsers = await ref.watch(
+    typingUsersProvider(conversationId).future,
+  );
+  final participants = await ref.watch(
+    conversationParticipantsProvider(conversationId).future,
+  );
+
   if (typingUsers.isEmpty) return '';
-  
+
   final typingNames = typingUsers
-      .map((userId) => participants
-          .firstWhere((p) => p['id'] == userId, orElse: () => {'name': 'Someone'})['name']!)
+      .map(
+        (userId) => participants.firstWhere(
+          (p) => p['id'] == userId,
+          orElse: () => {'name': 'Someone'},
+        )['name']!,
+      )
       .toList();
 
   if (typingNames.isEmpty) return '';
-  
+
   if (typingNames.length == 1) {
     return '${typingNames.first} is typing...';
   } else if (typingNames.length == 2) {
@@ -482,14 +518,16 @@ class MessageSearchResults extends _$MessageSearchResults {
     }
 
     state = const AsyncValue.loading();
-    
+
     try {
-      final results = await ref.read(searchMessagesProvider(
-        conversationId: conversationId,
-        query: query,
-        limit: limit,
-      ).future);
-      
+      final results = await ref.read(
+        searchMessagesProvider(
+          conversationId: conversationId,
+          query: query,
+          limit: limit,
+        ).future,
+      );
+
       state = AsyncValue.data(results);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);
@@ -512,7 +550,9 @@ class ConversationReadTracker extends _$ConversationReadTracker {
   void markConversationAsViewed(String conversationId) {
     // Auto-mark conversation as read after a short delay
     Future.delayed(const Duration(seconds: 1), () {
-      ref.read(chatActionsProvider.notifier).markConversationAsRead(conversationId);
+      ref
+          .read(chatActionsProvider.notifier)
+          .markConversationAsRead(conversationId);
     });
   }
 }

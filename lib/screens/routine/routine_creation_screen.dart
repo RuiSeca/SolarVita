@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../models/workout_routine.dart';
+import '../../models/exercise/workout_routine.dart';
 import '../../providers/routine_providers.dart';
 
 class RoutineCreationScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine? template;
 
-  const RoutineCreationScreen({
-    super.key,
-    this.template,
-  });
+  const RoutineCreationScreen({super.key, this.template});
 
   @override
-  ConsumerState<RoutineCreationScreen> createState() => _RoutineCreationScreenState();
+  ConsumerState<RoutineCreationScreen> createState() =>
+      _RoutineCreationScreenState();
 }
 
 class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
@@ -57,7 +55,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
         title: Text(
-          widget.template != null 
+          widget.template != null
               ? tr(context, 'use_template')
               : tr(context, 'create_routine'),
           style: TextStyle(
@@ -68,10 +66,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -104,20 +99,14 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
       decoration: BoxDecoration(
         color: AppTheme.primaryColor.withAlpha(26),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppTheme.primaryColor,
-        ),
+        border: Border.all(color: AppTheme.primaryColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.library_books,
-                color: AppTheme.primaryColor,
-                size: 20,
-              ),
+              Icon(Icons.library_books, color: AppTheme.primaryColor, size: 20),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'using_template'),
@@ -170,9 +159,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
           controller: _nameController,
           decoration: InputDecoration(
             hintText: tr(context, 'enter_routine_name'),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -181,10 +168,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppTheme.primaryColor,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
           ),
           validator: (value) {
@@ -218,9 +202,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
           value: _selectedCategory,
           decoration: InputDecoration(
             hintText: tr(context, 'select_category'),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -229,17 +211,11 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppTheme.primaryColor,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
           ),
           items: _categories.map((category) {
-            return DropdownMenuItem(
-              value: category,
-              child: Text(category),
-            );
+            return DropdownMenuItem(value: category, child: Text(category));
           }).toList(),
           onChanged: (value) {
             setState(() {
@@ -276,9 +252,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
           controller: _descriptionController,
           decoration: InputDecoration(
             hintText: tr(context, 'describe_routine'),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
@@ -287,10 +261,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(
-                color: AppTheme.primaryColor,
-                width: 2,
-              ),
+              borderSide: BorderSide(color: AppTheme.primaryColor, width: 2),
             ),
           ),
           maxLines: 3,
@@ -305,7 +276,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: _isLoading ? null : _createRoutine,
-        icon: _isLoading 
+        icon: _isLoading
             ? SizedBox(
                 width: 20,
                 height: 20,
@@ -318,7 +289,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
               )
             : const Icon(Icons.add),
         label: Text(
-          widget.template != null 
+          widget.template != null
               ? tr(context, 'create_from_template')
               : tr(context, 'create_routine'),
         ),
@@ -344,58 +315,59 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
 
     try {
       final service = ref.read(routineServiceProvider);
-      
+
       if (widget.template != null) {
         // Create from template
         await service.duplicateRoutine(
           widget.template!.id,
           _nameController.text.trim(),
         );
-        
+
         // Update the created routine with custom details if provided
         final manager = await service.loadRoutineManager();
         final createdRoutine = manager.routines.lastWhere(
           (r) => r.name == _nameController.text.trim(),
         );
-        
+
         final updatedRoutine = WorkoutRoutine(
           id: createdRoutine.id,
           name: _nameController.text.trim(),
           weeklyPlan: createdRoutine.weeklyPlan,
           createdAt: createdRoutine.createdAt,
           lastModified: DateTime.now(),
-          description: _descriptionController.text.trim().isEmpty 
-              ? null 
+          description: _descriptionController.text.trim().isEmpty
+              ? null
               : _descriptionController.text.trim(),
           category: _selectedCategory,
           isActive: false,
         );
-        
+
         await service.updateRoutine(updatedRoutine);
       } else {
         // Create new routine
         await service.createRoutine(_nameController.text.trim());
-        
+
         // Update with additional details if provided
-        if (_selectedCategory != null || _descriptionController.text.trim().isNotEmpty) {
+        if (_selectedCategory != null ||
+            _descriptionController.text.trim().isNotEmpty) {
           final manager = await service.loadRoutineManager();
           final createdRoutine = manager.routines.lastWhere(
             (r) => r.name == _nameController.text.trim(),
           );
-          
+
           final updatedRoutine = WorkoutRoutine(
             id: createdRoutine.id,
             name: createdRoutine.name,
             weeklyPlan: createdRoutine.weeklyPlan,
             createdAt: createdRoutine.createdAt,
             lastModified: DateTime.now(),
-            description: _descriptionController.text.trim().isEmpty 
-                ? null 
+            description: _descriptionController.text.trim().isEmpty
+                ? null
                 : _descriptionController.text.trim(),
             category: _selectedCategory,
             isActive: false,
           );
-          
+
           await service.updateRoutine(updatedRoutine);
         }
       }
@@ -413,10 +385,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
         );
       }
     }

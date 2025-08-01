@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/tribe.dart';
-import '../../services/tribe_service.dart';
+import '../../models/tribe/tribe.dart';
+import '../../services/database/tribe_service.dart';
 import 'create_tribe_screen.dart';
 import 'tribe_detail_screen.dart';
 
@@ -9,14 +9,15 @@ class TribeDiscoveryScreen extends ConsumerStatefulWidget {
   const TribeDiscoveryScreen({super.key});
 
   @override
-  ConsumerState<TribeDiscoveryScreen> createState() => _TribeDiscoveryScreenState();
+  ConsumerState<TribeDiscoveryScreen> createState() =>
+      _TribeDiscoveryScreenState();
 }
 
 class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
   final TribeService _tribeService = TribeService();
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _inviteCodeController = TextEditingController();
-  
+
   TribeCategory? _selectedCategory;
   String _searchQuery = '';
 
@@ -77,7 +78,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
 
   Future<void> _joinByInviteCode() async {
     final inviteCode = _inviteCodeController.text.trim().toUpperCase();
-    
+
     if (inviteCode.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -90,7 +91,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
 
     try {
       final tribe = await _tribeService.findTribeByInviteCode(inviteCode);
-      
+
       if (tribe == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -106,25 +107,20 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
       if (mounted) {
         Navigator.pop(context); // Close dialog
         _inviteCodeController.clear();
-        
+
         // Navigate to tribe detail screen with join option
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => TribeDetailScreen(
-              tribeId: tribe.id,
-              inviteCode: inviteCode,
-            ),
+            builder: (context) =>
+                TribeDetailScreen(tribeId: tribe.id, inviteCode: inviteCode),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -153,7 +149,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
@@ -175,7 +171,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   builder: (context) => const CreateTribeScreen(),
                 ),
               );
-              
+
               if (result != null && mounted) {
                 // Navigate to the newly created tribe
                 if (context.mounted) {
@@ -195,284 +191,298 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
       body: SafeArea(
         child: Column(
           children: [
-          // Search and Filter Section
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  theme.primaryColor.withValues(alpha: 0.05),
-                  theme.primaryColor.withValues(alpha: 0.02),
-                ],
-              ),
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.dividerColor.withValues(alpha: 0.1),
+            // Search and Filter Section
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    theme.primaryColor.withValues(alpha: 0.05),
+                    theme.primaryColor.withValues(alpha: 0.02),
+                  ],
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.dividerColor.withValues(alpha: 0.1),
+                  ),
                 ),
               ),
-            ),
-            child: Column(
-              children: [
-                // Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+              child: Column(
+                children: [
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.05),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TextFormField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search tribes by name or topic...',
+                        hintStyle: TextStyle(
+                          color: theme.hintColor.withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: theme.primaryColor.withValues(alpha: 0.7),
+                          size: 20,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear,
+                                  color: theme.hintColor,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  _onSearchChanged('');
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
-                    ],
+                      onChanged: _onSearchChanged,
+                    ),
                   ),
-                  child: TextFormField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: 'Search tribes by name or topic...',
-                      hintStyle: TextStyle(
-                        color: theme.hintColor.withValues(alpha: 0.6),
-                        fontSize: 14,
-                      ),
-                      prefixIcon: Icon(
-                        Icons.search,
-                        color: theme.primaryColor.withValues(alpha: 0.7),
-                        size: 20,
-                      ),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(
-                                Icons.clear,
-                                color: theme.hintColor,
-                                size: 20,
+
+                  const SizedBox(height: 12),
+
+                  // Category Filter
+                  SizedBox(
+                    height: 50,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        // All Categories Chip
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: const Text(
+                              'All',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                            selected: _selectedCategory == null,
+                            onSelected: (selected) {
+                              if (selected) {
+                                _onCategoryChanged(null);
+                              }
+                            },
+                            backgroundColor: Colors.white,
+                            selectedColor: theme.primaryColor.withValues(
+                              alpha: 0.15,
+                            ),
+                            checkmarkColor: theme.primaryColor,
+                            elevation: _selectedCategory == null ? 2 : 0,
+                            shadowColor: theme.primaryColor.withValues(
+                              alpha: 0.3,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              side: BorderSide(
+                                color: _selectedCategory == null
+                                    ? theme.primaryColor.withValues(alpha: 0.3)
+                                    : Colors.transparent,
+                                width: 1,
                               ),
-                              onPressed: () {
-                                _searchController.clear();
-                                _onSearchChanged('');
+                            ),
+                          ),
+                        ),
+
+                        // Category Chips
+                        ...TribeService.getAllCategories().map(
+                          (category) => Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilterChip(
+                              label: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    Tribe(
+                                      id: '',
+                                      name: '',
+                                      description: '',
+                                      creatorId: '',
+                                      creatorName: '',
+                                      category: category,
+                                      createdAt: DateTime.now(),
+                                    ).getCategoryIcon(),
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    TribeService.getCategoryDisplayName(
+                                      category,
+                                    ),
+                                    style: const TextStyle(fontSize: 11),
+                                  ),
+                                ],
+                              ),
+                              selected: _selectedCategory == category,
+                              onSelected: (selected) {
+                                _onCategoryChanged(selected ? category : null);
                               },
-                            )
-                          : null,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
+                              backgroundColor: Colors.white,
+                              selectedColor: theme.primaryColor.withValues(
+                                alpha: 0.15,
+                              ),
+                              checkmarkColor: theme.primaryColor,
+                              elevation: _selectedCategory == category ? 2 : 0,
+                              shadowColor: theme.primaryColor.withValues(
+                                alpha: 0.3,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                side: BorderSide(
+                                  color: _selectedCategory == category
+                                      ? theme.primaryColor.withValues(
+                                          alpha: 0.3,
+                                        )
+                                      : Colors.transparent,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    onChanged: _onSearchChanged,
                   ),
-                ),
-                
-                const SizedBox(height: 12),
-                
-                // Category Filter
-                SizedBox(
-                  height: 50,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      // All Categories Chip
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: const Text('All', style: TextStyle(fontSize: 12)),
-                          selected: _selectedCategory == null,
-                          onSelected: (selected) {
-                            if (selected) {
-                              _onCategoryChanged(null);
-                            }
-                          },
-                          backgroundColor: Colors.white,
-                          selectedColor: theme.primaryColor.withValues(alpha: 0.15),
-                          checkmarkColor: theme.primaryColor,
-                          elevation: _selectedCategory == null ? 2 : 0,
-                          shadowColor: theme.primaryColor.withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: _selectedCategory == null 
-                                  ? theme.primaryColor.withValues(alpha: 0.3)
-                                  : Colors.transparent,
-                              width: 1,
-                            ),
+
+                  // Active Filters Indicator
+                  if (_selectedCategory != null || _searchQuery.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filters applied',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.textTheme.bodySmall?.color,
                           ),
                         ),
-                      ),
-                      
-                      // Category Chips
-                      ...TribeService.getAllCategories().map((category) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                Tribe(
-                                  id: '', 
-                                  name: '', 
-                                  description: '', 
-                                  creatorId: '', 
-                                  creatorName: '',
-                                  category: category,
-                                  createdAt: DateTime.now(),
-                                ).getCategoryIcon(),
-                                style: const TextStyle(fontSize: 12),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                TribeService.getCategoryDisplayName(category),
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            ],
-                          ),
-                          selected: _selectedCategory == category,
-                          onSelected: (selected) {
-                            _onCategoryChanged(selected ? category : null);
-                          },
-                          backgroundColor: Colors.white,
-                          selectedColor: theme.primaryColor.withValues(alpha: 0.15),
-                          checkmarkColor: theme.primaryColor,
-                          elevation: _selectedCategory == category ? 2 : 0,
-                          shadowColor: theme.primaryColor.withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: _selectedCategory == category 
-                                  ? theme.primaryColor.withValues(alpha: 0.3)
-                                  : Colors.transparent,
-                              width: 1,
-                            ),
+                        TextButton(
+                          onPressed: _clearFilters,
+                          child: const Text(
+                            'Clear all',
+                            style: TextStyle(fontSize: 12),
                           ),
                         ),
-                      )),
-                    ],
-                  ),
-                ),
-                
-                // Active Filters Indicator
-                if (_selectedCategory != null || _searchQuery.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Filters applied',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _clearFilters,
-                        child: const Text(
-                          'Clear all',
-                          style: TextStyle(fontSize: 12),
-                        ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
+                  ],
                 ],
-              ],
-            ),
-          ),
-          
-          // Tribes List
-          Expanded(
-            child: StreamBuilder<List<Tribe>>(
-              stream: _tribeService.getPublicTribes(
-                category: _selectedCategory,
-                searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
               ),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: theme.textTheme.bodySmall?.color,
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Error loading tribes',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          snapshot.error.toString(),
-                          style: theme.textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                final tribes = snapshot.data ?? [];
-                
-                if (tribes.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '🏛️',
-                          style: const TextStyle(fontSize: 64),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isNotEmpty || _selectedCategory != null
-                              ? 'No tribes found'
-                              : 'No public tribes yet',
-                          style: theme.textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          _searchQuery.isNotEmpty || _selectedCategory != null
-                              ? 'Try adjusting your search or filters'
-                              : 'Be the first to create a tribe!',
-                          style: theme.textTheme.bodySmall,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const CreateTribeScreen(),
-                            ),
-                          ),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Create Tribe'),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: tribes.length,
-                  itemBuilder: (context, index) {
-                    final tribe = tribes[index];
-                    return _buildTribeCard(tribe);
-                  },
-                );
-              },
             ),
-          ),
-        ],
+
+            // Tribes List
+            Expanded(
+              child: StreamBuilder<List<Tribe>>(
+                stream: _tribeService.getPublicTribes(
+                  category: _selectedCategory,
+                  searchQuery: _searchQuery.isNotEmpty ? _searchQuery : null,
+                ),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: theme.textTheme.bodySmall?.color,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error loading tribes',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            snapshot.error.toString(),
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final tribes = snapshot.data ?? [];
+
+                  if (tribes.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('🏛️', style: const TextStyle(fontSize: 64)),
+                          const SizedBox(height: 16),
+                          Text(
+                            _searchQuery.isNotEmpty || _selectedCategory != null
+                                ? 'No tribes found'
+                                : 'No public tribes yet',
+                            style: theme.textTheme.titleMedium,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _searchQuery.isNotEmpty || _selectedCategory != null
+                                ? 'Try adjusting your search or filters'
+                                : 'Be the first to create a tribe!',
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CreateTribeScreen(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Create Tribe'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: tribes.length,
+                    itemBuilder: (context, index) {
+                      final tribe = tribes[index];
+                      return _buildTribeCard(tribe);
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -480,14 +490,12 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
 
   Widget _buildTribeCard(Tribe tribe) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 2,
       shadowColor: Colors.black.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () => Navigator.push(
           context,
@@ -541,9 +549,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       style: const TextStyle(fontSize: 22),
                     ),
                   ),
-                  
+
                   const SizedBox(width: 12),
-                  
+
                   // Tribe Name and Category
                   Expanded(
                     child: Column(
@@ -567,7 +575,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Visibility Badge
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -575,7 +583,7 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: tribe.isPublic 
+                      color: tribe.isPublic
                           ? Colors.green.withValues(alpha: 0.1)
                           : Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(4),
@@ -591,9 +599,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Description
               Text(
                 tribe.description,
@@ -601,9 +609,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Stats and Tags
               Row(
                 children: [
@@ -622,9 +630,9 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       ),
                     ],
                   ),
-                  
+
                   const SizedBox(width: 16),
-                  
+
                   // Location
                   if (tribe.location != null) ...[
                     Row(
@@ -635,16 +643,13 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                           color: theme.textTheme.bodySmall?.color,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          tribe.location!,
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        Text(tribe.location!, style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ],
-                  
+
                   const Spacer(),
-                  
+
                   // Join Button
                   Container(
                     decoration: BoxDecoration(
@@ -669,14 +674,18 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => TribeDetailScreen(tribeId: tribe.id),
+                          builder: (context) =>
+                              TribeDetailScreen(tribeId: tribe.id),
                         ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
                         shadowColor: Colors.transparent,
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
                         minimumSize: Size.zero,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -703,27 +712,35 @@ class _TribeDiscoveryScreenState extends ConsumerState<TribeDiscoveryScreen> {
                   ),
                 ],
               ),
-              
+
               // Tags
               if (tribe.tags.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 4,
                   runSpacing: 4,
-                  children: tribe.tags.take(3).map((tag) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: theme.primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '#$tag',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: theme.primaryColor,
-                      ),
-                    ),
-                  )).toList(),
+                  children: tribe.tags
+                      .take(3)
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.primaryColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '#$tag',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.primaryColor,
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
                 ),
               ],
             ],

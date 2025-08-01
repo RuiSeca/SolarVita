@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/rive_water_widget.dart';
-import '../../services/notification_service.dart';
+import '../../services/database/notification_service.dart';
 
 class WaterDetailScreen extends StatefulWidget {
   final double currentWaterIntake;
@@ -22,7 +22,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
   late double _waterIntake;
   double _dailyLimit = 2.0; // Default 2000ml = 2.0L
   bool _isLoading = false;
-  
+
   // Water reminder settings
   bool _remindersEnabled = false;
   String _reminderFrequency = '1'; // '1', '2', '3', or 'custom'
@@ -65,21 +65,21 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
     await prefs.setString('water_reminder_frequency', _reminderFrequency);
     await prefs.setInt('water_reminder_custom_hours', _customHours);
     await prefs.setInt('water_reminder_custom_minutes', _customMinutes);
-    
+
     // Schedule or cancel water reminders based on settings
     await _scheduleWaterReminders();
   }
 
   Future<void> _scheduleWaterReminders() async {
     final notificationService = NotificationService();
-    
+
     // Cancel existing water reminders
     await notificationService.cancelNotificationsByType('water_reminder');
-    
+
     if (!_remindersEnabled) {
       return; // Don't schedule if disabled
     }
-    
+
     try {
       // Calculate interval based on frequency setting
       Duration interval;
@@ -99,31 +99,31 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
         default:
           interval = const Duration(hours: 1);
       }
-      
+
       // Don't schedule if interval is 0
       if (interval.inMinutes == 0) {
         return;
       }
-      
+
       // Schedule multiple reminders throughout the day
       final now = DateTime.now();
       DateTime nextReminder = now.add(interval);
-      
+
       // Schedule up to 12 reminders for the day
       for (int i = 0; i < 12; i++) {
         if (nextReminder.day != now.day) {
           break; // Stop if we've moved to the next day
         }
-        
+
         await notificationService.scheduleWaterReminderAt(
           scheduledTime: nextReminder,
           title: '💧 Stay Hydrated!',
           body: 'Time for a glass of water. Your body will thank you!',
         );
-        
+
         nextReminder = nextReminder.add(interval);
       }
-      
+
       // Show confirmation
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,7 +133,9 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                 const Icon(Icons.check_circle, color: Colors.white),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Water reminders scheduled every ${_getIntervalText()}'),
+                  child: Text(
+                    'Water reminders scheduled every ${_getIntervalText()}',
+                  ),
                 ),
               ],
             ),
@@ -152,7 +154,9 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                 const Icon(Icons.error, color: Colors.white),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Text('Failed to schedule water reminders: ${e.toString()}'),
+                  child: Text(
+                    'Failed to schedule water reminders: ${e.toString()}',
+                  ),
                 ),
               ],
             ),
@@ -194,7 +198,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setDouble('water_intake', 0.0);
-    
+
     setState(() {
       _waterIntake = 0.0;
       _isLoading = false;
@@ -209,9 +213,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             children: [
               Icon(Icons.refresh, color: Colors.white),
               SizedBox(width: 8),
-              Expanded(
-                child: Text('Water intake reset to 0ml'),
-              ),
+              Expanded(child: Text('Water intake reset to 0ml')),
             ],
           ),
           backgroundColor: Colors.blue,
@@ -252,7 +254,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
       builder: (BuildContext context) {
         int tempHours = _customHours;
         int tempMinutes = _customMinutes;
-        
+
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
@@ -348,7 +350,8 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                                     ),
                                   );
                                 },
-                                childCount: 12, // 0-55 minutes in 5min increments
+                                childCount:
+                                    12, // 0-55 minutes in 5min increments
                               ),
                             ),
                           ),
@@ -375,9 +378,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                     _saveReminderSettings();
                     Navigator.of(context).pop();
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                  ),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                   child: const Text(
                     'Set',
                     style: TextStyle(color: Colors.white),
@@ -406,9 +407,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
           ),
           content: Text(
             'Are you sure you want to reset your water intake to 0ml?',
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-            ),
+            style: TextStyle(color: AppTheme.textColor(context)),
           ),
           actions: [
             TextButton(
@@ -423,13 +422,8 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                 Navigator.of(context).pop();
                 _resetWaterIntake();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-              child: const Text(
-                'Reset',
-                style: TextStyle(color: Colors.white),
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+              child: const Text('Reset', style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -449,10 +443,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: AppTheme.textColor(context),
-          ),
+          icon: Icon(Icons.arrow_back_ios, color: AppTheme.textColor(context)),
         ),
         title: Text(
           'Water Intake',
@@ -471,19 +462,19 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             // Hero Water Card
             _buildHeroWaterCard(waterPercentage, isGoalReached),
             const SizedBox(height: 24),
-            
+
             // Daily Limit Adjustment
             _buildDailyLimitCard(),
             const SizedBox(height: 24),
-            
+
             // Water Reminders
             _buildRemindersCard(),
             const SizedBox(height: 24),
-            
+
             // Reset Button
             _buildResetCard(),
             const SizedBox(height: 24),
-            
+
             // WHO Recommendation
             _buildWHORecommendationCard(),
           ],
@@ -501,10 +492,10 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            isGoalReached 
+            isGoalReached
                 ? Colors.green.withValues(alpha: 0.2)
                 : Colors.cyan.withValues(alpha: 0.2),
-            isGoalReached 
+            isGoalReached
                 ? Colors.green.withValues(alpha: 0.1)
                 : Colors.cyan.withValues(alpha: 0.1),
             Colors.white.withValues(alpha: 0.05),
@@ -514,7 +505,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isGoalReached 
+          color: isGoalReached
               ? Colors.green.withValues(alpha: 0.3)
               : Colors.cyan.withValues(alpha: 0.3),
           width: 1.5,
@@ -530,7 +521,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             isAnimating: false,
           ),
           const SizedBox(height: 20),
-          
+
           // Current Intake
           Text(
             '${(_waterIntake * 1000).toInt()}ml',
@@ -541,7 +532,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Progress Text
           Text(
             '${((_waterIntake / _dailyLimit) * 100).toInt()}% of daily goal',
@@ -552,17 +543,13 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // Goal Status
           if (isGoalReached) ...[
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 20,
-                ),
+                const Icon(Icons.check_circle, color: Colors.green, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'Daily goal completed! 🎉',
@@ -612,18 +599,20 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // Decrease Button
               IconButton(
-                onPressed: _dailyLimit > 2.0 ? () => _adjustWaterLimit(false) : null,
+                onPressed: _dailyLimit > 2.0
+                    ? () => _adjustWaterLimit(false)
+                    : null,
                 icon: const Icon(Icons.remove_circle_outline),
                 color: _dailyLimit > 2.0 ? Colors.red : Colors.grey,
                 iconSize: 32,
               ),
-              
+
               // Current Limit Display
               Column(
                 children: [
@@ -644,19 +633,21 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                   ),
                 ],
               ),
-              
+
               // Increase Button
               IconButton(
-                onPressed: _dailyLimit < 10.0 ? () => _adjustWaterLimit(true) : null,
+                onPressed: _dailyLimit < 10.0
+                    ? () => _adjustWaterLimit(true)
+                    : null,
                 icon: const Icon(Icons.add_circle_outline),
                 color: _dailyLimit < 10.0 ? Colors.green : Colors.grey,
                 iconSize: 32,
               ),
             ],
           ),
-          
+
           const SizedBox(height: 12),
-          
+
           // Range Info
           Text(
             'Range: 2,000ml - 10,000ml (adjusts by 250ml)',
@@ -705,7 +696,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           // Toggle Switch
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -725,7 +716,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               ),
             ],
           ),
-          
+
           if (_remindersEnabled) ...[
             const SizedBox(height: 20),
             Text(
@@ -737,7 +728,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            
+
             // Frequency Options
             Wrap(
               spacing: 8,
@@ -749,7 +740,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                 _buildFrequencyChip('custom', 'Custom'),
               ],
             ),
-            
+
             if (_reminderFrequency == 'custom') ...[
               const SizedBox(height: 16),
               GestureDetector(
@@ -784,10 +775,10 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                             _customHours == 0 && _customMinutes == 0
                                 ? 'Not set'
                                 : _customMinutes == 0
-                                    ? '${_customHours}h'
-                                    : _customHours == 0
-                                        ? '${_customMinutes}min'
-                                        : '${_customHours}h ${_customMinutes}min',
+                                ? '${_customHours}h'
+                                : _customHours == 0
+                                ? '${_customMinutes}min'
+                                : '${_customHours}h ${_customMinutes}min',
                             style: TextStyle(
                               color: Colors.blue,
                               fontSize: 16,
@@ -796,17 +787,13 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                           ),
                         ],
                       ),
-                      const Icon(
-                        Icons.edit,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
+                      const Icon(Icons.edit, color: Colors.blue, size: 20),
                     ],
                   ),
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(12),
@@ -820,17 +807,15 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.info_outline,
-                    color: Colors.green,
-                    size: 16,
-                  ),
+                  const Icon(Icons.info_outline, color: Colors.green, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'You\'ll receive notifications to drink water throughout the day',
                       style: TextStyle(
-                        color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                        color: AppTheme.textColor(
+                          context,
+                        ).withValues(alpha: 0.7),
                         fontSize: 12,
                       ),
                     ),
@@ -846,19 +831,17 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
 
   Widget _buildFrequencyChip(String value, String label) {
     final isSelected = _reminderFrequency == value;
-    
+
     return GestureDetector(
       onTap: () => _setReminderFrequency(value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected 
-              ? Colors.blue 
-              : Colors.transparent,
+          color: isSelected ? Colors.blue : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected 
-                ? Colors.blue 
+            color: isSelected
+                ? Colors.blue
                 : AppTheme.textColor(context).withValues(alpha: 0.3),
             width: 1,
           ),
@@ -866,9 +849,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected 
-                ? Colors.white 
-                : AppTheme.textColor(context),
+            color: isSelected ? Colors.white : AppTheme.textColor(context),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -901,7 +882,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           Text(
             'Reset your current water intake back to 0ml if needed.',
             style: TextStyle(
@@ -910,12 +891,12 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _showResetConfirmation,
-              icon: _isLoading 
+              icon: _isLoading
                   ? const SizedBox(
                       width: 16,
                       height: 16,
@@ -960,21 +941,14 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.blue.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
-                Icons.info_outline,
-                color: Colors.blue,
-                size: 24,
-              ),
+              const Icon(Icons.info_outline, color: Colors.blue, size: 24),
               const SizedBox(width: 12),
               Text(
                 'WHO Recommendation',
@@ -987,7 +961,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
-          
+
           Text(
             'The World Health Organization (WHO) generally recommends that adult men consume around 3.7 liters (15.5 cups) of fluids per day, and adult women around 2.7 liters (11.5 cups).',
             style: TextStyle(
@@ -997,7 +971,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -1010,11 +984,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
             ),
             child: Row(
               children: [
-                const Icon(
-                  Icons.schedule,
-                  color: Colors.amber,
-                  size: 16,
-                ),
+                const Icon(Icons.schedule, color: Colors.amber, size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(

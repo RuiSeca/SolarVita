@@ -1,18 +1,15 @@
 // lib/screens/exercise_history/exercise_detail_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/exercise_log.dart';
-import '../../services/exercise_tracking_service.dart';
+import '../../models/exercise/exercise_log.dart';
+import '../../services/exercises/exercise_tracking_service.dart';
 import '../../utils/translation_helper.dart';
 import 'log_exercise_screen.dart';
 
 class ExerciseDetailHistoryScreen extends StatelessWidget {
   final ExerciseLog log;
 
-  const ExerciseDetailHistoryScreen({
-    super.key,
-    required this.log,
-  });
+  const ExerciseDetailHistoryScreen({super.key, required this.log});
 
   @override
   Widget build(BuildContext context) {
@@ -109,8 +106,9 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
                           '${log.sets.length} ${tr(context, 'sets')}',
                           style: TextStyle(
                             fontSize: 14,
-                            color: theme.textTheme.bodyMedium?.color
-                                ?.withAlpha(179),
+                            color: theme.textTheme.bodyMedium?.color?.withAlpha(
+                              179,
+                            ),
                           ),
                         ),
                       ],
@@ -124,10 +122,7 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
             // Sets section
             Text(
               tr(context, 'sets'),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
 
@@ -197,44 +192,42 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
                     const Divider(),
 
                     // Set rows
-                    ...log.sets.map((set) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 50,
+                    ...log.sets.map(
+                      (set) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 50,
+                              child: Text(
+                                '${set.setNumber}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Expanded(child: Text('${set.weight} kg')),
+                            Expanded(child: Text('${set.reps}')),
+                            if (log.sets.any((s) => s.distance != null))
+                              Expanded(
                                 child: Text(
-                                  '${set.setNumber}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  set.distance != null
+                                      ? '${set.distance} km'
+                                      : '-',
                                 ),
                               ),
+                            if (log.sets.any((s) => s.duration != null))
                               Expanded(
-                                child: Text('${set.weight} kg'),
-                              ),
-                              Expanded(
-                                child: Text('${set.reps}'),
-                              ),
-                              if (log.sets.any((s) => s.distance != null))
-                                Expanded(
-                                  child: Text(
-                                    set.distance != null
-                                        ? '${set.distance} km'
-                                        : '-',
-                                  ),
+                                child: Text(
+                                  set.duration != null
+                                      ? _formatDuration(set.duration!)
+                                      : '-',
                                 ),
-                              if (log.sets.any((s) => s.duration != null))
-                                Expanded(
-                                  child: Text(
-                                    set.duration != null
-                                        ? _formatDuration(set.duration!)
-                                        : '-',
-                                  ),
-                                ),
-                            ],
-                          ),
-                        )),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -258,10 +251,7 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(
-                    log.notes,
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                  child: Text(log.notes, style: const TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 24),
@@ -270,10 +260,7 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
             // Stats section
             Text(
               tr(context, 'stats'),
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Card(
@@ -323,31 +310,21 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildStatRow(
-      BuildContext context, String label, String value, IconData icon) {
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: Theme.of(context).primaryColor,
-          ),
+          Icon(icon, size: 20, color: Theme.of(context).primaryColor),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 16,
-              ),
-            ),
-          ),
+          Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -387,9 +364,9 @@ class ExerciseDetailHistoryScreen extends StatelessWidget {
       final success = await service.deleteLog(log.id);
 
       if (success && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(tr(context, 'log_deleted'))),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(tr(context, 'log_deleted'))));
         Navigator.pop(context, true); // Refresh parent screen
       } else if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

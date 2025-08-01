@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
-import '../../models/user_profile.dart';
-import '../../services/user_profile_service.dart';
+import '../../models/user/user_profile.dart';
+import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import 'sustainability_preferences_screen.dart';
 
@@ -10,10 +10,12 @@ class WorkoutPreferencesScreen extends ConsumerStatefulWidget {
   const WorkoutPreferencesScreen({super.key});
 
   @override
-  ConsumerState<WorkoutPreferencesScreen> createState() => _WorkoutPreferencesScreenState();
+  ConsumerState<WorkoutPreferencesScreen> createState() =>
+      _WorkoutPreferencesScreenState();
 }
 
-class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScreen> {
+class _WorkoutPreferencesScreenState
+    extends ConsumerState<WorkoutPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   bool _isLoading = false;
 
@@ -114,16 +116,16 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'Let\'s personalize your workout experience',
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
         Text(
           'Tell us about your fitness preferences so we can recommend the best workouts for you.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Colors.grey[600],
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
         ),
       ],
     );
@@ -135,9 +137,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'What types of workouts do you enjoy?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -170,9 +172,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'How often do you want to work out per week?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Slider(
@@ -201,9 +203,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'How long do you prefer each workout session?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Slider(
@@ -232,9 +234,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'What\'s your current fitness level?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._fitnessLevelOptions.map((level) {
@@ -259,9 +261,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'What are your fitness goals?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         Wrap(
@@ -294,9 +296,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'Which days are you available to work out?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._availableDays.entries.map((entry) {
@@ -320,9 +322,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       children: [
         Text(
           'What time of day do you prefer to work out?',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
         ..._timeOptions.map((time) {
@@ -389,8 +391,10 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
 
       if (mounted) {
         // Update the provider with the latest profile
-        await ref.read(userProfileNotifierProvider.notifier).refreshUserProfile();
-        
+        await ref
+            .read(userProfileNotifierProvider.notifier)
+            .refreshUserProfile();
+
         // Check mounted again after async operation
         if (mounted) {
           Navigator.of(context).pushReplacement(
@@ -402,11 +406,9 @@ class _WorkoutPreferencesScreenState extends ConsumerState<WorkoutPreferencesScr
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error saving preferences: $e'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error saving preferences: $e')));
       }
     } finally {
       if (mounted) {

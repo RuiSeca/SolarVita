@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
-import '../../../models/privacy_settings.dart';
+import '../../../models/user/privacy_settings.dart';
 import 'supporter_meal_detail_screen.dart';
 
 class SupporterMealSharingWidget extends ConsumerWidget {
@@ -31,9 +31,10 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         child: Icon(Icons.restaurant, color: Colors.grey[500]),
       );
     }
-    
-    final isLocalFile = imagePath.startsWith('/') || imagePath.startsWith('file://');
-    
+
+    final isLocalFile =
+        imagePath.startsWith('/') || imagePath.startsWith('file://');
+
     if (isLocalFile) {
       final file = File(imagePath.replaceFirst('file://', ''));
       if (file.existsSync()) {
@@ -59,7 +60,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         );
       }
     }
-    
+
     return CachedNetworkImage(
       imageUrl: imagePath,
       width: 60,
@@ -105,11 +106,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.restaurant_menu,
-                color: Colors.orange,
-                size: 24,
-              ),
+              Icon(Icons.restaurant_menu, color: Colors.orange, size: 24),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -122,11 +119,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                 ),
               ),
               if (!privacySettings.showNutritionStats)
-                Icon(
-                  Icons.lock_outline,
-                  color: Colors.grey[500],
-                  size: 20,
-                ),
+                Icon(Icons.lock_outline, color: Colors.grey[500], size: 20),
             ],
           ),
           const SizedBox(height: 12),
@@ -150,7 +143,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
 
   bool _isEmptyMealPlan() {
     if (dailyMeals == null) return true;
-    
+
     for (final meals in dailyMeals!.values) {
       if (meals.isNotEmpty) return false;
     }
@@ -167,11 +160,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.local_dining,
-            color: Colors.grey[500],
-            size: 48,
-          ),
+          Icon(Icons.local_dining, color: Colors.grey[500], size: 48),
           const SizedBox(height: 12),
           Text(
             tr(context, 'meal_plan_shared_privately'),
@@ -184,10 +173,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             tr(context, 'supporter_keeps_meal_plan_private'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -205,11 +191,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.no_meals_outlined,
-            color: Colors.orange[600],
-            size: 48,
-          ),
+          Icon(Icons.no_meals_outlined, color: Colors.orange[600], size: 48),
           const SizedBox(height: 12),
           Text(
             tr(context, 'no_meals_added_today'),
@@ -222,10 +204,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             tr(context, 'supporter_hasnt_planned_meals'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.orange[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.orange[600]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -235,7 +214,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
 
   Widget _buildMealsList(BuildContext context) {
     final mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
-    
+
     return Column(
       children: mealTypes.map((mealType) {
         final meals = dailyMeals![mealType] ?? [];
@@ -245,9 +224,9 @@ class SupporterMealSharingWidget extends ConsumerWidget {
   }
 
   Widget _buildMealTypeSection(
-    BuildContext context, 
-    String mealType, 
-    List<Map<String, dynamic>> meals
+    BuildContext context,
+    String mealType,
+    List<Map<String, dynamic>> meals,
   ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -269,7 +248,10 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               const Spacer(),
               if (meals.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
@@ -304,10 +286,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Text(
                     _getNoMealPlannedText(context, mealType),
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                 ],
               ),
@@ -343,7 +322,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                 child: _buildImageWidget(meal['image'] ?? meal['imagePath']),
               ),
               const SizedBox(width: 12),
-              
+
               // Meal Info
               Expanded(
                 child: Column(
@@ -362,27 +341,27 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                     if (meal['calories'] != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        tr(context, 'calories_count').replaceAll('{calories}', meal['calories'].toString()),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        tr(
+                          context,
+                          'calories_count',
+                        ).replaceAll('{calories}', meal['calories'].toString()),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                     if (meal['servings'] != null) ...[
                       const SizedBox(height: 2),
                       Text(
-                        tr(context, 'serves').replaceAll('{servings}', meal['servings'].toString()),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        tr(
+                          context,
+                          'serves',
+                        ).replaceAll('{servings}', meal['servings'].toString()),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ],
                 ),
               ),
-              
+
               // Action Buttons
               Column(
                 children: [
@@ -462,9 +441,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SupporterMealDetailScreen(
-          meal: meal,
-        ),
+        builder: (context) => SupporterMealDetailScreen(meal: meal),
       ),
     );
   }
@@ -480,7 +457,10 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildAddToMealPlanDialog(BuildContext context, Map<String, dynamic> meal) {
+  Widget _buildAddToMealPlanDialog(
+    BuildContext context,
+    Map<String, dynamic> meal,
+  ) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -495,7 +475,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          
+
           Text(
             tr(context, 'add_to_my_meal_plan'),
             style: TextStyle(
@@ -507,14 +487,11 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(
             meal['name'] ?? tr(context, 'unnamed_meal'),
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
-          
+
           Text(
             tr(context, 'choose_meal_time'),
             style: TextStyle(
@@ -524,15 +501,27 @@ class SupporterMealSharingWidget extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 16),
-          
+
           Row(
             children: [
               Expanded(
-                child: _buildMealTimeButton(context, 'breakfast', tr(context, 'breakfast'), Icons.free_breakfast, meal),
+                child: _buildMealTimeButton(
+                  context,
+                  'breakfast',
+                  tr(context, 'breakfast'),
+                  Icons.free_breakfast,
+                  meal,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildMealTimeButton(context, 'lunch', tr(context, 'lunch'), Icons.lunch_dining, meal),
+                child: _buildMealTimeButton(
+                  context,
+                  'lunch',
+                  tr(context, 'lunch'),
+                  Icons.lunch_dining,
+                  meal,
+                ),
               ),
             ],
           ),
@@ -540,15 +529,27 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           Row(
             children: [
               Expanded(
-                child: _buildMealTimeButton(context, 'dinner', tr(context, 'dinner'), Icons.dinner_dining, meal),
+                child: _buildMealTimeButton(
+                  context,
+                  'dinner',
+                  tr(context, 'dinner'),
+                  Icons.dinner_dining,
+                  meal,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildMealTimeButton(context, 'snacks', tr(context, 'snacks'), Icons.cookie, meal),
+                child: _buildMealTimeButton(
+                  context,
+                  'snacks',
+                  tr(context, 'snacks'),
+                  Icons.cookie,
+                  meal,
+                ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 20),
         ],
       ),
@@ -580,11 +581,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            Icon(
-              icon,
-              color: AppColors.primary,
-              size: 24,
-            ),
+            Icon(icon, color: AppColors.primary, size: 24),
             const SizedBox(height: 8),
             Text(
               label,
@@ -600,20 +597,24 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     );
   }
 
-  void _showDaySelectionDialog(BuildContext context, Map<String, dynamic> meal, String mealType) {
+  void _showDaySelectionDialog(
+    BuildContext context,
+    Map<String, dynamic> meal,
+    String mealType,
+  ) {
     final List<String> weekDays = [
       tr(context, 'monday'),
-      tr(context, 'tuesday'), 
+      tr(context, 'tuesday'),
       tr(context, 'wednesday'),
       tr(context, 'thursday'),
       tr(context, 'friday'),
       tr(context, 'saturday'),
-      tr(context, 'sunday')
+      tr(context, 'sunday'),
     ];
-    
+
     final DateTime now = DateTime.now();
     final int todayIndex = now.weekday - 1; // Convert to 0-6 index
-    
+
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.cardColor(context),
@@ -639,7 +640,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               Text(
                 tr(context, 'choose_day'),
                 style: TextStyle(
@@ -650,17 +651,22 @@ class SupporterMealSharingWidget extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                tr(context, 'add_meal_to_day').replaceAll('{mealName}', meal['name'] ?? tr(context, 'unnamed_meal')).replaceAll('{mealType}', _getMealTypeTitle(context, mealType).toLowerCase()),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                tr(context, 'add_meal_to_day')
+                    .replaceAll(
+                      '{mealName}',
+                      meal['name'] ?? tr(context, 'unnamed_meal'),
+                    )
+                    .replaceAll(
+                      '{mealType}',
+                      _getMealTypeTitle(context, mealType).toLowerCase(),
+                    ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 16),
-              
+
               Expanded(
                 child: ListView.builder(
                   controller: scrollController,
@@ -668,7 +674,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final String dayName = weekDays[index];
                     final bool isToday = index == todayIndex;
-                    
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 6),
                       child: InkWell(
@@ -680,12 +686,12 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: isToday 
+                            color: isToday
                                 ? AppColors.primary.withValues(alpha: 0.1)
                                 : Colors.grey.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isToday 
+                              color: isToday
                                   ? AppColors.primary.withValues(alpha: 0.3)
                                   : Colors.grey.withValues(alpha: 0.2),
                               width: 1,
@@ -695,7 +701,9 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                             children: [
                               Icon(
                                 isToday ? Icons.today : Icons.calendar_today,
-                                color: isToday ? AppColors.primary : Colors.grey[600],
+                                color: isToday
+                                    ? AppColors.primary
+                                    : Colors.grey[600],
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -704,14 +712,21 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                                   dayName,
                                   style: TextStyle(
                                     fontSize: 16,
-                                    fontWeight: isToday ? FontWeight.w600 : FontWeight.w500,
-                                    color: isToday ? AppColors.primary : AppTheme.textColor(context),
+                                    fontWeight: isToday
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isToday
+                                        ? AppColors.primary
+                                        : AppTheme.textColor(context),
                                   ),
                                 ),
                               ),
                               if (isToday)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: AppColors.primary,
                                     borderRadius: BorderRadius.circular(8),
@@ -733,7 +748,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   },
                 ),
               ),
-              
+
               SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
             ],
           ),
@@ -742,7 +757,12 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     );
   }
 
-  Future<void> _addMealToMyPlan(BuildContext context, Map<String, dynamic> meal, String mealType, int dayIndex) async {
+  Future<void> _addMealToMyPlan(
+    BuildContext context,
+    Map<String, dynamic> meal,
+    String mealType,
+    int dayIndex,
+  ) async {
     // Get translations before async operations to avoid context issues
     final unnamedMealText = tr(context, 'unnamed_meal');
     final mondayText = tr(context, 'monday');
@@ -756,11 +776,14 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     final viewPlanText = tr(context, 'view_plan');
     final mealAlreadyInPlanText = tr(context, 'meal_already_in_plan');
     final failedToAddMealText = tr(context, 'failed_to_add_meal');
-    final mealTypeTitleLower = _getMealTypeTitle(context, mealType).toLowerCase();
-    
+    final mealTypeTitleLower = _getMealTypeTitle(
+      context,
+      mealType,
+    ).toLowerCase();
+
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Format the meal data consistently with meal plan screen
       final formattedMeal = {
         'id': meal['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -786,16 +809,16 @@ class SupporterMealSharingWidget extends ConsumerWidget {
         'category': meal['category'],
         'isVegan': meal['isVegan'] ?? false,
       };
-      
+
       // Load existing weekly meal data
       const String weeklyMealDataKey = 'weeklyMealData';
       Map<String, dynamic> weeklyData = {};
-      
+
       final savedData = prefs.getString(weeklyMealDataKey);
       if (savedData != null) {
         weeklyData = Map<String, dynamic>.from(json.decode(savedData));
       }
-      
+
       // Initialize day data if it doesn't exist
       if (!weeklyData.containsKey(dayIndex.toString())) {
         weeklyData[dayIndex.toString()] = {
@@ -805,37 +828,50 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           'snacks': [],
         };
       }
-      
+
       // Get the day's data
-      final dayData = Map<String, dynamic>.from(weeklyData[dayIndex.toString()]);
-      
+      final dayData = Map<String, dynamic>.from(
+        weeklyData[dayIndex.toString()],
+      );
+
       // Initialize meal type list if it doesn't exist
       if (!dayData.containsKey(mealType)) {
         dayData[mealType] = [];
       }
-      
+
       // Convert to list and check for duplicates
       final meals = List<Map<String, dynamic>>.from(dayData[mealType]);
       final mealId = formattedMeal['id']?.toString();
-      
+
       // Prevent duplicate meals
       if (!meals.any((m) => m['id']?.toString() == mealId)) {
         meals.add(formattedMeal);
         dayData[mealType] = meals;
         weeklyData[dayIndex.toString()] = dayData;
-        
+
         // Save back to SharedPreferences
         await prefs.setString(weeklyMealDataKey, json.encode(weeklyData));
-        
+
         final List<String> weekDays = [
-          mondayText, tuesdayText, wednesdayText, thursdayText, fridayText, saturdayText, sundayText
+          mondayText,
+          tuesdayText,
+          wednesdayText,
+          thursdayText,
+          fridayText,
+          saturdayText,
+          sundayText,
         ];
-        
+
         // Check if context is still mounted before using it
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(addedMealText.replaceAll('{mealName}', meal['name'] ?? unnamedMealText).replaceAll('{day}', weekDays[dayIndex]).replaceAll('{mealType}', mealTypeTitleLower)),
+              content: Text(
+                addedMealText
+                    .replaceAll('{mealName}', meal['name'] ?? unnamedMealText)
+                    .replaceAll('{day}', weekDays[dayIndex])
+                    .replaceAll('{mealType}', mealTypeTitleLower),
+              ),
               backgroundColor: Colors.green,
               action: SnackBarAction(
                 label: viewPlanText,
