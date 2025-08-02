@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/holographic_nutrition_pie.dart';
 
 class MealEditScreen extends StatefulWidget {
   final String? mealTitle;
@@ -71,6 +72,13 @@ class _MealEditScreenState extends State<MealEditScreen> {
     super.dispose();
   }
 
+  // Get current nutrition values for real-time pie chart updates
+  Map<String, dynamic> _getCurrentNutritionFacts() {
+    return _nutritionControllers.map(
+      (key, controller) => MapEntry(key, controller.text.isNotEmpty ? controller.text : '0'),
+    );
+  }
+
   void _saveMeal() {
     // Here you would save the meal data to your storage/backend
     final meal = {
@@ -90,6 +98,18 @@ class _MealEditScreenState extends State<MealEditScreen> {
           .toList(),
     };
     Navigator.pop(context, meal);
+  }
+
+  void _showHolographicNutritionModal() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) => HolographicNutritionModal(
+        nutritionFacts: _getCurrentNutritionFacts(),
+        onClose: () => Navigator.of(context).pop(),
+      ),
+    );
   }
 
   void _addIngredient() {
@@ -450,13 +470,29 @@ class _MealEditScreenState extends State<MealEditScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          tr(context, 'nutrition_facts'),
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              tr(context, 'nutrition_facts'),
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Real-time updating holographic pie chart trigger
+            StreamBuilder<void>(
+              stream: Stream.periodic(const Duration(milliseconds: 100)),
+              builder: (context, snapshot) {
+                return HolographicNutritionPie(
+                  nutritionFacts: _getCurrentNutritionFacts(),
+                  isCompact: true,
+                  onTap: _showHolographicNutritionModal,
+                );
+              },
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Wrap(

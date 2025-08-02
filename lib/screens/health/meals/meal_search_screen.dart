@@ -66,7 +66,17 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
   }
 
   void _scrollListener() {
-    // Scroll listener can be used for future pagination if needed
+    // Implement pagination when user scrolls near the bottom
+    if (_scrollController.position.pixels >= 
+        _scrollController.position.maxScrollExtent - 500) {
+      // Load more meals when user is 500 pixels from the bottom (earlier loading)
+      final hasMoreData = ref.read(hasMoreMealsDataProvider);
+      final isLoadingMore = ref.read(isLoadingMoreMealsProvider);
+      
+      if (hasMoreData && !isLoadingMore && mounted) {
+        ref.read(mealNotifierProvider.notifier).loadMoreMeals();
+      }
+    }
   }
 
   Future<void> _loadInitialData() async {
@@ -566,28 +576,50 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
             ),
           ),
           // Show loading indicator at bottom when loading more data
-          if (isLoading && meals.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: LottieLoadingWidget(),
+          Consumer(
+            builder: (context, ref, child) {
+              final isLoadingMore = ref.watch(isLoadingMoreMealsProvider);
+              final hasMoreData = ref.watch(hasMoreMealsDataProvider);
+              
+              if (isLoadingMore) {
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: LottieLoadingWidget(),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        tr(context, 'loading_more_meals'),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  Text(
-                    tr(context, 'loading_more_meals'),
+                );
+              } else if (meals.isNotEmpty && !hasMoreData) {
+                // Show "no more data" indicator
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    tr(context, 'no_more_meals'),
                     style: TextStyle(
-                      color: AppTheme.textColor(context),
+                      color: AppTheme.textColor(context).withAlpha(128),
                       fontSize: 12,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ],
-              ),
-            ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );
@@ -597,75 +629,27 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
     return GestureDetector(
       onTap: () async {
         try {
-          // Get the meal ID
-          final mealId = meal['id'] ?? meal['idMeal'] ?? '';
-
-          // Check if we have detailed data or just basic info
-          final hasDetailedData =
-              meal['ingredients'] != null &&
-              meal['ingredients'] is List &&
-              (meal['ingredients'] as List).isNotEmpty &&
-              meal['nutritionFacts'] != null &&
-              meal['nutritionFacts']['calories'] != 'Loading...';
-
-          Map<String, dynamic> formattedMeal;
-
-          if (!hasDetailedData && mealId.isNotEmpty) {
-            // Show loading indicator while fetching details
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (context) => Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
-            );
-
-            try {
-              // Fetch detailed meal data
-              final detailedMeal = await _mealService.getMealById(mealId);
-              if (mounted) {
-                Navigator.pop(context); // Close loading dialog
-              }
-
-              formattedMeal = detailedMeal;
-            } catch (e) {
-              if (mounted) {
-                Navigator.pop(context); // Close loading dialog
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Error loading meal details: ${e.toString()}',
-                    ),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-              return;
-            }
-          } else {
-            // Use existing data
-            formattedMeal = {
-              'id': meal['id'] ?? meal['idMeal'] ?? '',
-              'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
-              'imagePath': meal['imagePath'] ?? meal['strMealThumb'] ?? '',
-              'calories': meal['calories'] ?? 'Loading...',
-              'nutritionFacts':
-                  meal['nutritionFacts'] ??
-                  {
-                    'calories': 'Loading...',
-                    'protein': 'Loading...',
-                    'carbs': 'Loading...',
-                    'fat': 'Loading...',
-                  },
-              'ingredients': meal['ingredients'] ?? [],
-              'measures': meal['measures'] ?? [],
-              'instructions': meal['instructions'] ?? ['Loading...'],
-              'area': meal['area'] ?? meal['strArea'] ?? 'Unknown',
-              'category': meal['category'] ?? meal['strCategory'] ?? 'Unknown',
-              'isVegan': meal['isVegan'] ?? false,
-              'isFavorite': meal['isFavorite'] ?? false,
-            };
-          }
+          // All meals now have detailed data from API, so no need for complex detection
+          // Just use the meal data directly since it's already complete
+          Map<String, dynamic> formattedMeal = {
+            'id': meal['id'] ?? meal['idMeal'] ?? '',
+            'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
+            'imagePath': meal['imagePath'] ?? meal['strMealThumb'] ?? '',
+            'calories': meal['calories'] ?? '0 kcal',
+            'nutritionFacts': meal['nutritionFacts'] ?? {
+              'calories': '0',
+              'protein': '0g',
+              'carbs': '0g', 
+              'fat': '0g',
+            },
+            'ingredients': meal['ingredients'] ?? [],
+            'measures': meal['measures'] ?? [],
+            'instructions': meal['instructions'] ?? [],
+            'area': meal['area'] ?? meal['strArea'] ?? 'Unknown',
+            'category': meal['category'] ?? meal['strCategory'] ?? 'Unknown',
+            'isVegan': meal['isVegan'] ?? false,
+            'isFavorite': meal['isFavorite'] ?? false,
+          };
 
           if (!mounted) return;
 

@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../widgets/common/holographic_nutrition_pie.dart';
 
 class SupporterMealDetailScreen extends StatefulWidget {
   final Map<String, dynamic> meal;
@@ -294,16 +295,35 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       return const SizedBox.shrink();
     }
 
+    // Prepare nutrition facts for holographic pie chart
+    final nutritionFacts = {
+      'calories': meal['calories']?.toString() ?? '0',
+      'protein': nutrition['protein']?.toString().replaceAll('g', '') ?? '0',
+      'carbs': nutrition['carbs']?.toString().replaceAll('g', '') ?? '0',
+      'fat': nutrition['fat']?.toString().replaceAll('g', '') ?? '0',
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          tr(context, 'nutrition_facts'),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textColor(context),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              tr(context, 'nutrition_facts'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+            // Holographic pie chart trigger
+            HolographicNutritionPie(
+              nutritionFacts: nutritionFacts,
+              isCompact: true,
+              onTap: () => _showHolographicNutritionModal(context, nutritionFacts),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         
@@ -994,6 +1014,18 @@ class _SupporterMealDetailScreenState extends State<SupporterMealDetailScreen> {
       SnackBar(
         content: Text(tr(context, 'sharing_feature_coming_soon')),
         backgroundColor: AppColors.primary,
+      ),
+    );
+  }
+
+  void _showHolographicNutritionModal(BuildContext context, Map<String, dynamic> nutritionFacts) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) => HolographicNutritionModal(
+        nutritionFacts: nutritionFacts,
+        onClose: () => Navigator.of(context).pop(),
       ),
     );
   }

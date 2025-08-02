@@ -6,13 +6,30 @@ import '../../services/meal/recipe_service.dart';
 
 part 'meal_provider.g.dart';
 
+// Logging control - set to false to reduce verbosity
+class _MealProviderLogging {
+  static const bool _enableCacheLogging = false;
+  
+  static void logCache(String message) {
+    if (_enableCacheLogging) {
+      // Using debug print to avoid avoid_print lint warning
+      assert(() {
+        // ignore: avoid_print
+        print(message);
+        return true;
+      }());
+    }
+  }
+  
+}
+
 // Service provider
 @riverpod
 MealDBService mealService(Ref ref) {
   return MealDBService();
 }
 
-// Meal state class to hold the complete state
+// Meal state class to hold the complete state with pagination
 class MealState {
   final List<Map<String, dynamic>>? meals;
   final String? currentCategory;
@@ -21,6 +38,9 @@ class MealState {
   final String? errorDetails;
   final bool isLoading;
   final bool isLoadingDetails;
+  final bool isLoadingMore;
+  final int currentPage;
+  final bool hasMoreData;
 
   const MealState({
     this.meals,
@@ -30,6 +50,9 @@ class MealState {
     this.errorDetails,
     this.isLoading = false,
     this.isLoadingDetails = false,
+    this.isLoadingMore = false,
+    this.currentPage = 0,
+    this.hasMoreData = true,
   });
 
   MealState copyWith({
@@ -40,6 +63,9 @@ class MealState {
     String? errorDetails,
     bool? isLoading,
     bool? isLoadingDetails,
+    bool? isLoadingMore,
+    int? currentPage,
+    bool? hasMoreData,
   }) {
     return MealState(
       meals: meals ?? this.meals,
@@ -49,6 +75,9 @@ class MealState {
       errorDetails: errorDetails ?? this.errorDetails,
       isLoading: isLoading ?? this.isLoading,
       isLoadingDetails: isLoadingDetails ?? this.isLoadingDetails,
+      isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+      currentPage: currentPage ?? this.currentPage,
+      hasMoreData: hasMoreData ?? this.hasMoreData,
     );
   }
 
@@ -56,16 +85,23 @@ class MealState {
   bool get hasData => meals != null && meals!.isNotEmpty;
 }
 
+// Cache entry with timestamp for expiration
+class CacheEntry {
+  final List<Map<String, dynamic>> meals;
+  final DateTime timestamp;
+  
+  CacheEntry(this.meals, this.timestamp);
+  
+  bool get isExpired => DateTime.now().difference(timestamp) > const Duration(minutes: 30);
+}
+
 // Main meal provider using StateNotifier pattern
 @Riverpod(keepAlive: true)
 class MealNotifier extends _$MealNotifier {
-  // Cache to store previously loaded data
-  final Map<String, List<Map<String, dynamic>>> _cache = {};
-  // Track most recently used queries/categories
+  // Simplified cache for pagination
+  final Map<String, CacheEntry> _cache = {};
   final List<String> _recentKeys = [];
-  // Maximum number of searches to keep in cache
-  static const int _maxCacheSize =
-      15; // Increased cache size for better performance
+  static const int _maxCacheSize = 10; // Reduced cache size for pagination
 
   @override
   MealState build() {
@@ -90,7 +126,7 @@ class MealNotifier extends _$MealNotifier {
           final mealService = ref.read(mealServiceProvider);
           final meals = await mealService.getMealsByCategory(category);
           final cacheKey = 'category_$category';
-          _cache[cacheKey] = meals; // Cache ALL meals from each category
+          _cache[cacheKey] = CacheEntry(meals, DateTime.now()); // Cache ALL meals from each category
           _updateRecentKeys(cacheKey);
         } catch (e) {
           // Ignore errors during preloading
@@ -99,75 +135,78 @@ class MealNotifier extends _$MealNotifier {
     });
   }
 
-  Future<void> loadMealsByCategory(String category) async {
-    final normalizedCategory = category.trim().toLowerCase();
-    final cacheKey = 'category_$normalizedCategory';
+  Future<void> loadMealsByCategory(String category, {bool loadMore = false}) async {
+    // Normalize category for comparison but keep original case for API
+    final normalizedCategoryForComparison = category.trim().toLowerCase();
+    final apiCategory = category.trim(); // Keep original case for API
 
     // Prevent duplicate loading
-    if (state.isLoading) {
+    if (state.isLoading || (loadMore && state.isLoadingMore)) {
       return;
     }
 
-    // Check if we have this data in cache
-    if (_cache.containsKey(cacheKey)) {
+    // If loading more but no more data available
+    if (loadMore && !state.hasMoreData) {
+      return;
+    }
+
+    // If switching categories, reset pagination
+    if (!loadMore || state.currentCategory != normalizedCategoryForComparison) {
       state = state.copyWith(
-        currentCategory: normalizedCategory,
-        meals: _cache[cacheKey],
-        isLoading: false,
+        isLoading: true,
+        currentCategory: normalizedCategoryForComparison,
+        currentPage: 0,
+        meals: [],
+        hasMoreData: true,
         errorMessage: null,
         errorDetails: null,
       );
-      _updateRecentKeys(cacheKey);
-      return;
+    } else {
+      // Loading more data for same category
+      state = state.copyWith(isLoadingMore: true);
     }
-
-    // Skip if we're already loaded for this category
-    if (state.currentCategory == normalizedCategory && state.hasData) {
-      return;
-    }
-
-    // Set loading state
-    state = state.copyWith(
-      isLoading: true,
-      currentCategory: normalizedCategory,
-      errorMessage: null,
-      errorDetails: null,
-    );
 
     try {
       final mealService = ref.read(mealServiceProvider);
-      List<Map<String, dynamic>> meals;
+      final currentPage = loadMore ? state.currentPage + 1 : 0;
+      
+      List<Map<String, dynamic>> newMeals;
 
-      if (normalizedCategory == 'all') {
-        meals = await mealService.getAllMeals();
+      if (normalizedCategoryForComparison == 'all') {
+        // For 'all' category, we'll need to implement a different approach
+        // For now, fallback to original method for 'all'
+        newMeals = await mealService.getAllMeals();
       } else {
-        meals = await mealService.getMealsByCategory(normalizedCategory);
-      }
-
-      if (meals.isEmpty) {
-        state = state.copyWith(
-          isLoading: false,
-          errorMessage: 'No meals found',
-          errorDetails: 'No meals available for this category.',
+        // Use paginated method for specific categories with proper case
+        // Reduced initial limit for faster loading
+        final pageLimit = currentPage == 0 ? 4 : 8; // First page loads only 4 meals
+        newMeals = await mealService.getMealsByCategoryPaginated(
+          apiCategory, // Use original case for API
+          page: currentPage,
+          limit: pageLimit,
         );
-        return;
       }
 
-      // Update cache with new data
-      _cache[cacheKey] = meals;
-      _updateRecentKeys(cacheKey);
-      _manageCache();
+      // Check if we got fewer meals than requested (indicating no more data)
+      final expectedLimit = currentPage == 0 ? 4 : 8;
+      final hasMoreData = newMeals.length >= expectedLimit;
+
+      final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
+      final updatedMeals = [...currentMeals, ...newMeals];
 
       state = state.copyWith(
-        currentCategory: normalizedCategory,
-        meals: meals,
+        currentCategory: normalizedCategoryForComparison,
+        meals: updatedMeals,
+        currentPage: currentPage,
+        hasMoreData: hasMoreData,
         isLoading: false,
+        isLoadingMore: false,
         errorMessage: null,
         errorDetails: null,
       );
 
-      // Start loading detailed meal info in the background
-      _loadDetailedMealsInBackground(normalizedCategory, meals);
+      _MealProviderLogging.logCache('📊 Loaded page $currentPage: ${newMeals.length} meals for $normalizedCategoryForComparison. Total: ${updatedMeals.length}');
+
     } catch (e) {
       String errorMessage;
       String errorDetails;
@@ -179,90 +218,29 @@ class MealNotifier extends _$MealNotifier {
         errorMessage = 'Connection timeout';
         errorDetails =
             'The server is taking too long to respond. Please try again later.';
-      } else if (e.toString().contains('Failed to load meal details')) {
-        errorMessage = 'Data loading error';
-        errorDetails =
-            'Some meals in this category could not be loaded. Please try again later.';
-      } else if (e.toString().contains('Failed to load category meals')) {
-        errorMessage = 'Category error';
-        errorDetails =
-            'Unable to load meals for this category. The category might be temporarily unavailable.';
+      } else if (e.toString().contains('circuit breaker') || e.toString().contains('rate limit')) {
+        errorMessage = 'API rate limit reached';
+        errorDetails = 'Too many requests. API will recover automatically in 30 seconds.';
+        
+        // Reset rate limiting to help recovery
+        MealDBService.resetRateLimiting();
       } else {
         errorMessage = 'Unexpected error';
-        errorDetails =
-            'Something went wrong while loading meals. Please try again.';
+        errorDetails = 'Something went wrong while loading meals. Please try again.';
       }
 
       state = state.copyWith(
         isLoading: false,
-        meals: null,
+        isLoadingMore: false,
         errorMessage: errorMessage,
         errorDetails: errorDetails,
       );
     }
   }
 
-  // Load detailed meal information in the background
-  Future<void> _loadDetailedMealsInBackground(
-    String category,
-    List<Map<String, dynamic>> basicMeals,
-  ) async {
-    try {
-      // Only load details for basic meals
-      final basicMealIds = basicMeals
-          .where((meal) => meal['isBasicInfo'] == true)
-          .map((meal) => meal['idMeal'] ?? meal['id'])
-          .where((id) => id != null)
-          .toList();
 
-      if (basicMealIds.isEmpty) return;
-
-      // Set loading details state
-      state = state.copyWith(isLoadingDetails: true);
-
-      final mealService = ref.read(mealServiceProvider);
-      final detailedMeals = await mealService.getMealsByCategoryDetailed(
-        category,
-      );
-
-      // Only update if we're still on the same category
-      if (state.currentCategory == category && state.meals != null) {
-        // Merge detailed data with existing basic data
-        final updatedMeals = state.meals!.map((basicMeal) {
-          // Find corresponding detailed meal
-          final detailedMeal = detailedMeals.firstWhere(
-            (detailed) =>
-                detailed['id'] == (basicMeal['id'] ?? basicMeal['idMeal']),
-            orElse: () => <String, dynamic>{},
-          );
-
-          if (detailedMeal.isNotEmpty) {
-            // Replace basic meal with detailed meal data
-            return {
-              ...detailedMeal,
-              'isFavorite':
-                  basicMeal['isFavorite'] ?? false, // Preserve favorite status
-            };
-          }
-          return basicMeal; // Keep basic meal if no detailed version found
-        }).toList();
-
-        // Update state with detailed meals
-        state = state.copyWith(meals: updatedMeals, isLoadingDetails: false);
-
-        // Update cache with detailed meals
-        final cacheKey = 'category_${category.toLowerCase()}';
-        _cache[cacheKey] = updatedMeals;
-      }
-    } catch (e) {
-      // Just stop loading indicator, don't show error for background operation
-      state = state.copyWith(isLoadingDetails: false);
-    }
-  }
-
-  Future<void> searchMeals(String query) async {
+  Future<void> searchMeals(String query, {bool loadMore = false}) async {
     final normalizedQuery = query.trim().toLowerCase();
-    final cacheKey = 'search_$normalizedQuery';
 
     if (normalizedQuery.isEmpty) {
       // Load default meals
@@ -271,36 +249,50 @@ class MealNotifier extends _$MealNotifier {
     }
 
     // Prevent duplicate loading
-    if (state.isLoading) {
+    if (state.isLoading || (loadMore && state.isLoadingMore)) {
       return;
     }
 
-    // Check if we have this search in cache
-    if (_cache.containsKey(cacheKey)) {
+    // If loading more but no more data available
+    if (loadMore && !state.hasMoreData) {
+      return;
+    }
+
+    // If new search, reset pagination
+    if (!loadMore || state.currentQuery != normalizedQuery) {
       state = state.copyWith(
+        isLoading: true,
         currentQuery: normalizedQuery,
-        meals: _cache[cacheKey],
-        isLoading: false,
+        currentCategory: null, // Clear category when searching
+        currentPage: 0,
+        meals: [],
+        hasMoreData: true,
         errorMessage: null,
         errorDetails: null,
       );
-      _updateRecentKeys(cacheKey);
-      return;
+    } else {
+      // Loading more search results
+      state = state.copyWith(isLoadingMore: true);
     }
-
-    // Set loading state
-    state = state.copyWith(
-      isLoading: true,
-      currentQuery: normalizedQuery,
-      errorMessage: null,
-      errorDetails: null,
-    );
 
     try {
       final mealService = ref.read(mealServiceProvider);
-      final meals = await mealService.searchMeals(normalizedQuery);
+      final currentPage = loadMore ? state.currentPage + 1 : 0;
+      
+      // Use paginated search method
+      final newMeals = await mealService.searchMealsPaginated(
+        normalizedQuery,
+        page: currentPage,
+        limit: 8,
+      );
 
-      if (meals.isEmpty) {
+      // Check if we got fewer meals than requested (indicating no more data)
+      final hasMoreData = newMeals.length >= 8;
+
+      final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
+      final updatedMeals = [...currentMeals, ...newMeals];
+
+      if (updatedMeals.isEmpty && !loadMore) {
         state = state.copyWith(
           isLoading: false,
           errorMessage: 'No meals found',
@@ -309,18 +301,19 @@ class MealNotifier extends _$MealNotifier {
         return;
       }
 
-      // Update cache with new data
-      _cache[cacheKey] = meals;
-      _updateRecentKeys(cacheKey);
-      _manageCache();
-
       state = state.copyWith(
         currentQuery: normalizedQuery,
-        meals: meals,
+        meals: updatedMeals,
+        currentPage: currentPage,
+        hasMoreData: hasMoreData,
         isLoading: false,
+        isLoadingMore: false,
         errorMessage: null,
         errorDetails: null,
       );
+
+      _MealProviderLogging.logCache('🔍 Search page $currentPage: ${newMeals.length} results for "$normalizedQuery". Total: ${updatedMeals.length}');
+
     } catch (e) {
       String errorMessage;
       String errorDetails;
@@ -332,15 +325,20 @@ class MealNotifier extends _$MealNotifier {
         errorMessage = 'Connection timeout';
         errorDetails =
             'The server is taking too long to respond. Please try again later.';
+      } else if (e.toString().contains('circuit breaker') || e.toString().contains('rate limit')) {
+        errorMessage = 'API rate limit reached';
+        errorDetails = 'Too many requests. API will recover automatically in 30 seconds.';
+        
+        // Reset rate limiting to help recovery
+        MealDBService.resetRateLimiting();
       } else {
         errorMessage = 'Unexpected error';
-        errorDetails =
-            'Something went wrong while searching meals. Please try again.';
+        errorDetails = 'Something went wrong while searching meals. Please try again.';
       }
 
       state = state.copyWith(
         isLoading: false,
-        meals: null,
+        isLoadingMore: false,
         errorMessage: errorMessage,
         errorDetails: errorDetails,
       );
@@ -356,12 +354,14 @@ class MealNotifier extends _$MealNotifier {
     }
   }
 
-  // Manage the cache size by removing least recently used items
-  void _manageCache() {
-    if (_cache.length <= _maxCacheSize) return;
 
-    final keysToKeep = Set<String>.from(_recentKeys);
-    _cache.removeWhere((key, _) => !keysToKeep.contains(key));
+  // Load more meals (pagination)
+  Future<void> loadMoreMeals() async {
+    if (state.currentCategory != null) {
+      await loadMealsByCategory(state.currentCategory!, loadMore: true);
+    } else if (state.currentQuery != null) {
+      await searchMeals(state.currentQuery!, loadMore: true);
+    }
   }
 
   void clearMeals() {
@@ -395,17 +395,45 @@ class MealNotifier extends _$MealNotifier {
 
     // Update current state
     state = state.copyWith(meals: updatedMeals);
-
-    // Update cache as well
-    for (final entry in _cache.entries) {
-      final updatedCachedMeals = entry.value.map((meal) {
-        if (meal['id'] == mealId) {
-          return {...meal, 'isFavorite': isFavorite};
-        }
-        return meal;
-      }).toList();
-      _cache[entry.key] = updatedCachedMeals;
+    
+    // Update cache with new data
+    final cacheKey = _getCurrentCacheKey();
+    if (cacheKey != null) {
+      _cache[cacheKey] = CacheEntry(updatedMeals, DateTime.now());
     }
+  }
+
+  // Update complete meal data with detailed information from API
+  void updateMealData(String mealId, Map<String, dynamic> detailedMealData) {
+    if (state.meals == null) return;
+
+    final updatedMeals = state.meals!.map((meal) {
+      if (meal['id'] == mealId || meal['idMeal'] == mealId) {
+        // Preserve the favorite status from the current meal
+        final currentFavoriteStatus = meal['isFavorite'] ?? false;
+        return {...detailedMealData, 'isFavorite': currentFavoriteStatus};
+      }
+      return meal;
+    }).toList();
+
+    // Update current state
+    state = state.copyWith(meals: updatedMeals);
+
+    // Update cache with detailed meal data
+    final cacheKey = _getCurrentCacheKey();
+    if (cacheKey != null) {
+      _cache[cacheKey] = CacheEntry(updatedMeals, DateTime.now());
+    }
+  }
+
+  // Helper method to get current cache key
+  String? _getCurrentCacheKey() {
+    if (state.currentQuery != null) {
+      return 'search:${state.currentQuery}';
+    } else if (state.currentCategory != null) {
+      return 'category:${state.currentCategory}';
+    }
+    return null;
   }
 
   // Get cache info for debugging
@@ -467,4 +495,22 @@ bool hasMealsData(Ref ref) {
 bool isMealsLoadingDetails(Ref ref) {
   final mealState = ref.watch(mealNotifierProvider);
   return mealState.isLoadingDetails;
+}
+
+@riverpod
+bool isLoadingMoreMeals(Ref ref) {
+  final mealState = ref.watch(mealNotifierProvider);
+  return mealState.isLoadingMore;
+}
+
+@riverpod
+bool hasMoreMealsData(Ref ref) {
+  final mealState = ref.watch(mealNotifierProvider);
+  return mealState.hasMoreData;
+}
+
+@riverpod
+int currentMealPage(Ref ref) {
+  final mealState = ref.watch(mealNotifierProvider);
+  return mealState.currentPage;
 }

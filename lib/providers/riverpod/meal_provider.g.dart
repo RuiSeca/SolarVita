@@ -178,6 +178,61 @@ final isMealsLoadingDetailsProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef IsMealsLoadingDetailsRef = AutoDisposeProviderRef<bool>;
+
+String _$isLoadingMoreMealsHash() => r'c4d975af1be0ce33dddcbb3f4733f7f6c3ee883b';
+
+/// See also [isLoadingMoreMeals].
+@ProviderFor(isLoadingMoreMeals)
+final isLoadingMoreMealsProvider = AutoDisposeProvider<bool>.internal(
+  isLoadingMoreMeals,
+  name: r'isLoadingMoreMealsProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$isLoadingMoreMealsHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef IsLoadingMoreMealsRef = AutoDisposeProviderRef<bool>;
+
+String _$hasMoreMealsDataHash() => r'd4d975af1be0ce33dddcbb3f4733f7f6c3ee883b';
+
+/// See also [hasMoreMealsData].
+@ProviderFor(hasMoreMealsData)
+final hasMoreMealsDataProvider = AutoDisposeProvider<bool>.internal(
+  hasMoreMealsData,
+  name: r'hasMoreMealsDataProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$hasMoreMealsDataHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef HasMoreMealsDataRef = AutoDisposeProviderRef<bool>;
+
+String _$currentMealPageHash() => r'e4d975af1be0ce33dddcbb3f4733f7f6c3ee883b';
+
+/// See also [currentMealPage].
+@ProviderFor(currentMealPage)
+final currentMealPageProvider = AutoDisposeProvider<int>.internal(
+  currentMealPage,
+  name: r'currentMealPageProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$currentMealPageHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CurrentMealPageRef = AutoDisposeProviderRef<int>;
+
 String _$mealNotifierHash() => r'c3d975af1be0ce33dddcbb3f4733f7f6c3ee883b';
 
 /// See also [MealNotifier].

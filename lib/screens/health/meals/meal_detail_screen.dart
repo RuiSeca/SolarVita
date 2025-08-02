@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../utils/video_platform_helper.dart';
+import '../../../widgets/common/holographic_nutrition_pie.dart';
 import 'meal_edit_screen.dart';
 
 class MealDetailScreen extends StatefulWidget {
@@ -75,11 +78,23 @@ class MealDetailScreen extends StatefulWidget {
 class _MealDetailScreenState extends State<MealDetailScreen> {
   int _servings = 1;
   bool _isFavorite = false;
+  bool _showPerServing = true; // true = per serving, false = per meal
+  String _videoPlatform = 'youtube'; // Default to YouTube
 
   @override
   void initState() {
     super.initState();
     _isFavorite = widget.isFavorite;
+    _loadVideoPlatformPreference();
+  }
+
+  void _loadVideoPlatformPreference() async {
+    final platform = await VideoPlatformHelper.getPreferredVideoPlatform();
+    if (mounted) {
+      setState(() {
+        _videoPlatform = platform;
+      });
+    }
   }
 
   void _updateServings(int newServings) {
@@ -170,10 +185,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   _buildIngredientsSection(context),
                   const SizedBox(height: 24),
                   _buildInstructionsSection(context),
-                  if (widget.youtubeUrl != null) ...[
-                    const SizedBox(height: 24),
-                    _buildYoutubeButton(context),
-                  ],
+                  const SizedBox(height: 24),
+                  _buildYoutubeButton(context),
                   const SizedBox(height: 24),
                   _buildActionButtons(context),
                 ],
@@ -382,19 +395,122 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   Widget _buildNutritionSection(BuildContext context) {
-    final adjustedNutrition = widget.nutritionFacts.map(
-      (key, value) => MapEntry(key, _adjustNutritionForServings(value)),
-    );
+    // Get both per-meal and per-serving nutrition data
+    final perMealNutrition = {
+      'calories': widget.nutritionFacts['calories'] ?? '0',
+      'protein': widget.nutritionFacts['protein'] ?? '0g',
+      'carbs': widget.nutritionFacts['carbs'] ?? '0g',
+      'fat': widget.nutritionFacts['fat'] ?? '0g',
+    };
+    
+    final perServingNutrition = {
+      'calories': widget.nutritionFacts['caloriesPerServing'] ?? '0',
+      'protein': widget.nutritionFacts['proteinPerServing'] ?? '0g',
+      'carbs': widget.nutritionFacts['carbsPerServing'] ?? '0g',
+      'fat': widget.nutritionFacts['fatPerServing'] ?? '0g',
+    };
+    
+    final servings = widget.nutritionFacts['servings'] ?? _servings;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          tr(context, 'nutrition_facts'),
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              tr(context, 'nutrition_facts'),
+              style: TextStyle(
+                color: AppTheme.textColor(context),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // Holographic pie chart trigger
+            HolographicNutritionPie(
+              nutritionFacts: _showPerServing ? perServingNutrition : perMealNutrition,
+              isCompact: true,
+              onTap: () => _showHolographicNutritionModal(context, _showPerServing ? perServingNutrition : perMealNutrition),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        // Toggle controls
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _showPerServing = true),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _showPerServing ? AppColors.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Per Serving',
+                        style: TextStyle(
+                          color: _showPerServing ? Colors.white : AppTheme.textColor(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => setState(() => _showPerServing = false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: !_showPerServing ? AppColors.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Per Meal',
+                        style: TextStyle(
+                          color: !_showPerServing ? Colors.white : AppTheme.textColor(context),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        // Servings info
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor(context).withAlpha(128),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.restaurant, size: 16, color: AppTheme.textColor(context).withAlpha(179)),
+              const SizedBox(width: 8),
+              Text(
+                _showPerServing ? 'Per 1 serving of $servings total' : 'Whole meal ($servings servings)',
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withAlpha(179),
+                  fontSize: 13,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 16),
@@ -405,7 +521,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
-            children: adjustedNutrition.entries.map((entry) {
+            children: (_showPerServing ? perServingNutrition : perMealNutrition).entries.map((entry) {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
@@ -436,36 +552,6 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     );
   }
 
-  String _adjustNutritionForServings(String value) {
-    // Handle pure numbers (like "50" for calories)
-    final numberOnlyRegex = RegExp(r'^(\d+(?:\.\d+)?)$');
-    final numberOnlyMatch = numberOnlyRegex.firstMatch(value);
-    
-    if (numberOnlyMatch != null) {
-      final number = double.parse(numberOnlyMatch.group(1)!);
-      final adjustedNumber = number * _servings;
-      // Return as integer if it's a whole number, otherwise with decimals
-      return adjustedNumber == adjustedNumber.toInt() 
-          ? adjustedNumber.toInt().toString()
-          : adjustedNumber.toStringAsFixed(1);
-    }
-    
-    // Handle numbers with units (like "50g" for protein)
-    final regex = RegExp(r'(\d+(?:\.\d+)?)\s*(\w+)');
-    final match = regex.firstMatch(value);
-
-    if (match != null) {
-      final number = double.parse(match.group(1)!);
-      final unit = match.group(2);
-      final adjustedNumber = number * _servings;
-      // Return as integer if it's a whole number, otherwise with decimals
-      final formattedNumber = adjustedNumber == adjustedNumber.toInt() 
-          ? adjustedNumber.toInt().toString()
-          : adjustedNumber.toStringAsFixed(1);
-      return '$formattedNumber$unit';
-    }
-    return value;
-  }
 
   Widget _buildIngredientsSection(BuildContext context) {
     return Column(
@@ -505,21 +591,52 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      widget.ingredients[index],
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 16,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.ingredients[index],
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (_getIngredientCalories(index) != null && _getIngredientCalories(index)! > 5) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_getIngredientCalories(index)} cal',
+                            style: TextStyle(
+                              color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  Text(
-                    _adjustMeasure(widget.measures[index]),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        _getAdjustedMeasure(index),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      if (_shouldShowGrams(widget.measures[index])) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '(~${_getIngredientGrams(index)}g)',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ),
@@ -611,37 +728,149 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   Widget _buildYoutubeButton(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        // Handle YouTube URL opening
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.red,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
+    return Column(
+      children: [
+        // Platform toggle row
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.play_circle_fill,
-              color: Colors.white,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              tr(context, 'watch_video'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
+            Container(
+              decoration: BoxDecoration(
+                color: AppTheme.cardColor(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () async {
+                      setState(() {
+                        _videoPlatform = 'youtube';
+                      });
+                      await VideoPlatformHelper.setPreferredVideoPlatform('youtube');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _videoPlatform == 'youtube' ? const Color(0xFFFF0000) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'YouTube',
+                        style: TextStyle(
+                          color: _videoPlatform == 'youtube' ? Colors.white : AppTheme.textColor(context),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () async {
+                      setState(() {
+                        _videoPlatform = 'google';
+                      });
+                      await VideoPlatformHelper.setPreferredVideoPlatform('google');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _videoPlatform == 'google' ? AppColors.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Text(
+                        'Google Videos',
+                        style: TextStyle(
+                          color: _videoPlatform == 'google' ? Colors.white : AppTheme.textColor(context),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 12),
+        // Main video button
+        InkWell(
+          onTap: () async {
+            // Capture context before async operation
+            final scaffoldMessenger = ScaffoldMessenger.of(context);
+            
+            // Use the specific platform URL based on current selection
+            String url;
+            if (_videoPlatform == 'google') {
+              url = VideoPlatformHelper.getGoogleVideosSearchURL(widget.mealTitle);
+            } else {
+              url = VideoPlatformHelper.getYouTubeSearchURL(widget.mealTitle);
+            }
+            
+            final uri = Uri.parse(url);
+            final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+            
+            if (!success && mounted) {
+              scaffoldMessenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Unable to open video search'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              // Dynamic color based on platform
+              color: _videoPlatform == 'youtube' ? const Color(0xFFFF0000) : AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(26),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Platform-specific icon
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    _videoPlatform == 'youtube' ? Icons.play_arrow : Icons.video_library,
+                    color: _videoPlatform == 'youtube' ? const Color(0xFFFF0000) : AppColors.primary,
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  _videoPlatform == 'youtube' 
+                      ? tr(context, 'watch_on_youtube')
+                      : 'Watch on ${VideoPlatformHelper.getPlatformDisplayName(_videoPlatform)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -859,5 +1088,122 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
         ),
       ),
     );
+  }
+
+  void _showHolographicNutritionModal(BuildContext context, Map<String, dynamic> nutritionFacts) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      builder: (context) => HolographicNutritionModal(
+        nutritionFacts: nutritionFacts,
+        onClose: () => Navigator.of(context).pop(),
+      ),
+    );
+  }
+
+  // Helper methods to get ingredient nutrition data
+  int? _getIngredientCalories(int index) {
+    final breakdown = widget.nutritionFacts['ingredientBreakdown'];
+    if (breakdown != null && breakdown is List && index < breakdown.length) {
+      final perMealCalories = breakdown[index]['calories'] as int?;
+      if (perMealCalories == null) return null;
+      
+      // If showing per-serving, divide by servings
+      if (_showPerServing) {
+        final servings = widget.nutritionFacts['servings'] ?? _servings;
+        return (perMealCalories / servings).round();
+      }
+      
+      return perMealCalories; // Per meal calories
+    }
+    return null;
+  }
+
+
+  int? _getIngredientGrams(int index) {
+    final breakdown = widget.nutritionFacts['ingredientBreakdown'];
+    if (breakdown != null && breakdown is List && index < breakdown.length) {
+      final perMealGrams = breakdown[index]['grams'] as int?;
+      if (perMealGrams == null) return null;
+      
+      // If showing per-serving, divide by servings
+      if (_showPerServing) {
+        final servings = widget.nutritionFacts['servings'] ?? _servings;
+        return (perMealGrams / servings).round();
+      }
+      
+      return perMealGrams; // Per meal grams  
+    }
+    return null;
+  }
+
+  // Determine when showing grams is helpful vs confusing
+  bool _shouldShowGrams(String measure) {
+    final measureLower = measure.toLowerCase();
+    
+    // Don't show grams for measurements that are already intuitive
+    if (measureLower.contains('tbsp') || measureLower.contains('tablespoon') ||
+        measureLower.contains('tsp') || measureLower.contains('teaspoon') ||
+        measureLower.contains('pinch') || measureLower.contains('dash') ||
+        measureLower.contains('clove') || measureLower.contains('handful') ||
+        measureLower.contains('leaves') || measureLower.contains('garnish') ||
+        measureLower.contains('to taste')) {
+      return false; // These are better left as original measurements
+    }
+    
+    // Don't show grams for items already in grams/kg
+    if (measureLower.contains('g ') || measureLower.contains('gram') ||
+        measureLower.contains('kg') || measureLower.contains('kilogram')) {
+      return false;
+    }
+    
+    // Show grams for volume measurements and vague quantities
+    if (measureLower.contains('cup') || measureLower.contains('ml') ||
+        measureLower.contains('large') || measureLower.contains('medium') ||
+        measureLower.contains('small') || measureLower.contains('lb') ||
+        measureLower.contains('oz') || measureLower.contains('skinned') ||
+        RegExp(r'^\d+\s*$').hasMatch(measure.trim())) { // Just numbers
+      return true;
+    }
+    
+    return false; // Default to not showing grams
+  }
+
+  // Get measure adjusted for per-serving vs per-meal display
+  String _getAdjustedMeasure(int index) {
+    final originalMeasure = _adjustMeasure(widget.measures[index]);
+    
+    // If showing per-serving, adjust the measure
+    if (_showPerServing) {
+      final servings = widget.nutritionFacts['servings'] ?? _servings;
+      return _adjustMeasureForServings(originalMeasure, servings);
+    }
+    
+    return originalMeasure; // Per meal measure
+  }
+
+  // Adjust measure quantities for per-serving display
+  String _adjustMeasureForServings(String measure, int servings) {
+    if (servings <= 1) return measure;
+    
+    // Extract number from measure
+    final regex = RegExp(r'(\d+(?:\.\d+)?)\s*(.*)');
+    final match = regex.firstMatch(measure);
+    
+    if (match != null) {
+      final number = double.parse(match.group(1)!);
+      final unit = match.group(2)!;
+      final adjustedNumber = number / servings;
+      
+      // Format nicely
+      final formattedNumber = adjustedNumber == adjustedNumber.toInt() 
+          ? adjustedNumber.toInt().toString()
+          : adjustedNumber.toStringAsFixed(1);
+      
+      return '$formattedNumber $unit';
+    }
+    
+    return measure; // Return original if can't parse
   }
 }

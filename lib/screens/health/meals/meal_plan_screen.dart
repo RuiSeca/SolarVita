@@ -228,8 +228,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       final previousMeals = previousDayMeals[mealTime] ?? [];
       final currentMeals = _mealData[mealTime] ?? [];
 
-      // Only suggest if the current meal time slot is completely empty
-      if (currentMeals.isEmpty) {
+      // Filter out suggested meals to get only regular meals
+      final regularCurrentMeals = currentMeals.where((meal) => meal['isSuggested'] != true).toList();
+
+      // Suggest meals if current meal time slot has no regular meals AND previous day has meals
+      if (regularCurrentMeals.isEmpty && previousMeals.isNotEmpty) {
         for (final meal in previousMeals) {
           final suggestedMeal = Map<String, dynamic>.from(meal);
           suggestedMeal['isSuggested'] = true;
@@ -278,20 +281,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     _saveMealData();
   }
 
-  // Check if current day has any regular (non-suggested) meals
-  bool _hasRegularMeals() {
-    for (final mealList in _mealData.values) {
-      if (mealList.any((meal) => meal['isSuggested'] != true)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   // Check if a meal can be added to a specific meal time slot
   bool _canAddMealToSlot(String mealTime) {
     final meals = _mealData[mealTime] ?? [];
-    return meals.isEmpty;
+    // Only check for regular meals, ignore suggested meals
+    return !meals.any((meal) => meal['isSuggested'] != true);
   }
 
   // Show conflict message when trying to add meal to occupied slot
@@ -344,17 +339,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               _weeklyMealData[_selectedDayIndex] ??
               {'breakfast': [], 'lunch': [], 'dinner': [], 'snacks': []};
 
-          // Check if the current day has no regular meals and add suggestions
-          if (!_hasRegularMeals()) {
-            final suggestedMeals = _getSuggestedMealsFromPreviousDay(
-              _selectedDayIndex,
-            );
+          // Add suggestions for each meal slot independently
+          final suggestedMeals = _getSuggestedMealsFromPreviousDay(
+            _selectedDayIndex,
+          );
 
-            // Add suggested meals to current day data
-            for (final mealTime in _mealTimes) {
-              final suggestions = suggestedMeals[mealTime] ?? [];
-              _mealData[mealTime]!.addAll(suggestions);
-            }
+          // Add suggested meals to current day data for each empty slot
+          for (final mealTime in _mealTimes) {
+            final suggestions = suggestedMeals[mealTime] ?? [];
+            _mealData[mealTime]!.addAll(suggestions);
           }
         });
       }
@@ -520,6 +513,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       if (!_mealData.containsKey(mealTime)) {
         _mealData[mealTime] = [];
       }
+      
+      // Remove any suggested meals from this slot when adding a regular meal
+      _mealData[mealTime]!.removeWhere((meal) => meal['isSuggested'] == true);
+      
       // Prevent duplicate meals
       if (!_mealData[mealTime]!.any(
         (m) => m['id']?.toString() == formattedMeal['id']?.toString(),
@@ -974,17 +971,15 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     _weeklyMealData[index] ??
                     {'breakfast': [], 'lunch': [], 'dinner': [], 'snacks': []};
 
-                // Check if the selected day has no regular meals and add suggestions
-                if (!_hasRegularMeals()) {
-                  final suggestedMeals = _getSuggestedMealsFromPreviousDay(
-                    index,
-                  );
+                // Add suggestions for each meal slot independently
+                final suggestedMeals = _getSuggestedMealsFromPreviousDay(
+                  index,
+                );
 
-                  // Add suggested meals to current day data
-                  for (final mealTime in _mealTimes) {
-                    final suggestions = suggestedMeals[mealTime] ?? [];
-                    _mealData[mealTime]!.addAll(suggestions);
-                  }
+                // Add suggested meals to current day data for each empty slot
+                for (final mealTime in _mealTimes) {
+                  final suggestions = suggestedMeals[mealTime] ?? [];
+                  _mealData[mealTime]!.addAll(suggestions);
                 }
               });
               _saveMealData();

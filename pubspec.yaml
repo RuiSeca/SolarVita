@@ -101,6 +101,7 @@ flutter:
 
     # ==========
     # Feature Images
+    - assets/images/yt_logo.png
 
     # Dashboard and Auth Images
     - assets/images/google_logo.jpg
