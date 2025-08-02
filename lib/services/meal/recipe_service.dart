@@ -28,19 +28,19 @@ class MealDBService {
 
   // Enhanced rate limiting variables with circuit breaker
   static DateTime _lastRequestTime = DateTime.now();
-  static int _minRequestInterval = 300; // More conservative 300ms to avoid rate limits
+  static int _minRequestInterval = 100; // Optimized 100ms for faster loading
   static final List<Completer<void>> _requestQueue = [];
   static bool _isProcessingQueue = false;
   static int _consecutiveFailures = 0;
   static DateTime? _circuitBreakerOpenedAt;
   static const int _maxConsecutiveFailures = 3;
-  static const Duration _circuitBreakerTimeout = Duration(seconds: 30); // Much faster recovery
+  static const Duration _circuitBreakerTimeout = Duration(seconds: 15); // Ultra fast recovery for better UX
 
   // Method to manually reset rate limiting (useful for search)
   static void resetRateLimiting() {
     _circuitBreakerOpenedAt = null;
     _consecutiveFailures = 0;
-    _minRequestInterval = 300;
+    _minRequestInterval = 100;
     
     // Clear any pending requests safely
     for (final completer in _requestQueue) {
@@ -65,7 +65,7 @@ class MealDBService {
         // Reset circuit breaker
         _circuitBreakerOpenedAt = null;
         _consecutiveFailures = 0;
-        _minRequestInterval = 300; // Reset to base interval
+        _minRequestInterval = 100; // Reset to base interval
         _logRateLimit('Circuit breaker reset - API requests resumed');
       }
     }
@@ -184,7 +184,7 @@ class MealDBService {
         
         if (retryCount < maxRetries) {
           // Increase minimum interval for future requests (exponential backoff)
-          _minRequestInterval = (_minRequestInterval * 1.5).round().clamp(300, 2000);
+          _minRequestInterval = (_minRequestInterval * 1.5).round().clamp(100, 1000);
           _logRateLimit('Increased request interval to ${_minRequestInterval}ms');
           
           final backoffDelay = Duration(
@@ -200,8 +200,8 @@ class MealDBService {
       // Success - reset failure counter and gradually reduce interval
       if (response.statusCode == 200) {
         _consecutiveFailures = 0;
-        if (_minRequestInterval > 500) {
-          _minRequestInterval = (_minRequestInterval * 0.95).round().clamp(300, 2000);
+        if (_minRequestInterval > 200) {
+          _minRequestInterval = (_minRequestInterval * 0.95).round().clamp(100, 1000);
           _logRateLimit('Reduced request interval to ${_minRequestInterval}ms');
         }
       }
@@ -263,12 +263,12 @@ class MealDBService {
       if (data['meals'] != null) {
         final mealList = data['meals'] as List;
         
-        // Calculate pagination
+        // Calculate pagination for search results
         final startIndex = page * limit;
         final endIndex = math.min(startIndex + limit, mealList.length);
         
         if (startIndex >= mealList.length) {
-          return []; // No more meals
+          return []; // No more relevant search results for this query
         }
         
         // Get only the requested page of meals
@@ -276,27 +276,44 @@ class MealDBService {
         
         _logDetailed('Search page $page: meals ${startIndex + 1}-$endIndex of ${mealList.length} for query: "$query"');
         
-        final meals = <Map<String, dynamic>>[];
-        
-        // Process search results with faster loading since they already have more data
-        for (int i = 0; i < paginatedMeals.length; i++) {
-          final meal = paginatedMeals[i];
-          try {
-            final formattedMeal = await _formatMealData(meal);
-            meals.add(formattedMeal);
-            _logDetailed('Loaded search result: ${formattedMeal['titleKey']}');
+        // Process search results in parallel with relevance filtering
+        List<Future<Map<String, dynamic>?>> searchFutures = paginatedMeals.map((meal) {
+          return _formatMealData(meal).then((formattedMeal) {
+            // Check if the result is actually relevant to the search query
+            final mealTitle = formattedMeal['titleKey']?.toString() ?? '';
+            final category = formattedMeal['category']?.toString() ?? '';
+            final area = formattedMeal['area']?.toString() ?? '';
             
-            // Minimal delay for search since data is already detailed
-            if (i < paginatedMeals.length - 1) {
-              await Future.delayed(Duration(milliseconds: 200));
+            // Comprehensive relevance check - meal should contain the search term in key fields
+            final queryLower = query.toLowerCase();
+            final ingredients = (formattedMeal['ingredients'] as List?)?.join(' ').toLowerCase() ?? '';
+            
+            final isRelevant = mealTitle.toLowerCase().contains(queryLower) ||
+                              category.toLowerCase().contains(queryLower) ||
+                              area.toLowerCase().contains(queryLower) ||
+                              ingredients.contains(queryLower);
+            
+            if (!isRelevant) {
+              _logDetailed('Filtered out non-relevant result: ${formattedMeal['titleKey']}');
+              return <String, dynamic>{}; // Return empty map for non-relevant results
             }
-          } catch (e) {
+            
+            _logDetailed('Loaded relevant search result: ${formattedMeal['titleKey']}');
+            return formattedMeal;
+          }).catchError((e) {
             _logDetailed('Failed to format search result: $e');
-            if (i < paginatedMeals.length - 1) {
-              await Future.delayed(Duration(milliseconds: 300));
-            }
-          }
-        }
+            return <String, dynamic>{};
+          });
+        }).toList();
+        
+        // Wait for all search results to process in parallel
+        final results = await Future.wait(searchFutures);
+        
+        // Filter out empty results and return successful meals
+        final meals = results
+            .where((meal) => meal != null && meal.isNotEmpty)
+            .cast<Map<String, dynamic>>()
+            .toList();
         
         _logDetailed('Search page $page loaded: ${meals.length}/${paginatedMeals.length} results');
         return meals;
@@ -362,41 +379,40 @@ class MealDBService {
         
         _logDetailed('Loading page $page: meals ${startIndex + 1}-$endIndex of ${mealList.length} in category: $category');
         
-        List<Map<String, dynamic>> detailedMeals = [];
+        // Process meals in parallel with aggressive concurrency for maximum speed
+        // Using controlled parallelism - load all meals simultaneously 
+        List<Future<Map<String, dynamic>?>> mealFutures = [];
         
-        // Process meals with optimized delays
-        for (int i = 0; i < paginatedMeals.length; i++) {
-          final meal = paginatedMeals[i];
+        for (final meal in paginatedMeals) {
           final mealId = meal['idMeal'];
           if (mealId != null) {
-            try {
-              _logDetailed('Loading meal ${i + 1}/${paginatedMeals.length}: $mealId');
-              
-              final detailedMeal = await getMealById(mealId);
-              _logDetailed('Loaded: ${detailedMeal['titleKey']} (Category: ${detailedMeal['category']})');
-              
-              // Validate that the meal belongs to the expected category
-              final mealCategory = detailedMeal['category']?.toString() ?? '';
-              if (mealCategory.toLowerCase() != category.toLowerCase()) {
-                _logDetailed('⚠️ Category mismatch: Expected "$category" but got "$mealCategory" for meal "${detailedMeal['titleKey']}"');
-              }
-              
-              detailedMeals.add(detailedMeal);
-              
-              // Minimal delay between meals for speed
-              if (i < paginatedMeals.length - 1) {
-                await Future.delayed(Duration(milliseconds: 25));
-              }
-              
-            } catch (e) {
-              _logDetailed('Failed to load meal ID $mealId: $e');
-              // Minimal delay after errors
-              if (i < paginatedMeals.length - 1) {
-                await Future.delayed(Duration(milliseconds: 50));
-              }
-            }
+            mealFutures.add(
+              getMealById(mealId).then((detailedMeal) {
+                _logDetailed('✅ Loaded: ${detailedMeal['titleKey']} (Category: ${detailedMeal['category']})');
+                
+                // Validate that the meal belongs to the expected category
+                final mealCategory = detailedMeal['category']?.toString() ?? '';
+                if (mealCategory.toLowerCase() != category.toLowerCase()) {
+                  _logDetailed('⚠️ Category mismatch: Expected "$category" but got "$mealCategory" for meal "${detailedMeal['titleKey']}"');
+                }
+                
+                return detailedMeal;
+              }).catchError((e) {
+                _logDetailed('❌ Failed to load meal ID $mealId: $e');
+                return <String, dynamic>{};
+              })
+            );
           }
         }
+        
+        // Wait for all meals to load in parallel - no artificial limits
+        final results = await Future.wait(mealFutures);
+        
+        // Filter out empty results and return successful meals
+        List<Map<String, dynamic>> detailedMeals = results
+            .where((meal) => meal != null && meal.isNotEmpty)
+            .cast<Map<String, dynamic>>()
+            .toList();
         
         _logDetailed('Page $page loaded: ${detailedMeals.length}/${paginatedMeals.length} meals');
         return detailedMeals;
@@ -442,7 +458,7 @@ class MealDBService {
               // Reasonable delay between each meal to prevent rate limiting
               if (i < limitedMealList.length - 1) { // Don't delay after the last meal
                 // Waiting between meals
-                await Future.delayed(Duration(milliseconds: 1000)); // 1 second delay
+                // Removed delay for faster processing
               }
               
             } catch (e) {
@@ -450,7 +466,7 @@ class MealDBService {
               // Add moderate delay after failures to cool down API
               if (i < limitedMealList.length - 1) {
                 // Extra cooldown after error
-                await Future.delayed(Duration(milliseconds: 2000)); // 2 second delay after error
+                // Removed delay for faster processing
               }
             }
           }
@@ -504,7 +520,7 @@ class MealDBService {
 
           // Longer delay between batches for background loading
           if (i + batchSize < mealList.length) {
-            await Future.delayed(Duration(milliseconds: 200));
+            // Removed delay for faster processing
           }
         }
 
@@ -598,13 +614,13 @@ class MealDBService {
             
             // Add delay between categories
             if (category != categoryBatch.last) {
-              await Future.delayed(Duration(milliseconds: 1000)); // 1 second delay between categories
+              // Removed delay for faster processing
             }
           } catch (e) {
             // Failed to get meals from category
             results.add(<Map<String, dynamic>>[]);
             // Moderate delay after errors
-            await Future.delayed(Duration(milliseconds: 1500));
+            // Removed delay for faster processing
           }
         }
 

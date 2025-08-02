@@ -4,5 +4,20 @@
     "loading_more_meals": "Lade mehr Mahlzeiten...",
     "loading_meals": "Lade Mahlzeiten...",
     "no_meals_found": "Keine Mahlzeiten gefunden",
-    "loading_details": "Lade Details..."
+    "loading_details": "Lade Details...",
+    "no_more_meals": "Keine weiteren Mahlzeiten zum Laden",
+    "try_again": "Erneut versuchen",
+    "error_loading_meal_details": "Fehler beim Laden der Mahlzeitendetails",
+    "error_occurred": "Ein Fehler ist aufgetreten",
+    "unknown_meal": "Unbekannte Mahlzeit",
+    "unknown": "Unbekannt",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g", 
+    "fat_grams": "g",
+    "vegan_label": "VEGAN",
+    "loading_calories": "Lade...",
+    "error_loading_meal": "Fehler beim Laden der Mahlzeit",
+    "all_category": "Alle",
+    "all_meals_description": "Alle verfügbaren Mahlzeiten"
 }

@@ -4,5 +4,20 @@
     "loading_more_meals": "Caricamento di più pasti...",
     "loading_meals": "Caricamento pasti...",
     "no_meals_found": "Nessun pasto trovato",
-    "loading_details": "Caricamento dettagli..."
+    "loading_details": "Caricamento dettagli...",
+    "no_more_meals": "Nessun altro pasto da caricare",
+    "try_again": "Riprova",
+    "error_loading_meal_details": "Errore nel caricamento dei dettagli del pasto",
+    "error_occurred": "Si è verificato un errore",
+    "unknown_meal": "Pasto Sconosciuto",
+    "unknown": "Sconosciuto",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g", 
+    "fat_grams": "g",
+    "vegan_label": "VEGANO",
+    "loading_calories": "Caricamento...",
+    "error_loading_meal": "Errore nel caricamento del pasto",
+    "all_category": "Tutti",
+    "all_meals_description": "Tutti i pasti disponibili"
 }

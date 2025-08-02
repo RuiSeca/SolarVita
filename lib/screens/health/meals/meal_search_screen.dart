@@ -505,7 +505,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                errorMessage ?? 'An error occurred',
+                errorMessage ?? tr(context, 'error_occurred'),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 16,
@@ -523,7 +523,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Try Again'),
+                child: Text(tr(context, 'try_again')),
               ),
             ],
           ),
@@ -633,7 +633,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
           // Just use the meal data directly since it's already complete
           Map<String, dynamic> formattedMeal = {
             'id': meal['id'] ?? meal['idMeal'] ?? '',
-            'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
+            'titleKey': meal['titleKey'] ?? meal['strMeal'] ?? tr(context, 'unknown_meal'),
             'imagePath': meal['imagePath'] ?? meal['strMealThumb'] ?? '',
             'calories': meal['calories'] ?? '0 kcal',
             'nutritionFacts': meal['nutritionFacts'] ?? {
@@ -645,8 +645,8 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
             'ingredients': meal['ingredients'] ?? [],
             'measures': meal['measures'] ?? [],
             'instructions': meal['instructions'] ?? [],
-            'area': meal['area'] ?? meal['strArea'] ?? 'Unknown',
-            'category': meal['category'] ?? meal['strCategory'] ?? 'Unknown',
+            'area': meal['area'] ?? meal['strArea'] ?? tr(context, 'unknown'),
+            'category': meal['category'] ?? meal['strCategory'] ?? tr(context, 'unknown'),
             'isVegan': meal['isVegan'] ?? false,
             'isFavorite': meal['isFavorite'] ?? false,
           };
@@ -690,7 +690,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error loading meal details: ${e.toString()}'),
+                content: Text('${tr(context, 'error_loading_meal_details')}: ${e.toString()}'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -791,7 +791,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    meal['titleKey'] ?? meal['strMeal'] ?? 'Unknown Meal',
+                    meal['titleKey'] ?? meal['strMeal'] ?? tr(context, 'unknown_meal'),
                     style: TextStyle(
                       color: AppTheme.textColor(context),
                       fontSize: 14,
@@ -824,7 +824,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                               const SizedBox(width: 2),
                               Flexible(
                                 child: Text(
-                                  meal['calories'] ?? 'Loading...',
+                                  meal['calories'] ?? tr(context, 'loading_calories'),
                                   style: TextStyle(
                                     color: AppColors.primary,
                                     fontSize: 10,
@@ -867,7 +867,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                                   child: Text(
                                     meal['area'] ??
                                         meal['strArea'] ??
-                                        'Unknown',
+                                        tr(context, 'unknown'),
                                     style: TextStyle(
                                       color: AppTheme.textColor(context),
                                       fontSize: 10,
@@ -899,7 +899,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               Icon(Icons.error_outline, size: 32, color: Colors.grey),
               SizedBox(height: 8),
               Text(
-                'Error loading meal',
+                tr(context, 'error_loading_meal'),
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
             ],

@@ -11,5 +11,21 @@
     "meal_title": "Título da Refeição",
     "no_meals_found": "Nenhuma refeição encontrada",
     "servings": "Porções",
-    "fatsecret_auth_error": "Não foi possível conectar ao banco de dados de nutrição"
+    "fatsecret_auth_error": "Não foi possível conectar ao banco de dados de nutrição",
+    "watch_on_youtube": "Assistir no YouTube",
+    "vegan_label": "VEGANO",
+    "nutrition_facts": "Informações Nutricionais",
+    "ingredients": "Ingredientes",
+    "per_serving": "Por Porção",
+    "per_meal": "Por Refeição",
+    "per_serving_description": "Por 1 porção de {servings} total",
+    "whole_meal_description": "Refeição completa ({servings} porções)",
+    "youtube_platform": "YouTube",
+    "google_videos_platform": "Google Vídeos",
+    "unable_to_open_video_search": "Não foi possível abrir busca de vídeos",
+    "watch_on_platform": "Assistir no {platform}",
+    "edit_meal": "Editar Refeição",
+    "share": "Compartilhar",
+    "calories_unit": "cal",
+    "grams_unit": "g"
 }

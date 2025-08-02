@@ -457,7 +457,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'Per Serving',
+                        tr(context, 'per_serving'),
                         style: TextStyle(
                           color: _showPerServing ? Colors.white : AppTheme.textColor(context),
                           fontSize: 14,
@@ -475,7 +475,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'Per Meal',
+                        tr(context, 'per_meal'),
                         style: TextStyle(
                           color: !_showPerServing ? Colors.white : AppTheme.textColor(context),
                           fontSize: 14,
@@ -503,7 +503,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
               Icon(Icons.restaurant, size: 16, color: AppTheme.textColor(context).withAlpha(179)),
               const SizedBox(width: 8),
               Text(
-                _showPerServing ? 'Per 1 serving of $servings total' : 'Whole meal ($servings servings)',
+                _showPerServing 
+                  ? tr(context, 'per_serving_description').replaceAll('{servings}', servings.toString())
+                  : tr(context, 'whole_meal_description').replaceAll('{servings}', servings.toString()),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withAlpha(179),
                   fontSize: 13,
@@ -757,7 +759,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'YouTube',
+                        tr(context, 'youtube_platform'),
                         style: TextStyle(
                           color: _videoPlatform == 'youtube' ? Colors.white : AppTheme.textColor(context),
                           fontSize: 12,
@@ -776,13 +778,17 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _videoPlatform == 'google' ? AppColors.primary : Colors.transparent,
+                        color: _videoPlatform == 'google' 
+                          ? (AppTheme.isDarkMode(context) ? Colors.white : Colors.grey[400])
+                          : Colors.transparent,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        'Google Videos',
+                        tr(context, 'google_videos_platform'),
                         style: TextStyle(
-                          color: _videoPlatform == 'google' ? Colors.white : AppTheme.textColor(context),
+                          color: _videoPlatform == 'google' 
+                            ? (AppTheme.isDarkMode(context) ? Colors.black : Colors.white)
+                            : AppTheme.textColor(context),
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -800,6 +806,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
           onTap: () async {
             // Capture context before async operation
             final scaffoldMessenger = ScaffoldMessenger.of(context);
+            final errorMessage = tr(context, 'unable_to_open_video_search');
             
             // Use the specific platform URL based on current selection
             String url;
@@ -814,10 +821,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             
             if (!success && mounted) {
               scaffoldMessenger.showSnackBar(
-                const SnackBar(
-                  content: Text('Unable to open video search'),
+                SnackBar(
+                  content: Text(errorMessage),
                   backgroundColor: Colors.red,
-                  duration: Duration(seconds: 2),
+                  duration: const Duration(seconds: 2),
                 ),
               );
             }
@@ -826,8 +833,10 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              // Dynamic color based on platform
-              color: _videoPlatform == 'youtube' ? const Color(0xFFFF0000) : AppColors.primary,
+              // Dynamic color based on platform and theme
+              color: _videoPlatform == 'youtube' 
+                ? const Color(0xFFFF0000) 
+                : (AppTheme.isDarkMode(context) ? Colors.white : Colors.grey[600]),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
@@ -845,12 +854,16 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: _videoPlatform == 'youtube' 
+                      ? Colors.white
+                      : (AppTheme.isDarkMode(context) ? Colors.black : Colors.white),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Icon(
                     _videoPlatform == 'youtube' ? Icons.play_arrow : Icons.video_library,
-                    color: _videoPlatform == 'youtube' ? const Color(0xFFFF0000) : AppColors.primary,
+                    color: _videoPlatform == 'youtube' 
+                      ? const Color(0xFFFF0000) 
+                      : (AppTheme.isDarkMode(context) ? Colors.white : Colors.grey[600]),
                     size: 18,
                   ),
                 ),
@@ -858,9 +871,11 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 Text(
                   _videoPlatform == 'youtube' 
                       ? tr(context, 'watch_on_youtube')
-                      : 'Watch on ${VideoPlatformHelper.getPlatformDisplayName(_videoPlatform)}',
-                  style: const TextStyle(
-                    color: Colors.white,
+                      : tr(context, 'watch_on_platform').replaceAll('{platform}', VideoPlatformHelper.getPlatformDisplayName(_videoPlatform)),
+                  style: TextStyle(
+                    color: _videoPlatform == 'youtube' 
+                      ? Colors.white
+                      : (AppTheme.isDarkMode(context) ? Colors.black : Colors.white),
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,

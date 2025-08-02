@@ -4,5 +4,20 @@
     "loading_more_meals": "Carregando mais refeições...",
     "loading_meals": "Carregando refeições...",
     "no_meals_found": "Nenhuma refeição encontrada",
-    "loading_details": "Carregando detalhes..."
+    "loading_details": "Carregando detalhes...",
+    "no_more_meals": "Não há mais refeições para carregar",
+    "try_again": "Tentar Novamente",
+    "error_loading_meal_details": "Erro ao carregar detalhes da refeição",
+    "error_occurred": "Ocorreu um erro",
+    "unknown_meal": "Refeição Desconhecida",
+    "unknown": "Desconhecido",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g", 
+    "fat_grams": "g",
+    "vegan_label": "VEGANO",
+    "loading_calories": "Carregando...",
+    "error_loading_meal": "Erro ao carregar refeição",
+    "all_category": "Todas",
+    "all_meals_description": "Todas as refeições disponíveis"
 }

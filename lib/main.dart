@@ -26,15 +26,16 @@ import 'screens/health/health_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
+import 'widgets/common/bottom_nav_bar.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
-import 'utils/translation_helper.dart';
 
 // Import Riverpod providers
 import 'providers/riverpod/theme_provider.dart';
 import 'providers/riverpod/language_provider.dart';
 import 'providers/riverpod/user_profile_provider.dart';
 import 'providers/riverpod/auth_provider.dart' as auth;
+import 'providers/riverpod/scroll_controller_provider.dart';
 import 'models/user/user_profile.dart';
 
 // Global flag to track Firebase initialization
@@ -304,11 +305,46 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     const ProfileScreen(),
   ];
 
+  final List<NavItem> _navItems = const [
+    NavItem(icon: Icons.dashboard, labelKey: 'nav_dashboard'),
+    NavItem(icon: Icons.search, labelKey: 'nav_search'),
+    NavItem(icon: Icons.health_and_safety, labelKey: 'nav_health'),
+    NavItem(icon: Icons.assistant, labelKey: 'nav_solar_ai'),
+    NavItem(icon: Icons.person, labelKey: 'nav_profile'),
+  ];
+
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    _pageController.jumpToPage(index);
+    if (index == _selectedIndex) {
+      // If tapping the same page, scroll to top
+      _scrollToTop(index);
+    } else {
+      // Normal navigation
+      setState(() {
+        _selectedIndex = index;
+      });
+      _pageController.jumpToPage(index);
+    }
+  }
+
+  void _scrollToTop(int pageIndex) {
+    final scrollController = ref.read(scrollControllerNotifierProvider.notifier);
+    switch (pageIndex) {
+      case 0:
+        scrollController.scrollToTop('dashboard');
+        break;
+      case 1:
+        scrollController.scrollToTop('search');
+        break;
+      case 2:
+        scrollController.scrollToTop('health');
+        break;
+      case 3:
+        scrollController.scrollToTop('ai_assistant');
+        break;
+      case 4:
+        scrollController.scrollToTop('profile');
+        break;
+    }
   }
 
   @override
@@ -330,35 +366,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         },
         children: _pages,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+      bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        backgroundColor: AppTheme.navigationBackground(context),
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.dashboard),
-            label: tr(context, 'nav_dashboard'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.search),
-            label: tr(context, 'nav_search'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.health_and_safety),
-            label: tr(context, 'nav_health'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.assistant),
-            label: tr(context, 'nav_solar_ai'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: tr(context, 'nav_profile'),
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

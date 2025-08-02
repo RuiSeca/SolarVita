@@ -1,5 +1,6 @@
 {
     "watch_video": "Watch Video",
+    "watch_on_youtube": "Watch on YouTube",
     "add_to_meal_plan": "Add to Meal Plan",
     "select_meal_time": "Select Meal Time",
     "meal_added_to_plan": "Meal added to plan",
@@ -11,5 +12,20 @@
     "meal_title": "Meal Title",
     "no_meals_found": "No meals found",
     "servings": "Servings",
-    "fatsecret_auth_error": "Unable to connect to nutrition database"
+    "fatsecret_auth_error": "Unable to connect to nutrition database",
+    "vegan_label": "VEGAN",
+    "nutrition_facts": "Nutrition Facts",
+    "ingredients": "Ingredients",
+    "per_serving": "Per Serving",
+    "per_meal": "Per Meal",
+    "per_serving_description": "Per 1 serving of {servings} total",
+    "whole_meal_description": "Whole meal ({servings} servings)",
+    "youtube_platform": "YouTube",
+    "google_videos_platform": "Google Videos",
+    "unable_to_open_video_search": "Unable to open video search",
+    "watch_on_platform": "Watch on {platform}",
+    "edit_meal": "Edit Meal",
+    "share": "Share",
+    "calories_unit": "cal",
+    "grams_unit": "g"
 }

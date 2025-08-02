@@ -178,8 +178,8 @@ class MealNotifier extends _$MealNotifier {
         newMeals = await mealService.getAllMeals();
       } else {
         // Use paginated method for specific categories with proper case
-        // Reduced initial limit for faster loading
-        final pageLimit = currentPage == 0 ? 4 : 8; // First page loads only 4 meals
+        // Optimized initial limit for faster loading
+        final pageLimit = currentPage == 0 ? 8 : 8; // First page loads 8 meals for better UX
         newMeals = await mealService.getMealsByCategoryPaginated(
           apiCategory, // Use original case for API
           page: currentPage,
@@ -188,7 +188,7 @@ class MealNotifier extends _$MealNotifier {
       }
 
       // Check if we got fewer meals than requested (indicating no more data)
-      final expectedLimit = currentPage == 0 ? 4 : 8;
+      final expectedLimit = 8;
       final hasMoreData = newMeals.length >= expectedLimit;
 
       final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
@@ -287,7 +287,8 @@ class MealNotifier extends _$MealNotifier {
       );
 
       // Check if we got fewer meals than requested (indicating no more data)
-      final hasMoreData = newMeals.length >= 8;
+      // For search, if we get fewer than requested OR got empty results, no more relevant data
+      final hasMoreData = newMeals.length >= 8 && newMeals.isNotEmpty;
 
       final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
       final updatedMeals = [...currentMeals, ...newMeals];

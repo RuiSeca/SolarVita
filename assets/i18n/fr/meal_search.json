@@ -4,5 +4,20 @@
     "loading_more_meals": "Chargement de plus de repas...",
     "loading_meals": "Chargement des repas...",
     "no_meals_found": "Aucun repas trouvé",
-    "loading_details": "Chargement des détails..."
+    "loading_details": "Chargement des détails...",
+    "no_more_meals": "Plus de repas à charger",
+    "try_again": "Réessayer",
+    "error_loading_meal_details": "Erreur lors du chargement des détails du repas",
+    "error_occurred": "Une erreur s'est produite",
+    "unknown_meal": "Repas Inconnu",
+    "unknown": "Inconnu",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g", 
+    "fat_grams": "g",
+    "vegan_label": "VÉGAN",
+    "loading_calories": "Chargement...",
+    "error_loading_meal": "Erreur lors du chargement du repas",
+    "all_category": "Tous",
+    "all_meals_description": "Tous les repas disponibles"
 }

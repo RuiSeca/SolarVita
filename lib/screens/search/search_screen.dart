@@ -11,6 +11,7 @@ import 'workout_detail/models/workout_item.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../routine/routine_main_screen.dart';
+import '../../providers/riverpod/scroll_controller_provider.dart';
 
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -29,11 +30,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // Flag to prevent automatic navigation during first build
   bool _isFirstBuild = true;
+  
+  // Scroll controller for header synchronization
+  ScrollController? _scrollController;
+  bool _showFloatingButton = false;
 
   @override
   void dispose() {
     // Cancel any ongoing loading operations when the screen is disposed
     _timeoutTimer?.cancel();
+    // Don't dispose the controller - it's managed by the provider
     super.dispose();
   }
 
@@ -51,11 +57,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     // Use a post-frame callback to reset the flag after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        // Get the scroll controller from the provider
+        _scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('search');
+        
+        // Setup scroll listener for floating button
+        _scrollController?.addListener(_onScroll);
+        
         setState(() {
           _isFirstBuild = false;
         });
       }
     });
+  }
+
+  void _onScroll() {
+    // Show floating button when user scrolls down enough
+    if (_scrollController != null) {
+      final showButton = _scrollController!.offset > 100;
+      if (showButton != _showFloatingButton) {
+        setState(() {
+          _showFloatingButton = showButton;
+        });
+      }
+    }
   }
 
   final List<Map<String, dynamic>> _workoutCategories = [
@@ -335,118 +359,149 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildAppBar(context),
-            if (_isSearching) _buildSearchBar() else _buildTitle(context),
-            _buildRoutineButton(),
-
-            // Show loading indicator when loading exercises
-            if (_isLoadingExercises)
-              Expanded(
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const LottieLoadingWidget(),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Loading exercises for $_loadingTarget...',
-                        style: TextStyle(color: AppTheme.textColor(context)),
-                      ),
-                      const SizedBox(height: 8),
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isLoadingExercises = false;
-                            _loadingTarget = '';
-                          });
-                        },
-                        child: const Text('Cancel'),
-                      ),
-                    ],
+      body: Stack(
+        children: [
+          CustomScrollView(
+            controller: _scrollController,
+            slivers: [
+              // Custom SliverAppBar with disappearing header
+              SliverAppBar(
+                backgroundColor: AppTheme.surfaceColor(context),
+                expandedHeight: 200.0,
+                floating: false,
+                pinned: false,
+                elevation: 0,
+                automaticallyImplyLeading: false,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: SafeArea(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildAppBar(context),
+                        if (_isSearching) _buildSearchBar() else _buildTitle(context),
+                        _buildRoutineButton(),
+                      ],
+                    ),
                   ),
                 ),
-              )
-            else
-              Expanded(
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final exerciseState = ref.watch(exerciseNotifierProvider);
-                    
-                    if (exerciseState.isLoading) {
-                      return const Center(child: LottieLoadingWidget());
-                    }
+              ),
+              
+              // Content
+              if (_isLoadingExercises)
+                SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const LottieLoadingWidget(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Loading exercises for $_loadingTarget...',
+                          style: TextStyle(color: AppTheme.textColor(context)),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _isLoadingExercises = false;
+                              _loadingTarget = '';
+                            });
+                          },
+                          child: const Text('Cancel'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                SliverToBoxAdapter(
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final exerciseState = ref.watch(exerciseNotifierProvider);
+                      
+                      if (exerciseState.isLoading) {
+                        return const SizedBox(
+                          height: 400,
+                          child: Center(child: LottieLoadingWidget()),
+                        );
+                      }
 
-                    if (exerciseState.errorMessage != null) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              exerciseState.errorMessage!,
+                      if (exerciseState.errorMessage != null) {
+                        return SizedBox(
+                          height: 400,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  exerciseState.errorMessage!,
+                                  style: TextStyle(
+                                    color: AppTheme.textColor(context),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    ref.read(exerciseNotifierProvider.notifier).clearExercises();
+                                  },
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+
+                      final categories = filteredCategories;
+                      if (categories.isEmpty) {
+                        return SizedBox(
+                          height: 400,
+                          child: Center(
+                            child: Text(
+                              tr(context, 'no_workouts_found'),
                               style: TextStyle(
                                 color: AppTheme.textColor(context),
                                 fontSize: 16,
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                ref.read(exerciseNotifierProvider.notifier).clearExercises();
-                              },
-                              child: const Text('Retry'),
-                            ),
+                          ),
+                        );
+                      }
+
+                      return Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: [
+                            for (int index = 0; index < categories.length; index++) ...[
+                              WorkoutCategoryCard(
+                                title: tr(context, categories[index]['titleKey']),
+                                titleKey: categories[index]['titleKey'],
+                                mainImage: categories[index]['mainImage'],
+                                smallImages: List<String>.from(categories[index]['smallImages']),
+                                count: tr(context, '${categories[index]['type']}_count')
+                                    .replaceAll('{count}', categories[index]['count']),
+                                workoutName: categories[index]['workoutName'],
+                                workoutSmall: categories[index]['workoutSmall'],
+                                isFirstBuild: _isFirstBuild,
+                                isLoading: _isLoadingExercises,
+                              ),
+                              if (index < categories.length - 1) const SizedBox(height: 24),
+                            ],
                           ],
                         ),
                       );
-                    }
-
-                    final categories = filteredCategories;
-                    if (categories.isEmpty) {
-                      return Center(
-                        child: Text(
-                          tr(context, 'no_workouts_found'),
-                          style: TextStyle(
-                            color: AppTheme.textColor(context),
-                            fontSize: 16,
-                          ),
-                        ),
-                      );
-                    }
-
-                    return ListView.separated(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: categories.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 24),
-                      itemBuilder: (context, index) {
-                        final category = categories[index];
-                        return WorkoutCategoryCard(
-                          title: tr(context, category['titleKey']),
-                          titleKey: category['titleKey'],
-                          mainImage: category['mainImage'],
-                          smallImages:
-                              List<String>.from(category['smallImages']),
-                          count: tr(context, '${category['type']}_count')
-                              .replaceAll('{count}', category['count']),
-                          workoutName: category['workoutName'],
-                          workoutSmall: category['workoutSmall'],
-                          isFirstBuild: _isFirstBuild,
-                          isLoading: _isLoadingExercises,
-                        );
-                      },
-                    );
-                  },
+                    },
+                  ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
+          
+          // Floating routine button
+          _buildFloatingRoutineButton(),
+        ],
       ),
     );
   }
@@ -557,6 +612,69 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => const RoutineMainScreen(),
+      ),
+    );
+  }
+
+
+  Widget _buildFloatingRoutineButton() {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      bottom: _showFloatingButton ? 24 : -80,
+      right: 16,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 300),
+        opacity: _showFloatingButton ? 1.0 : 0.0,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.primaryColor.withValues(alpha: 0.9),
+                AppTheme.primaryColor.withValues(alpha: 0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(28),
+              onTap: _navigateToRoutines,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.schedule,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      tr(context, 'routines'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

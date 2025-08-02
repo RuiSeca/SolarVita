@@ -11,5 +11,21 @@
     "meal_title": "Mahlzeittitel",
     "no_meals_found": "Keine Mahlzeiten gefunden",
     "servings": "Portionen",
-    "fatsecret_auth_error": "Verbindung zur Nährwertdatenbank nicht möglich"
+    "fatsecret_auth_error": "Verbindung zur Nährwertdatenbank nicht möglich",
+    "watch_on_youtube": "Auf YouTube ansehen",
+    "vegan_label": "VEGAN",
+    "nutrition_facts": "Nährwertangaben",
+    "ingredients": "Zutaten",
+    "per_serving": "Pro Portion",
+    "per_meal": "Pro Mahlzeit",
+    "per_serving_description": "Pro 1 Portion von {servings} insgesamt",
+    "whole_meal_description": "Komplette Mahlzeit ({servings} Portionen)",
+    "youtube_platform": "YouTube",
+    "google_videos_platform": "Google Videos",
+    "unable_to_open_video_search": "Videosuche kann nicht geöffnet werden",
+    "watch_on_platform": "Auf {platform} ansehen",
+    "edit_meal": "Mahlzeit bearbeiten",
+    "share": "Teilen",
+    "calories_unit": "kal",
+    "grams_unit": "g"
 }
