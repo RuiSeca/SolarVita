@@ -1,0 +1,18 @@
+{
+    "edit_log": "編輯記錄",
+    "log_exercise": "記錄運動",
+    "exercise": "運動",
+    "enter_exercise_name": "輸入運動名稱",
+    "please_enter_exercise_name": "請輸入運動名稱",
+    "date": "日期",
+    "time": "時間",
+    "sets": "組數",
+    "add_set": "增加組數",
+    "set": "組",
+    "weight_kg": "重量（公斤）",
+    "reps": "次數",
+    "notes": "備註",
+    "enter_notes": "輸入備註",
+    "update_log": "更新記錄",
+    "save_log": "儲存記錄"
+}

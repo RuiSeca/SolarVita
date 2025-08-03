@@ -1,5 +1,6 @@
 {
     "app_name": "SolarVita",
+    "routines": "Routines",
     "fitness_routines": "Fitness routines",
     "workout_strength": "Strength training",
     "workout_abs": "Abs & Cardio",

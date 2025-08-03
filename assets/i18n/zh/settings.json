@@ -27,5 +27,12 @@
     "help_support": "幫助與支援",
     "sign_out": "登出",
     "change_app_language": "更改應用程式語言",
-    "customize_workout_settings": "自定義運動設置"
+    "customize_workout_settings": "自定義運動設置",
+    "edit_profile_details": "編輯個人檔案詳情",
+    "manage_diet_restrictions": "管理飲食限制",
+    "manage_notification_preferences": "管理通知偏好",
+    "privacy_security_settings": "隱私與安全設置",
+    "set_environmental_targets": "設定環境目標",
+    "switch_light_dark_mode": "切換明亮或深色模式",
+    "get_help_contact_support": "獲得幫助並聯繫支援"
 }

@@ -1,0 +1,21 @@
+{
+    "notifications": "通知",
+    "fitness_notifications": "健身通知",
+    "health_reminders": "健康提醒",
+    "eco_notifications": "環保通知",
+    "workout_reminders": "運動提醒",
+    "workout_reminders_desc": "在運動時間得到提醒",
+    "progress_updates": "進度更新",
+    "progress_updates_desc": "慶祝您的成就和里程碑",
+    "water_reminders": "飲水提醒",
+    "water_reminders_desc": "全天保持水分充足",
+    "meal_reminders": "餐點提醒",
+    "meal_reminders_desc": "不要忘記您的健康餐點",
+    "eco_tips": "每日環保貼士",
+    "eco_tips_desc": "學習更多可持續發展的新方法",
+    "test_notifications": "測試通知",
+    "test_achievement": "測試成就",
+    "test_message": "這是一個測試通知！",
+    "send_test_notification": "發送測試通知",
+    "test_notification_sent": "測試通知已發送！"
+}

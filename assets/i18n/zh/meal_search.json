@@ -1,0 +1,23 @@
+{
+    "search_meals_hint": "搜尋餐點",
+    "discover_meals": "發現餐點",
+    "loading_more_meals": "載入更多餐點...",
+    "loading_meals": "載入餐點中...",
+    "no_meals_found": "未找到餐點",
+    "loading_details": "載入詳細資料中...",
+    "no_more_meals": "沒有更多餐點可載入",
+    "try_again": "重試",
+    "error_loading_meal_details": "載入餐點詳細資料時發生錯誤",
+    "error_occurred": "發生錯誤",
+    "unknown_meal": "未知餐點",
+    "unknown": "未知",
+    "calories_kcal": "千卡",
+    "protein_grams": "公克",
+    "carbs_grams": "公克",
+    "fat_grams": "公克",
+    "vegan_label": "純素",
+    "loading_calories": "載入中...",
+    "error_loading_meal": "載入餐點時發生錯誤",
+    "all_category": "全部",
+    "all_meals_description": "所有可用餐點"
+}
