@@ -91,8 +91,12 @@
     "goal_water_intake": "Assunzione di Acqua",
     "goal_sleep_quality": "Qualità del Sonno",
     "supporters_count": "Sostenitori",
-    "co2_saved": "CO₂ Risparmiata",
     "day_streak": "Serie Giorni",
     "quick_stats": "Statistiche Rapide",
-    "level": "Livello"
+    "level": "Livello",
+    "unit_steps": "passi",
+    "unit_min": "min",
+    "unit_cal": "cal",
+    "unit_liters": "L",
+    "unit_hrs": "ore"
 }

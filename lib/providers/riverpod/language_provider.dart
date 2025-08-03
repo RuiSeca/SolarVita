@@ -9,15 +9,14 @@ part 'language_provider.g.dart';
 @riverpod
 List<Language> supportedLanguages(Ref ref) {
   return const [
-    Language(name: 'English', code: 'en', flag: '🇺🇸'),
-    Language(name: 'Español', code: 'es', flag: '🇪🇸'),
-    Language(name: 'Français', code: 'fr', flag: '🇫🇷'),
-    Language(name: 'Deutsch', code: 'de', flag: '🇩🇪'),
-    Language(name: 'Italiano', code: 'it', flag: '🇮🇹'),
-    Language(name: 'Português', code: 'pt', flag: '🇵🇹'),
-    Language(name: '日本語', code: 'ja', flag: '🇯🇵'),
-    Language(name: '한국어', code: 'ko', flag: '🇰🇷'),
-    Language(name: '中文', code: 'zh', flag: '🇨🇳'),
+    Language(name: 'English', code: 'en', flag: ''),
+    Language(name: 'Español', code: 'es', flag: ''),
+    Language(name: 'Français', code: 'fr', flag: ''),
+    Language(name: 'Deutsch', code: 'de', flag: ''),
+    Language(name: 'Italiano', code: 'it', flag: ''),
+    Language(name: 'Português', code: 'pt', flag: ''),
+    Language(name: '日本語', code: 'ja', flag: ''),
+    Language(name: '中文 (Traditional)', code: 'zh', flag: ''),
   ];
 }
 

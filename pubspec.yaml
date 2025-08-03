@@ -99,6 +99,7 @@ flutter:
     - assets/i18n/it/
     - assets/i18n/de/
     - assets/i18n/zh/
+    - assets/i18n/ja/
 
     # ==========
     # Feature Images

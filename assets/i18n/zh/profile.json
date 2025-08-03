@@ -95,5 +95,10 @@
     "supporters_count": "支持者",
     "day_streak": "天連續記錄",
     "quick_stats": "快速統計",
-    "level": "等級"
+    "level": "等級",
+    "unit_steps": "步",
+    "unit_min": "分鐘",
+    "unit_cal": "卡路里",
+    "unit_liters": "升",
+    "unit_hrs": "小時"
 }

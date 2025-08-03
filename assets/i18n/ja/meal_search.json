@@ -1,0 +1,23 @@
+{
+    "search_meals_hint": "食事を検索",
+    "discover_meals": "食事を発見",
+    "loading_more_meals": "より多くの食事を読み込み中...",
+    "loading_meals": "食事を読み込み中...",
+    "no_meals_found": "食事が見つかりません",
+    "loading_details": "詳細を読み込み中...",
+    "no_more_meals": "読み込む食事がありません",
+    "try_again": "再試行",
+    "error_loading_meal_details": "食事詳細の読み込みエラー",
+    "error_occurred": "エラーが発生しました",
+    "unknown_meal": "不明な食事",
+    "unknown": "不明",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g", 
+    "fat_grams": "g",
+    "vegan_label": "ビーガン",
+    "loading_calories": "読み込み中...",
+    "error_loading_meal": "食事読み込みエラー",
+    "all_category": "すべて",
+    "all_meals_description": "利用可能なすべての食事"
+}

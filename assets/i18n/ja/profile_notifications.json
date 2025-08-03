@@ -1,0 +1,21 @@
+{
+    "notifications": "通知",
+    "fitness_notifications": "フィットネス通知",
+    "health_reminders": "健康リマインダー",
+    "eco_notifications": "エコ通知",
+    "workout_reminders": "ワークアウトリマインダー",
+    "workout_reminders_desc": "エクササイズ時間になったらリマインド",
+    "progress_updates": "進捗更新",
+    "progress_updates_desc": "成果と節目を祝いましょう",
+    "water_reminders": "水分リマインダー",
+    "water_reminders_desc": "一日中水分補給を保つ",
+    "meal_reminders": "食事リマインダー",
+    "meal_reminders_desc": "健康的な食事を忘れずに",
+    "eco_tips": "毎日のエコのヒント",
+    "eco_tips_desc": "より持続可能になる新しい方法を学ぶ",
+    "test_notifications": "テスト通知",
+    "test_achievement": "テスト達成",
+    "test_message": "これはテスト通知です！",
+    "send_test_notification": "テスト通知送信",
+    "test_notification_sent": "テスト通知を送信しました！"
+}

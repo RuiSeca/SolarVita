@@ -68,9 +68,10 @@ class LanguageScreen extends ConsumerWidget {
                 child: ListTile(
                   onTap: () => languageNotifier.setLanguage(language.code),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  leading: Text(
-                    language.flag,
-                    style: const TextStyle(fontSize: 28),
+                  leading: Icon(
+                    Icons.language,
+                    color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                    size: 28,
                   ),
                   title: Text(
                     translateCountry(context, language.code),

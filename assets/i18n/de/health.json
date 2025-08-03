@@ -76,6 +76,6 @@
     "synced_hours_ago": "Vor {hours}h synchronisiert",
     "last_sync_days_ago": "Letzte Synchronisation vor {days}d",
     "no_health_data_connected": "Keine Gesundheitsdaten verbunden",
-    "connecting_to_health_data": "Verbindung zu Gesundheitsdaten...",
-    "health_data_sync_error": "Fehler bei der Synchronisation der Gesundheitsdaten"
+    "health_data_sync_error": "Fehler bei der Synchronisation der Gesundheitsdaten",
+    "connecting_to_health_data": "Verbindung zu Gesundheitsdaten..."
 }

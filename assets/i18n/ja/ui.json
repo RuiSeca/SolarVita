@@ -1,0 +1,13 @@
+{
+    "close": "閉じる",
+    "dismiss": "無視",
+    "retry": "再試行",
+    "history": "履歴",
+    "records": "記録",
+    "charts": "チャート",
+    "charts_will_be_implemented": "チャート機能は近日中に実装予定です",
+    "select_date_range": "日付範囲を選択",
+    "switch_light_dark_mode": "ライト/ダークモード切り替え",
+    "try_different_category": "別のカテゴリをお試しください",
+    "get_help_contact_support": "ヘルプ・サポートにお問い合わせ"
+}

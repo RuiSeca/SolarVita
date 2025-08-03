@@ -1,0 +1,20 @@
+{
+    "sets": "セット",
+    "set": "セット",
+    "weight": "重量",
+    "reps": "回数",
+    "distance": "距離",
+    "time": "時間",
+    "notes": "メモ",
+    "stats": "統計",
+    "total_volume": "総ボリューム",
+    "max_weight": "最大重量",
+    "sets_completed": "完了セット",
+    "total_reps": "総回数",
+    "delete_log": "ログ削除",
+    "delete_log_confirmation": "このログを削除してもよろしいですか？",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "log_deleted": "ログを削除しました",
+    "error_deleting_log": "ログ削除エラー"
+}

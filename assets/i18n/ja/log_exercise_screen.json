@@ -1,0 +1,18 @@
+{
+    "edit_log": "ログ編集",
+    "log_exercise": "エクササイズ記録",
+    "exercise": "エクササイズ",
+    "enter_exercise_name": "エクササイズ名を入力",
+    "please_enter_exercise_name": "エクササイズ名を入力してください",
+    "date": "日付",
+    "time": "時間",
+    "sets": "セット",
+    "add_set": "セット追加",
+    "set": "セット",
+    "weight_kg": "重量 (kg)",
+    "reps": "回数",
+    "notes": "メモ",
+    "enter_notes": "メモを入力",
+    "update_log": "ログ更新",
+    "save_log": "ログ保存"
+}

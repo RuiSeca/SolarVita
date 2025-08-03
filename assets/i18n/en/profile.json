@@ -93,8 +93,12 @@
     "goal_water_intake": "Water Intake",
     "goal_sleep_quality": "Sleep Quality",
     "supporters_count": "Supporters",
-    "co2_saved": "CO₂ Saved",
     "day_streak": "Day Streak",
     "quick_stats": "Quick Stats",
-    "level": "Level"
+    "level": "Level",
+    "unit_steps": "steps",
+    "unit_min": "min",
+    "unit_cal": "cal",
+    "unit_liters": "L",
+    "unit_hrs": "hrs"
 }

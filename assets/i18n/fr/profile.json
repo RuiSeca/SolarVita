@@ -58,7 +58,7 @@
     "streak": "Série",
     "percent_complete": "{percent}% terminé",
     "error_loading_weekly_summary": "Erreur lors du chargement du résumé hebdomadaire: {error}",
-    "daily_goals_progress": "Progrès des Objectifs Quotidiens",
+    "daily_goals_progress": "Objectif Quotidien",
     "error_loading_progress": "Erreur lors du chargement du progrès",
     "try_again": "Réessayer",
     "no_health_data_available": "Aucune donnée de santé disponible",
@@ -91,8 +91,12 @@
     "goal_water_intake": "Consommation d'Eau",
     "goal_sleep_quality": "Qualité du Sommeil",
     "supporters_count": "Supporters",
-    "co2_saved": "CO₂ Économisé",
     "day_streak": "Série de Jours",
     "quick_stats": "Statistiques Rapides",
-    "level": "Niveau"
+    "level": "Niveau",
+    "unit_steps": "pas",
+    "unit_min": "min",
+    "unit_cal": "cal",
+    "unit_liters": "L",
+    "unit_hrs": "h"
 }
