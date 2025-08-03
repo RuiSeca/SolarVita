@@ -1,0 +1,23 @@
+{
+    "search_meals_hint": "भोजन खोजें",
+    "discover_meals": "भोजन खोजें",
+    "loading_more_meals": "और भोजन लोड कर रहे हैं...",
+    "loading_meals": "भोजन लोड कर रहे हैं...",
+    "no_meals_found": "कोई भोजन नहीं मिला",
+    "loading_details": "विवरण लोड कर रहे हैं...",
+    "no_more_meals": "लोड करने के लिए और भोजन नहीं",
+    "try_again": "पुनः प्रयास करें",
+    "error_loading_meal_details": "भोजन विवरण लोड करने में त्रुटि",
+    "error_occurred": "एक त्रुटि हुई",
+    "unknown_meal": "अज्ञात भोजन",
+    "unknown": "अज्ञात",
+    "calories_kcal": "कैल",
+    "protein_grams": "ग्राम",
+    "carbs_grams": "ग्राम", 
+    "fat_grams": "ग्राम",
+    "vegan_label": "शाकाहारी",
+    "loading_calories": "लोड कर रहे हैं...",
+    "error_loading_meal": "भोजन लोड करने में त्रुटि",
+    "all_category": "सभी",
+    "all_meals_description": "सभी उपलब्ध भोजन"
+}

@@ -1,0 +1,22 @@
+{
+    "workout_list": "वर्कआउट सूची",
+    "my_workouts": "मेरी वर्कआउट्स",
+    "recommended_workouts": "सुझाई गई वर्कआउट्स",
+    "popular_workouts": "लोकप्रिय वर्कआउट्स",
+    "filter_by": "फिल्टर करें",
+    "all_levels": "सभी स्तर",
+    "all_types": "सभी प्रकार",
+    "all_durations": "सभी अवधि",
+    "sort_by": "क्रमबद्ध करें",
+    "newest": "नवीनतम",
+    "oldest": "पुरानतम",
+    "most_popular": "सबसे लोकप्रिय",
+    "highest_rated": "उच्चतम रेटेड",
+    "shortest": "सबसे छोटी",
+    "longest": "सबसे लंबी",
+    "no_workouts_found": "कोई वर्कआउट नहीं मिली",
+    "create_custom_workout": "कस्टम वर्कआउट बनाएं",
+    "workout_completed": "वर्कआउट पूरी हुई",
+    "minutes": "मिनट",
+    "exercises": "व्यायाम"
+}

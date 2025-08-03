@@ -27,5 +27,12 @@
     "edit_meal": "Modifica Pasto",
     "share": "Condividi",
     "calories_unit": "cal",
-    "grams_unit": "g"
+    "grams_unit": "g",
+    "nutrition_analysis": "ANALISI NUTRIZIONALE",
+    "kcal_unit": "KCAL",
+    "protein_label": "PROTEINE",
+    "carbs_label": "CARBOIDRATI",
+    "fat_label": "GRASSI",
+    "no_data": "Nessun Dato",
+    "nutrition_analysis_description": "Basato sui grammi forniti e sui valori calorici, le percentuali sono approssimativamente:"
 }

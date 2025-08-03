@@ -1,0 +1,23 @@
+{
+    "search_meals_hint": "식사 검색",
+    "discover_meals": "식사 발견",
+    "loading_more_meals": "더 많은 식사를 불러오는 중...",
+    "loading_meals": "식사를 불러오는 중...",
+    "no_meals_found": "식사를 찾을 수 없습니다",
+    "loading_details": "세부 정보 로딩 중...",
+    "no_more_meals": "더 이상 불러올 식사가 없습니다",
+    "try_again": "다시 시도",
+    "error_loading_meal_details": "식사 세부 정보를 불러오는 중 오류가 발생했습니다",
+    "error_occurred": "오류가 발생했습니다",
+    "unknown_meal": "알 수 없는 식사",
+    "unknown": "알 수 없음",
+    "calories_kcal": "kcal",
+    "protein_grams": "g",
+    "carbs_grams": "g",
+    "fat_grams": "g",
+    "vegan_label": "비건",
+    "loading_calories": "로딩 중...",
+    "error_loading_meal": "식사를 불러오는 중 오류가 발생했습니다",
+    "all_category": "전체",
+    "all_meals_description": "모든 사용 가능한 식사"
+}

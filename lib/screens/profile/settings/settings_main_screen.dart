@@ -331,17 +331,15 @@ class SettingsMainScreen extends ConsumerWidget {
   }
 
   Widget _buildMembershipSection(BuildContext context) {
-    final shadowColor = AppTheme.isDarkMode(context)
-        ? Colors.black.withAlpha(25)
-        : Colors.white.withAlpha(25);
-
+    final isDark = AppTheme.isDarkMode(context);
+    
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Membership',
+            tr(context, 'membership'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 18,
@@ -350,60 +348,193 @@ class SettingsMainScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [
-                  Color(0xFF66BB6A), // Lighter green
-                  Color(0xFF388E3C), // Darker green
-                ],
+              gradient: LinearGradient(
+                colors: isDark 
+                  ? [
+                      const Color(0xFF1B5E20), // Dark green
+                      const Color(0xFF2E7D32), // Medium green
+                      const Color(0xFF388E3C), // Lighter green
+                    ]
+                  : [
+                      const Color(0xFF66BB6A), // Light green
+                      const Color(0xFF4CAF50), // Medium green  
+                      const Color(0xFF388E3C), // Dark green
+                    ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: shadowColor,
+                  color: AppColors.primary.withValues(alpha: 0.3),
                   spreadRadius: 0,
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: Row(
+            child: Stack(
               children: [
-                const Icon(Icons.star, color: Colors.amber, size: 28),
-                const SizedBox(width: 16),
-                Expanded(
+                // Background pattern
+                Positioned(
+                  top: -20,
+                  right: -20,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: -30,
+                  left: -30,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                ),
+                // Main content
+                Padding(
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.workspace_premium,
+                              color: Colors.amber,
+                              size: 28,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              tr(context, 'active_status'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                       Text(
                         tr(context, 'premium_eco_member'),
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 20,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        tr(context, 'valid_until'),
-                        style: TextStyle(
-                          color: AppColors.white.withAlpha(51),
-                          fontSize: 14,
-                        ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            color: Colors.white.withValues(alpha: 0.8),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            tr(context, 'valid_until'),
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.star_rounded,
+                                      color: Colors.amber.shade300,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      tr(context, 'premium_benefits'),
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.9),
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  tr(context, 'unlimited_access'),
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              // Navigate to membership management
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.primary,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(25),
+                              ),
+                            ),
+                            child: Text(
+                              tr(context, 'manage'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.white,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  child: Text(tr(context, 'manage')),
                 ),
               ],
             ),

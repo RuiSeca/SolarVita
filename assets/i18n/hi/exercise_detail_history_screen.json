@@ -1,0 +1,20 @@
+{
+    "sets": "सेट्स",
+    "set": "सेट",
+    "weight": "वजन",
+    "reps": "रेप्स",
+    "distance": "दूरी",
+    "time": "समय",
+    "notes": "नोट्स",
+    "stats": "आंकड़े",
+    "total_volume": "कुल वॉल्यूम",
+    "max_weight": "अधिकतम वजन",
+    "sets_completed": "पूरे किए गए सेट्स",
+    "total_reps": "कुल रेप्स",
+    "delete_log": "लॉग हटाएं",
+    "delete_log_confirmation": "क्या आप वाकई इस लॉग को हटाना चाहते हैं?",
+    "cancel": "रद्द करें",
+    "delete": "हटाएं",
+    "log_deleted": "लॉग हटा दिया गया",
+    "error_deleting_log": "लॉग हटाने में त्रुटि"
+}

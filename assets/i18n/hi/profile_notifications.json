@@ -1,0 +1,21 @@
+{
+    "notifications": "सूचनाएं",
+    "fitness_notifications": "फिटनेस सूचनाएं",
+    "health_reminders": "स्वास्थ्य अनुस्मारक",
+    "eco_notifications": "इको सूचनाएं",
+    "workout_reminders": "कसरत अनुस्मारक",
+    "workout_reminders_desc": "व्यायाम का समय होने पर अनुस्मारक पाएं",
+    "progress_updates": "प्रगति अपडेट",
+    "progress_updates_desc": "अपनी उपलब्धियों और मील के पत्थर का जश्न मनाएं",
+    "water_reminders": "पानी अनुस्मारक",
+    "water_reminders_desc": "दिन भर हाइड्रेटेड रहें",
+    "meal_reminders": "भोजन अनुस्मारक",
+    "meal_reminders_desc": "अपने स्वस्थ भोजन को न भूलें",
+    "eco_tips": "दैनिक इको टिप्स",
+    "eco_tips_desc": "अधिक टिकाऊ होने के नए तरीके सीखें",
+    "test_notifications": "परीक्षण सूचनाएं",
+    "test_achievement": "परीक्षण उपलब्धि",
+    "test_message": "यह एक परीक्षण सूचना है!",
+    "send_test_notification": "परीक्षण सूचना भेजें",
+    "test_notification_sent": "परीक्षण सूचना भेजी गई!"
+}

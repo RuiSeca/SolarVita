@@ -1,0 +1,18 @@
+{
+    "edit_log": "लॉग संपादित करें",
+    "log_exercise": "व्यायाम लॉग करें",
+    "exercise": "व्यायाम",
+    "enter_exercise_name": "व्यायाम का नाम दर्ज करें",
+    "please_enter_exercise_name": "कृपया व्यायाम का नाम दर्ज करें",
+    "date": "दिनांक",
+    "time": "समय",
+    "sets": "सेट्स",
+    "add_set": "सेट जोड़ें",
+    "set": "सेट",
+    "weight_kg": "वजन (किग्रा)",
+    "reps": "रेप्स",
+    "notes": "नोट्स",
+    "enter_notes": "नोट्स दर्ज करें",
+    "update_log": "लॉग अपडेट करें",
+    "save_log": "लॉग सहेजें"
+}

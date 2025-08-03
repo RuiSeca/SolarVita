@@ -1,0 +1,16 @@
+{
+    "supporter_profile": "समर्थक प्रोफाइल",
+    "supporters": "समर्थक",
+    "add_supporter": "समर्थक जोड़ें",
+    "remove_supporter": "समर्थक हटाएं",
+    "supporter_since": "समर्थक बने",
+    "mutual_supporters": "पारस्परिक समर्थक",
+    "support_request_sent": "समर्थन अनुरोध भेजा गया",
+    "support_request_received": "समर्थन अनुरोध प्राप्त हुआ",
+    "accept_request": "अनुरोध स्वीकार करें",
+    "decline_request": "अनुरोध अस्वीकार करें",
+    "no_supporters_yet": "अभी तक कोई समर्थक नहीं",
+    "find_supporters": "समर्थक खोजें",
+    "supporter_activity": "समर्थक गतिविधि",
+    "view_profile": "प्रोफाइल देखें"
+}

@@ -34,11 +34,10 @@ class AppLocalizations {
     'settings',
     'social',
     'account_settings',
-    'profile_notifications',
-    'profile_privacy',
-    'profile_sustainability',
     'preferences_settings',
     'help_support',
+    'ui',
+    'language',
   ];
 
   AppLocalizations(this.locale);
@@ -123,10 +122,11 @@ class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
       'it',
       'de',
       'es',
-      'ar',
+      'ru',
       'ja',
-      'ko',
       'zh',
+      'hi',
+      'ko',
     ].contains(locale.languageCode);
   }
 

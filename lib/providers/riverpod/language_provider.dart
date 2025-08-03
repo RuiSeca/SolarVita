@@ -15,8 +15,11 @@ List<Language> supportedLanguages(Ref ref) {
     Language(name: 'Deutsch', code: 'de', flag: ''),
     Language(name: 'Italiano', code: 'it', flag: ''),
     Language(name: 'Português', code: 'pt', flag: ''),
+    Language(name: 'Русский', code: 'ru', flag: ''),
     Language(name: '日本語', code: 'ja', flag: ''),
     Language(name: '中文 (Traditional)', code: 'zh', flag: ''),
+    Language(name: 'हिन्दी', code: 'hi', flag: ''),
+    Language(name: '한국어', code: 'ko', flag: ''),
   ];
 }
 

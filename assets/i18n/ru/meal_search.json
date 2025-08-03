@@ -1,0 +1,23 @@
+{
+    "search_meals_hint": "Поиск блюд",
+    "discover_meals": "Открыть блюда",
+    "loading_more_meals": "Загрузка ещё блюд...",
+    "loading_meals": "Загрузка блюд...",
+    "no_meals_found": "Блюда не найдены",
+    "loading_details": "Загрузка деталей...",
+    "no_more_meals": "Больше нет блюд для загрузки",
+    "try_again": "Попробовать снова",
+    "error_loading_meal_details": "Ошибка загрузки деталей блюда",
+    "error_occurred": "Произошла ошибка",
+    "unknown_meal": "Неизвестное блюдо",
+    "unknown": "Неизвестно",
+    "calories_kcal": "ккал",
+    "protein_grams": "г",
+    "carbs_grams": "г", 
+    "fat_grams": "г",
+    "vegan_label": "ВЕГАНСКОЕ",
+    "loading_calories": "Загрузка...",
+    "error_loading_meal": "Ошибка загрузки блюда",
+    "all_category": "Все",
+    "all_meals_description": "Все доступные блюда"
+}

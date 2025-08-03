@@ -1,4 +1,5 @@
 {
+  "settings": "Impostazioni",
   "john_doe": "John Doe",
   "eco_enthusiast": "Eco Eco",
   "membership": "Appartenenza",
@@ -34,5 +35,10 @@
   "privacy_security_settings": "Impostazioni Privacy e Sicurezza",
   "set_environmental_targets": "Imposta Obiettivi Ambientali",
   "switch_light_dark_mode": "Modalità leggera o scura",
-  "get_help_contact_support": "Ottieni assistenza e supporto a contatto"
+  "get_help_contact_support": "Ottieni assistenza e supporto a contatto",
+  "active_status": "Attivo",
+  "premium_benefits": "Vantaggi Premium",
+  "unlimited_access": "Accesso illimitato a tutte le funzioni",
+  "cancel": "Annulla",
+  "sign_out_confirmation": "Sei sicuro di voler uscire?"
 }

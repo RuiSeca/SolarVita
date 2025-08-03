@@ -27,5 +27,12 @@
     "edit_meal": "食事を編集",
     "share": "シェア",
     "calories_unit": "cal",
-    "grams_unit": "g"
+    "grams_unit": "g",
+    "nutrition_analysis": "栄養分析",
+    "kcal_unit": "KCAL",
+    "protein_label": "タンパク質",
+    "carbs_label": "炭水化物",
+    "fat_label": "脂質",
+    "no_data": "データなし",
+    "nutrition_analysis_description": "提供されたグラム数とカロリー値に基づいて、パーセンテージは約："
 }

@@ -27,5 +27,12 @@
     "edit_meal": "Mahlzeit bearbeiten",
     "share": "Teilen",
     "calories_unit": "kal",
-    "grams_unit": "g"
+    "grams_unit": "g",
+    "nutrition_analysis": "NÄHRWERTANALYSE",
+    "kcal_unit": "KCAL",
+    "protein_label": "EIWEIß",
+    "carbs_label": "KOHLENHYDRATE",
+    "fat_label": "FETT",
+    "no_data": "Keine Daten",
+    "nutrition_analysis_description": "Basierend auf den angegebenen Gramm und den Kalorienwerten sind die Prozentsätze ungefähr:"
 }

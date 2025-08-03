@@ -1,0 +1,13 @@
+{
+    "close": "Закрыть",
+    "dismiss": "Отклонить",
+    "retry": "Повторить",
+    "history": "История",
+    "records": "Записи",
+    "charts": "Графики",
+    "charts_will_be_implemented": "Графики будут реализованы в ближайшее время",
+    "select_date_range": "Выберите диапазон дат",
+    "switch_light_dark_mode": "Переключить светлый/тёмный режим",
+    "try_different_category": "Попробуйте другую категорию",
+    "get_help_contact_support": "Получить помощь и связаться с поддержкой"
+}

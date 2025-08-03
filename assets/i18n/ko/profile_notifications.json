@@ -1,0 +1,21 @@
+{
+    "notifications": "알림",
+    "fitness_notifications": "피트니스 알림",
+    "health_reminders": "건강 알림",
+    "eco_notifications": "에코 알림",
+    "workout_reminders": "운동 알림",
+    "workout_reminders_desc": "운동할 시간이 되면 알림을 받으세요",
+    "progress_updates": "진행률 업데이트",
+    "progress_updates_desc": "성취와 마일스톤을 축하하세요",
+    "water_reminders": "수분 섭취 알림",
+    "water_reminders_desc": "하루 종일 수분을 충분히 섭취하세요",
+    "meal_reminders": "식사 알림",
+    "meal_reminders_desc": "건강한 식사를 잊지 마세요",
+    "eco_tips": "일일 에코 팁",
+    "eco_tips_desc": "더 지속 가능한 생활을 위한 새로운 방법을 배우세요",
+    "test_notifications": "알림 테스트",
+    "test_achievement": "업적 테스트",
+    "test_message": "테스트 알림입니다!",
+    "send_test_notification": "테스트 알림 보내기",
+    "test_notification_sent": "테스트 알림이 전송되었습니다!"
+}

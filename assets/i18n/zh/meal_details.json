@@ -27,5 +27,12 @@
     "edit_meal": "編輯餐點",
     "share": "分享",
     "calories_unit": "卡路里",
-    "grams_unit": "公克"
+    "grams_unit": "公克",
+    "nutrition_analysis": "營養分析",
+    "kcal_unit": "KCAL",
+    "protein_label": "蛋白質",
+    "carbs_label": "碳水化合物",
+    "fat_label": "脂肪",
+    "no_data": "無資料",
+    "nutrition_analysis_description": "根據提供的公克數和卡路里值，百分比大約為："
 }

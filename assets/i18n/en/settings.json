@@ -1,4 +1,5 @@
 {
+  "settings": "Settings",
   "john_doe": "John Doe",
   "eco_enthusiast": "Eco Enthusiast",
   "membership": "Membership",
@@ -34,5 +35,10 @@
   "privacy_security_settings": "Privacy & Security Settings",
   "set_environmental_targets": "Set Environmental Targets",
   "switch_light_dark_mode": "Light or Dark Mode",
-  "get_help_contact_support": "Get Help & Contact Support"
+  "get_help_contact_support": "Get Help & Contact Support",
+  "active_status": "Active",
+  "premium_benefits": "Premium Benefits",
+  "unlimited_access": "Unlimited access to all features",
+  "cancel": "Cancel",
+  "sign_out_confirmation": "Are you sure you want to sign out?"
 }

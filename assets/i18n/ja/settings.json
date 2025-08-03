@@ -1,4 +1,5 @@
 {
+  "settings": "設定",
   "john_doe": "田中太郎",
   "eco_enthusiast": "エコ愛好家",
   "membership": "メンバーシップ",
@@ -34,5 +35,10 @@
   "privacy_security_settings": "プライバシー・セキュリティ設定",
   "set_environmental_targets": "環境目標の設定",
   "switch_light_dark_mode": "ライト・ダークモード",
-  "get_help_contact_support": "ヘルプ・サポートにお問い合わせ"
+  "get_help_contact_support": "ヘルプ・サポートにお問い合わせ",
+  "active_status": "アクティブ",
+  "premium_benefits": "プレミアム特典",
+  "unlimited_access": "すべての機能への無制限アクセス",
+  "cancel": "キャンセル",
+  "sign_out_confirmation": "本当にログアウトしますか？"
 }

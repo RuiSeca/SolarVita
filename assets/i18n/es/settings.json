@@ -1,4 +1,5 @@
 {
+  "settings": "Configuración",
   "john_doe": "John Doe",
   "eco_enthusiast": "Entusiasta ecológico",
   "membership": "Membresía",
@@ -34,5 +35,10 @@
   "privacy_security_settings": "Configuración de Privacidad y Seguridad",
   "set_environmental_targets": "Establecer Objetivos Ambientales",
   "switch_light_dark_mode": "Modo claro o oscuro",
-  "get_help_contact_support": "Obtenga ayuda y soporte de contacto"
+  "get_help_contact_support": "Obtenga ayuda y soporte de contacto",
+  "active_status": "Activo",
+  "premium_benefits": "Beneficios Premium",
+  "unlimited_access": "Acceso ilimitado a todas las funciones",
+  "cancel": "Cancelar",
+  "sign_out_confirmation": "¿Estás seguro de que quieres cerrar sesión?"
 }

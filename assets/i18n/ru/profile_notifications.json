@@ -1,0 +1,21 @@
+{
+    "notifications": "Уведомления",
+    "fitness_notifications": "Фитнес-уведомления",
+    "health_reminders": "Напоминания о здоровье",
+    "eco_notifications": "Эко-уведомления",
+    "workout_reminders": "Напоминания о тренировках",
+    "workout_reminders_desc": "Получать напоминания, когда пришло время тренироваться",
+    "progress_updates": "Обновления прогресса",
+    "progress_updates_desc": "Отмечайте ваши достижения и вехи",
+    "water_reminders": "Напоминания о воде",
+    "water_reminders_desc": "Оставайтесь увлажнёнными в течение дня",
+    "meal_reminders": "Напоминания о еде",
+    "meal_reminders_desc": "Не забывайте о ваших здоровых блюдах",
+    "eco_tips": "Ежедневные эко-советы",
+    "eco_tips_desc": "Изучайте новые способы быть более устойчивыми",
+    "test_notifications": "Тестовые уведомления",
+    "test_achievement": "Тестовое достижение",
+    "test_message": "Это тестовое уведомление!",
+    "send_test_notification": "Отправить тестовое уведомление",
+    "test_notification_sent": "Тестовое уведомление отправлено!"
+}

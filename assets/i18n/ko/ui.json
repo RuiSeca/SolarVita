@@ -1,0 +1,13 @@
+{
+    "close": "닫기",
+    "dismiss": "무시",
+    "retry": "다시 시도",
+    "history": "히스토리",
+    "records": "기록",
+    "charts": "차트",
+    "charts_will_be_implemented": "차트는 곧 구현될 예정입니다",
+    "select_date_range": "날짜 범위 선택",
+    "switch_light_dark_mode": "밝기/어둠 모드 전환",
+    "try_different_category": "다른 카테고리를 선택해 보세요",
+    "get_help_contact_support": "도움말 및 고객 지원 문의"
+}

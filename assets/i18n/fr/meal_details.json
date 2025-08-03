@@ -27,5 +27,12 @@
     "edit_meal": "Éditer le Repas",
     "share": "Partager",
     "calories_unit": "cal",
-    "grams_unit": "g"
+    "grams_unit": "g",
+    "nutrition_analysis": "ANALYSE NUTRITIONNELLE",
+    "kcal_unit": "KCAL",
+    "protein_label": "PROTÉINES",
+    "carbs_label": "GLUCIDES",
+    "fat_label": "LIPIDES",
+    "no_data": "Aucune Donnée",
+    "nutrition_analysis_description": "Basé sur les grammes fournis et les valeurs caloriques, les pourcentages sont approximativement :"
 }

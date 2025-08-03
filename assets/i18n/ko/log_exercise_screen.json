@@ -1,0 +1,18 @@
+{
+    "edit_log": "로그 편집",
+    "log_exercise": "운동 기록",
+    "exercise": "운동",
+    "enter_exercise_name": "운동 이름을 입력하세요",
+    "please_enter_exercise_name": "운동 이름을 입력해 주세요",
+    "date": "날짜",
+    "time": "시간",
+    "sets": "세트",
+    "add_set": "세트 추가",
+    "set": "세트",
+    "weight_kg": "무게 (kg)",
+    "reps": "횟수",
+    "notes": "노트",
+    "enter_notes": "노트를 입력하세요",
+    "update_log": "로그 업데이트",
+    "save_log": "로그 저장"
+}

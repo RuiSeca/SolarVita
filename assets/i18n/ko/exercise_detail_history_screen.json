@@ -1,0 +1,20 @@
+{
+    "sets": "세트",
+    "set": "세트",
+    "weight": "무게",
+    "reps": "횟수",
+    "distance": "거리",
+    "time": "시간",
+    "notes": "노트",
+    "stats": "통계",
+    "total_volume": "총 볼륨",
+    "max_weight": "최대 무게",
+    "sets_completed": "완료된 세트",
+    "total_reps": "총 횟수",
+    "delete_log": "로그 삭제",
+    "delete_log_confirmation": "이 로그를 삭제하시겠습니까?",
+    "cancel": "취소",
+    "delete": "삭제",
+    "log_deleted": "로그가 삭제되었습니다",
+    "error_deleting_log": "로그 삭제 중 오류가 발생했습니다"
+}
