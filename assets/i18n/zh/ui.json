@@ -1,0 +1,13 @@
+{
+    "close": "關閉",
+    "dismiss": "忽略",
+    "retry": "重試",
+    "history": "歷史",
+    "records": "記錄",
+    "charts": "圖表",
+    "charts_will_be_implemented": "圖表功能即將推出",
+    "select_date_range": "選擇日期範圍",
+    "switch_light_dark_mode": "切換淺色/深色模式",
+    "try_different_category": "嘗試不同類別",
+    "get_help_contact_support": "獲取幫助與聯繫支援"
+}

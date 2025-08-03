@@ -1,0 +1,20 @@
+{
+    "sets": "組數",
+    "set": "組",
+    "weight": "重量",
+    "reps": "次數",
+    "distance": "距離",
+    "time": "時間",
+    "notes": "備註",
+    "stats": "統計",
+    "total_volume": "總訓練量",
+    "max_weight": "最大重量",
+    "sets_completed": "完成組數",
+    "total_reps": "總次數",
+    "delete_log": "刪除紀錄",
+    "delete_log_confirmation": "您確定要刪除此紀錄嗎？",
+    "cancel": "取消",
+    "delete": "刪除",
+    "log_deleted": "紀錄已刪除",
+    "error_deleting_log": "刪除紀錄時發生錯誤"
+}

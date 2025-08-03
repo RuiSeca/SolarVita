@@ -10,6 +10,7 @@ import '../../providers/riverpod/auth_provider.dart';
 import '../../widgets/social/social_feed_tabs.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../social/create_post_screen.dart';
+import '../../providers/riverpod/scroll_controller_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -22,11 +23,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    
+    // Get scroll controller directly in build method
+    final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('dashboard');
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: scrollController,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(

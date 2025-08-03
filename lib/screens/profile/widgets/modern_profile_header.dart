@@ -231,9 +231,9 @@ class ModernProfileHeader extends ConsumerWidget {
                                       final progressAsync = ref.watch(userProgressNotifierProvider);
                                       return Text(
                                         progressAsync.when(
-                                          data: (progress) => 'Level ${progress.currentLevel} ${progress.levelTitle(context)}',
-                                          loading: () => 'Level ${ref.watch(currentLevelProvider)} Loading...',
-                                          error: (_, __) => 'Level ${ref.watch(currentLevelProvider)} Error',
+                                          data: (progress) => '${tr(context, 'level_number').replaceAll('{level}', progress.currentLevel.toString())} ${progress.levelTitle(context)}',
+                                          loading: () => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Loading...',
+                                          error: (_, __) => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Error',
                                         ),
                                         style: TextStyle(
                                           color: AppTheme.textColor(
@@ -274,7 +274,7 @@ class ModernProfileHeader extends ConsumerWidget {
                               context,
                               Icons.people_outline,
                               '${userProfile?.supportersCount ?? 0}',
-                              'Supporters',
+                              tr(context, 'supporters_count'),
                             ),
                           ),
                           _buildDivider(),
@@ -283,7 +283,7 @@ class ModernProfileHeader extends ConsumerWidget {
                               context,
                               Icons.eco_outlined,
                               '2.4kg',
-                              'CO₂ Saved',
+                              tr(context, 'co2_saved'),
                             ),
                           ),
                           _buildDivider(),
@@ -292,7 +292,7 @@ class ModernProfileHeader extends ConsumerWidget {
                               context,
                               Icons.local_fire_department_outlined,
                               '${ref.watch(currentStrikesProvider)}',
-                              'Day Streak',
+                              tr(context, 'day_streak'),
                             ),
                           ),
                         ],

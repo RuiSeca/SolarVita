@@ -49,5 +49,6 @@
     "camera": "Camera",
     "gallery": "Gallery",
     "remove_image": "Remove Image",
-    "error_picking_image": "Error selecting image. Please try again."
+    "error_picking_image": "Error selecting image. Please try again.",
+    "featured_meals": "Featured Meals"
 }

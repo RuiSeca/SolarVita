@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme/app_theme.dart';
+import '../../../../utils/translation_helper.dart';
 
 class HelpSupportScreen extends StatefulWidget {
   const HelpSupportScreen({super.key});
@@ -17,69 +18,51 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _chatController = TextEditingController();
 
-  final List<FAQ> _faqs = [
+  List<FAQ> get _faqs => [
     FAQ(
-      question: 'How do I track my workouts?',
-      answer:
-          'You can track your workouts by going to the Health tab and selecting "Track Workout". Choose your workout type and start tracking your progress.',
+      questionKey: 'faq_track_workouts_q',
+      answerKey: 'faq_track_workouts_a',
     ),
     FAQ(
-      question: 'How does the eco-friendly reward system work?',
-      answer:
-          'Each sustainable action earns you eco-points. These points can be used for discounts on eco-friendly products from our partners or can be converted to tree plantations.',
+      questionKey: 'faq_eco_rewards_q',
+      answerKey: 'faq_eco_rewards_a',
     ),
     FAQ(
-      question: 'Can I connect my fitness devices?',
-      answer:
-          'Yes! SolarVita supports most major fitness devices and apps. Go to Settings > Preferences > Connect Devices to set up your device.',
+      questionKey: 'faq_connect_devices_q',
+      answerKey: 'faq_connect_devices_a',
     ),
     FAQ(
-      question: 'How do I change my goals?',
-      answer:
-          'You can update your fitness and sustainability goals in your profile settings under Preferences > Sustainability Goals.',
+      questionKey: 'faq_change_goals_q',
+      answerKey: 'faq_change_goals_a',
     ),
     FAQ(
-      question: 'Can I share a workout with others?',
-      answer:
-          'You can share your workout simply by clicking the "Share" button on the workout details page.',
+      questionKey: 'faq_share_workout_q',
+      answerKey: 'faq_share_workout_a',
     ),
     FAQ(
-      question: 'Can I customize my workout plans?',
-      answer:
-          'Yes! You can create custom workout plans in the Health tab. Just select "Create Plan" and add your preferred exercises.',
+      questionKey: 'faq_customize_plans_q',
+      answerKey: 'faq_customize_plans_a',
     ),
-
     FAQ(
-      question: 'How can I reset my password?',
-      answer:
-          'If you need to reset your password, go to Settings > Account > Reset Password. You will receive an email with instructions.',
+      questionKey: 'faq_reset_password_q',
+      answerKey: 'faq_reset_password_a',
     ),
-
     FAQ(
-      question: 'Does the app work offline?',
-      answer:
-          'Yes, you can log your workouts offline, and the data will sync automatically once you are back online.',
+      questionKey: 'faq_offline_mode_q',
+      answerKey: 'faq_offline_mode_a',
     ),
-
     FAQ(
-      question: 'How do I enable notifications?',
-      answer:
-          'To enable notifications, go to Settings > Notifications and choose which alerts you want to receive.',
+      questionKey: 'faq_notifications_q',
+      answerKey: 'faq_notifications_a',
     ),
-
     FAQ(
-      question: 'Can I track my carbon footprint?',
-      answer:
-          'Yes! In the Eco Tips button, located at the top right of the dashboard, you can monitor your carbon footprint and get tips on how to reduce it with eco-friendly habits.',
+      questionKey: 'faq_carbon_footprint_q',
+      answerKey: 'faq_carbon_footprint_a',
     ),
-
     FAQ(
-      question: 'How do community challenges work?',
-      answer:
-          'Community challenges encourage healthy and sustainable habits. Join through the "Challenges" tab, complete tasks, and earn rewards.',
+      questionKey: 'faq_community_challenges_q',
+      answerKey: 'faq_community_challenges_a',
     ),
-
-    // Add more FAQs as needed
   ];
 
   @override
@@ -99,7 +82,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         backgroundColor: AppTheme.surfaceColor(context),
         elevation: 0,
         title: Text(
-          'Help & Support',
+          tr(context, 'help_support'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontWeight: FontWeight.bold,
@@ -126,9 +109,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          _buildTab('FAQ', 0),
-          _buildTab('Chat', 1),
-          _buildTab('Contact Us', 2),
+          _buildTab(tr(context, 'faq'), 0),
+          _buildTab(tr(context, 'chat'), 1),
+          _buildTab(tr(context, 'contact_us'), 2),
         ],
       ),
     );
@@ -176,7 +159,6 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _faqs.length,
-      itemExtent: 80.0, // Fixed height for collapsed FAQ items
       itemBuilder: (context, index) {
         return _FAQItem(faq: _faqs[index]);
       },
@@ -189,14 +171,13 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         Expanded(
           child: ListView(
             padding: const EdgeInsets.all(16),
-            children: const [
+            children: [
               _ChatMessage(
-                message: 'Hello! How can I help you today?',
+                message: tr(context, 'chat_hello_message'),
                 isBot: true,
               ),
               _ChatMessage(
-                message:
-                    'Our support bot is here to answer your questions about SolarVita.',
+                message: tr(context, 'chat_support_bot_message'),
                 isBot: true,
               ),
             ],
@@ -217,7 +198,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                   controller: _chatController,
                   style: TextStyle(color: AppTheme.textColor(context)),
                   decoration: InputDecoration(
-                    hintText: 'Type your message...',
+                    hintText: tr(context, 'type_your_message'),
                     hintStyle: TextStyle(color: AppTheme.textColor(context).withValues(alpha: 153)),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -259,7 +240,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Send us a message',
+            tr(context, 'send_us_message'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 20,
@@ -269,21 +250,21 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           const SizedBox(height: 24),
           _buildTextField(
             controller: _nameController,
-            label: 'Name',
-            hint: 'Enter your name',
+            label: tr(context, 'name'),
+            hint: tr(context, 'enter_your_name'),
           ),
           const SizedBox(height: 16),
           _buildTextField(
             controller: _emailController,
-            label: 'Email',
-            hint: 'Enter your email',
+            label: tr(context, 'email'),
+            hint: tr(context, 'enter_your_email'),
             keyboardType: TextInputType.emailAddress,
           ),
           const SizedBox(height: 16),
           _buildTextField(
             controller: _messageController,
-            label: 'Message',
-            hint: 'How can we help you?',
+            label: tr(context, 'message'),
+            hint: tr(context, 'how_can_we_help'),
             maxLines: 5,
           ),
           const SizedBox(height: 24),
@@ -296,9 +277,9 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text(
-              'Send Message',
-              style: TextStyle(
+            child: Text(
+              tr(context, 'send_message'),
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -309,7 +290,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           Divider(color: AppTheme.textColor(context).withValues(alpha: 26)),
           const SizedBox(height: 24),
           Text(
-            'Other ways to reach us',
+            tr(context, 'other_ways_to_reach_us'),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 20,
@@ -319,13 +300,13 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           const SizedBox(height: 16),
           _buildContactOption(
             icon: Icons.email,
-            title: 'Email',
+            title: tr(context, 'email'),
             subtitle: 'support@solarvita.com',
             onTap: () => _launchEmail('support@solarvita.com'),
           ),
           _buildContactOption(
             icon: Icons.phone,
-            title: 'Phone',
+            title: tr(context, 'phone'),
             subtitle: '+1 (555) 123-4567',
             onTap: () => _launchPhone('+15551234567'),
           ),
@@ -450,10 +431,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
 }
 
 class FAQ {
-  final String question;
-  final String answer;
+  final String questionKey;
+  final String answerKey;
 
-  FAQ({required this.question, required this.answer});
+  FAQ({required this.questionKey, required this.answerKey});
 }
 
 class _FAQItem extends StatefulWidget {
@@ -480,7 +461,7 @@ class _FAQItemState extends State<_FAQItem> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           title: Text(
-            widget.faq.question,
+            tr(context, widget.faq.questionKey),
             style: TextStyle(
               color: AppTheme.textColor(context),
               fontSize: 16,
@@ -496,7 +477,7 @@ class _FAQItemState extends State<_FAQItem> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Text(
-                widget.faq.answer,
+                tr(context, widget.faq.answerKey),
                 style: TextStyle(
                   color: AppTheme.textColor(context).withValues(alpha: 153),
                   fontSize: 14,

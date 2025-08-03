@@ -36,5 +36,19 @@
     "delete_meal_confirmation": "Sei sicuro di voler rimuovere questo pasto dal tuo piano?",
     "cancel": "Annulla",
     "save": "Salva",
-    "start_now": "Inizia Ora"
+    "start_now": "Inizia Ora",
+    "create_meal": "Crea Pasto",
+    "meal_title": "Titolo del Pasto",
+    "ingredients": "Ingredienti",
+    "instructions": "Istruzioni",
+    "ingredient_name": "Ingrediente",
+    "instruction_step": "Passaggio dell'Istruzione",
+    "add_meal_photo": "Aggiungi Foto del Pasto",
+    "tap_to_select_image": "Tocca per selezionare l'immagine",
+    "select_image_source": "Seleziona Fonte Immagine",
+    "camera": "Fotocamera",
+    "gallery": "Galleria",
+    "remove_image": "Rimuovi Immagine",
+    "error_picking_image": "Errore nella selezione dell'immagine. Riprova.",
+    "featured_meals": "Pasti in Evidenza"
 }

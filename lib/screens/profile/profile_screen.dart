@@ -14,6 +14,7 @@ import '../../services/chat/data_sync_service.dart';
 import '../../models/user/supporter.dart';
 import 'supporter/supporter_requests_screen.dart';
 import '../../utils/translation_helper.dart';
+import '../../providers/riverpod/scroll_controller_provider.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -33,8 +34,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     // Sync data to Firebase when profile loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _syncCurrentDataToFirebase();
-      _autoSyncSupporterCount();
+      if (mounted) {
+        _syncCurrentDataToFirebase();
+        _autoSyncSupporterCount();
+      }
     });
   }
 
@@ -102,6 +105,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
+    
+    // Get scroll controller directly in build method
+    final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('profile');
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -110,6 +116,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           data: (userProfile) => RefreshIndicator(
             onRefresh: _refreshData,
             child: SingleChildScrollView(
+              controller: scrollController,
               physics: const BouncingScrollPhysics(
                 parent: AlwaysScrollableScrollPhysics(),
               ),

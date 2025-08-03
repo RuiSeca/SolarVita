@@ -89,5 +89,10 @@
     "goal_active_minutes": "Minuti Attivi",
     "goal_calories_burn": "Bruciare Calorie",
     "goal_water_intake": "Assunzione di Acqua",
-    "goal_sleep_quality": "Qualità del Sonno"
+    "goal_sleep_quality": "Qualità del Sonno",
+    "supporters_count": "Sostenitori",
+    "co2_saved": "CO₂ Risparmiata",
+    "day_streak": "Serie Giorni",
+    "quick_stats": "Statistiche Rapide",
+    "level": "Livello"
 }

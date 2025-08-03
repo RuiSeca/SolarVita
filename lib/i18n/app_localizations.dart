@@ -38,6 +38,7 @@ class AppLocalizations {
     'profile_privacy',
     'profile_sustainability',
     'preferences_settings',
+    'help_support',
   ];
 
   AppLocalizations(this.locale);

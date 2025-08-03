@@ -96,8 +96,6 @@ class _SupporterActivityFeedScreenState
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: activities.length,
-              itemExtent:
-                  200.0, // Fixed height for activity cards (margin + padding + content)
               itemBuilder: (context, index) {
                 final activity = activities[index];
                 return _buildActivityCard(context, activity);

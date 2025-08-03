@@ -130,5 +130,18 @@
     "supporter_request_declined": "Supporter request declined",
     "error_declining_request": "Error declining request: {error}",
     "w_ago": "{weeks}w ago",
-    "now": "now"
+    "now": "now",
+    "my_supporters": "My Supporters",
+    "supporting": "Supporting",
+    "search_supporters": "Search Supporters",
+    "search_users": "Search users...",
+    "find_by_username": "Find by username",
+    "enter_username": "Enter username...",
+    "search": "Search",
+    "no_users_found": "No users found",
+    "search_for_supporters": "Search for supporters to connect with",
+    "loading_users": "Loading users...",
+    "error_searching_users": "Error searching users",
+    "add_supporter": "Add Supporter",
+    "connect": "Connect"
 }

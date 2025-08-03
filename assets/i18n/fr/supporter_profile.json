@@ -130,5 +130,18 @@
     "supporter_request_declined": "Demande de support refusée",
     "error_declining_request": "Erreur lors du refus de la demande : {error}",
     "w_ago": "il y a {weeks}sem",
-    "now": "maintenant"
+    "now": "maintenant",
+    "my_supporters": "Mes Supporters",
+    "supporting": "Soutenant",
+    "search_supporters": "Rechercher des Supporters",
+    "search_users": "Rechercher des utilisateurs...",
+    "find_by_username": "Trouver par nom d'utilisateur",
+    "enter_username": "Entrez le nom d'utilisateur...",
+    "search": "Rechercher",
+    "no_users_found": "Aucun utilisateur trouvé",
+    "search_for_supporters": "Recherchez des supporters pour vous connecter",
+    "loading_users": "Chargement des utilisateurs...",
+    "error_searching_users": "Erreur lors de la recherche d'utilisateurs",
+    "add_supporter": "Ajouter un Supporter",
+    "connect": "Connecter"
 }

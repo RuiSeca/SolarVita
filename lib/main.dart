@@ -339,7 +339,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         scrollController.scrollToTop('health');
         break;
       case 3:
-        scrollController.scrollToTop('ai_assistant');
+        // Skip AI assistant - no scroll-to-top functionality
         break;
       case 4:
         scrollController.scrollToTop('profile');

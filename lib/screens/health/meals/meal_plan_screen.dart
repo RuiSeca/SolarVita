@@ -1063,9 +1063,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     ];
 
     final List<String> carouselLabels = [
-      'Create Meal',
-      'Search Meal',
-      'Featured Meal',
+      tr(context, 'create_meal'),
+      tr(context, 'search_meals'),
+      tr(context, 'featured_meals'),
     ];
 
     return SizedBox(

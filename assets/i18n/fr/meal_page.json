@@ -36,5 +36,19 @@
     "delete_meal_confirmation": "Êtes-vous sûr de vouloir supprimer ce repas de votre plan?",
     "cancel": "Annuler",
     "save": "Enregistrer",
-    "start_now": "Commencer Maintenant"
+    "start_now": "Commencer Maintenant",
+    "create_meal": "Créer un Repas",
+    "meal_title": "Titre du Repas",
+    "ingredients": "Ingrédients",
+    "instructions": "Instructions",
+    "ingredient_name": "Ingrédient",
+    "instruction_step": "Étape d'Instruction",
+    "add_meal_photo": "Ajouter une Photo de Repas",
+    "tap_to_select_image": "Appuyer pour sélectionner une image",
+    "select_image_source": "Sélectionner la Source d'Image",
+    "camera": "Caméra",
+    "gallery": "Galerie",
+    "remove_image": "Supprimer l'Image",
+    "error_picking_image": "Erreur lors de la sélection de l'image. Veuillez réessayer.",
+    "featured_meals": "Repas en Vedette"
 }

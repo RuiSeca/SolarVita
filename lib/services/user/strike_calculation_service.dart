@@ -45,11 +45,35 @@ class StrikeCalculationService {
 
       if (daysDifference > 1) {
         log.warning(
-          '⚠️ Missed ${daysDifference - 1} days, resetting current strikes only',
+          '⚠️ Missed ${daysDifference - 1} days, checking yesterday\'s goals before resetting',
         );
-        await _resetStrikesKeepLevel();
+        
+        // Before resetting, check if yesterday's goals were completed
+        // Only reset if user truly missed days without completing any goals
+        final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+        bool shouldReset = true;
+        
+        if (yesterdayGoalsJson != null) {
+          try {
+            final yesterdayGoals = Map<String, bool>.from(json.decode(yesterdayGoalsJson));
+            final completedGoals = yesterdayGoals.values.where((completed) => completed).length;
+            if (completedGoals > 0) {
+              shouldReset = false;
+              log.info('✅ Yesterday goals were completed, maintaining streak despite missed days');
+            }
+          } catch (e) {
+            log.warning('⚠️ Error checking yesterday goals: $e');
+          }
+        }
+        
+        if (shouldReset) {
+          await _resetStrikesKeepLevel();
+        }
       } else if (daysDifference == 1) {
-        log.info('📅 New day detected, ready for goal checking');
+        log.info('📅 New day detected, performing missed midnight reset');
+        // If we missed the midnight reset due to app being closed, perform it now
+        await _performMidnightReset();
+        return; // Don't update last check date yet, let _performMidnightReset handle it
       }
     }
 
@@ -77,8 +101,11 @@ class StrikeCalculationService {
 
   // Perform midnight reset and check previous day completion
   Future<void> _performMidnightReset() async {
+    log.info('🕛 Starting midnight reset process...');
     final progress = await getUserProgress();
     final prefs = await SharedPreferences.getInstance();
+    
+    log.info('📊 Current progress before reset: ${progress.todayGoalsCompleted}');
 
     // Get yesterday's goals from saved state, not current progress
     final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
@@ -89,14 +116,19 @@ class StrikeCalculationService {
         yesterdayGoals = Map<String, bool>.from(
           json.decode(yesterdayGoalsJson),
         );
+        log.info('📋 Retrieved saved yesterday goals: $yesterdayGoals');
       } catch (e) {
         log.warning('⚠️ Error parsing yesterday goals: $e');
         // Fallback to current progress goals (might be inaccurate but better than nothing)
         yesterdayGoals = progress.todayGoalsCompleted;
+        log.info('🔄 Using current goals as fallback: $yesterdayGoals');
       }
     } else {
-      // First time running or no saved data - use current progress
-      yesterdayGoals = progress.todayGoalsCompleted;
+      // First time running or no saved data - use current progress goals BEFORE they get reset
+      // This ensures we check the actual goals that were completed "yesterday" (today before reset)
+      log.info('📅 No yesterday goals data found - using current progress goals before reset');
+      yesterdayGoals = Map<String, bool>.from(progress.todayGoalsCompleted);
+      log.info('🔄 Using current goals: $yesterdayGoals');
     }
 
     // Check if any goals were completed yesterday
@@ -119,14 +151,24 @@ class StrikeCalculationService {
     }
 
     // Save today's goals as yesterday's goals for tomorrow's check
-    await prefs.setString(
-      _yesterdayGoalsKey,
-      json.encode(progress.todayGoalsCompleted),
-    );
+    try {
+      await prefs.setString(
+        _yesterdayGoalsKey,
+        json.encode(progress.todayGoalsCompleted),
+      );
+      log.info('💾 Saved today\'s goals for tomorrow\'s check: ${progress.todayGoalsCompleted}');
+    } catch (e) {
+      log.warning('⚠️ Failed to save yesterday goals: $e');
+    }
 
     // Reset daily goals for new day
     await _resetDailyGoals();
     await _sendDailyReminderNotification();
+    
+    // Update last check date after successful midnight reset
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+    await prefs.setString(_lastCheckDateKey, todayDateOnly.toIso8601String());
   }
 
   // Calculate strikes based on current health data

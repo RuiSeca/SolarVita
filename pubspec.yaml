@@ -98,6 +98,7 @@ flutter:
     - assets/i18n/fr/
     - assets/i18n/it/
     - assets/i18n/de/
+    - assets/i18n/zh/
 
     # ==========
     # Feature Images

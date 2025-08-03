@@ -324,7 +324,7 @@ class SupporterDailyGoalsWidget extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  tr(context, 'level').replaceAll(
+                  tr(context, 'level_number').replaceAll(
                     '{level}',
                     supporterProgress!.currentLevel.toString(),
                   ),

@@ -49,5 +49,6 @@
     "camera": "Câmera",
     "gallery": "Galeria",
     "remove_image": "Remova a imagem",
-    "error_picking_image": "Erro na seleção da imagem. "
+    "error_picking_image": "Erro na seleção da imagem. ",
+    "featured_meals": "Refeições em Destaque"
 }

@@ -92,8 +92,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '29+',
       'type': 'challenges',
-      'workoutName': 'Dumbbell Bench Press',
-      'workoutSmall': 'Leg Press'
+      'workoutNameKey': 'Dumbbell Bench Press',
+      'workoutSmallKey': 'Leg Press'
     },
     {
       'titleKey': 'workout_abs',
@@ -104,8 +104,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '20+',
       'type': 'challenges',
-      'workoutName': 'Ab-Wheel Rollout',
-      'workoutSmall': 'Rowing'
+      'workoutNameKey': 'Ab-Wheel Rollout',
+      'workoutSmallKey': 'Rowing'
     },
     {
       'titleKey': 'workout_outdoor',
@@ -116,8 +116,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '32+',
       'type': 'workouts',
-      'workoutName': 'Hiking',
-      'workoutSmall': 'Sprinting'
+      'workoutNameKey': 'Hiking',
+      'workoutSmallKey': 'Sprinting'
     },
     {
       'titleKey': 'workout_yoga',
@@ -128,8 +128,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '27+',
       'type': 'activities',
-      'workoutName': 'Sun Salutation',
-      'workoutSmall': 'Stretching'
+      'workoutNameKey': 'Sun Salutation',
+      'workoutSmallKey': 'Stretching'
     },
     {
       'titleKey': 'workout_calisthenics',
@@ -140,8 +140,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '50+',
       'type': 'activities',
-      'workoutName': 'Pull-ups',
-      'workoutSmall': 'Crunch'
+      'workoutNameKey': 'Pull-ups',
+      'workoutSmallKey': 'Crunch'
     },
     {
       'titleKey': 'workout_meditation',
@@ -152,8 +152,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ],
       'count': '13+',
       'type': 'challenges',
-      'workoutName': 'Mindful Breathing',
-      'workoutSmall': 'Deep breathing'
+      'workoutNameKey': 'Mindful Breathing',
+      'workoutSmallKey': 'Deep breathing'
     },
   ];
 
@@ -161,8 +161,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (_searchQuery.isEmpty) return _workoutCategories;
     return _workoutCategories.where((category) {
       final title = tr(context, category['titleKey']).toLowerCase();
-      final workoutName = category['workoutName'].toString().toLowerCase();
-      final workoutSmall = category['workoutSmall'].toString().toLowerCase();
+      final workoutName = tr(context, category['workoutNameKey']).toLowerCase();
+      final workoutSmall = tr(context, category['workoutSmallKey']).toLowerCase();
       final query = _searchQuery.toLowerCase();
       return title.contains(query) ||
           workoutName.contains(query) ||
@@ -483,8 +483,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 smallImages: List<String>.from(categories[index]['smallImages']),
                                 count: tr(context, '${categories[index]['type']}_count')
                                     .replaceAll('{count}', categories[index]['count']),
-                                workoutName: categories[index]['workoutName'],
-                                workoutSmall: categories[index]['workoutSmall'],
+                                workoutName: tr(context, categories[index]['workoutNameKey']),
+                                workoutSmall: tr(context, categories[index]['workoutSmallKey']),
                                 isFirstBuild: _isFirstBuild,
                                 isLoading: _isLoadingExercises,
                               ),

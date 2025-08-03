@@ -130,5 +130,18 @@
     "supporter_request_declined": "Unterstützungsanfrage abgelehnt",
     "error_declining_request": "Fehler beim Ablehnen der Anfrage: {error}",
     "w_ago": "vor {weeks}W",
-    "now": "jetzt"
+    "now": "jetzt",
+    "my_supporters": "Meine Unterstützer",
+    "supporting": "Unterstützend",
+    "search_supporters": "Unterstützer Suchen",
+    "search_users": "Benutzer suchen...",
+    "find_by_username": "Nach Benutzername finden",
+    "enter_username": "Benutzername eingeben...",
+    "search": "Suchen",
+    "no_users_found": "Keine Benutzer gefunden",
+    "search_for_supporters": "Suchen Sie nach Unterstützern zum Verbinden",
+    "loading_users": "Benutzer laden...",
+    "error_searching_users": "Fehler beim Suchen von Benutzern",
+    "add_supporter": "Unterstützer Hinzufügen",
+    "connect": "Verbinden"
 }

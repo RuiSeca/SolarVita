@@ -36,5 +36,19 @@
     "delete_meal_confirmation": "¿Está seguro de que desea eliminar esta comida de su plan?",
     "cancel": "Cancelar",
     "save": "Guardar",
-    "start_now": "Empezar Ahora"
+    "start_now": "Empezar Ahora",
+    "create_meal": "Crear Comida",
+    "meal_title": "Título de la Comida",
+    "ingredients": "Ingredientes",
+    "instructions": "Instrucciones",
+    "ingredient_name": "Ingrediente",
+    "instruction_step": "Paso de Instrucción",
+    "add_meal_photo": "Agregar Foto de Comida",
+    "tap_to_select_image": "Toca para seleccionar imagen",
+    "select_image_source": "Seleccionar Fuente de Imagen",
+    "camera": "Cámara",
+    "gallery": "Galería",
+    "remove_image": "Quitar Imagen",
+    "error_picking_image": "Error al seleccionar imagen. Inténtalo de nuevo.",
+    "featured_meals": "Comidas Destacadas"
 }

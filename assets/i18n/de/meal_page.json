@@ -36,5 +36,19 @@
     "delete_meal_confirmation": "Sind Sie sicher, dass Sie diese Mahlzeit aus Ihrem Plan entfernen möchten?",
     "cancel": "Abbrechen",
     "save": "Speichern",
-    "start_now": "Jetzt Starten"
+    "start_now": "Jetzt Starten",
+    "create_meal": "Mahlzeit Erstellen",
+    "meal_title": "Mahlzeit-Titel",
+    "ingredients": "Zutaten",
+    "instructions": "Anweisungen",
+    "ingredient_name": "Zutat",
+    "instruction_step": "Anweisungsschritt",
+    "add_meal_photo": "Mahlzeit-Foto Hinzufügen",
+    "tap_to_select_image": "Tippen, um Bild auszuwählen",
+    "select_image_source": "Bildquelle Auswählen",
+    "camera": "Kamera",
+    "gallery": "Galerie",
+    "remove_image": "Bild Entfernen",
+    "error_picking_image": "Fehler beim Auswählen des Bildes. Bitte versuchen Sie es erneut.",
+    "featured_meals": "Empfohlene Mahlzeiten"
 }

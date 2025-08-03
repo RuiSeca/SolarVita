@@ -91,5 +91,9 @@
     "goal_active_minutes": "Active Minutes",
     "goal_calories_burn": "Calories Burn",
     "goal_water_intake": "Water Intake",
-    "goal_sleep_quality": "Sleep Quality"
+    "goal_sleep_quality": "Sleep Quality",
+    "supporters_count": "Supporters",
+    "day_streak": "Day Streak",
+    "quick_stats": "Quick Stats",
+    "level": "Level"
 }

@@ -14,6 +14,7 @@ import '../../providers/riverpod/health_data_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../models/health/health_data.dart';
 import '../../models/user/user_progress.dart';
+import '../../providers/riverpod/scroll_controller_provider.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
@@ -33,6 +34,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
   @override
   void initState() {
     super.initState();
+    
     _rippleController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -199,11 +201,15 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     final healthDataAsync = ref.watch(healthDataNotifierProvider);
     final permissionsStatus = ref.watch(healthPermissionsNotifierProvider);
     final lastSyncAsync = ref.watch(lastSyncTimeProvider);
+    
+    // Get scroll controller directly in build method
+    final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('health');
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
         child: SingleChildScrollView(
+          controller: scrollController,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
