@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:logging/logging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user/user_progress.dart';
 import '../../models/health/health_data.dart';
 import '../chat/data_sync_service.dart';
@@ -15,6 +17,8 @@ class StrikeCalculationService {
   static const String _yesterdayGoalsKey = 'yesterday_goals_completed';
 
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   Timer? _midnightTimer;
 
   StrikeCalculationService(this._notificationsPlugin);
@@ -107,28 +111,37 @@ class StrikeCalculationService {
     
     log.info('📊 Current progress before reset: ${progress.todayGoalsCompleted}');
 
-    // Get yesterday's goals from saved state, not current progress
-    final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+    // ENHANCED: Try to get yesterday's goals from multiple sources for accuracy
     Map<String, bool> yesterdayGoals = {};
-
-    if (yesterdayGoalsJson != null) {
-      try {
-        yesterdayGoals = Map<String, bool>.from(
-          json.decode(yesterdayGoalsJson),
-        );
-        log.info('📋 Retrieved saved yesterday goals: $yesterdayGoals');
-      } catch (e) {
-        log.warning('⚠️ Error parsing yesterday goals: $e');
-        // Fallback to current progress goals (might be inaccurate but better than nothing)
-        yesterdayGoals = progress.todayGoalsCompleted;
-        log.info('🔄 Using current goals as fallback: $yesterdayGoals');
+    
+    // 1. Try to get from Firestore (most reliable)
+    try {
+      final firestoreYesterdayGoals = await _getYesterdayGoalsFromFirestore();
+      if (firestoreYesterdayGoals != null && firestoreYesterdayGoals.isNotEmpty) {
+        yesterdayGoals = firestoreYesterdayGoals;
+        log.info('🔥 Using Firestore yesterday goals: $yesterdayGoals');
       }
-    } else {
-      // First time running or no saved data - use current progress goals BEFORE they get reset
-      // This ensures we check the actual goals that were completed "yesterday" (today before reset)
-      log.info('📅 No yesterday goals data found - using current progress goals before reset');
+    } catch (e) {
+      log.warning('⚠️ Failed to get Firestore yesterday goals: $e');
+    }
+    
+    // 2. Fallback to local saved yesterday goals
+    if (yesterdayGoals.isEmpty) {
+      final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+      if (yesterdayGoalsJson != null) {
+        try {
+          yesterdayGoals = Map<String, bool>.from(json.decode(yesterdayGoalsJson));
+          log.info('📋 Using saved local yesterday goals: $yesterdayGoals');
+        } catch (e) {
+          log.warning('⚠️ Error parsing saved yesterday goals: $e');
+        }
+      }
+    }
+    
+    // 3. Final fallback to current progress goals
+    if (yesterdayGoals.isEmpty) {
       yesterdayGoals = Map<String, bool>.from(progress.todayGoalsCompleted);
-      log.info('🔄 Using current goals: $yesterdayGoals');
+      log.info('🔄 Fallback: Using TODAY\'S completed goals as yesterday: $yesterdayGoals');
     }
 
     // Check if any goals were completed yesterday
@@ -236,6 +249,22 @@ class StrikeCalculationService {
 
       await saveProgressTransactionally(updatedProgress);
 
+      // CRITICAL: Save current goal completions immediately for midnight reset
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(
+          _yesterdayGoalsKey,
+          json.encode(updatedProgress.todayGoalsCompleted),
+        );
+        
+        // ENHANCED: Also save to Firestore for better persistence
+        await _saveDailyGoalsToFirestore(updatedProgress.todayGoalsCompleted);
+        
+        log.info('💾 Immediately saved goal completions locally and to Firestore: ${updatedProgress.todayGoalsCompleted}');
+      } catch (e) {
+        log.warning('⚠️ Failed to save current goal completions: $e');
+      }
+
       // Send notifications for achievements
       if (leveledUp) {
         await _sendLevelUpNotification(newLevel);
@@ -306,28 +335,131 @@ class StrikeCalculationService {
     log.info('🌅 Daily goals reset for new day');
   }
 
-  // Get user progress from storage
+  // Get user progress from storage with Firestore backup/verification
   Future<UserProgress> getUserProgress() async {
     final prefs = await SharedPreferences.getInstance();
     final progressJson = prefs.getString(_userProgressKey);
 
-    UserProgress progress;
+    UserProgress localProgress;
     if (progressJson != null) {
       try {
         final progressMap = json.decode(progressJson) as Map<String, dynamic>;
-        progress = UserProgress.fromJson(progressMap);
+        localProgress = UserProgress.fromJson(progressMap);
       } catch (e) {
-        log.warning('⚠️ Error parsing user progress: $e');
-        progress = _createDefaultProgress();
+        log.warning('⚠️ Error parsing local user progress: $e');
+        localProgress = _createDefaultProgress();
       }
     } else {
-      progress = _createDefaultProgress();
+      localProgress = _createDefaultProgress();
+    }
+
+    // Try to get more recent data from Firestore for accuracy
+    try {
+      final firestoreProgress = await _getUserProgressFromFirestore();
+      if (firestoreProgress != null) {
+        // Use Firestore data if it's more recent or has more strikes
+        final localLastUpdate = localProgress.lastActivityDate;
+        final firestoreLastUpdate = firestoreProgress.lastActivityDate;
+        
+        if (firestoreLastUpdate.isAfter(localLastUpdate) || 
+            firestoreProgress.totalStrikes > localProgress.totalStrikes) {
+          log.info('🔄 Using Firestore data (more recent/accurate): ${firestoreProgress.totalStrikes} total strikes, ${firestoreProgress.currentStrikes} current strikes');
+          localProgress = firestoreProgress;
+          
+          // Update local storage with Firestore data
+          await prefs.setString(_userProgressKey, json.encode(firestoreProgress.toJson()));
+        } else {
+          log.info('✅ Local data is current: ${localProgress.totalStrikes} total strikes, ${localProgress.currentStrikes} current strikes');
+        }
+      }
+    } catch (e) {
+      log.warning('⚠️ Failed to retrieve Firestore data, using local: $e');
+      // Continue with local data if Firestore fails
     }
 
     // Always sync water goal with user's custom daily limit
-    progress = await _updateWaterGoalFromUserPreference(progress);
+    localProgress = await _updateWaterGoalFromUserPreference(localProgress);
 
-    return progress;
+    return localProgress;
+  }
+
+  // Get user progress from Firestore
+  Future<UserProgress?> _getUserProgressFromFirestore() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return null;
+
+      final doc = await _firestore
+          .collection('user_progress')
+          .doc(user.uid)
+          .get();
+
+      if (!doc.exists) return null;
+
+      final data = doc.data() as Map<String, dynamic>;
+      
+      // Remove Firestore-specific fields before parsing
+      data.remove('lastSyncedAt');
+      data.remove('isOnline');
+      
+      return UserProgress.fromJson(data);
+    } catch (e) {
+      log.warning('⚠️ Error retrieving Firestore user progress: $e');
+      return null;
+    }
+  }
+
+  // Get yesterday's goals from Firestore for better accuracy
+  Future<Map<String, bool>?> _getYesterdayGoalsFromFirestore() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return null;
+
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      final dateKey = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+      final doc = await _firestore
+          .collection('user_progress')
+          .doc(user.uid)
+          .collection('daily_goals')
+          .doc(dateKey)
+          .get();
+
+      if (!doc.exists) return null;
+
+      final data = doc.data() as Map<String, dynamic>;
+      return Map<String, bool>.from(data['goalsCompleted'] ?? {});
+    } catch (e) {
+      log.warning('⚠️ Error retrieving yesterday goals from Firestore: $e');
+      return null;
+    }
+  }
+
+  // Save daily goals to Firestore for persistence and accuracy
+  Future<void> _saveDailyGoalsToFirestore(Map<String, bool> goalsCompleted) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      await _firestore
+          .collection('user_progress')
+          .doc(user.uid)
+          .collection('daily_goals')
+          .doc(dateKey)
+          .set({
+            'goalsCompleted': goalsCompleted,
+            'date': Timestamp.fromDate(today),
+            'savedAt': Timestamp.now(),
+          });
+
+      log.info('🔥 Saved daily goals to Firestore for $dateKey');
+    } catch (e) {
+      log.warning('⚠️ Failed to save daily goals to Firestore: $e');
+      // Don't throw - this is a backup mechanism
+    }
   }
 
   // Update water goal based on user's custom daily limit from SharedPreferences
@@ -467,7 +599,7 @@ class StrikeCalculationService {
       channelDescription: 'Notifications for level achievements',
       importance: Importance.high,
       priority: Priority.high,
-      icon: 'app_icon',
+      icon: '@mipmap/ic_launcher',
     );
 
     const notificationDetails = NotificationDetails(android: androidDetails);
@@ -487,7 +619,7 @@ class StrikeCalculationService {
       channelDescription: 'Notifications for perfect day achievements',
       importance: Importance.high,
       priority: Priority.high,
-      icon: 'app_icon',
+      icon: '@mipmap/ic_launcher',
     );
 
     const notificationDetails = NotificationDetails(android: androidDetails);
@@ -507,7 +639,7 @@ class StrikeCalculationService {
       channelDescription: 'Notifications when strikes are reset',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
-      icon: 'app_icon',
+      icon: '@mipmap/ic_launcher',
     );
 
     const notificationDetails = NotificationDetails(android: androidDetails);
@@ -527,7 +659,7 @@ class StrikeCalculationService {
       channelDescription: 'Daily reminders to complete goals',
       importance: Importance.defaultImportance,
       priority: Priority.defaultPriority,
-      icon: 'app_icon',
+      icon: '@mipmap/ic_launcher',
     );
 
     const notificationDetails = NotificationDetails(android: androidDetails);

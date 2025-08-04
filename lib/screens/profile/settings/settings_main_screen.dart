@@ -22,7 +22,7 @@ class SettingsMainScreen extends ConsumerWidget {
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
         title: Text(
-          'Settings',
+          tr(context, 'settings'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontWeight: FontWeight.bold,
@@ -332,7 +332,7 @@ class SettingsMainScreen extends ConsumerWidget {
 
   Widget _buildMembershipSection(BuildContext context) {
     final isDark = AppTheme.isDarkMode(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
@@ -350,17 +350,17 @@ class SettingsMainScreen extends ConsumerWidget {
           Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: isDark 
-                  ? [
-                      const Color(0xFF1B5E20), // Dark green
-                      const Color(0xFF2E7D32), // Medium green
-                      const Color(0xFF388E3C), // Lighter green
-                    ]
-                  : [
-                      const Color(0xFF66BB6A), // Light green
-                      const Color(0xFF4CAF50), // Medium green  
-                      const Color(0xFF388E3C), // Dark green
-                    ],
+                colors: isDark
+                    ? [
+                        const Color(0xFF1B5E20), // Dark green
+                        const Color(0xFF2E7D32), // Medium green
+                        const Color(0xFF388E3C), // Lighter green
+                      ]
+                    : [
+                        const Color(0xFF66BB6A), // Light green
+                        const Color(0xFF4CAF50), // Medium green
+                        const Color(0xFF388E3C), // Dark green
+                      ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -489,7 +489,9 @@ class SettingsMainScreen extends ConsumerWidget {
                                     Text(
                                       tr(context, 'premium_benefits'),
                                       style: TextStyle(
-                                        color: Colors.white.withValues(alpha: 0.9),
+                                        color: Colors.white.withValues(
+                                          alpha: 0.9,
+                                        ),
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
                                       ),
