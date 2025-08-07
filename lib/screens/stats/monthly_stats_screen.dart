@@ -20,20 +20,9 @@ class MonthlyStatsScreen extends ConsumerWidget {
     final selectedDay = ref.watch(selectedDayProvider);
     final userProgressAsync = ref.watch(userProgressNotifierProvider);
     
-    // Auto-select current day if viewing current month and no day is selected
+    // Get current date info
     final today = DateTime.now();
     final isCurrentMonth = navigation.year == today.year && navigation.month == today.month;
-    
-    ref.listen<AsyncValue<MonthlyStats>>(currentViewedMonthStatsProvider, (previous, next) {
-      if (next.hasValue && selectedDay == null && isCurrentMonth) {
-        final todayStats = next.value!.getDay(today.day);
-        if (todayStats != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            ref.read(selectedDayProvider.notifier).state = todayStats;
-          });
-        }
-      }
-    });
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
@@ -52,7 +41,7 @@ class MonthlyStatsScreen extends ConsumerWidget {
             ),
           ),
           
-          // Selected Day Details at Bottom - Show current day by default if available
+          // Selected Day Details at Bottom
           if (selectedDay != null)
             SliverToBoxAdapter(
               child: _buildBottomDayCard(context, ref, selectedDay, userProgressAsync),
@@ -62,9 +51,13 @@ class MonthlyStatsScreen extends ConsumerWidget {
               data: (monthStats) {
                 final todayStats = monthStats.getDay(today.day);
                 if (todayStats != null) {
-                  return SliverToBoxAdapter(
-                    child: _buildBottomDayCard(context, ref, todayStats, userProgressAsync),
-                  );
+                  // Auto-select today's stats on initial load
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (ref.read(selectedDayProvider) == null) {
+                      ref.read(selectedDayProvider.notifier).state = todayStats;
+                    }
+                  });
+                  return const SliverToBoxAdapter(child: SizedBox.shrink());
                 }
                 return const SliverToBoxAdapter(child: SizedBox.shrink());
               },
@@ -158,7 +151,7 @@ class MonthlyStatsScreen extends ConsumerWidget {
           const SizedBox(height: 15),
           
           // Futuristic Calendar Grid
-          _buildFuturisticCalendarGrid(context, monthStats, ref),
+          _buildFuturisticCalendarGrid(context, monthStats, navigation, ref),
         ],
       ),
     );
@@ -358,123 +351,89 @@ class MonthlyStatsScreen extends ConsumerWidget {
   Widget _buildFuturisticCalendarGrid(
     BuildContext context,
     MonthlyStats monthStats,
+    MonthNavigationState navigation,
     WidgetRef ref,
   ) {
     final calendarGrid = monthStats.getCalendarGrid();
     
-    return SizedBox(
+    return Container(
       height: 320,
+      padding: const EdgeInsets.all(12),
       child: GridView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 7,
           childAspectRatio: 1.0,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
+          crossAxisSpacing: 4,
+          mainAxisSpacing: 4,
         ),
         itemCount: calendarGrid.length,
         itemBuilder: (context, index) {
           final dayStats = calendarGrid[index];
           
           if (dayStats == null) {
-            // Empty day (before month starts)
             return const SizedBox.shrink();
           }
           
-          return _buildFuturisticDayCell(context, dayStats, ref);
+          return _buildDayCell(ref, dayStats);
         },
       ),
     );
   }
 
-  Widget _buildFuturisticDayCell(
-    BuildContext context,
-    DailyStats dayStats,
-    WidgetRef ref,
-  ) {
+  Widget _buildDayCell(WidgetRef ref, DailyStats dayStats) {
     final isToday = _isToday(dayStats.date);
     final isFuture = dayStats.date.isAfter(DateTime.now());
+    final selectedDay = ref.watch(selectedDayProvider);
+    final isSelected = selectedDay?.date.day == dayStats.date.day && 
+                      selectedDay?.date.month == dayStats.date.month && 
+                      selectedDay?.date.year == dayStats.date.year;
     
-    Color primaryColor;
-    Color shadowColor;
-    List<Color> gradientColors;
+    // Simple color scheme
+    Color backgroundColor;
+    Color textColor;
     
     if (dayStats.isComplete) {
-      primaryColor = const Color(0xFF00FF88);
-      shadowColor = const Color(0xFF00FF88);
-      gradientColors = [
-        const Color(0xFF00FF88).withValues(alpha: 0.3),
-        const Color(0xFF00CC6A).withValues(alpha: 0.1),
-      ];
+      backgroundColor = const Color(0xFF00FF88).withValues(alpha: 0.15);
+      textColor = const Color(0xFF00FF88);
     } else if (dayStats.isPartial) {
-      primaryColor = const Color(0xFFFFAA00);
-      shadowColor = const Color(0xFFFFAA00);
-      gradientColors = [
-        const Color(0xFFFFAA00).withValues(alpha: 0.3),
-        const Color(0xFFCC8800).withValues(alpha: 0.1),
-      ];
-    } else if (dayStats.isEmpty) {
-      primaryColor = const Color(0xFF6B7280);
-      shadowColor = const Color(0xFF6B7280);
-      gradientColors = [
-        const Color(0xFF6B7280).withValues(alpha: 0.2),
-        const Color(0xFF4B5563).withValues(alpha: 0.1),
-      ];
+      backgroundColor = const Color(0xFFFFAA00).withValues(alpha: 0.15);
+      textColor = const Color(0xFFFFAA00);
     } else {
-      primaryColor = const Color(0xFF1E2749);
-      shadowColor = AppColors.primary;
-      gradientColors = [
-        const Color(0xFF1E2749),
-        const Color(0xFF2D3561),
-      ];
+      backgroundColor = AppColors.cardDark.withValues(alpha: 0.3);
+      textColor = isFuture ? AppColors.textSecondary : AppColors.white;
     }
     
     return GestureDetector(
       onTap: () => ref.read(selectedDayProvider.notifier).state = dayStats,
       child: Container(
+        margin: const EdgeInsets.all(1),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradientColors,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: primaryColor.withValues(alpha: 0.3),
-            width: 1,
-          ),
-          boxShadow: [
-            if (dayStats.isComplete || dayStats.isPartial) ...[
-              BoxShadow(
-                color: shadowColor.withValues(alpha: 0.3),
-                blurRadius: 8,
-                spreadRadius: 1,
-              ),
-            ],
-          ],
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(8),
+          border: isSelected ? Border.all(
+            color: AppColors.primary,
+            width: 2,
+          ) : null,
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
+        child: Center(
+          child: Container(
+            padding: isToday 
+                ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2)
+                : EdgeInsets.zero,
+            decoration: isToday ? BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(4),
+            ) : null,
+            child: Text(
               dayStats.date.day.toString(),
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: isFuture 
-                    ? AppColors.textSecondary 
-                    : AppColors.white,
-                shadows: [
-                  if (!isFuture)
-                    Shadow(
-                      color: primaryColor.withValues(alpha: 0.6),
-                      blurRadius: 3,
-                    ),
-                ],
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isToday ? AppColors.primary : textColor,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -14,6 +14,7 @@ import '../exercise_history/exercise_history_screen.dart';
 import '../health/meals/meal_plan_screen.dart';
 import 'package:logger/logger.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../avatar_store/avatar_store_screen.dart';
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -422,25 +423,43 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             ),
           ),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr(context, 'assistant_name'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr(context, 'assistant_name'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              Text(
-                tr(context, 'assistant_subtitle'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(153),
-                  fontSize: 14,
+                Text(
+                  tr(context, 'assistant_subtitle'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withAlpha(153),
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+          ),
+          // Store Icon Button
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const AvatarStoreScreen(),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.store,
+              color: Colors.white,
+              size: 24,
+            ),
+            tooltip: 'Avatar Store',
           ),
         ],
       ),
@@ -898,6 +917,14 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
               _useRecognizedText();
             }
           }
+
+          // Handle timeout more gracefully
+          if (status == 'done') {
+            _logger.d('Speech recognition completed normally');
+            setState(() {
+              _speechListening = false;
+            });
+          }
         },
         onError: (error) {
           _logger.e('Speech recognition error: $error');
@@ -908,16 +935,24 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
           // Handle specific error cases for different devices
           if (error.errorMsg == 'error_busy') {
             _logger.w('Speech recognition was busy, stopping and resetting');
-            _speechToText.stop();
+            _forceStopSpeechRecognition();
 
-            // Show user-friendly message for Huawei tablets
+            // Show user-friendly message with reset option
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Voice recognition is busy. Please wait and try again.',
+                    'Voice recognition is busy. Tap "Reset" to fix this.',
                   ),
-                  duration: Duration(seconds: 2),
+                  duration: Duration(seconds: 4),
+                  backgroundColor: Colors.orange,
+                  action: SnackBarAction(
+                    label: 'Reset',
+                    textColor: Colors.white,
+                    onPressed: () {
+                      _resetSpeechRecognition();
+                    },
+                  ),
                 ),
               );
             }
@@ -1015,6 +1050,13 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
         return;
       }
 
+      // Enhanced busy state handling
+      if (_speechToText.isListening) {
+        _logger.w('Speech recognition already active, forcing complete stop');
+        await _forceStopSpeechRecognition();
+        await Future.delayed(const Duration(milliseconds: 800)); // Extended delay
+      }
+
       // Toggle listening state
       if (_speechListening) {
         _stopListening();
@@ -1025,6 +1067,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
         _startInlineListening();
       }
     } catch (e) {
+      _logger.e('Voice input error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1063,8 +1106,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             _recognizedText = result.recognizedWords;
           });
         },
-        listenFor: const Duration(minutes: 2),
-        pauseFor: const Duration(seconds: 8),
+        listenFor: const Duration(seconds: 45), // Reduced from 2 minutes
+        pauseFor: const Duration(seconds: 4), // Reduced from 8 seconds
         listenOptions: SpeechListenOptions(partialResults: true),
         localeId: 'en_US',
         onSoundLevelChange: (level) {
@@ -1088,8 +1131,8 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                 _recognizedText = result.recognizedWords;
               });
             },
-            listenFor: const Duration(minutes: 2),
-            pauseFor: const Duration(seconds: 8),
+            listenFor: const Duration(seconds: 45), // Reduced from 2 minutes  
+            pauseFor: const Duration(seconds: 4), // Reduced from 8 seconds
             listenOptions: SpeechListenOptions(partialResults: true),
             localeId: 'en_US',
           );
@@ -1123,6 +1166,37 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       setState(() {
         _speechListening = false;
       });
+    }
+  }
+
+  Future<void> _forceStopSpeechRecognition() async {
+    try {
+      if (_speechToText.isListening) {
+        await _speechToText.stop();
+      }
+      await _speechToText.cancel();
+      
+      setState(() {
+        _speechListening = false;
+        _recognizedText = '';
+      });
+      
+      _logger.d('Speech recognition force stopped and reset');
+    } catch (e) {
+      _logger.e('Error during force stop: $e');
+    }
+  }
+
+  Future<void> _resetSpeechRecognition() async {
+    try {
+      _logger.d('Resetting speech recognition system');
+      await _forceStopSpeechRecognition();
+      
+      // Reinitialize speech recognition
+      await Future.delayed(const Duration(milliseconds: 1000));
+      _initializeSpeech();
+    } catch (e) {
+      _logger.e('Error resetting speech recognition: $e');
     }
   }
 

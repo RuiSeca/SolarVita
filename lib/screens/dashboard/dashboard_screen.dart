@@ -306,6 +306,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
                 const SizedBox(height: 16),
                 const SocialFeedTabs(),
+                const SizedBox(height: 32), // Add bottom padding to ensure tabs are fully visible
               ],
             ),
           ),
