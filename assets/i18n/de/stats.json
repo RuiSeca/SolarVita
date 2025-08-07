@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "Monatsstatistiken",
+    "view_progress_calendar": "Ihren Fortschritt ansehen",
+    "complete_days": "Vollständige Tage",
+    "partial_days": "Teilweise Tage", 
+    "empty_days": "Leere Tage",
+    "completion_rate": "Abschlussrate",
+    "best_streak": "Beste Serie",
+    "error_loading_stats": "Fehler beim Laden der Statistiken",
+    "retry": "Wiederholen",
+    "close": "Schließen"
+}

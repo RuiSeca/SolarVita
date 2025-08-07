@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "월간 통계",
+    "view_progress_calendar": "진행 상황 보기",
+    "complete_days": "완료된 날",
+    "partial_days": "부분 완료된 날", 
+    "empty_days": "빈 날",
+    "completion_rate": "완료율",
+    "best_streak": "최고 연속 기록",
+    "error_loading_stats": "통계 로드 오류",
+    "retry": "다시 시도",
+    "close": "닫기"
+}

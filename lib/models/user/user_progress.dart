@@ -5,6 +5,7 @@ class UserProgress {
   final int currentStrikes;
   final int totalStrikes;
   final int currentLevel;
+  final int dayStreak;  // NEW: Consecutive days with at least one goal completed
   final DateTime lastStrikeDate;
   final DateTime lastActivityDate;
   final DailyGoals dailyGoals;
@@ -15,6 +16,7 @@ class UserProgress {
     this.currentStrikes = 0,
     this.totalStrikes = 0,
     this.currentLevel = 1,
+    this.dayStreak = 0,  // NEW: Default to 0 days
     required this.lastStrikeDate,
     required this.lastActivityDate,
     required this.dailyGoals,
@@ -26,6 +28,7 @@ class UserProgress {
     int? currentStrikes,
     int? totalStrikes,
     int? currentLevel,
+    int? dayStreak,  // NEW: Add dayStreak parameter
     DateTime? lastStrikeDate,
     DateTime? lastActivityDate,
     DailyGoals? dailyGoals,
@@ -36,6 +39,7 @@ class UserProgress {
       currentStrikes: currentStrikes ?? this.currentStrikes,
       totalStrikes: totalStrikes ?? this.totalStrikes,
       currentLevel: currentLevel ?? this.currentLevel,
+      dayStreak: dayStreak ?? this.dayStreak,  // NEW: Include dayStreak
       lastStrikeDate: lastStrikeDate ?? this.lastStrikeDate,
       lastActivityDate: lastActivityDate ?? this.lastActivityDate,
       dailyGoals: dailyGoals ?? this.dailyGoals,
@@ -145,6 +149,7 @@ class UserProgress {
       currentStrikes: json['currentStrikes'] as int? ?? 0,
       totalStrikes: json['totalStrikes'] as int? ?? 0,
       currentLevel: json['currentLevel'] as int? ?? 1,
+      dayStreak: json['dayStreak'] as int? ?? 0,  // NEW: Parse dayStreak with default 0
       lastStrikeDate: DateTime.parse(json['lastStrikeDate'] as String),
       lastActivityDate: DateTime.parse(json['lastActivityDate'] as String),
       dailyGoals: DailyGoals.fromJson(json['dailyGoals'] as Map<String, dynamic>),
@@ -158,6 +163,7 @@ class UserProgress {
       'currentStrikes': currentStrikes,
       'totalStrikes': totalStrikes,
       'currentLevel': currentLevel,
+      'dayStreak': dayStreak,  // NEW: Include dayStreak in JSON
       'lastStrikeDate': lastStrikeDate.toIso8601String(),
       'lastActivityDate': lastActivityDate.toIso8601String(),
       'dailyGoals': dailyGoals.toJson(),

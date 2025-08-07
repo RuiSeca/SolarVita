@@ -7,6 +7,7 @@ import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../utils/video_platform_helper.dart';
 import '../../../widgets/common/holographic_nutrition_pie.dart';
+import '../../../widgets/nutrition/flexible_nutrition_calculator_widget.dart';
 import 'meal_edit_screen.dart';
 
 class MealDetailScreen extends StatefulWidget {
@@ -76,15 +77,15 @@ class MealDetailScreen extends StatefulWidget {
 }
 
 class _MealDetailScreenState extends State<MealDetailScreen> {
-  int _servings = 1;
   bool _isFavorite = false;
-  bool _showPerServing = true; // true = per serving, false = per meal
   String _videoPlatform = 'youtube'; // Default to YouTube
+  Map<String, dynamic> _currentNutritionData = {};
 
   @override
   void initState() {
     super.initState();
     _isFavorite = widget.isFavorite;
+    _currentNutritionData = Map<String, dynamic>.from(widget.nutritionFacts);
     _loadVideoPlatformPreference();
   }
 
@@ -97,13 +98,6 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     }
   }
 
-  void _updateServings(int newServings) {
-    if (newServings > 0) {
-      setState(() {
-        _servings = newServings;
-      });
-    }
-  }
 
   // Helper method to determine whether to use File or Network image
   Widget _buildImageWidget(String? imagePath) {
@@ -177,8 +171,6 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildMealInfo(context),
-                  const SizedBox(height: 24),
-                  _buildServingsAdjuster(context),
                   const SizedBox(height: 24),
                   _buildNutritionSection(context),
                   const SizedBox(height: 24),
@@ -348,70 +340,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     );
   }
 
-  Widget _buildServingsAdjuster(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor(context),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            tr(context, 'servings'),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.remove_circle_outline),
-                onPressed:
-                    _servings > 1 ? () => _updateServings(_servings - 1) : null,
-                color: AppColors.primary,
-              ),
-              Text(
-                _servings.toString(),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline),
-                onPressed: () => _updateServings(_servings + 1),
-                color: AppColors.primary,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildNutritionSection(BuildContext context) {
-    // Get both per-meal and per-serving nutrition data
-    final perMealNutrition = {
-      'calories': widget.nutritionFacts['calories'] ?? '0',
-      'protein': widget.nutritionFacts['protein'] ?? '0g',
-      'carbs': widget.nutritionFacts['carbs'] ?? '0g',
-      'fat': widget.nutritionFacts['fat'] ?? '0g',
-    };
-    
-    final perServingNutrition = {
-      'calories': widget.nutritionFacts['caloriesPerServing'] ?? '0',
-      'protein': widget.nutritionFacts['proteinPerServing'] ?? '0g',
-      'carbs': widget.nutritionFacts['carbsPerServing'] ?? '0g',
-      'fat': widget.nutritionFacts['fatPerServing'] ?? '0g',
-    };
-    
-    final servings = widget.nutritionFacts['servings'] ?? _servings;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -428,127 +358,32 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
             ),
             // Holographic pie chart trigger
             HolographicNutritionPie(
-              nutritionFacts: _showPerServing ? perServingNutrition : perMealNutrition,
+              nutritionFacts: _currentNutritionData,
               isCompact: true,
-              onTap: () => _showHolographicNutritionModal(context, _showPerServing ? perServingNutrition : perMealNutrition),
+              onTap: () => _showHolographicNutritionModal(context, _currentNutritionData),
             ),
           ],
-        ),
-        const SizedBox(height: 12),
-        // Toggle controls
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor(context),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.textColor(context).withAlpha(26)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _showPerServing = true),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _showPerServing ? AppColors.primary : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        tr(context, 'per_serving'),
-                        style: TextStyle(
-                          color: _showPerServing ? Colors.white : AppTheme.textColor(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => setState(() => _showPerServing = false),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: !_showPerServing ? AppColors.primary : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Text(
-                        tr(context, 'per_meal'),
-                        style: TextStyle(
-                          color: !_showPerServing ? Colors.white : AppTheme.textColor(context),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Servings info
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.cardColor(context).withAlpha(128),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.restaurant, size: 16, color: AppTheme.textColor(context).withAlpha(179)),
-              const SizedBox(width: 8),
-              Text(
-                _showPerServing 
-                  ? tr(context, 'per_serving_description').replaceAll('{servings}', servings.toString())
-                  : tr(context, 'whole_meal_description').replaceAll('{servings}', servings.toString()),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
-                  fontSize: 13,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-          ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: (_showPerServing ? perServingNutrition : perMealNutrition).entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      tr(context, entry.key),
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      entry.value,
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+        // Flexible Nutrition Calculator
+        FlexibleNutritionCalculatorWidget(
+          nutritionFacts: widget.nutritionFacts,
+          onResultChanged: (result) {
+            // Update pie chart with current calculation result
+            // Use post-frame callback to avoid setState during build
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _currentNutritionData = {
+                    'calories': result.nutrition['calories']?.round() ?? 0,
+                    'protein': '${result.nutrition['protein']?.round() ?? 0}g',
+                    'carbs': '${result.nutrition['carbs']?.round() ?? 0}g',
+                    'fat': '${result.nutrition['fat']?.round() ?? 0}g',
+                  };
+                });
+              }
+            });
+          },
         ),
       ],
     );
@@ -656,7 +491,8 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     if (match != null) {
       final number = double.parse(match.group(1)!);
       final unit = match.group(2);
-      return '${(number * _servings).toStringAsFixed(1)} $unit';
+      final servings = int.parse(widget.nutritionFacts['servings']?.toString() ?? '1');
+      return '${(number * servings).toStringAsFixed(1)} $unit';
     }
     return measure;
   }
@@ -1124,13 +960,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       final perMealCalories = breakdown[index]['calories'] as int?;
       if (perMealCalories == null) return null;
       
-      // If showing per-serving, divide by servings
-      if (_showPerServing) {
-        final servings = widget.nutritionFacts['servings'] ?? _servings;
-        return (perMealCalories / servings).round();
-      }
-      
-      return perMealCalories; // Per meal calories
+      // Always show per serving for ingredient breakdown
+      final servings = int.parse(widget.nutritionFacts['servings']?.toString() ?? '1');
+      return (perMealCalories / servings).round();
     }
     return null;
   }
@@ -1142,13 +974,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       final perMealGrams = breakdown[index]['grams'] as int?;
       if (perMealGrams == null) return null;
       
-      // If showing per-serving, divide by servings
-      if (_showPerServing) {
-        final servings = widget.nutritionFacts['servings'] ?? _servings;
-        return (perMealGrams / servings).round();
-      }
-      
-      return perMealGrams; // Per meal grams  
+      // Always show per serving for ingredient breakdown
+      final servings = int.parse(widget.nutritionFacts['servings']?.toString() ?? '1');
+      return (perMealGrams / servings).round();  
     }
     return null;
   }
@@ -1189,13 +1017,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   String _getAdjustedMeasure(int index) {
     final originalMeasure = _adjustMeasure(widget.measures[index]);
     
-    // If showing per-serving, adjust the measure
-    if (_showPerServing) {
-      final servings = widget.nutritionFacts['servings'] ?? _servings;
-      return _adjustMeasureForServings(originalMeasure, servings);
-    }
-    
-    return originalMeasure; // Per meal measure
+    // Adjust measures for per serving display
+    final servings = int.parse(widget.nutritionFacts['servings']?.toString() ?? '1');
+    return _adjustMeasureForServings(originalMeasure, servings);
   }
 
   // Adjust measure quantities for per-serving display

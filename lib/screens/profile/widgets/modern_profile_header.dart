@@ -291,7 +291,7 @@ class ModernProfileHeader extends ConsumerWidget {
                             child: _buildQuickStat(
                               context,
                               Icons.local_fire_department_outlined,
-                              '${ref.watch(currentStrikesProvider)}',
+                              '${ref.watch(dayStreakProvider)}',  // Changed to dayStreakProvider
                               tr(context, 'day_streak'),
                             ),
                           ),

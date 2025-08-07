@@ -12,6 +12,75 @@ import 'package:fl_chart/fl_chart.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 
+/// Accessible color palette for WCAG compliance
+class AccessibleNutritionColors {
+  // WCAG-compliant colors with 4.5:1 contrast ratio
+  static const Color protein = Color(0xFF0288D1); // Teal Blue - works with white text
+  static const Color carbs = Color(0xFF00CC6A);   // Adjusted Green - works with black text  
+  static const Color fat = Color(0xFF6A1B9A);     // Purple - works with white text
+  static const Color empty = Color(0xFF424242);   // Dark Gray - works with white text
+  
+  /// Dynamic text color based on background luminance
+  static Color getTextColor(Color backgroundColor) {
+    final luminance = backgroundColor.computeLuminance();
+    // WCAG guideline: use white text on dark backgrounds, black on light
+    return luminance > 0.5 ? Colors.black : Colors.white;
+  }
+  
+  /// Get contrasting shadow color for text enhancement
+  static Color getShadowColor(Color backgroundColor) {
+    final textColor = getTextColor(backgroundColor);
+    return textColor == Colors.white ? Colors.black : Colors.white;
+  }
+  
+  /// Enhanced text style with proper contrast and accessibility
+  static TextStyle getAccessibleTextStyle(Color backgroundColor, {
+    double fontSize = 12,
+    FontWeight fontWeight = FontWeight.bold,
+  }) {
+    final textColor = getTextColor(backgroundColor);
+    final shadowColor = getShadowColor(backgroundColor);
+    
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: textColor,
+      shadows: [
+        Shadow(
+          offset: const Offset(0.5, 0.5),
+          blurRadius: 2,
+          color: shadowColor.withValues(alpha: 0.8),
+        ),
+        Shadow(
+          offset: const Offset(-0.5, -0.5),
+          blurRadius: 2,
+          color: shadowColor.withValues(alpha: 0.8),
+        ),
+      ],
+    );
+  }
+
+  /// High-contrast black text style for maximum readability
+  static TextStyle getBlackTextStyle({
+    double fontSize = 12,
+    FontWeight fontWeight = FontWeight.bold,
+  }) {
+    return TextStyle(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: const Color(0xFF000000), // Pure black for maximum contrast
+      shadows: [
+        // Subtle dark shadow for depth without white outline
+        Shadow(
+          offset: const Offset(0.5, 0.5),
+          blurRadius: 1,
+          color: Colors.black.withValues(alpha: 0.3),
+        ),
+      ],
+    );
+  }
+}
+
 class HolographicNutritionPie extends StatefulWidget {
   final Map<String, dynamic> nutritionFacts;
   final bool isCompact; // For small trigger button vs full display
@@ -130,11 +199,14 @@ class _HolographicNutritionPieState extends State<HolographicNutritionPie>
     if (totalCalories <= 0) {
       return [
         PieChartSectionData(
-          color: Colors.grey.withValues(alpha: 0.3),
+          color: AccessibleNutritionColors.empty,
           value: 100,
           title: 'No Data',
           radius: widget.isCompact ? 25 : 60,
-          titleStyle: const TextStyle(fontSize: 10, color: Colors.white),
+          titleStyle: AccessibleNutritionColors.getAccessibleTextStyle(
+            AccessibleNutritionColors.empty,
+            fontSize: 10,
+          ),
         ),
       ];
     }
@@ -164,87 +236,60 @@ class _HolographicNutritionPieState extends State<HolographicNutritionPie>
     }
 
     return [
-      // Protein section - Electric Blue
+      // Protein section - Accessible Teal Blue
       PieChartSectionData(
-        color: const Color(0xFF00E5FF),
+        color: AccessibleNutritionColors.protein,
         value: proteinPercentage,
         title: '${proteinPercentage.toInt()}%',
         radius: widget.isCompact ? 25 : 60,
-        titleStyle: TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: widget.isCompact ? 8 : 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: const [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFF00E5FF),
-            ),
-          ],
         ),
-        badgeWidget: !widget.isCompact ? _buildBadge('P', '${protein.toInt()}g') : null,
+        badgeWidget: !widget.isCompact ? _buildBadge('P', '${protein.toInt()}g', AccessibleNutritionColors.protein) : null,
         badgePositionPercentageOffset: 1.2,
       ),
       
-      // Carbs section - Neon Green
+      // Carbs section - Accessible Green
       PieChartSectionData(
-        color: const Color(0xFF00FF88),
+        color: AccessibleNutritionColors.carbs,
         value: carbsPercentage,
         title: '${carbsPercentage.toInt()}%',
         radius: widget.isCompact ? 25 : 60,
-        titleStyle: TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: widget.isCompact ? 8 : 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: const [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFF00FF88),
-            ),
-          ],
         ),
-        badgeWidget: !widget.isCompact ? _buildBadge('C', '${carbs.toInt()}g') : null,
+        badgeWidget: !widget.isCompact ? _buildBadge('C', '${carbs.toInt()}g', AccessibleNutritionColors.carbs) : null,
         badgePositionPercentageOffset: 1.2,
       ),
       
-      // Fat section - Purple Glow
+      // Fat section - Accessible Purple
       PieChartSectionData(
-        color: const Color(0xFFBB86FC),
+        color: AccessibleNutritionColors.fat,
         value: fatPercentage,
         title: '${fatPercentage.toInt()}%',
         radius: widget.isCompact ? 25 : 60,
-        titleStyle: TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: widget.isCompact ? 8 : 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: const [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFFBB86FC),
-            ),
-          ],
         ),
-        badgeWidget: !widget.isCompact ? _buildBadge('F', '${fat.toInt()}g') : null,
+        badgeWidget: !widget.isCompact ? _buildBadge('F', '${fat.toInt()}g', AccessibleNutritionColors.fat) : null,
         badgePositionPercentageOffset: 1.2,
       ),
     ];
   }
 
-  Widget _buildBadge(String label, String value) {
+  Widget _buildBadge(String label, String value, Color accentColor) {
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.8),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: const Color(0xFF00FF88).withValues(alpha: 0.5),
+          color: accentColor.withValues(alpha: 0.5),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00FF88).withValues(alpha: 0.3),
+            color: accentColor.withValues(alpha: 0.3),
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -255,8 +300,8 @@ class _HolographicNutritionPieState extends State<HolographicNutritionPie>
         children: [
           Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF00FF88),
+            style: TextStyle(
+              color: accentColor,
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -632,11 +677,11 @@ class _HolographicNutritionPieState extends State<HolographicNutritionPie>
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildLegendItem('PROTEIN', const Color(0xFF00E5FF), 
+                  _buildLegendItem('PROTEIN', AccessibleNutritionColors.protein, 
                     widget.nutritionFacts['protein']?.toString() ?? '0'),
-                  _buildLegendItem('CARBS', const Color(0xFF00FF88), 
+                  _buildLegendItem('CARBS', AccessibleNutritionColors.carbs, 
                     widget.nutritionFacts['carbs']?.toString() ?? '0'),
-                  _buildLegendItem('FAT', const Color(0xFFBB86FC), 
+                  _buildLegendItem('FAT', AccessibleNutritionColors.fat, 
                     widget.nutritionFacts['fat']?.toString() ?? '0'),
                 ],
               ),
@@ -886,63 +931,36 @@ class _HolographicNutritionModalState extends State<HolographicNutritionModal>
     }
 
     return [
-      // Protein section - Electric Blue
+      // Protein section - Accessible Teal Blue
       PieChartSectionData(
-        color: const Color(0xFF00E5FF),
+        color: AccessibleNutritionColors.protein,
         value: proteinPercentage,
         title: '${proteinPercentage.toInt()}%',
         radius: 60,
-        titleStyle: const TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFF00E5FF),
-            ),
-          ],
         ),
       ),
       
-      // Carbs section - Neon Green
+      // Carbs section - Accessible Green
       PieChartSectionData(
-        color: const Color(0xFF00FF88),
+        color: AccessibleNutritionColors.carbs,
         value: carbsPercentage,
         title: '${carbsPercentage.toInt()}%',
         radius: 60,
-        titleStyle: const TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFF00FF88),
-            ),
-          ],
         ),
       ),
       
-      // Fat section - Purple Glow
+      // Fat section - Accessible Purple
       PieChartSectionData(
-        color: const Color(0xFFBB86FC),
+        color: AccessibleNutritionColors.fat,
         value: fatPercentage,
         title: '${fatPercentage.toInt()}%',
         radius: 60,
-        titleStyle: const TextStyle(
+        titleStyle: AccessibleNutritionColors.getBlackTextStyle(
           fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          shadows: [
-            Shadow(
-              offset: Offset(0, 0),
-              blurRadius: 8,
-              color: Color(0xFFBB86FC),
-            ),
-          ],
         ),
       ),
     ];
@@ -1125,11 +1143,11 @@ class _HolographicNutritionModalState extends State<HolographicNutritionModal>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildLegendItem('PROTEIN', const Color(0xFF00E5FF), 
+              _buildLegendItem('PROTEIN', AccessibleNutritionColors.protein, 
                 widget.nutritionFacts['protein']?.toString() ?? '0'),
-              _buildLegendItem('CARBS', const Color(0xFF00FF88), 
+              _buildLegendItem('CARBS', AccessibleNutritionColors.carbs, 
                 widget.nutritionFacts['carbs']?.toString() ?? '0'),
-              _buildLegendItem('FAT', const Color(0xFFBB86FC), 
+              _buildLegendItem('FAT', AccessibleNutritionColors.fat, 
                 widget.nutritionFacts['fat']?.toString() ?? '0'),
             ],
           ),

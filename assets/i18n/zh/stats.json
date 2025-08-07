@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "月度统计",
+    "view_progress_calendar": "查看您的进展",
+    "complete_days": "完成日",
+    "partial_days": "部分完成日", 
+    "empty_days": "空白日",
+    "completion_rate": "完成率",
+    "best_streak": "最佳连续记录",
+    "error_loading_stats": "加载统计数据时出错",
+    "retry": "重试",
+    "close": "关闭"
+}

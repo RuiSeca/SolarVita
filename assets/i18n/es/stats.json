@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "Estadísticas Mensuales",
+    "view_progress_calendar": "Ver tu progreso",
+    "complete_days": "Días Completos",
+    "partial_days": "Días Parciales", 
+    "empty_days": "Días Vacíos",
+    "completion_rate": "Tasa de Finalización",
+    "best_streak": "Mejor Racha",
+    "error_loading_stats": "Error cargando estadísticas",
+    "retry": "Reintentar",
+    "close": "Cerrar"
+}

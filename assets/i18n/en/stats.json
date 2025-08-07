@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "Monthly Stats",
+    "view_progress_calendar": "View your progress",
+    "complete_days": "Complete Days",
+    "partial_days": "Partial Days", 
+    "empty_days": "Empty Days",
+    "completion_rate": "Completion Rate",
+    "best_streak": "Best Streak",
+    "error_loading_stats": "Error loading stats",
+    "retry": "Retry",
+    "close": "Close"
+}

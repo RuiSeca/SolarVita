@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/user/user_progress.dart';
 import '../../models/health/health_data.dart';
 import '../chat/data_sync_service.dart';
+import '../stats/daily_stats_service.dart';
 
 final log = Logger('StrikeCalculationService');
 
@@ -19,6 +20,7 @@ class StrikeCalculationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DailyStatsService _dailyStatsService = DailyStatsService();
   Timer? _midnightTimer;
 
   StrikeCalculationService(this._notificationsPlugin);
@@ -120,6 +122,14 @@ class StrikeCalculationService {
       if (firestoreYesterdayGoals != null && firestoreYesterdayGoals.isNotEmpty) {
         yesterdayGoals = firestoreYesterdayGoals;
         log.info('🔥 Using Firestore yesterday goals: $yesterdayGoals');
+      } else {
+        // BACKUP: Also try to get "today's" data from Firestore in case midnight reset runs early
+        log.warning('🔍 No yesterday data found, checking if today\'s data exists...');
+        final todayGoals = await _getTodayGoalsFromFirestore();
+        if (todayGoals != null && todayGoals.isNotEmpty) {
+          yesterdayGoals = todayGoals;
+          log.info('🔄 Using TODAY\'S Firestore goals as yesterday (midnight timing issue): $yesterdayGoals');
+        }
       }
     } catch (e) {
       log.warning('⚠️ Failed to get Firestore yesterday goals: $e');
@@ -128,6 +138,7 @@ class StrikeCalculationService {
     // 2. Fallback to local saved yesterday goals
     if (yesterdayGoals.isEmpty) {
       final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+      log.info('🔍 LOCAL FALLBACK - Checking local yesterday goals key: $_yesterdayGoalsKey');
       if (yesterdayGoalsJson != null) {
         try {
           yesterdayGoals = Map<String, bool>.from(json.decode(yesterdayGoalsJson));
@@ -135,13 +146,16 @@ class StrikeCalculationService {
         } catch (e) {
           log.warning('⚠️ Error parsing saved yesterday goals: $e');
         }
+      } else {
+        log.warning('📭 No local yesterday goals found in SharedPreferences');
       }
     }
     
     // 3. Final fallback to current progress goals
     if (yesterdayGoals.isEmpty) {
       yesterdayGoals = Map<String, bool>.from(progress.todayGoalsCompleted);
-      log.info('🔄 Fallback: Using TODAY\'S completed goals as yesterday: $yesterdayGoals');
+      log.warning('🔄 FINAL FALLBACK: Using TODAY\'S completed goals as yesterday: $yesterdayGoals');
+      log.warning('⚠️ This fallback should rarely happen - indicates data persistence issue');
     }
 
     // Check if any goals were completed yesterday
@@ -149,18 +163,18 @@ class StrikeCalculationService {
         .where((completed) => completed)
         .length;
 
-    // IMPORTANT: Only reset strikes if EXACTLY 0 goals were completed
-    // If user achieved at least 1 goal, maintain their streak and carry over strikes
+    // IMPORTANT: Handle both current strikes and day streak separately
     if (completedGoals == 0) {
       log.warning(
-        '❌ Zero goals completed yesterday - resetting current strikes only',
+        '❌ Zero goals completed yesterday - resetting current strikes AND day streak',
       );
-      await _resetStrikesKeepLevel();
+      await _resetStrikesAndDayStreak();  // Reset both current strikes and day streak
       await _sendStrikeResetNotification();
     } else {
       log.info(
-        '✅ At least $completedGoals goal(s) completed yesterday - streak maintained, strikes carry over',
+        '✅ At least $completedGoals goal(s) completed yesterday - day streak maintained, strikes carry over',
       );
+      // Day streak continues, current strikes carry over - no reset needed
     }
 
     // Save today's goals as yesterday's goals for tomorrow's check
@@ -189,6 +203,14 @@ class StrikeCalculationService {
     final currentProgress = await getUserProgress();
     final goals = currentProgress.dailyGoals;
 
+    // ENHANCED DEBUG: Log current health data and goals
+    log.info('🔍 STRIKE DEBUG - Current Health Data:');
+    log.info('   Steps: ${healthData.steps} (Goal: ${goals.stepsGoal})');
+    log.info('   Active Minutes: ${healthData.activeMinutes} (Goal: ${goals.activeMinutesGoal})');
+    log.info('   Calories Burned: ${healthData.caloriesBurned} (Goal: ${goals.caloriesBurnGoal})');
+    log.info('   Water Intake: ${healthData.waterIntake} (Goal: ${goals.waterIntakeGoal})');
+    log.info('   Sleep Hours: ${healthData.sleepHours} (Goal: ${goals.sleepHoursGoal})');
+
     // Check each goal completion
     final goalsCompleted = <String, bool>{
       GoalType.steps.key: healthData.steps >= goals.stepsGoal,
@@ -202,6 +224,12 @@ class StrikeCalculationService {
         goals.sleepHoursGoal,
       ),
     };
+
+    // ENHANCED DEBUG: Log goal completion status
+    log.info('🎯 GOAL COMPLETION STATUS:');
+    goalsCompleted.forEach((goalType, completed) {
+      log.info('   $goalType: ${completed ? "✅ COMPLETED" : "❌ NOT COMPLETED"}');
+    });
 
     // Count completed goals
     final completedCount = goalsCompleted.values
@@ -237,10 +265,27 @@ class StrikeCalculationService {
               .clamp(0, double.infinity)
               .toInt();
 
+      // Update day streak: increase by 1 if first goal completed today
+      final wasStreakDay = currentProgress.completedGoalsCount > 0;
+      final isStreakDay = completedCount > 0;
+      final newDayStreak = isStreakDay && !wasStreakDay 
+          ? currentProgress.dayStreak + 1  // First goal completed today - extend streak
+          : currentProgress.dayStreak;     // Keep existing streak (either already counted today or no goals)
+
+      // DAY STREAK DEBUG LOGGING
+      log.info('🔥 DAY STREAK DEBUG:');
+      log.info('   Previous completed goals: ${currentProgress.completedGoalsCount}');
+      log.info('   Current completed goals: $completedCount');
+      log.info('   Was streak day before: $wasStreakDay');
+      log.info('   Is streak day now: $isStreakDay');
+      log.info('   Previous day streak: ${currentProgress.dayStreak}');
+      log.info('   New day streak: $newDayStreak');
+
       final updatedProgress = currentProgress.copyWith(
         currentStrikes: finalCurrentStrikes,
         totalStrikes: newTotalStrikes.clamp(0, double.infinity).toInt(),
         currentLevel: newLevel,
+        dayStreak: newDayStreak,  // NEW: Update day streak
         lastStrikeDate: DateTime.now(),
         lastActivityDate: DateTime.now(),
         todayGoalsCompleted: goalsCompleted,
@@ -258,11 +303,20 @@ class StrikeCalculationService {
         );
         
         // ENHANCED: Also save to Firestore for better persistence
+        log.info('🔥 SAVING TO FIRESTORE: ${updatedProgress.todayGoalsCompleted}');
         await _saveDailyGoalsToFirestore(updatedProgress.todayGoalsCompleted);
         
-        log.info('💾 Immediately saved goal completions locally and to Firestore: ${updatedProgress.todayGoalsCompleted}');
+        log.info('💾 ✅ Successfully saved goal completions locally and to Firestore: ${updatedProgress.todayGoalsCompleted}');
       } catch (e) {
         log.warning('⚠️ Failed to save current goal completions: $e');
+      }
+
+      // Save daily stats for tracking
+      try {
+        await _dailyStatsService.saveDailyStats(updatedProgress, healthData);
+        log.info('📊 ✅ Successfully saved daily stats for tracking');
+      } catch (e) {
+        log.warning('⚠️ Failed to save daily stats: $e');
       }
 
       // Send notifications for achievements
@@ -275,7 +329,7 @@ class StrikeCalculationService {
       }
 
       log.info(
-        '🎯 Progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes current strikes, $newTotalStrikes total strikes, Level $newLevel ${leveledUp ? "(🎉 LEVEL UP! Current strikes carried over to next level)" : ""}',
+        '🎯 Progress: $completedCount goals, ${multiplier}x multiplier, $finalCurrentStrikes current strikes, $newTotalStrikes total strikes, $newDayStreak day streak, Level $newLevel ${leveledUp ? "(🎉 LEVEL UP! Current strikes carried over to next level)" : ""}',
       );
 
       return updatedProgress;
@@ -306,13 +360,14 @@ class StrikeCalculationService {
     return 10; // Max level
   }
 
-  // Reset strikes only when user achieves ZERO goals
+  // Reset both strikes AND day streak when user achieves ZERO goals
   // KEEPS: Current level, total strikes (lifetime achievement)
-  // RESETS: Only current strikes (daily streak progress) back to 0
-  Future<void> _resetStrikesKeepLevel() async {
+  // RESETS: Current strikes (daily streak progress) AND day streak back to 0
+  Future<void> _resetStrikesAndDayStreak() async {
     final currentProgress = await getUserProgress();
     final resetProgress = currentProgress.copyWith(
       currentStrikes: 0, // Reset current strikes to 0 - start rebuilding streak
+      dayStreak: 0,      // NEW: Reset day streak to 0 - streak broken
       // totalStrikes stays the same! - lifetime achievement preserved
       // currentLevel stays the same! - user keeps their earned level
       todayGoalsCompleted: {},
@@ -320,7 +375,27 @@ class StrikeCalculationService {
     );
     await _saveUserProgress(resetProgress);
     log.info(
-      '🔄 Zero goals achieved - current strikes reset to 0, Level ${currentProgress.currentLevel} maintained, ${currentProgress.totalStrikes} total strikes preserved',
+      '🔄 Zero goals achieved - current strikes AND day streak reset to 0, Level ${currentProgress.currentLevel} maintained, ${currentProgress.totalStrikes} total strikes preserved',
+    );
+  }
+
+  // LEGACY: Keep old method for backward compatibility (only resets current strikes)
+  // Reset strikes only when user achieves ZERO goals
+  // KEEPS: Current level, total strikes (lifetime achievement), day streak
+  // RESETS: Only current strikes (daily streak progress) back to 0
+  Future<void> _resetStrikesKeepLevel() async {
+    final currentProgress = await getUserProgress();
+    final resetProgress = currentProgress.copyWith(
+      currentStrikes: 0, // Reset current strikes to 0 - start rebuilding streak
+      // totalStrikes stays the same! - lifetime achievement preserved
+      // currentLevel stays the same! - user keeps their earned level
+      // dayStreak stays the same! - day streak is separate from level strikes
+      todayGoalsCompleted: {},
+      todayMultiplier: 1,
+    );
+    await _saveUserProgress(resetProgress);
+    log.info(
+      '🔄 Current strikes reset to 0, Level ${currentProgress.currentLevel} maintained, ${currentProgress.totalStrikes} total strikes preserved, day streak ${currentProgress.dayStreak} maintained',
     );
   }
 
@@ -409,14 +484,20 @@ class StrikeCalculationService {
     }
   }
 
-  // Get yesterday's goals from Firestore for better accuracy
-  Future<Map<String, bool>?> _getYesterdayGoalsFromFirestore() async {
+  // Get today's goals from Firestore (backup for midnight timing issues)
+  Future<Map<String, bool>?> _getTodayGoalsFromFirestore() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) return null;
+      if (user == null) {
+        log.warning('🚫 No authenticated user for Firestore today goals retrieval');
+        return null;
+      }
 
-      final yesterday = DateTime.now().subtract(const Duration(days: 1));
-      final dateKey = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+      final today = DateTime.now();
+      final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      log.info('🔍 CHECKING TODAY\'S FIRESTORE DATA:');
+      log.info('   Today\'s date key: $dateKey');
 
       final doc = await _firestore
           .collection('user_progress')
@@ -425,10 +506,56 @@ class StrikeCalculationService {
           .doc(dateKey)
           .get();
 
-      if (!doc.exists) return null;
+      if (!doc.exists) {
+        log.warning('📭 No Firestore document found for TODAY: $dateKey');
+        return null;
+      }
 
       final data = doc.data() as Map<String, dynamic>;
-      return Map<String, bool>.from(data['goalsCompleted'] ?? {});
+      final goals = Map<String, bool>.from(data['goalsCompleted'] ?? {});
+      log.info('🔥 Found TODAY\'S Firestore goals for $dateKey: $goals');
+      return goals;
+    } catch (e) {
+      log.warning('⚠️ Error retrieving today goals from Firestore: $e');
+      return null;
+    }
+  }
+
+  // Get yesterday's goals from Firestore for better accuracy
+  Future<Map<String, bool>?> _getYesterdayGoalsFromFirestore() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        log.warning('🚫 No authenticated user for Firestore goals retrieval');
+        return null;
+      }
+
+      final now = DateTime.now();
+      final yesterday = now.subtract(const Duration(days: 1));
+      final dateKey = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+      log.info('🔍 FIRESTORE DEBUG - Looking for yesterday goals:');
+      log.info('   Current time: $now');
+      log.info('   Yesterday date: $yesterday');
+      log.info('   Date key: $dateKey');
+      log.info('   User ID: ${user.uid}');
+
+      final doc = await _firestore
+          .collection('user_progress')
+          .doc(user.uid)
+          .collection('daily_goals')
+          .doc(dateKey)
+          .get();
+
+      if (!doc.exists) {
+        log.warning('📭 No Firestore document found for date: $dateKey');
+        return null;
+      }
+
+      final data = doc.data() as Map<String, dynamic>;
+      final goals = Map<String, bool>.from(data['goalsCompleted'] ?? {});
+      log.info('🔥 Found Firestore goals for $dateKey: $goals');
+      return goals;
     } catch (e) {
       log.warning('⚠️ Error retrieving yesterday goals from Firestore: $e');
       return null;
@@ -439,10 +566,19 @@ class StrikeCalculationService {
   Future<void> _saveDailyGoalsToFirestore(Map<String, bool> goalsCompleted) async {
     try {
       final user = _auth.currentUser;
-      if (user == null) return;
+      if (user == null) {
+        log.warning('🚫 No user authenticated - cannot save to Firestore');
+        return;
+      }
 
       final today = DateTime.now();
       final dateKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      log.info('🔥 FIRESTORE SAVE DEBUG:');
+      log.info('   Current time: $today');
+      log.info('   Date key: $dateKey');
+      log.info('   Goals to save: $goalsCompleted');
+      log.info('   User ID: ${user.uid}');
 
       await _firestore
           .collection('user_progress')
@@ -453,9 +589,10 @@ class StrikeCalculationService {
             'goalsCompleted': goalsCompleted,
             'date': Timestamp.fromDate(today),
             'savedAt': Timestamp.now(),
+            'completedGoalsCount': goalsCompleted.values.where((c) => c).length,
           });
 
-      log.info('🔥 Saved daily goals to Firestore for $dateKey');
+      log.info('✅ Successfully saved daily goals to Firestore for $dateKey');
     } catch (e) {
       log.warning('⚠️ Failed to save daily goals to Firestore: $e');
       // Don't throw - this is a backup mechanism
@@ -583,6 +720,7 @@ class StrikeCalculationService {
       currentStrikes: 0,
       totalStrikes: 0,
       currentLevel: 1,
+      dayStreak: 0,  // NEW: Initialize day streak to 0
       lastStrikeDate: now,
       lastActivityDate: now,
       dailyGoals: const DailyGoals(),

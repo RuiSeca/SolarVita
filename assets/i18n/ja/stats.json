@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "月間統計",
+    "view_progress_calendar": "進捗を見る",
+    "complete_days": "完了日",
+    "partial_days": "部分完了日", 
+    "empty_days": "未完了日",
+    "completion_rate": "達成率",
+    "best_streak": "最高連続記録",
+    "error_loading_stats": "統計の読み込みエラー",
+    "retry": "再試行",
+    "close": "閉じる"
+}

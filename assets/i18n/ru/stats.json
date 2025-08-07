@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "Месячная Статистика",
+    "view_progress_calendar": "Посмотреть ваш прогресс",
+    "complete_days": "Полные Дни",
+    "partial_days": "Частичные Дни", 
+    "empty_days": "Пустые Дни",
+    "completion_rate": "Процент Выполнения",
+    "best_streak": "Лучшая Серия",
+    "error_loading_stats": "Ошибка загрузки статистики",
+    "retry": "Повторить",
+    "close": "Закрыть"
+}

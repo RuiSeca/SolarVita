@@ -5,6 +5,7 @@ import '../screens/add_friend_screen.dart';
 import '../supporter/supporters_list_screen.dart';
 import '../supporter/supporter_activity_feed_screen.dart';
 import '../screens/eco_impact_screen.dart';
+import '../../stats/monthly_stats_screen.dart';
 import '../debug_menu_screen.dart';
 import 'dart:ui';
 import '../../../utils/translation_helper.dart';
@@ -38,12 +39,17 @@ class ModernActionGrid extends StatelessWidget {
             children: [
               _buildModernActionCard(
                 context,
-                icon: Icons.fitness_center_outlined,
-                title: tr(context, 'log_workout'),
-                subtitle: tr(context, 'track_your_fitness'),
-                gradient: [Colors.orange, Colors.deepOrange],
+                icon: Icons.bar_chart_outlined,
+                title: tr(context, 'monthly_stats'),
+                subtitle: tr(context, 'view_progress_calendar'),
+                gradient: [Colors.cyan, Colors.blue],
                 onTap: () {
-                  // Navigate to workout logging
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MonthlyStatsScreen(),
+                    ),
+                  );
                 },
               ),
               _buildModernActionCard(

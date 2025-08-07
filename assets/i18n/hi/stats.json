@@ -1,0 +1,12 @@
+{
+    "monthly_stats": "मासिक आँकड़े",
+    "view_progress_calendar": "अपनी प्रगति देखें",
+    "complete_days": "पूर्ण दिन",
+    "partial_days": "आंशिक दिन", 
+    "empty_days": "खाली दिन",
+    "completion_rate": "पूर्णता दर",
+    "best_streak": "सबसे अच्छी लकीर",
+    "error_loading_stats": "आँकड़े लोड करने में त्रुटि",
+    "retry": "पुनः प्रयास करें",
+    "close": "बंद करें"
+}

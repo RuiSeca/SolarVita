@@ -157,6 +157,10 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         _rippleController.forward().then((_) {
           _rippleController.reset();
         });
+        
+        // Update progress tracking and save stats
+        await _trackGoalCompletion('waterIntake');
+        
         // Show completion message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +178,41 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
           );
         }
       }
+    }
+  }
+
+  /// Track goal completion and update stats
+  Future<void> _trackGoalCompletion(String goalType) async {
+    try {
+      // Get current health data
+      final healthDataAsync = ref.read(healthDataNotifierProvider);
+      
+      if (healthDataAsync.hasValue) {
+        final healthData = healthDataAsync.value!;
+        
+        // Update user progress with health data (this will save stats automatically)
+        final progressNotifier = ref.read(userProgressNotifierProvider.notifier);
+        await progressNotifier.updateProgress(healthData);
+      }
+    } catch (e) {
+      // Error tracking goal completion: $e
+    }
+  }
+  
+  /// Check all goal completions when health data updates
+  Future<void> _checkAllGoalCompletions() async {
+    try {
+      final healthDataAsync = ref.read(healthDataNotifierProvider);
+      
+      if (healthDataAsync.hasValue) {
+        final healthData = healthDataAsync.value!;
+        
+        // Update user progress with health data (this will save stats automatically)
+        final progressNotifier = ref.read(userProgressNotifierProvider.notifier);
+        await progressNotifier.updateProgress(healthData);
+      }
+    } catch (e) {
+      // Error checking goal completions: $e
     }
   }
 
@@ -201,6 +240,14 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     final healthDataAsync = ref.watch(healthDataNotifierProvider);
     final permissionsStatus = ref.watch(healthPermissionsNotifierProvider);
     final lastSyncAsync = ref.watch(lastSyncTimeProvider);
+    
+    // Listen for health data changes and check goal completions
+    ref.listen<AsyncValue<HealthData>>(healthDataNotifierProvider, (previous, next) {
+      if (next.hasValue && previous?.value != next.value) {
+        // Health data updated, check if any goals were completed
+        _checkAllGoalCompletions();
+      }
+    });
     
     // Get scroll controller directly in build method
     final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('health');
@@ -341,7 +388,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${ref.watch(currentStrikesProvider)}',
+                        '${ref.watch(dayStreakProvider)}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,

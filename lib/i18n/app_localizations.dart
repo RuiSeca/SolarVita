@@ -38,6 +38,7 @@ class AppLocalizations {
     'help_support',
     'ui',
     'language',
+    'stats',
   ];
 
   AppLocalizations(this.locale);

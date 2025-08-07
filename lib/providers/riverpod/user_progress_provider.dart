@@ -138,6 +138,16 @@ final totalStrikesProvider = Provider<int>((ref) {
   );
 });
 
+// NEW: Day streak provider for consecutive days with at least one goal completed
+final dayStreakProvider = Provider<int>((ref) {
+  final progressAsync = ref.watch(userProgressNotifierProvider);
+  return progressAsync.when(
+    data: (progress) => progress.dayStreak,
+    loading: () => 0,
+    error: (_, __) => 0,
+  );
+});
+
 final currentLevelProvider = Provider<int>((ref) {
   final progressAsync = ref.watch(userProgressNotifierProvider);
   return progressAsync.when(
