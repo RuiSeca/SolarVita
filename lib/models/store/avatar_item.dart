@@ -37,6 +37,7 @@ class AvatarItem {
   final Map<String, dynamic> metadata;
   final int rarity; // 1-5 star system
   final List<String> tags;
+  final List<String> animations; // Available animations (attack, run, jump, etc.)
 
   const AvatarItem({
     required this.id,
@@ -56,6 +57,7 @@ class AvatarItem {
     this.metadata = const {},
     this.rarity = 1,
     this.tags = const [],
+    this.animations = const [],
   });
 
   // Helper getters
@@ -136,6 +138,7 @@ class AvatarItem {
       metadata: Map<String, dynamic>.from(json['metadata'] ?? {}),
       rarity: json['rarity'] as int? ?? 1,
       tags: List<String>.from(json['tags'] ?? []),
+      animations: List<String>.from(json['animations'] ?? []),
     );
   }
 
@@ -158,6 +161,7 @@ class AvatarItem {
       'metadata': metadata,
       'rarity': rarity,
       'tags': tags,
+      'animations': animations,
     };
   }
 
@@ -179,6 +183,7 @@ class AvatarItem {
     Map<String, dynamic>? metadata,
     int? rarity,
     List<String>? tags,
+    List<String>? animations,
   }) {
     return AvatarItem(
       id: id ?? this.id,
@@ -198,6 +203,7 @@ class AvatarItem {
       metadata: metadata ?? this.metadata,
       rarity: rarity ?? this.rarity,
       tags: tags ?? this.tags,
+      animations: animations ?? this.animations,
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/store/avatar_item.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/coin_provider.dart';
+import 'package:rive/rive.dart' as rive;
 
 class AvatarPreviewModal extends ConsumerStatefulWidget {
   final AvatarItem item;
@@ -21,6 +22,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   String _currentAnimation = 'Idle';
+  String _currentCelebrationAnimation = 'Run'; // For celebration mode
   bool _isLoading = false;
 
   @override
@@ -218,47 +220,88 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
               ],
             ),
           ),
-          // Avatar preview (placeholder for Rive animation)
+          // Avatar preview - Rive animation for Mummy Coach
           Expanded(
             child: Center(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.5),
-                    width: 3,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Icon(
-                        _getAvatarIcon(),
-                        size: 80,
-                        color: AppColors.primary,
+              child: widget.item.id == 'mummy_coach'
+                ? SizedBox(
+                    width: 200,
+                    height: 200,
+                    child: Stack(
+                      children: [
+                        rive.RiveAnimation.asset(
+                          'assets/rive/mummy.riv',
+                          animations: [_getCurrentRiveAnimation()],
+                          fit: BoxFit.contain,
+                        ),
+                        if (_isLoading)
+                          Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(100),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                        width: 3,
                       ),
                     ),
-                    if (_isLoading)
-                      Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.primary,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: Icon(
+                            _getAvatarIcon(),
+                            size: 80,
+                            color: AppColors.primary,
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
+                        if (_isLoading)
+                          Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
             ),
           ),
+          // Celebration animation buttons (only for mummy coach in celebration mode)
+          if (widget.item.id == 'mummy_coach' && _currentAnimation == 'Celebration')
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.cardDark.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildCelebrationButton('Run'),
+                  _buildCelebrationButton('Attack'),
+                  _buildCelebrationButton('Jump'),
+                ],
+              ),
+            ),
           // Current animation indicator
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Animation: $_currentAnimation',
+              _currentAnimation == 'Celebration' 
+                ? 'Animation: $_currentCelebrationAnimation'
+                : 'Animation: $_currentAnimation',
               style: TextStyle(
                 color: AppColors.white.withValues(alpha: 0.7),
                 fontSize: 14,
@@ -490,6 +533,54 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  String _getCurrentRiveAnimation() {
+    if (_currentAnimation == 'Celebration') {
+      return _currentCelebrationAnimation;
+    }
+    return _currentAnimation;
+  }
+
+  Widget _buildCelebrationButton(String animation) {
+    final isSelected = _currentCelebrationAnimation == animation;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _currentCelebrationAnimation = animation;
+          _isLoading = true;
+        });
+        // Simulate loading animation
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            setState(() {
+              _isLoading = false;
+            });
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        margin: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.secondary : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.secondary : AppColors.white.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          animation,
+          style: TextStyle(
+            color: isSelected ? AppColors.white : AppColors.white.withValues(alpha: 0.7),
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/store/avatar_item.dart';
 import '../../theme/app_theme.dart';
+import '../../data/mock_avatar_data.dart';
 import 'widgets/avatar_card.dart';
 import 'widgets/coin_header.dart';
 import 'widgets/membership_banner.dart';
@@ -308,25 +309,25 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
   }
 
   Widget _buildAllItemsTab() {
-    return _buildItemGrid(_getMockAvatarItems());
+    return _buildItemGrid(MockAvatarData.getAvatarItems());
   }
 
   Widget _buildFreeSkinsTab() {
-    final freeItems = _getMockAvatarItems()
+    final freeItems = MockAvatarData.getAvatarItems()
         .where((item) => item.accessType == AvatarAccessType.free)
         .toList();
     return _buildItemGrid(freeItems);
   }
 
   Widget _buildPremiumTab() {
-    final premiumItems = _getMockAvatarItems()
+    final premiumItems = MockAvatarData.getAvatarItems()
         .where((item) => item.accessType == AvatarAccessType.paid)
         .toList();
     return _buildItemGrid(premiumItems);
   }
 
   Widget _buildMembersTab() {
-    final memberItems = _getMockAvatarItems()
+    final memberItems = MockAvatarData.getAvatarItems()
         .where((item) => item.accessType == AvatarAccessType.member)
         .toList();
     return _buildItemGrid(memberItems);
@@ -346,7 +347,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12), // Reduced padding
       child: Column(
         children: [
           GridView.builder(
@@ -354,9 +355,9 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-              childAspectRatio: 0.8,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 16,
+              childAspectRatio: 0.9, // More compact aspect ratio
+              crossAxisSpacing: 8, // Tighter horizontal spacing
+              mainAxisSpacing: 12, // Tighter vertical spacing
             ),
             itemCount: filteredItems.length,
             itemBuilder: (context, index) {
@@ -488,89 +489,4 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     );
   }
 
-  // Mock data for development - replace with actual provider data
-  List<AvatarItem> _getMockAvatarItems() {
-    return [
-      const AvatarItem(
-        id: 'classic_coach',
-        name: 'Classic Coach',
-        description: 'The original AI fitness coach with a friendly demeanor',
-        rivAssetPath: 'assets/avatars/classic_coach.riv',
-        previewImagePath: 'assets/images/avatars/classic_coach_preview.png',
-        cost: 0,
-        coinType: CoinType.streakCoin,
-        accessType: AvatarAccessType.free,
-        category: AvatarCategory.skins,
-        isUnlocked: true,
-        isEquipped: true,
-        rarity: 1,
-        tags: ['default', 'friendly', 'classic'],
-      ),
-      const AvatarItem(
-        id: 'neon_runner',
-        name: 'Neon Runner',
-        description: 'A futuristic coach with glowing neon accents',
-        rivAssetPath: 'assets/avatars/neon_runner.riv',
-        previewImagePath: 'assets/images/avatars/neon_runner_preview.png',
-        cost: 50,
-        coinType: CoinType.streakCoin,
-        accessType: AvatarAccessType.free,
-        category: AvatarCategory.skins,
-        rarity: 2,
-        tags: ['futuristic', 'neon', 'runner'],
-      ),
-      const AvatarItem(
-        id: 'zen_master',
-        name: 'Zen Master',
-        description: 'A calm and peaceful coach for meditation and mindfulness',
-        rivAssetPath: 'assets/avatars/zen_master.riv',
-        previewImagePath: 'assets/images/avatars/zen_master_preview.png',
-        cost: 100,
-        coinType: CoinType.coachPoints,
-        accessType: AvatarAccessType.free,
-        category: AvatarCategory.skins,
-        rarity: 3,
-        tags: ['zen', 'peaceful', 'meditation'],
-      ),
-      const AvatarItem(
-        id: 'galaxy_warrior',
-        name: 'Galaxy Warrior',
-        description: 'An interstellar fitness coach from distant worlds',
-        rivAssetPath: 'assets/avatars/galaxy_warrior.riv',
-        previewImagePath: 'assets/images/avatars/galaxy_warrior_preview.png',
-        cost: 200,
-        coinType: CoinType.fitGems,
-        accessType: AvatarAccessType.paid,
-        category: AvatarCategory.skins,
-        rarity: 4,
-        tags: ['galaxy', 'warrior', 'space'],
-      ),
-      const AvatarItem(
-        id: 'elite_trainer',
-        name: 'Elite Trainer',
-        description: 'Exclusive coach available only to premium members',
-        rivAssetPath: 'assets/avatars/elite_trainer.riv',
-        previewImagePath: 'assets/images/avatars/elite_trainer_preview.png',
-        cost: 0,
-        coinType: CoinType.streakCoin,
-        accessType: AvatarAccessType.member,
-        category: AvatarCategory.skins,
-        rarity: 5,
-        tags: ['elite', 'exclusive', 'premium'],
-      ),
-      const AvatarItem(
-        id: 'victory_celebration',
-        name: 'Victory Celebration',
-        description: 'Special animation for celebrating achievements',
-        rivAssetPath: 'assets/avatars/animations/victory_celebration.riv',
-        previewImagePath: 'assets/images/avatars/victory_celebration_preview.png',
-        cost: 75,
-        coinType: CoinType.coachPoints,
-        accessType: AvatarAccessType.free,
-        category: AvatarCategory.animations,
-        rarity: 2,
-        tags: ['celebration', 'victory', 'animation'],
-      ),
-    ];
-  }
 }

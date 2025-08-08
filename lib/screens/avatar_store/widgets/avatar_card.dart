@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/store/avatar_item.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/coin_provider.dart';
+import 'package:rive/rive.dart' as rive;
 
 class AvatarCard extends ConsumerWidget {
   final AvatarItem item;
@@ -47,12 +48,12 @@ class AvatarCard extends ConsumerWidget {
               children: [
                 // Avatar Preview
                 Expanded(
-                  flex: 3,
+                  flex: 2,
                   child: _buildAvatarPreview(),
                 ),
                 // Item Info
                 Expanded(
-                  flex: 2,
+                  flex: 3,
                   child: _buildItemInfo(),
                 ),
               ],
@@ -67,7 +68,7 @@ class AvatarCard extends ConsumerWidget {
 
   Widget _buildAvatarPreview() {
     return Container(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: _getPreviewBackgroundColor(),
         borderRadius: BorderRadius.circular(16),
@@ -82,25 +83,62 @@ class AvatarCard extends ConsumerWidget {
       ),
       child: Stack(
         children: [
-          // Avatar image placeholder (replace with Rive animation)
+          // Avatar preview - Rive animation for Mummy Coach, image for others
           Center(
-            child: Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.5),
-                  width: 2,
-                ),
-              ),
-              child: Icon(
-                _getAvatarIcon(),
-                size: 32,
-                color: AppColors.primary,
-              ),
-            ),
+            child: item.id == 'mummy_coach' 
+              ? SizedBox(
+                  width: 80,
+                  height: 80,
+                  child: rive.RiveAnimation.asset(
+                    'assets/rive/mummy.riv',
+                    animations: const ['Idle'], // Idle animation for preview
+                    fit: BoxFit.contain,
+                  ),
+                )
+              : item.previewImagePath.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.asset(
+                      item.previewImagePath,
+                      width: 80,
+                      height: 80,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          _getAvatarIcon(),
+                          size: 32,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  )
+                : Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                        width: 2,
+                      ),
+                    ),
+                    child: Icon(
+                      _getAvatarIcon(),
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                  ),
           ),
           // Rarity stars
           if (item.rarity > 1)
@@ -126,7 +164,7 @@ class AvatarCard extends ConsumerWidget {
 
   Widget _buildItemInfo() {
     return Padding(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -141,10 +179,10 @@ class AvatarCard extends ConsumerWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           // Access type badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: _getAccessTypeColor().withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),

@@ -87,7 +87,7 @@ flutter:
     - assets/images/
     - assets/lotties/
     - assets/rive/
-    - .env #Commented out for CI/CD - using --dart-define instead
+    - .env # Commented out for CI/CD - using --dart-define instead
 
     # Translations
     # ==========
@@ -98,15 +98,13 @@ flutter:
     - assets/i18n/fr/
     - assets/i18n/it/
     - assets/i18n/de/
-    - assets/i18n/zh/
-    - assets/i18n/ja/
     - assets/i18n/ru/
+    - assets/i18n/ja/
+    - assets/i18n/zh/
     - assets/i18n/hi/
-    - assets/i18n/ko/
 
     # ==========
     # Feature Images
-    - assets/images/youtube_logo.png
 
     # Dashboard and Auth Images
     - assets/images/google_logo.jpg

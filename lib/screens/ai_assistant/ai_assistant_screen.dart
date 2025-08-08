@@ -1,6 +1,7 @@
 // lib/screens/ai_assistant/ai_assistant_screen.dart
 import 'package:flutter/material.dart';
 import 'dart:io';
+import 'dart:async';
 import 'package:image_picker/image_picker.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -15,6 +16,7 @@ import '../health/meals/meal_plan_screen.dart';
 import 'package:logger/logger.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../avatar_store/avatar_store_screen.dart';
+import 'package:rive/rive.dart' as rive;
 
 class AIAssistantScreen extends StatefulWidget {
   const AIAssistantScreen({super.key});
@@ -43,6 +45,15 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   bool _speechEnabled = false;
   bool _speechListening = false;
   String _recognizedText = '';
+
+  // Current avatar animation (using correct case)
+  String _currentAvatarAnimation = 'Idle';
+  // Timer for idle/jump cycling when cards are hidden
+  Timer? _avatarCycleTimer;
+  // Animation stage tracking: 0=Jump, 1=Run, 2=Attack, 3=Jump(final)
+  int _animationStage = 0;
+  // Show large avatar above eco stats
+  bool _showLargeAvatar = false;
 
   @override
   void initState() {
@@ -118,6 +129,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _sendButtonController.dispose();
+    _avatarCycleTimer?.cancel();
 
     // Enhanced cleanup for speech recognition (especially for Huawei devices)
     try {
@@ -390,15 +402,40 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            _buildHeader(),
-            if (!_userHasInteracted)
-              Expanded(
-                child: _buildActionButtons(),
-              ), // Show buttons until user interacts
-            if (_userHasInteracted) Expanded(child: _buildChatArea()),
-            _buildMessageInput(),
+            Column(
+              children: [
+                _buildHeader(),
+                if (!_userHasInteracted)
+                  Expanded(
+                    child: _buildActionButtons(),
+                  ), // Show buttons until user interacts
+                if (_userHasInteracted) Expanded(child: _buildChatArea()),
+                _buildMessageInput(),
+              ],
+            ),
+            // Large avatar overlay above eco stats (no circle, just animation)
+            if (_showLargeAvatar && !_userHasInteracted)
+              Positioned(
+                top: 120, // Below header, above eco stats
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () => _triggerAvatarAnimation(),
+                    child: SizedBox(
+                      width: 120,
+                      height: 120,
+                      child: rive.RiveAnimation.asset(
+                        'assets/rive/mummy.riv',
+                        animations: [_currentAvatarAnimation],
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -411,15 +448,33 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       decoration: BoxDecoration(color: AppTheme.surfaceColor(context)),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              image: DecorationImage(
-                image: AssetImage('assets/images/solar_ai/AI_avatar.webp'),
-                fit: BoxFit.cover,
+          // Mummy Avatar with Rive Animation (disappears when teleported)
+          GestureDetector(
+            onTap: () => _triggerAvatarAnimation(),
+            child: Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.purple.withValues(alpha: 0.3),
+                  width: 2,
+                ),
               ),
+              child: _showLargeAvatar 
+                ? null // Empty ring when mummy is teleported away
+                : ClipOval(
+                    child: rive.RiveAnimation.asset(
+                      'assets/rive/mummy.riv',
+                      animations: [_currentAvatarAnimation],
+                      fit: BoxFit.cover,
+                      onInit: (artboard) {
+                        _logger.d('Rive artboard initialized: ${artboard.name}');
+                        // Try to get animation names from the artboard
+                        _logger.d('Available animations: ${artboard.animations.map((a) => a.name).toList()}');
+                      },
+                    ),
+                  ),
             ),
           ),
           const SizedBox(width: 12),
@@ -427,16 +482,40 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  tr(context, 'assistant_name'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Mummy Coach',
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.purple.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: Colors.purple.withValues(alpha: 0.4),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        'NEW',
+                        style: TextStyle(
+                          color: Colors.purple,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
-                  tr(context, 'assistant_subtitle'),
+                  'Ancient fitness wisdom meets modern AI',
                   style: TextStyle(
                     color: AppTheme.textColor(context).withAlpha(153),
                     fontSize: 14,
@@ -593,6 +672,72 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       ),
     );
   }
+
+
+  void _triggerAvatarAnimation([String? animationType]) {
+    _logger.d('Triggering animation stage: $_animationStage');
+    
+    switch (_animationStage) {
+      case 0: // First click: Idle -> Jump -> disappear and show large avatar
+        setState(() {
+          _currentAvatarAnimation = 'Jump';
+        });
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _showLargeAvatar = true;
+              _currentAvatarAnimation = 'Idle';
+              _animationStage = 1;
+            });
+          }
+        });
+        break;
+        
+      case 1: // Second click: Run for 10 seconds -> Idle
+        setState(() {
+          _currentAvatarAnimation = 'Run';
+        });
+        Future.delayed(const Duration(seconds: 10), () {
+          if (mounted) {
+            setState(() {
+              _currentAvatarAnimation = 'Idle';
+              _animationStage = 2;
+            });
+          }
+        });
+        break;
+        
+      case 2: // Third click: Attack for 1 second -> Idle
+        setState(() {
+          _currentAvatarAnimation = 'Attack';
+        });
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            setState(() {
+              _currentAvatarAnimation = 'Idle';
+              _animationStage = 3;
+            });
+          }
+        });
+        break;
+        
+      case 3: // Fourth click: Jump for 6 seconds -> back to profile
+        setState(() {
+          _currentAvatarAnimation = 'Jump';
+        });
+        Future.delayed(const Duration(seconds: 6), () {
+          if (mounted) {
+            setState(() {
+              _showLargeAvatar = false;
+              _currentAvatarAnimation = 'Idle';
+              _animationStage = 0; // Reset cycle
+            });
+          }
+        });
+        break;
+    }
+  }
+
 
   Widget _buildChatArea() {
     // Create a stable list of widgets to display
