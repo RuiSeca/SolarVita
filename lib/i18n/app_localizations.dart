@@ -39,6 +39,7 @@ class AppLocalizations {
     'ui',
     'language',
     'stats',
+    'avatar',
   ];
 
   AppLocalizations(this.locale);
@@ -70,10 +71,26 @@ class AppLocalizations {
 
       Map<String, dynamic> jsonMap = json.decode(jsonString);
 
-      return jsonMap.map((key, value) => MapEntry(key, value.toString()));
+      return _flattenMap(jsonMap);
     } catch (e) {
       return {}; // Return an empty map instead of crashing
     }
+  }
+
+  Map<String, String> _flattenMap(Map<String, dynamic> map, [String prefix = '']) {
+    final Map<String, String> result = {};
+    
+    map.forEach((key, value) {
+      final String newKey = prefix.isEmpty ? key : '$prefix.$key';
+      
+      if (value is Map<String, dynamic>) {
+        result.addAll(_flattenMap(value, newKey));
+      } else {
+        result[newKey] = value.toString();
+      }
+    });
+    
+    return result;
   }
 
   String translate(String key) {

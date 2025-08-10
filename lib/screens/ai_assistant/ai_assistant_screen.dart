@@ -16,16 +16,25 @@ import '../health/meals/meal_plan_screen.dart';
 import 'package:logger/logger.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../avatar_store/avatar_store_screen.dart';
-import 'package:rive/rive.dart' as rive;
+import '../../widgets/avatar_display.dart';
+import '../../config/avatar_animations_config.dart';
+import '../../providers/riverpod/avatar_state_provider.dart';
+import '../../services/avatars/avatar_controller_factory.dart';
+import '../../services/avatars/mummy_avatar_controller.dart';
+import '../../services/avatars/quantum_coach_controller.dart';
+import '../../services/avatars/avatar_interaction_manager.dart';
+import '../../services/avatars/migration_bridge.dart';
+import '../../widgets/quantum_coach_widget.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AIAssistantScreen extends StatefulWidget {
+class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
 
   @override
-  State<AIAssistantScreen> createState() => _AIAssistantScreenState();
+  ConsumerState<AIAssistantScreen> createState() => _AIAssistantScreenState();
 }
 
-class _AIAssistantScreenState extends State<AIAssistantScreen>
+class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     with TickerProviderStateMixin {
   final Logger _logger = Logger();
   final TextEditingController _messageController = TextEditingController();
@@ -46,18 +55,27 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   bool _speechListening = false;
   String _recognizedText = '';
 
-  // Current avatar animation (using correct case)
-  String _currentAvatarAnimation = 'Idle';
-  // Timer for idle/jump cycling when cards are hidden
-  Timer? _avatarCycleTimer;
-  // Animation stage tracking: 0=Jump, 1=Run, 2=Attack, 3=Jump(final)
-  int _animationStage = 0;
-  // Show large avatar above eco stats
-  bool _showLargeAvatar = false;
+  // Avatar controller system
+  late final MummyAvatarController _mummyController;
+  late final QuantumCoachController _quantumCoachController;
+  final GlobalKey<AvatarDisplayState> _headerAvatarKey = GlobalKey();
+  final GlobalKey<AvatarDisplayState> _largeAvatarKey = GlobalKey();
+
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize avatar controller system
+    _mummyController = AvatarControllerFactory().createMummyController(
+      avatarId: 'mummy_ai_screen',
+      headerAvatarKey: _headerAvatarKey,
+      largeAvatarKey: _largeAvatarKey,
+    );
+    
+    _quantumCoachController = AvatarControllerFactory().createQuantumCoachController(
+      avatarId: 'quantum_coach_teleporter',
+    );
 
     // Initialize animation controllers
     _sendButtonController = AnimationController(
@@ -129,7 +147,10 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _sendButtonController.dispose();
-    _avatarCycleTimer?.cancel();
+    
+    // Dispose avatar controllers
+    AvatarControllerFactory().removeAvatar('mummy_ai_screen');
+    AvatarControllerFactory().removeAvatar('quantum_coach_teleporter');
 
     // Enhanced cleanup for speech recognition (especially for Huawei devices)
     try {
@@ -399,11 +420,17 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.surfaceColor(context),
-      body: SafeArea(
-        child: Stack(
-          children: [
+    return BridgedAvatarScreenManager(
+      screenId: 'ai_screen',
+      legacyParameters: {
+        'headerAvatarKey': _headerAvatarKey,
+        'largeAvatarKey': _largeAvatarKey,
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.surfaceColor(context),
+        body: SafeArea(
+          child: Stack(
+            children: [
             Column(
               children: [
                 _buildHeader(),
@@ -415,28 +442,62 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                 _buildMessageInput(),
               ],
             ),
-            // Large avatar overlay above eco stats (no circle, just animation)
-            if (_showLargeAvatar && !_userHasInteracted)
-              Positioned(
-                top: 120, // Below header, above eco stats
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: GestureDetector(
-                    onTap: () => _triggerAvatarAnimation(),
-                    child: SizedBox(
-                      width: 120,
-                      height: 120,
-                      child: rive.RiveAnimation.asset(
-                        'assets/rive/mummy.riv',
-                        animations: [_currentAvatarAnimation],
-                        fit: BoxFit.contain,
+            // Large avatar overlay controlled by mummy controller
+            ValueListenableBuilder<bool>(
+              valueListenable: _mummyController.showLargeAvatar,
+              builder: (context, showLargeAvatar, child) {
+                if (showLargeAvatar && !_userHasInteracted) {
+                  return Positioned(
+                    top: 120, // Below header, above eco stats
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: GestureDetector(
+                        onTap: () => _mummyController.handleInteraction(AvatarInteractionType.singleTap),
+                        child: AvatarDisplay(
+                          key: _largeAvatarKey,
+                          width: 120,
+                          height: 120,
+                          autoPlaySequence: true,
+                          sequenceDelay: const Duration(seconds: 2),
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ),
-          ],
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+            // Interactive Quantum Coach positioned over specific cards
+            ValueListenableBuilder<CoachLocation>(
+              valueListenable: _quantumCoachController.currentLocation,
+              builder: (context, currentLocation, child) {
+                return ValueListenableBuilder<bool>(
+                  valueListenable: _quantumCoachController.isVisible,
+                  builder: (context, isVisible, child) {
+                    if (!isVisible) return const SizedBox.shrink();
+                    
+                    // Calculate position based on current card location
+                    final position = _getCoachPositionForCard(currentLocation, context);
+                    
+                    return Positioned(
+                      top: position['top']!,
+                      left: position['left'],
+                      right: position['right'],
+                      child: QuantumCoachWidget(
+                        expectedLocation: currentLocation,
+                        controller: _quantumCoachController,
+                        width: 80,
+                        height: 80,
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            ],
+          ),
         ),
       ),
     );
@@ -449,33 +510,35 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
       child: Row(
         children: [
           // Mummy Avatar with Rive Animation (disappears when teleported)
-          GestureDetector(
-            onTap: () => _triggerAvatarAnimation(),
-            child: Container(
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.purple.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: _showLargeAvatar 
-                ? null // Empty ring when mummy is teleported away
-                : ClipOval(
-                    child: rive.RiveAnimation.asset(
-                      'assets/rive/mummy.riv',
-                      animations: [_currentAvatarAnimation],
-                      fit: BoxFit.cover,
-                      onInit: (artboard) {
-                        _logger.d('Rive artboard initialized: ${artboard.name}');
-                        // Try to get animation names from the artboard
-                        _logger.d('Available animations: ${artboard.animations.map((a) => a.name).toList()}');
-                      },
+          ValueListenableBuilder<bool>(
+            valueListenable: _mummyController.showLargeAvatar,
+            builder: (context, showLargeAvatar, child) {
+              return GestureDetector(
+                onTap: () => _mummyController.handleInteraction(AvatarInteractionType.singleTap),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.purple.withValues(alpha: 0.3),
+                      width: 2,
                     ),
                   ),
-            ),
+                  child: showLargeAvatar 
+                    ? null // Empty ring when avatar is teleported away
+                    : ClipOval(
+                        child: AvatarDisplay(
+                          key: _headerAvatarKey,
+                          width: 50,
+                          height: 50,
+                          initialStage: AnimationStage.idle,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                ),
+              );
+            },
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -484,13 +547,19 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
               children: [
                 Row(
                   children: [
-                    Text(
-                      'Mummy Coach',
-                      style: TextStyle(
-                        color: AppTheme.textColor(context),
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Consumer(
+                      builder: (context, ref, child) {
+                        final avatarState = ref.watch(avatarStateProvider).valueOrNull;
+                        final equippedAvatarId = avatarState?.equippedAvatarId ?? 'classic_coach';
+                        return Text(
+                          tr(context, 'avatar_${equippedAvatarId}_name'),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(width: 8),
                     Container(
@@ -504,7 +573,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
                         ),
                       ),
                       child: Text(
-                        'NEW',
+                        tr(context, 'status.new'),
                         style: TextStyle(
                           color: Colors.purple,
                           fontSize: 10,
@@ -543,6 +612,54 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
         ],
       ),
     );
+  }
+
+  /// Calculate Quantum Coach position based on which card it should be over
+  Map<String, double?> _getCoachPositionForCard(CoachLocation location, BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final isTablet = screenSize.width > 600;
+    
+    switch (location) {
+      case CoachLocation.ecoCard:
+        // Eco button is centered at top - position coach over it
+        return {
+          'top': isTablet ? 180.0 : 200.0, // Above the centered eco button
+          'left': null,
+          'right': null,
+        };
+        
+      case CoachLocation.workoutCard:
+        // Workout is in grid position [0,0] (top-left of 2x2 grid)
+        return {
+          'top': isTablet ? 280.0 : 320.0, // Over the grid area
+          'left': isTablet ? 80.0 : 40.0,  // Left side of grid
+          'right': null,
+        };
+        
+      case CoachLocation.mealCard:
+        // Meal is in grid position [0,1] (top-right of 2x2 grid)
+        return {
+          'top': isTablet ? 280.0 : 320.0, // Over the grid area
+          'left': null,
+          'right': isTablet ? 80.0 : 40.0, // Right side of grid
+        };
+        
+      case CoachLocation.scheduleCard:
+        // Schedule is in grid position [1,0] (bottom-left of 2x2 grid)
+        return {
+          'top': isTablet ? 360.0 : 420.0, // Lower in grid area
+          'left': isTablet ? 80.0 : 40.0,  // Left side of grid
+          'right': null,
+        };
+        
+      case CoachLocation.foodCard:
+        // Food recognizer is in grid position [1,1] (bottom-right of 2x2 grid)
+        return {
+          'top': isTablet ? 360.0 : 420.0, // Lower in grid area
+          'left': null,
+          'right': isTablet ? 80.0 : 40.0, // Right side of grid
+        };
+    }
   }
 
   Widget _buildActionButtons() {
@@ -674,69 +791,6 @@ class _AIAssistantScreenState extends State<AIAssistantScreen>
   }
 
 
-  void _triggerAvatarAnimation([String? animationType]) {
-    _logger.d('Triggering animation stage: $_animationStage');
-    
-    switch (_animationStage) {
-      case 0: // First click: Idle -> Jump -> disappear and show large avatar
-        setState(() {
-          _currentAvatarAnimation = 'Jump';
-        });
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            setState(() {
-              _showLargeAvatar = true;
-              _currentAvatarAnimation = 'Idle';
-              _animationStage = 1;
-            });
-          }
-        });
-        break;
-        
-      case 1: // Second click: Run for 10 seconds -> Idle
-        setState(() {
-          _currentAvatarAnimation = 'Run';
-        });
-        Future.delayed(const Duration(seconds: 10), () {
-          if (mounted) {
-            setState(() {
-              _currentAvatarAnimation = 'Idle';
-              _animationStage = 2;
-            });
-          }
-        });
-        break;
-        
-      case 2: // Third click: Attack for 1 second -> Idle
-        setState(() {
-          _currentAvatarAnimation = 'Attack';
-        });
-        Future.delayed(const Duration(seconds: 1), () {
-          if (mounted) {
-            setState(() {
-              _currentAvatarAnimation = 'Idle';
-              _animationStage = 3;
-            });
-          }
-        });
-        break;
-        
-      case 3: // Fourth click: Jump for 6 seconds -> back to profile
-        setState(() {
-          _currentAvatarAnimation = 'Jump';
-        });
-        Future.delayed(const Duration(seconds: 6), () {
-          if (mounted) {
-            setState(() {
-              _showLargeAvatar = false;
-              _currentAvatarAnimation = 'Idle';
-              _animationStage = 0; // Reset cycle
-            });
-          }
-        });
-        break;
-    }
-  }
 
 
   Widget _buildChatArea() {

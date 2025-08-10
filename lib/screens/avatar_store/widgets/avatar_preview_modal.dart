@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/store/avatar_item.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/coin_provider.dart';
+import '../../../providers/riverpod/avatar_state_provider.dart';
+import '../../../utils/translation_helper.dart';
+import '../enhanced_quantum_coach_screen.dart';
+import '../../../services/store/avatar_customization_service.dart';
 import 'package:rive/rive.dart' as rive;
 
 class AvatarPreviewModal extends ConsumerStatefulWidget {
@@ -46,6 +50,10 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
 
   @override
   Widget build(BuildContext context) {
+    // Watch for real-time avatar state updates
+    final avatarWithState = ref.watch(avatarWithStateProvider(widget.item.id));
+    final currentItem = avatarWithState ?? widget.item;
+
     return AnimatedBuilder(
       animation: _scaleAnimation,
       builder: (context, child) {
@@ -62,9 +70,9 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
             child: Column(
               children: [
                 _buildHandle(),
-                _buildHeader(),
+                _buildHeader(currentItem),
                 Expanded(child: _buildPreviewArea()),
-                _buildActionArea(),
+                _buildActionArea(currentItem),
               ],
             ),
           ),
@@ -85,7 +93,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AvatarItem currentItem) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
@@ -97,7 +105,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                 Row(
                   children: [
                     Text(
-                      widget.item.name,
+                      currentItem.translatedName(context),
                       style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 24,
@@ -105,16 +113,35 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                       ),
                     ),
                     const SizedBox(width: 8),
-                    if (widget.item.isNew)
+                    if (currentItem.isNew)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.red,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Text(
-                          'NEW',
-                          style: TextStyle(
+                        child: Text(
+                          tr(context, 'status_new'),
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    if (currentItem.isEquipped)
+                      Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppColors.primary, AppColors.secondary],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          tr(context, 'status_equipped'),
+                          style: const TextStyle(
                             color: AppColors.white,
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -125,7 +152,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  widget.item.description,
+                  currentItem.translatedDescription(context),
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.7),
                     fontSize: 16,
@@ -137,7 +164,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                   children: [
                     Row(
                       children: List.generate(
-                        widget.item.rarity,
+                        currentItem.rarity,
                         (index) => Icon(
                           Icons.star,
                           size: 16,
@@ -157,7 +184,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                         ),
                       ),
                       child: Text(
-                        widget.item.accessLabel,
+                        currentItem.accessLabel(context),
                         style: TextStyle(
                           color: _getAccessTypeColor(),
                           fontSize: 12,
@@ -203,24 +230,24 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
       ),
       child: Column(
         children: [
-          // Animation toggle buttons
+          // Animation toggle buttons (enhanced for Quantum Coach)
           Container(
             margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.cardDark.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildAnimationButton('Idle'),
-                _buildAnimationButton('Celebration'),
-                if (widget.item.category == AvatarCategory.animations)
-                  _buildAnimationButton('Special'),
-              ],
-            ),
+            child: widget.item.id == 'quantum_coach'
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildAnimationButton('Idle'),
+                    _buildAnimationButton('Customization'),
+                  ],
+                )
+              : const SizedBox.shrink(), // No animation buttons for other avatars
           ),
-          // Avatar preview - Rive animation for Mummy Coach
+          // Avatar preview - Rive animation for Mummy Coach and Quantum Coach
           Expanded(
             child: Center(
               child: widget.item.id == 'mummy_coach'
@@ -245,6 +272,69 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                       ],
                     ),
                   )
+                : widget.item.id == 'quantum_coach'
+                ? _currentAnimation == 'Customization'
+                  ? Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.purple.withValues(alpha: 0.2), Colors.blue.withValues(alpha: 0.2)],
+                        ),
+                        borderRadius: BorderRadius.circular(100),
+                        border: Border.all(
+                          color: Colors.purple.withValues(alpha: 0.5),
+                          width: 3,
+                        ),
+                      ),
+                      child: InkWell(
+                        onTap: () => _openQuantumCoachCustomization(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.tune,
+                              size: 60,
+                              color: Colors.purple,
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Open Studio',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Full Customization',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.7),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: 200,
+                      height: 200,
+                      child: Stack(
+                        children: [
+                          _buildCustomizedQuantumCoach(),
+                          if (_isLoading)
+                            Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    )
                 : Container(
                     width: 200,
                     height: 200,
@@ -295,13 +385,17 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                 ],
               ),
             ),
-          // Current animation indicator
+          // Current mode indicator
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              _currentAnimation == 'Celebration' 
-                ? 'Animation: $_currentCelebrationAnimation'
-                : 'Animation: $_currentAnimation',
+              widget.item.id == 'quantum_coach'
+                ? _currentAnimation == 'Customization'
+                  ? 'Mode: Tap to open Customization Studio'
+                  : 'Mode: Basic Idle Animation'
+                : _currentAnimation == 'Celebration' 
+                  ? 'Animation: $_currentCelebrationAnimation'
+                  : 'Animation: $_currentAnimation',
               style: TextStyle(
                 color: AppColors.white.withValues(alpha: 0.7),
                 fontSize: 14,
@@ -351,7 +445,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
     );
   }
 
-  Widget _buildActionArea() {
+  Widget _buildActionArea(AvatarItem currentItem) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -362,8 +456,8 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
       ),
       child: Column(
         children: [
-          // Cost or status info
-          if (!widget.item.isUnlocked)
+          // Cost or status info with enhanced Quantum Coach features
+          if (!currentItem.isUnlocked)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
@@ -376,61 +470,136 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                   width: 1,
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
                 children: [
-                  Text(
-                    'Cost',
-                    style: TextStyle(
-                      color: AppColors.white.withValues(alpha: 0.8),
-                      fontSize: 16,
-                    ),
-                  ),
-                  if (!widget.item.isMemberOnly)
-                    Row(
-                      children: [
-                        Text(
-                          widget.item.coinIcon,
-                          style: const TextStyle(fontSize: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        tr(context, 'action_cost'),
+                        style: TextStyle(
+                          color: AppColors.white.withValues(alpha: 0.8),
+                          fontSize: 16,
                         ),
-                        const SizedBox(width: 8),
+                      ),
+                      if (!currentItem.isMemberOnly)
+                        Row(
+                          children: [
+                            Text(
+                              currentItem.coinIcon,
+                              style: const TextStyle(fontSize: 20),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              currentItem.cost.toString(),
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              currentItem.coinName(context),
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.7),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
                         Text(
-                          widget.item.cost.toString(),
-                          style: const TextStyle(
-                            color: AppColors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          tr(context, 'status_member_only'),
+                          style: TextStyle(
+                            color: Colors.purple,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          widget.item.coinName,
-                          style: TextStyle(
-                            color: AppColors.white.withValues(alpha: 0.7),
-                            fontSize: 14,
+                    ],
+                  ),
+                  if (currentItem.id == 'quantum_coach') ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.auto_awesome, color: Colors.purple, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Includes 153+ animations & full customization studio',
+                            style: TextStyle(
+                              color: AppColors.white.withValues(alpha: 0.9),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ],
-                    )
-                  else
-                    Text(
-                      'Member Only',
-                      style: TextStyle(
-                        color: Colors.purple,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
                     ),
+                  ],
+                ],
+              ),
+            )
+          else if (currentItem.id == 'quantum_coach')
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple.withValues(alpha: 0.2), Colors.blue.withValues(alpha: 0.2)],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.purple.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.psychology, color: Colors.purple, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Quantum Coach Features',
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.tune, color: Colors.blue, size: 14),
+                      const SizedBox(width: 6),
+                      Text('153+ animations & customizations', 
+                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.palette, color: Colors.purple, size: 14),
+                      const SizedBox(width: 6),
+                      Text('Advanced clothing, accessories & facial features', 
+                        style: TextStyle(color: AppColors.white.withValues(alpha: 0.8), fontSize: 12)),
+                    ],
+                  ),
                 ],
               ),
             ),
           // Action buttons
           Row(
             children: [
-              if (widget.item.isUnlocked && !widget.item.isEquipped)
+              if (currentItem.isUnlocked && !currentItem.isEquipped)
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => _equipItem(),
+                    onPressed: _isLoading ? null : () => _equipItem(currentItem),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -438,17 +607,26 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'Equip',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                          ),
+                        )
+                      : Text(
+                          tr(context, 'action_equip'),
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                 )
-              else if (widget.item.isEquipped)
+              else if (currentItem.isEquipped)
                 Expanded(
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -458,10 +636,10 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                       ),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: const Text(
-                      'Equipped',
+                    child: Text(
+                      tr(context, 'action_equipped'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -469,7 +647,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                     ),
                   ),
                 )
-              else if (widget.item.isMemberOnly)
+              else if (currentItem.isMemberOnly)
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () => _showMembershipUpgrade(),
@@ -480,9 +658,9 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'Join to Unlock',
-                      style: TextStyle(
+                    child: Text(
+                      tr(context, 'action_join_to_unlock'),
+                      style: const TextStyle(
                         color: AppColors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -493,25 +671,54 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
               else
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: _canAfford() ? () => _purchaseItem() : null,
+                    onPressed: _canAfford(currentItem) && !_isLoading ? () => _purchaseItem(currentItem) : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: _canAfford() ? AppColors.primary : Colors.grey,
+                      backgroundColor: _canAfford(currentItem) && !_isLoading ? AppColors.primary : Colors.grey,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: Text(
-                      _canAfford() ? 'Buy' : 'Insufficient Coins',
-                      style: TextStyle(
-                        color: AppColors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                          ),
+                        )
+                      : Text(
+                          _canAfford(currentItem) ? tr(context, 'actions_buy') : tr(context, 'action_insufficient_coins'),
+                          style: const TextStyle(
+                            color: AppColors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                   ),
                 ),
               const SizedBox(width: 12),
+              // Customize button for Quantum Coach (if unlocked)
+              if (currentItem.id == 'quantum_coach' && currentItem.isUnlocked)
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.purple, Colors.blue],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: IconButton(
+                    onPressed: () => _openQuantumCoachCustomization(),
+                    icon: const Icon(
+                      Icons.tune,
+                      color: AppColors.white,
+                    ),
+                    tooltip: 'Customize Quantum Coach',
+                  ),
+                ),
+              if (currentItem.id == 'quantum_coach' && currentItem.isUnlocked)
+                const SizedBox(width: 12),
               // Share button
               Container(
                 decoration: BoxDecoration(
@@ -523,7 +730,7 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
                   ),
                 ),
                 child: IconButton(
-                  onPressed: () => _shareItem(),
+                  onPressed: () => _shareItem(currentItem),
                   icon: const Icon(
                     Icons.share,
                     color: AppColors.white,
@@ -637,59 +844,106 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
     }
   }
 
-  bool _canAfford() {
-    if (widget.item.isMemberOnly || widget.item.isUnlocked) return true;
+  bool _canAfford(AvatarItem item) {
+    if (item.isMemberOnly || item.isUnlocked) return true;
     
-    return ref.watch(canAffordProvider((widget.item.coinType, widget.item.cost)));
+    return ref.watch(canAffordProvider((item.coinType, item.cost)));
   }
 
-  void _equipItem() {
-    // Handle equip logic
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${widget.item.name} equipped!'),
-        backgroundColor: AppColors.primary,
-      ),
-    );
-  }
-
-  void _purchaseItem() async {
+  void _equipItem(AvatarItem item) async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
     try {
-      // Attempt to spend coins
-      final success = await ref.read(coinBalanceProvider.notifier).spendCoins(
-        widget.item.coinType, 
-        widget.item.cost, 
-        widget.item.name,
-      );
+      final result = await ref.read(avatarStateProvider.notifier).equipAvatar(item.id);
       
-      if (success && mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${widget.item.name} purchased! 🎉'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Insufficient ${widget.item.coinName}! 💸'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+      if (mounted) {
+        if (result.success) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: AppColors.primary,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Purchase failed! Please try again. ⚠️'),
+            content: Text('Failed to equip avatar: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
         );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _purchaseItem(AvatarItem item) async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final result = await ref.read(avatarStateProvider.notifier).purchaseAvatar(item);
+      
+      if (mounted) {
+        if (result.success) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.message),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Purchase failed: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }
@@ -705,13 +959,74 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
     );
   }
 
-  void _shareItem() {
+  void _openQuantumCoachCustomization() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const EnhancedQuantumCoachScreen(),
+      ),
+    );
+  }
+
+  void _shareItem(AvatarItem item) {
     // Handle share logic
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Shared ${widget.item.name}!'),
+        content: Text('Shared ${item.name}!'),
         backgroundColor: AppColors.primary,
       ),
     );
   }
+
+  Widget _buildCustomizedQuantumCoach() {
+    return FutureBuilder<rive.Artboard?>(
+      future: _loadQuantumCoachWithCustomizations(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data != null) {
+          return rive.Rive(
+            artboard: snapshot.data!,
+            fit: BoxFit.contain,
+          );
+        }
+        return rive.RiveAnimation.asset(
+          'assets/rive/quantum_coach.riv',
+          animations: const ['Idle'],
+          fit: BoxFit.contain,
+        );
+      },
+    );
+  }
+
+  Future<rive.Artboard?> _loadQuantumCoachWithCustomizations() async {
+    try {
+      final customizationService = AvatarCustomizationService();
+      await customizationService.initialize();
+      
+      final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
+      final artboard = rivFile.mainArtboard.instance();
+      
+      final controller = rive.StateMachineController.fromArtboard(
+        artboard,
+        'State Machine 1',
+      );
+      
+      if (controller != null) {
+        artboard.addController(controller);
+        
+        // Apply saved customizations
+        await customizationService.applyToRiveInputs('quantum_coach', controller.inputs.toList());
+        
+        // Ensure idle animation is running
+        final idleInput = controller.findSMI('Idle');
+        if (idleInput is rive.SMITrigger) {
+          idleInput.fire();
+        }
+        
+        return artboard;
+      }
+    } catch (e) {
+      debugPrint('Error loading customized Quantum Coach: $e');
+    }
+    return null;
+  }
+
 }

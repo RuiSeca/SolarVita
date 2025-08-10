@@ -8,5 +8,6 @@
     "best_streak": "최고 연속 기록",
     "error_loading_stats": "통계 로드 오류",
     "retry": "다시 시도",
-    "close": "닫기"
+    "close": "닫기",
+    "stats_avatars": "아바타"
 }

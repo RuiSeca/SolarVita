@@ -8,5 +8,6 @@
     "best_streak": "最高連続記録",
     "error_loading_stats": "統計の読み込みエラー",
     "retry": "再試行",
-    "close": "閉じる"
+    "close": "閉じる",
+    "stats_avatars": "アバター"
 }

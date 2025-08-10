@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/store/avatar_item.dart';
 import '../../theme/app_theme.dart';
-import '../../data/mock_avatar_data.dart';
+import '../../providers/riverpod/avatar_state_provider.dart';
+import '../../utils/translation_helper.dart';
 import 'widgets/avatar_card.dart';
 import 'widgets/coin_header.dart';
 import 'widgets/membership_banner.dart';
@@ -107,7 +108,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Solar Store',
+                  tr(context, 'store_title'),
                   style: TextStyle(
                     color: AppColors.white,
                     fontSize: 20,
@@ -117,7 +118,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Customize your AI Coach',
+                  tr(context, 'store_subtitle'),
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.65),
                     fontSize: 12,
@@ -206,19 +207,19 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
         tabs: [
           SizedBox(
             width: double.infinity,
-            child: const Tab(text: 'All'),
+            child: Tab(text: tr(context, 'tabs_all')),
           ),
           SizedBox(
             width: double.infinity,
-            child: const Tab(text: 'Free'),
+            child: Tab(text: tr(context, 'tabs_free')),
           ),
           SizedBox(
             width: double.infinity,
-            child: const Tab(text: 'Premium'),
+            child: Tab(text: tr(context, 'tabs_premium')),
           ),
           SizedBox(
             width: double.infinity,
-            child: const Tab(text: 'VIP'),
+            child: Tab(text: tr(context, 'tabs_vip')),
           ),
         ],
       ),
@@ -256,7 +257,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
-          hintText: 'Search avatars, skins, animations...',
+          hintText: tr(context, 'search_placeholder'),
           hintStyle: TextStyle(
             color: AppColors.white.withValues(alpha: 0.5),
             fontSize: 16,
@@ -309,27 +310,22 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
   }
 
   Widget _buildAllItemsTab() {
-    return _buildItemGrid(MockAvatarData.getAvatarItems());
+    final allItems = ref.watch(avatarsWithStateProvider);
+    return _buildItemGrid(allItems);
   }
 
   Widget _buildFreeSkinsTab() {
-    final freeItems = MockAvatarData.getAvatarItems()
-        .where((item) => item.accessType == AvatarAccessType.free)
-        .toList();
+    final freeItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.free));
     return _buildItemGrid(freeItems);
   }
 
   Widget _buildPremiumTab() {
-    final premiumItems = MockAvatarData.getAvatarItems()
-        .where((item) => item.accessType == AvatarAccessType.paid)
-        .toList();
+    final premiumItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.paid));
     return _buildItemGrid(premiumItems);
   }
 
   Widget _buildMembersTab() {
-    final memberItems = MockAvatarData.getAvatarItems()
-        .where((item) => item.accessType == AvatarAccessType.member)
-        .toList();
+    final memberItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.member));
     return _buildItemGrid(memberItems);
   }
 
@@ -337,8 +333,8 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     // Filter items based on search query
     final filteredItems = items.where((item) {
       if (_searchQuery.isEmpty) return true;
-      return item.name.toLowerCase().contains(_searchQuery) ||
-          item.description.toLowerCase().contains(_searchQuery) ||
+      return item.translatedName(context).toLowerCase().contains(_searchQuery) ||
+          item.translatedDescription(context).toLowerCase().contains(_searchQuery) ||
           item.tags.any((tag) => tag.toLowerCase().contains(_searchQuery));
     }).toList();
 
@@ -354,10 +350,10 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-              childAspectRatio: 0.9, // More compact aspect ratio
-              crossAxisSpacing: 8, // Tighter horizontal spacing
-              mainAxisSpacing: 12, // Tighter vertical spacing
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 1, // Fewer columns for larger cards
+              childAspectRatio: 0.75, // Adjusted for taller cards (220px height)
+              crossAxisSpacing: 16, // More spacing for larger cards
+              mainAxisSpacing: 16, // More spacing between rows
             ),
             itemCount: filteredItems.length,
             itemBuilder: (context, index) {
@@ -413,8 +409,8 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             const SizedBox(height: 32),
             Text(
               _searchQuery.isNotEmpty
-                  ? 'No Results Found'
-                  : 'Coming Soon',
+                  ? tr(context, 'no_results_title')
+                  : tr(context, 'coming_soon_title'),
               style: TextStyle(
                 color: AppColors.white,
                 fontSize: 24,
@@ -425,8 +421,8 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             const SizedBox(height: 12),
             Text(
               _searchQuery.isNotEmpty
-                  ? 'Try different keywords or browse\nother categories'
-                  : 'New avatar items will be\navailable soon',
+                  ? tr(context, 'no_results_message')
+                  : tr(context, 'coming_soon_message'),
               style: TextStyle(
                 color: AppColors.white.withValues(alpha: 0.6),
                 fontSize: 16,
@@ -462,9 +458,9 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Clear Search',
-                    style: TextStyle(
+                  child: Text(
+                    tr(context, 'clear_search'),
+                    style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

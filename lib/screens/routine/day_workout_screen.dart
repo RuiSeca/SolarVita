@@ -10,6 +10,8 @@ import '../../widgets/common/exercise_image.dart';
 import '../../providers/routine_providers.dart';
 import '../../services/exercises/dynamic_duration_service.dart';
 import '../../services/exercises/exercise_tracking_service.dart';
+import '../../providers/riverpod/interactive_coach_provider.dart';
+import '../../widgets/interactive_quantum_coach.dart';
 import 'exercise_selection_screen.dart';
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
@@ -123,25 +125,37 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Consumer(
-              builder: (context, ref, child) {
-                final progressAsync = ref.watch(
-                  weeklyProgressProvider(_currentRoutine.id),
-                );
-                return progressAsync.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stack) => _currentDay.isRestDay
-                      ? _buildRestDayContent()
-                      : _buildWorkoutContent(),
-                  data: (progress) {
-                    _weeklyProgress = progress;
-                    return _currentDay.isRestDay
-                        ? _buildRestDayContent()
-                        : _buildWorkoutContent();
-                  },
-                );
-              },
+          : Stack(
+              children: [
+                Consumer(
+                  builder: (context, ref, child) {
+                    final progressAsync = ref.watch(
+                      weeklyProgressProvider(_currentRoutine.id),
+                    );
+                    return progressAsync.when(
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, stack) => _currentDay.isRestDay
+                          ? _buildRestDayContent()
+                          : _buildWorkoutContent(),
+                      data: (progress) {
+                        _weeklyProgress = progress;
+                        return _currentDay.isRestDay
+                            ? _buildRestDayContent()
+                            : _buildWorkoutContent();
+                      },
+                    );
+                  }
+                ),
+                // Interactive Quantum Coach positioned on top of workout cards
+                PositionedInteractiveCoach(
+                  location: CoachLocation.workoutTips,
+                  top: 50, // Positioned over the workout content
+                  left: 20,
+                  width: 80,
+                  height: 80,
+                ),
+              ],
             ),
       floatingActionButton: !_currentDay.isRestDay
           ? FloatingActionButton(

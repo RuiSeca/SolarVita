@@ -8,5 +8,6 @@
     "best_streak": "最佳连续记录",
     "error_loading_stats": "加载统计数据时出错",
     "retry": "重试",
-    "close": "关闭"
+    "close": "关闭",
+    "stats_avatars": "头像"
 }

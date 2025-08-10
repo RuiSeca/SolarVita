@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/store/membership.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 
 class MembershipBanner extends ConsumerWidget {
   const MembershipBanner({super.key});
@@ -75,7 +76,7 @@ class MembershipBanner extends ConsumerWidget {
               ),
               const Spacer(),
               Text(
-                '${membership.remainingMonthlySkins} skins left',
+                trWithParams(context, 'membership.skins_left', {'count': membership.remainingMonthlySkins.toString()}),
                 style: TextStyle(
                   color: AppColors.white.withValues(alpha: 0.8),
                   fontSize: 14,
@@ -86,8 +87,8 @@ class MembershipBanner extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Member Benefits Active',
-            style: TextStyle(
+            tr(context, 'membership_benefits_active'),
+            style: const TextStyle(
               color: AppColors.white,
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -99,25 +100,25 @@ class MembershipBanner extends ConsumerWidget {
               Expanded(
                 child: _buildBenefitItem(
                   icon: Icons.redeem_rounded,
-                  text: '${getMembershipBenefits(membership.tier)['monthlyFreeSkins']} free avatars',
-                  subtext: 'monthly',
+                  text: trWithParams(context, 'membership_free_avatars_monthly', {'count': getMembershipBenefits(membership.tier)['monthlyFreeSkins'].toString()}),
+                  subtext: tr(context, 'membership_monthly'),
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildBenefitItem(
                   icon: Icons.trending_up_rounded,
-                  text: '+${(((getMembershipBenefits(membership.tier)['coinBonusMultiplier'] as double) - 1) * 100).toInt()}% coins',
-                  subtext: 'bonus',
+                  text: trWithParams(context, 'membership_coins_bonus', {'percent': (((getMembershipBenefits(membership.tier)['coinBonusMultiplier'] as double) - 1) * 100).toInt().toString()}),
+                  subtext: tr(context, 'membership_bonus'),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
           if (membership.canClaimMonthlySkins)
-            _buildClaimButton()
+            _buildClaimButton(context)
           else
-            _buildNextDropInfo(membership),
+            _buildNextDropInfo(context, membership),
         ],
       ),
     );
@@ -198,8 +199,8 @@ class MembershipBanner extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Solar Vita Premium',
-                            style: TextStyle(
+                            tr(context, 'membership_premium_title'),
+                            style: const TextStyle(
                               color: AppColors.white,
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
@@ -208,7 +209,7 @@ class MembershipBanner extends ConsumerWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Unlock exclusive features',
+                            tr(context, 'membership_premium_subtitle'),
                             style: TextStyle(
                               color: AppColors.white.withValues(alpha: 0.7),
                               fontSize: 14,
@@ -222,7 +223,7 @@ class MembershipBanner extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Get exclusive avatars, earn bonus coins, and access premium content first!',
+                  tr(context, 'membership_premium_description'),
                   style: TextStyle(
                     color: AppColors.white.withValues(alpha: 0.8),
                     fontSize: 15,
@@ -236,16 +237,16 @@ class MembershipBanner extends ConsumerWidget {
                     Expanded(
                       child: _buildBenefitItem(
                         icon: Icons.redeem_rounded,
-                        text: '2 free avatars',
-                        subtext: 'monthly',
+                        text: tr(context, 'membership_feature_free_skins'),
+                        subtext: tr(context, 'membership_monthly'),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildBenefitItem(
                         icon: Icons.trending_up_rounded,
-                        text: '+50% coins',
-                        subtext: 'bonus',
+                        text: tr(context, 'membership_feature_bonus_coins'),
+                        subtext: tr(context, 'membership_bonus'),
                       ),
                     ),
                   ],
@@ -278,9 +279,9 @@ class MembershipBanner extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    child: const Text(
-                      'Upgrade to Premium',
-                      style: TextStyle(
+                    child: Text(
+                      tr(context, 'membership_upgrade_button'),
+                      style: const TextStyle(
                         color: AppColors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
@@ -349,7 +350,7 @@ class MembershipBanner extends ConsumerWidget {
     );
   }
 
-  Widget _buildClaimButton() {
+  Widget _buildClaimButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -363,9 +364,9 @@ class MembershipBanner extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: const Text(
-          'Claim Monthly Skins',
-          style: TextStyle(
+        child: Text(
+          tr(context, 'actions.claim_monthly_skins'),
+          style: const TextStyle(
             color: AppColors.black,
             fontWeight: FontWeight.bold,
             fontSize: 16,
@@ -375,7 +376,7 @@ class MembershipBanner extends ConsumerWidget {
     );
   }
 
-  Widget _buildNextDropInfo(MembershipDetails membership) {
+  Widget _buildNextDropInfo(BuildContext context, MembershipDetails membership) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -391,7 +392,7 @@ class MembershipBanner extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            'Next Drop In: ${membership.daysUntilNextDrop} Days',
+            trWithParams(context, 'membership.next_drop_in', {'days': membership.daysUntilNextDrop.toString()}),
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.8),
               fontSize: 14,
@@ -433,8 +434,8 @@ class MembershipBanner extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Choose Your Plan',
-                    style: TextStyle(
+                    tr(context, 'membership.choose_plan_title'),
+                    style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -442,7 +443,7 @@ class MembershipBanner extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Unlock premium features and exclusive content',
+                    tr(context, 'membership.choose_plan_description'),
                     style: TextStyle(
                       color: AppColors.white.withValues(alpha: 0.7),
                       fontSize: 16,
@@ -451,9 +452,10 @@ class MembershipBanner extends ConsumerWidget {
                   const SizedBox(height: 24),
                   // Add membership plan cards here
                   _buildPlanCard(
-                    'Premium',
+                    context,
+                    tr(context, 'membership_premium_title'),
                     '\$9.99/month',
-                    ['2 free skins monthly', '50% bonus coins', 'Early access'],
+                    [tr(context, 'membership_feature_free_skins'), tr(context, 'membership_feature_bonus_coins'), tr(context, 'membership.feature_early_access')],
                     true,
                   ),
                 ],
@@ -466,6 +468,7 @@ class MembershipBanner extends ConsumerWidget {
   }
 
   Widget _buildPlanCard(
+    BuildContext context,
     String title,
     String price,
     List<String> features,
@@ -491,9 +494,9 @@ class MembershipBanner extends ConsumerWidget {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'POPULAR',
-                style: TextStyle(
+              child: Text(
+                tr(context, 'membership.popular_badge'),
+                style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,

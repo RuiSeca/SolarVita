@@ -6,6 +6,8 @@ import 'widgets/sustainable_product_card.dart';
 import 'widgets/carbon_tracker.dart';
 import '../../../models/eco/carbon_activity.dart';
 import '../../../../providers/riverpod/eco_provider.dart';
+import '../../../providers/riverpod/interactive_coach_provider.dart';
+import '../../../widgets/interactive_quantum_coach.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 
 class EcoTipsScreen extends ConsumerStatefulWidget {
@@ -64,40 +66,42 @@ class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
           ),
         ),
       ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _buildCategoryChip('category_all'),
-                        _buildCategoryChip('category_waste'),
-                        _buildCategoryChip('category_energy'),
-                        _buildCategoryChip('category_water'),
-                        _buildCategoryChip('category_transport'),
-                      ],
-                    ),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildCategoryChip('category_all'),
+                            _buildCategoryChip('category_waste'),
+                            _buildCategoryChip('category_energy'),
+                            _buildCategoryChip('category_water'),
+                            _buildCategoryChip('category_transport'),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          // Eco tips list section
-          SliverPadding(
-            padding: const EdgeInsets.all(16),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final tip = _tips[index];
-                if (_selectedCategory == 'category_all' ||
-                    tip.category == _selectedCategory) {
-                  return TipCard(tip: tip);
+              // Eco tips list section
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final tip = _tips[index];
+                    if (_selectedCategory == 'category_all' ||
+                        tip.category == _selectedCategory) {
+                      return TipCard(tip: tip);
                 }
                 return const SizedBox.shrink();
               }, childCount: _tips.length),
@@ -160,6 +164,16 @@ class _EcoTipsScreenState extends ConsumerState<EcoTipsScreen> {
                 ],
               ),
             ),
+          ),
+            ],
+          ),
+          // Interactive Quantum Coach positioned on top of eco tips cards
+          PositionedInteractiveCoach(
+            location: CoachLocation.ecoStats,
+            bottom: 100, // Positioned over the eco tips content
+            right: 20,
+            width: 80,
+            height: 80,
           ),
         ],
       ),

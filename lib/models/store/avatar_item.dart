@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import '../../utils/translation_helper.dart';
 
 enum AvatarAccessType {
   free,
@@ -68,14 +70,14 @@ class AvatarItem {
   bool get isNew => releaseDate != null && 
       DateTime.now().difference(releaseDate!).inDays < 7;
 
-  String get accessLabel {
+  String accessLabel(BuildContext context) {
     switch (accessType) {
       case AvatarAccessType.free:
-        return 'Earn with Streaks';
+        return tr(context, 'access_types_earn_with_streaks');
       case AvatarAccessType.paid:
-        return 'Buy';
+        return tr(context, 'access_types_buy');
       case AvatarAccessType.member:
-        return 'Member-Only';
+        return tr(context, 'access_types_member_only');
     }
   }
 
@@ -90,15 +92,35 @@ class AvatarItem {
     }
   }
 
-  String get coinName {
+  String coinName(BuildContext context) {
     switch (coinType) {
       case CoinType.streakCoin:
-        return 'Streak Coins';
+        return tr(context, 'currencies_streak_coins');
       case CoinType.coachPoints:
-        return 'Coach Points';
+        return tr(context, 'currencies_coach_points');
       case CoinType.fitGems:
-        return 'Fit Gems';
+        return tr(context, 'currencies_fit_gems');
     }
+  }
+
+  String translatedName(BuildContext context) {
+    final key = 'avatar_${id}_name';
+    final translatedName = tr(context, key);
+    // If translation is not found (returns the key), use original name
+    if (translatedName == key || translatedName.isEmpty) {
+      return name;
+    }
+    return translatedName;
+  }
+
+  String translatedDescription(BuildContext context) {
+    final key = 'avatar_${id}_description';
+    final translatedDesc = tr(context, key);
+    // If translation is not found (returns the key), use original description
+    if (translatedDesc == key || translatedDesc.isEmpty) {
+      return description;
+    }
+    return translatedDesc;
   }
 
   factory AvatarItem.fromFirestore(DocumentSnapshot doc) {

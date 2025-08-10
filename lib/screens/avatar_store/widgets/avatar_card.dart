@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/store/avatar_item.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/coin_provider.dart';
+import '../../../providers/riverpod/avatar_state_provider.dart';
+import '../../../utils/translation_helper.dart';
+import '../../../services/store/avatar_customization_service.dart';
 import 'package:rive/rive.dart' as rive;
 
 class AvatarCard extends ConsumerWidget {
@@ -17,18 +20,23 @@ class AvatarCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Watch for real-time avatar state updates
+    final avatarWithState = ref.watch(avatarWithStateProvider(item.id));
+    final currentItem = avatarWithState ?? item;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        height: 220, // Make cards taller
         decoration: BoxDecoration(
           color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: _getBorderColor(),
-            width: item.isEquipped ? 3 : 1,
+            color: _getBorderColor(currentItem),
+            width: currentItem.isEquipped ? 3 : 1,
           ),
           boxShadow: [
-            if (item.isNew)
+            if (currentItem.isNew)
               BoxShadow(
                 color: AppColors.primary.withValues(alpha: 0.3),
                 blurRadius: 12,
@@ -36,8 +44,8 @@ class AvatarCard extends ConsumerWidget {
               ),
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -46,214 +54,286 @@ class AvatarCard extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Avatar Preview
-                Expanded(
-                  flex: 2,
-                  child: _buildAvatarPreview(),
+                // Top section with name and buttons
+                Container(
+                  height: 70, // Increased height to accommodate content
+                  padding: const EdgeInsets.all(12), // Reduced padding
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left side - Name and description
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentItem.translatedName(context),
+                              style: const TextStyle(
+                                color: AppColors.white,
+                                fontSize: 14, // Slightly smaller
+                                fontWeight: FontWeight.bold,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2), // Reduced spacing
+                            Text(
+                              currentItem.translatedDescription(context),
+                              style: TextStyle(
+                                color: AppColors.white.withValues(alpha: 0.7),
+                                fontSize: 11, // Slightly smaller
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Right side - Rating/Status
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          // Rarity stars
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: List.generate(
+                              currentItem.rarity,
+                              (index) => Icon(
+                                Icons.star,
+                                size: 12, // Smaller stars
+                                color: _getRarityColor(currentItem),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 3), // Reduced spacing
+                          // Access type badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), // Smaller padding
+                            decoration: BoxDecoration(
+                              color: _getAccessTypeColor(currentItem).withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10), // Smaller radius
+                              border: Border.all(
+                                color: _getAccessTypeColor(currentItem).withValues(alpha: 0.4),
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              currentItem.accessLabel(context),
+                              style: TextStyle(
+                                color: _getAccessTypeColor(currentItem),
+                                fontSize: 9, // Smaller text
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                // Item Info
+                // Large Avatar Preview Space
                 Expanded(
-                  flex: 3,
-                  child: _buildItemInfo(),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: _getPreviewBackgroundColor(currentItem),
+                      borderRadius: BorderRadius.circular(20),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _getPreviewBackgroundColor(currentItem),
+                          _getPreviewBackgroundColor(currentItem).withValues(alpha: 0.7),
+                        ],
+                      ),
+                    ),
+                    child: Center(
+                      child: _buildLargeAvatarPreview(currentItem),
+                    ),
+                  ),
+                ),
+                // Bottom section with cost/status
+                Container(
+                  height: 36, // Slightly reduced height
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), // Reduced padding
+                  child: _buildBottomInfo(context, ref, currentItem),
                 ),
               ],
             ),
-            // Status badges and overlays
-            _buildStatusOverlays(ref),
+            // Status overlays
+            _buildStatusOverlays(context, ref, currentItem),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAvatarPreview() {
-    return Container(
-      margin: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: _getPreviewBackgroundColor(),
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            _getPreviewBackgroundColor(),
-            _getPreviewBackgroundColor().withValues(alpha: 0.7),
-          ],
-        ),
-      ),
-      child: Stack(
-        children: [
-          // Avatar preview - Rive animation for Mummy Coach, image for others
-          Center(
-            child: item.id == 'mummy_coach' 
-              ? SizedBox(
-                  width: 80,
-                  height: 80,
-                  child: rive.RiveAnimation.asset(
-                    'assets/rive/mummy.riv',
-                    animations: const ['Idle'], // Idle animation for preview
-                    fit: BoxFit.contain,
-                  ),
-                )
-              : item.previewImagePath.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.asset(
-                      item.previewImagePath,
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(32),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.5),
-                            width: 2,
-                          ),
-                        ),
-                        child: Icon(
-                          _getAvatarIcon(),
-                          size: 32,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  )
-                : Container(
-                    width: 64,
-                    height: 64,
+  Widget _buildLargeAvatarPreview(AvatarItem currentItem) {
+    // Larger avatars for the new layout
+    return currentItem.id == 'mummy_coach' 
+        ? SizedBox(
+            width: 120,
+            height: 120,
+            child: rive.RiveAnimation.asset(
+              'assets/rive/mummy.riv',
+              animations: const ['Idle'],
+              fit: BoxFit.contain,
+            ),
+          )
+        : currentItem.id == 'quantum_coach'
+          ? SizedBox(
+              width: 120,
+              height: 120,
+              child: _QuantumCoachCardPreview(),
+            )
+          : currentItem.previewImagePath.isNotEmpty
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  currentItem.previewImagePath,
+                  width: 120,
+                  height: 120,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(alpha: 0.3),
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(50),
                       border: Border.all(
                         color: AppColors.primary.withValues(alpha: 0.5),
                         width: 2,
                       ),
                     ),
                     child: Icon(
-                      _getAvatarIcon(),
-                      size: 32,
+                      _getAvatarIcon(currentItem),
+                      size: 50,
                       color: AppColors.primary,
                     ),
                   ),
-          ),
-          // Rarity stars
-          if (item.rarity > 1)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(
-                  item.rarity,
-                  (index) => Icon(
-                    Icons.star,
-                    size: 12,
-                    color: _getRarityColor(),
+                ),
+              )
+            : Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(50),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.5),
+                    width: 2,
                   ),
                 ),
-              ),
-            ),
-        ],
-      ),
-    );
+                child: Icon(
+                  _getAvatarIcon(currentItem),
+                  size: 50,
+                  color: AppColors.primary,
+                ),
+              );
   }
 
-  Widget _buildItemInfo() {
-    return Padding(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildBottomInfo(BuildContext context, WidgetRef ref, AvatarItem currentItem) {
+    if (currentItem.isUnlocked && currentItem.isEquipped) {
+      return Row(
         children: [
-          // Name
-          Text(
-            item.name,
-            style: TextStyle(
-              color: AppColors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          // Access type badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: _getAccessTypeColor().withValues(alpha: 0.2),
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.secondary],
+              ),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _getAccessTypeColor().withValues(alpha: 0.4),
-                width: 1,
-              ),
             ),
-            child: Text(
-              item.accessLabel,
-              style: TextStyle(
-                color: _getAccessTypeColor(),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, color: AppColors.white, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  tr(context, 'status_equipped'),
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-          const Spacer(),
-          // Cost or status
-          if (!item.isUnlocked && !item.isMemberOnly)
+        ],
+      );
+    } else if (!currentItem.isUnlocked) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (!currentItem.isMemberOnly)
             Row(
               children: [
                 Text(
-                  item.coinIcon,
-                  style: const TextStyle(fontSize: 14),
+                  currentItem.coinIcon,
+                  style: const TextStyle(fontSize: 16),
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  item.cost.toString(),
-                  style: TextStyle(
+                  currentItem.cost.toString(),
+                  style: const TextStyle(
                     color: AppColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  currentItem.coinName(context),
+                  style: TextStyle(
+                    color: AppColors.white.withValues(alpha: 0.7),
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             )
-          else if (item.isEquipped)
+          else
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.secondary],
-                ),
+                color: Colors.purple.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.purple.withValues(alpha: 0.4)),
               ),
-              child: const Text(
-                'EQUIPPED',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 9,
-                  fontWeight: FontWeight.bold,
+              child: Text(
+                tr(context, 'status_member_only'),
+                style: const TextStyle(
+                  color: Colors.purple,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            )
-          else if (item.isUnlocked)
+            ),
+          // Affordability indicator
+          if (!currentItem.isMemberOnly && !_canAfford(ref, currentItem))
             Icon(
-              Icons.check_circle,
-              color: Colors.green,
+              Icons.lock,
+              color: Colors.red.withValues(alpha: 0.7),
+              size: 16,
+            )
+          else if (!currentItem.isMemberOnly)
+            Icon(
+              Icons.shopping_cart,
+              color: AppColors.primary,
               size: 16,
             ),
         ],
-      ),
-    );
+      );
+    }
+    return const SizedBox.shrink();
   }
 
-  Widget _buildStatusOverlays(WidgetRef ref) {
+
+  Widget _buildStatusOverlays(BuildContext context, WidgetRef ref, AvatarItem currentItem) {
     return Stack(
       children: [
         // NEW badge
-        if (item.isNew)
+        if (currentItem.isNew)
           Positioned(
             top: 8,
             left: 8,
@@ -263,9 +343,9 @@ class AvatarCard extends ConsumerWidget {
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'NEW',
-                style: TextStyle(
+              child: Text(
+                tr(context, 'status_new'),
+                style: const TextStyle(
                   color: AppColors.white,
                   fontSize: 8,
                   fontWeight: FontWeight.bold,
@@ -274,7 +354,7 @@ class AvatarCard extends ConsumerWidget {
             ),
           ),
         // Member-only overlay
-        if (item.isMemberOnly && !item.isUnlocked)
+        if (currentItem.isMemberOnly && !currentItem.isUnlocked)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -292,7 +372,7 @@ class AvatarCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Member Only',
+                      tr(context, 'status_member_only'),
                       style: TextStyle(
                         color: AppColors.white,
                         fontSize: 12,
@@ -305,7 +385,7 @@ class AvatarCard extends ConsumerWidget {
             ),
           ),
         // Insufficient coins overlay
-        if (!item.isUnlocked && !item.isMemberOnly && !_canAfford(ref))
+        if (!currentItem.isUnlocked && !currentItem.isMemberOnly && !_canAfford(ref, currentItem))
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
@@ -325,14 +405,14 @@ class AvatarCard extends ConsumerWidget {
     );
   }
 
-  Color _getBorderColor() {
-    if (item.isEquipped) return AppColors.primary;
-    if (item.isNew) return AppColors.primary.withValues(alpha: 0.6);
+  Color _getBorderColor(AvatarItem currentItem) {
+    if (currentItem.isEquipped) return AppColors.primary;
+    if (currentItem.isNew) return AppColors.primary.withValues(alpha: 0.6);
     return AppColors.white.withValues(alpha: 0.2);
   }
 
-  Color _getPreviewBackgroundColor() {
-    switch (item.accessType) {
+  Color _getPreviewBackgroundColor(AvatarItem currentItem) {
+    switch (currentItem.accessType) {
       case AvatarAccessType.free:
         return Colors.green.withValues(alpha: 0.1);
       case AvatarAccessType.paid:
@@ -342,8 +422,8 @@ class AvatarCard extends ConsumerWidget {
     }
   }
 
-  Color _getAccessTypeColor() {
-    switch (item.accessType) {
+  Color _getAccessTypeColor(AvatarItem currentItem) {
+    switch (currentItem.accessType) {
       case AvatarAccessType.free:
         return Colors.green;
       case AvatarAccessType.paid:
@@ -353,8 +433,8 @@ class AvatarCard extends ConsumerWidget {
     }
   }
 
-  Color _getRarityColor() {
-    switch (item.rarity) {
+  Color _getRarityColor(AvatarItem currentItem) {
+    switch (currentItem.rarity) {
       case 1:
         return Colors.grey;
       case 2:
@@ -370,8 +450,8 @@ class AvatarCard extends ConsumerWidget {
     }
   }
 
-  IconData _getAvatarIcon() {
-    switch (item.category) {
+  IconData _getAvatarIcon(AvatarItem currentItem) {
+    switch (currentItem.category) {
       case AvatarCategory.skins:
         return Icons.person;
       case AvatarCategory.outfits:
@@ -383,9 +463,85 @@ class AvatarCard extends ConsumerWidget {
     }
   }
 
-  bool _canAfford(WidgetRef ref) {
-    if (item.isMemberOnly || item.isUnlocked) return true;
+  bool _canAfford(WidgetRef ref, AvatarItem currentItem) {
+    if (currentItem.isMemberOnly || currentItem.isUnlocked) return true;
     
-    return ref.watch(canAffordProvider((item.coinType, item.cost)));
+    return ref.watch(canAffordProvider((currentItem.coinType, currentItem.cost)));
+  }
+}
+
+class _QuantumCoachCardPreview extends StatefulWidget {
+  const _QuantumCoachCardPreview();
+
+  @override
+  State<_QuantumCoachCardPreview> createState() => _QuantumCoachCardPreviewState();
+}
+
+class _QuantumCoachCardPreviewState extends State<_QuantumCoachCardPreview> {
+  rive.StateMachineController? _controller;
+  rive.Artboard? _artboard;
+  final AvatarCustomizationService _customizationService = AvatarCustomizationService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadQuantumCoach();
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadQuantumCoach() async {
+    try {
+      await _customizationService.initialize();
+      
+      final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
+      final artboard = rivFile.mainArtboard.instance();
+      
+      final controller = rive.StateMachineController.fromArtboard(
+        artboard,
+        'State Machine 1',
+      );
+      
+      if (controller != null) {
+        artboard.addController(controller);
+        
+        // Apply saved customizations
+        await _customizationService.applyToRiveInputs('quantum_coach', controller.inputs.toList());
+        
+        // Force idle animation
+        final idleInput = controller.findSMI('Idle');
+        if (idleInput is rive.SMITrigger) {
+          idleInput.fire();
+        }
+        
+        setState(() {
+          _artboard = artboard;
+          _controller = controller;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading Quantum Coach card preview: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_artboard == null) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Colors.purple,
+          strokeWidth: 2,
+        ),
+      );
+    }
+
+    return rive.Rive(
+      artboard: _artboard!,
+      fit: BoxFit.contain,
+    );
   }
 }

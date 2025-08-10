@@ -7,6 +7,10 @@ String tr(BuildContext context, String key) {
   return AppLocalizations.of(context)?.translate(key) ?? key;
 }
 
+String trWithParams(BuildContext context, String key, Map<String, String> params) {
+  return AppLocalizations.of(context)?.translateWithParams(key, params) ?? key;
+}
+
 String translateCountry(BuildContext context, String languageCode) {
   final currentLocale = Localizations.localeOf(context).languageCode;
 

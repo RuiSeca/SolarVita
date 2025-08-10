@@ -15,6 +15,7 @@ import 'services/database/firebase_push_notification_service.dart';
 import 'services/chat/data_sync_service.dart';
 import 'services/chat/chat_notification_service.dart';
 import 'services/user/strike_calculation_service.dart';
+import 'services/avatars/avatar_config_loader.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 
 // Import your existing screens
@@ -114,6 +115,15 @@ void main() async {
   } catch (e, st) {
     debugPrint('Firebase initialization error: $e\n$st');
     // Continue without Firebase for testing environments
+  }
+
+  // Initialize Avatar Configuration System
+  try {
+    await AvatarConfigLoader.loadConfiguration();
+    debugPrint('Avatar configuration system initialized successfully');
+  } catch (e, st) {
+    debugPrint('Avatar configuration initialization failed: $e\n$st');
+    // Continue without avatar system in case of errors
   }
 
   // Initialize notification service (local notifications work without Firebase)

@@ -15,23 +15,26 @@ import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
 import '../../../services/chat/data_sync_service.dart';
+import '../../../providers/riverpod/interactive_coach_provider.dart';
+import '../../../widgets/interactive_quantum_coach.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
 import 'meal_search_screen.dart';
 import 'favorite_meals_screen.dart';
 import 'dart:async';
 import 'package:logger/logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 var logger = Logger();
 
-class MealPlanScreen extends StatefulWidget {
+class MealPlanScreen extends ConsumerStatefulWidget {
   const MealPlanScreen({super.key});
 
   @override
-  State createState() => _MealPlanScreenState();
+  ConsumerState createState() => _MealPlanScreenState();
 }
 
-class _MealPlanScreenState extends State<MealPlanScreen> {
+class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   // Storage key constants
   static const String _weeklyMealDataKey = 'weeklyMealData';
   static const String _favoriteMealsKey = 'favorite_meal_ids';
@@ -195,14 +198,26 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            _buildHeader(context),
-            _buildWeekDaySelector(context),
-            _buildCarousel(context),
-            _buildNutritionSummary(context),
-            Expanded(child: _buildMealsList(context)),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context),
+                _buildWeekDaySelector(context),
+                _buildCarousel(context),
+                _buildNutritionSummary(context),
+                Expanded(child: _buildMealsList(context)),
+              ],
+            ),
+            // Interactive Quantum Coach positioned on top of meal cards
+            PositionedInteractiveCoach(
+              location: CoachLocation.mealPlan,
+              top: 300, // Positioned over the meal cards area
+              right: 20,
+              width: 80,
+              height: 80,
+            ),
           ],
         ),
       ),

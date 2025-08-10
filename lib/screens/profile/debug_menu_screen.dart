@@ -8,6 +8,10 @@ import '../../services/database/firebase_routine_service.dart';
 import '../../services/database/routine_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
+import '../../debug/quantum_coach_analyzer.dart';
+import '../../debug/quantum_coach_clothing_tester.dart';
+import '../avatar_store/quantum_coach_customization_screen.dart';
+import '../avatar_store/enhanced_quantum_coach_screen.dart';
 
 class DebugMenuScreen extends ConsumerStatefulWidget {
   const DebugMenuScreen({super.key});
@@ -395,6 +399,42 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     }
   }
 
+  void _openQuantumCoachAnalyzer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuantumCoachAnalyzer(),
+      ),
+    );
+  }
+
+  void _openQuantumCoachCustomization() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuantumCoachCustomizationScreen(),
+      ),
+    );
+  }
+
+  void _openEnhancedQuantumCoachStudio() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const EnhancedQuantumCoachScreen(),
+      ),
+    );
+  }
+
+  void _openClothingTester() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const QuantumCoachClothingTester(),
+      ),
+    );
+  }
+
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -558,6 +598,62 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
               icon: Icons.trending_up,
               color: Colors.teal,
               onTap: _isLoading ? null : _syncWeeklyProgressToFirebase,
+            ),
+
+            const SizedBox(height: 24),
+
+            // RIVE/Avatar Debug Section
+            Text(
+              'RIVE Avatar Debug',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Quantum Coach RIVE Analyzer
+            _buildDebugCard(
+              title: 'Analyze Quantum Coach RIVE',
+              description: 'Examine animations, state machines, and customization options',
+              icon: Icons.analytics_outlined,
+              color: Colors.purple,
+              onTap: _isLoading ? null : _openQuantumCoachAnalyzer,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Quantum Coach Customization Screen
+            _buildDebugCard(
+              title: 'Test Quantum Coach Customization',
+              description: 'Test the full customization UI with asset validation',
+              icon: Icons.palette_outlined,
+              color: Colors.deepPurple,
+              onTap: _isLoading ? null : _openQuantumCoachCustomization,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Enhanced Quantum Coach Studio
+            _buildDebugCard(
+              title: 'Enhanced Quantum Coach Studio',
+              description: 'Professional customization UI with 153 animations & features',
+              icon: Icons.psychology,
+              color: Colors.cyan,
+              onTap: _isLoading ? null : _openEnhancedQuantumCoachStudio,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Clothing System Tester
+            _buildDebugCard(
+              title: 'Test Clothing System',
+              description: 'Diagnostic tool to test clothing changes and asset loading',
+              icon: Icons.checkroom_outlined,
+              color: Colors.orange,
+              onTap: _isLoading ? null : _openClothingTester,
             ),
 
             const SizedBox(height: 24),
