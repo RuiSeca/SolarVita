@@ -92,7 +92,7 @@ class CoinRepository {
       await _firestore
           .collection('user_coins')
           .doc(user.uid)
-          .set(balance.toJson(), SetOptions(merge: true));
+          .set(balance.toFirestoreJson(), SetOptions(merge: true));
           
       log.info('✅ Coin balance saved to Firestore');
     } catch (e) {
@@ -254,7 +254,7 @@ class CoinRepository {
           .doc(user.uid)
           .collection('transactions')
           .doc(transaction.id)
-          .set(transaction.toJson());
+          .set(transaction.toFirestoreJson());
     } catch (e) {
       log.warning('⚠️ Failed to record transaction to Firestore: $e');
     }

@@ -10,8 +10,8 @@ import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../debug/quantum_coach_analyzer.dart';
 import '../../debug/quantum_coach_clothing_tester.dart';
-import '../avatar_store/quantum_coach_customization_screen.dart';
-import '../avatar_store/enhanced_quantum_coach_screen.dart';
+import '../avatar_store/avatar_studio_screen.dart';
+import '../../models/firebase/firebase_avatar.dart';
 
 class DebugMenuScreen extends ConsumerStatefulWidget {
   const DebugMenuScreen({super.key});
@@ -409,21 +409,41 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
   }
 
   void _openQuantumCoachCustomization() {
+    // Create a mock quantum coach avatar for demo
+    final quantumCoach = FirebaseAvatar(
+      avatarId: 'quantum_coach',
+      name: 'Quantum Coach',
+      description: 'Advanced AI coach with quantum customization capabilities.',
+      rivAssetPath: 'assets/rive/quantum_coach.riv',
+      availableAnimations: ['Idle', 'jump', 'Act_Touch', 'startAct_Touch', 'win', 'Act_1'],
+      customProperties: {
+        'hasComplexSequence': true,
+        'supportsTeleport': true,
+        'hasCustomization': true,
+        'customizationTypes': ['eyes', 'face', 'skin', 'clothing', 'accessories'],
+      },
+      price: 500,
+      rarity: 'legendary',
+      isPurchasable: true,
+      requiredAchievements: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const QuantumCoachCustomizationScreen(),
+        builder: (context) => AvatarStudioScreen(
+          avatar: quantumCoach,
+          isOwned: true, // For debug menu, assume owned
+        ),
       ),
     );
   }
 
   void _openEnhancedQuantumCoachStudio() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const EnhancedQuantumCoachScreen(),
-      ),
-    );
+    // Use same method as above for consistency
+    _openQuantumCoachCustomization();
   }
 
   void _openClothingTester() {

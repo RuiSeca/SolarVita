@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart' as rive;
 import '../config/avatar_animations_config.dart';
 import '../providers/riverpod/avatar_state_provider.dart';
+import '../services/store/avatar_customization_service.dart';
 
 class AvatarDisplay extends ConsumerStatefulWidget {
   final String? avatarId;
@@ -124,8 +125,15 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
       final rivFile = await rive.RiveFile.asset(_currentConfig!.rivAssetPath);
       final artboard = rivFile.mainArtboard;
       
-      // Clone the artboard to avoid sharing state
-      final clonedArtboard = artboard.instance();
+      // Clone the artboard to avoid sharing state - handle RuntimeArtboard properly
+      rive.Artboard clonedArtboard;
+      try {
+        clonedArtboard = artboard.instance();
+      } catch (e) {
+        // Fallback if instance() fails - use the artboard directly
+        debugPrint('Failed to clone artboard, using original: $e');
+        clonedArtboard = artboard;
+      }
       
       // Set up state machine or direct animation control
       rive.RiveAnimationController? controller = rive.StateMachineController.fromArtboard(
@@ -134,15 +142,33 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
       );
       
       // Fallback to simple animation controller if no state machine
-      controller ??= rive.SimpleAnimation(_currentConfig!.defaultAnimation);
+      if (controller == null) {
+        try {
+          controller = rive.SimpleAnimation(_currentConfig!.defaultAnimation);
+        } catch (e) {
+          debugPrint('Failed to create simple animation controller: $e');
+          // Continue without controller
+        }
+      }
       
-      clonedArtboard.addController(controller);
+      // Only add controller if we successfully created one
+      if (controller != null) {
+        clonedArtboard.addController(controller);
+        
+        // Apply customizations if available
+        if (widget.avatarId != null && controller is rive.StateMachineController) {
+          await _applyCustomizations(controller, widget.avatarId!);
+        }
+      }
+      
       _controller?.dispose();
       _controller = controller;
       
-      setState(() {
-        _artboard = clonedArtboard;
-      });
+      if (mounted) {
+        setState(() {
+          _artboard = clonedArtboard;
+        });
+      }
 
       // Start auto sequence if enabled
       if (widget.autoPlaySequence && mounted) {
@@ -165,22 +191,48 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
 
     _currentStage = stage;
 
-    // Handle different controller types
-    if (_controller is rive.StateMachineController) {
-      // Trigger state machine inputs if available
-      final stateMachine = _controller as rive.StateMachineController;
-      
-      // Look for trigger inputs that match our animation names
-      for (final input in stateMachine.inputs) {
-        if (input.name.toLowerCase() == animationName.toLowerCase() && 
-            input is rive.SMITrigger) {
-          input.fire();
-          break;
+    try {
+      // Handle different controller types
+      if (_controller is rive.StateMachineController) {
+        // Trigger state machine inputs if available
+        try {
+          final stateMachine = _controller as rive.StateMachineController;
+        
+        // Look for trigger inputs that match our animation names
+        try {
+          for (final input in stateMachine.inputs) {
+            try {
+              // Safer type checking to avoid RuntimeArtboard cast issues
+              if (input.name.toLowerCase() == animationName.toLowerCase()) {
+                // Check if it's a trigger type with safer casting
+                if (input.runtimeType.toString().contains('SMITrigger') || input is rive.SMITrigger) {
+                  try {
+                    final trigger = input as rive.SMITrigger;
+                    trigger.fire();
+                    debugPrint('🎬 Fired animation: $animationName');
+                    break;
+                  } catch (castError) {
+                    debugPrint('⚠️ Type casting error for trigger $animationName: $castError');
+                  }
+                }
+              }
+            } catch (inputError) {
+              debugPrint('⚠️ Error processing input ${input.name}: $inputError');
+            }
+          }
+        } catch (iterationError) {
+          debugPrint('⚠️ Error iterating inputs for $animationName: $iterationError');
         }
+        } catch (stateMachineError) {
+          debugPrint('⚠️ StateMachineController casting error for $animationName: $stateMachineError');
+        }
+      } else if (_controller is rive.SimpleAnimation) {
+        // For simple animations, we'd need to recreate with new animation
+        // This is more complex, so we'll stick with the current approach
+        debugPrint('🎬 SimpleAnimation controller - cannot trigger: $animationName');
       }
-    } else if (_controller is rive.SimpleAnimation) {
-      // For simple animations, we'd need to recreate with new animation
-      // This is more complex, so we'll stick with the current approach
+    } catch (e) {
+      debugPrint('❌ Error playing animation $animationName: $e');
     }
   }
 
@@ -263,4 +315,20 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
   bool get isSequenceRunning => _isSequenceRunning;
   AnimationStage get currentStage => _currentStage;
   String? get currentAvatarId => _currentConfig?.avatarId;
+
+  /// Apply customizations to the Rive avatar
+  Future<void> _applyCustomizations(rive.StateMachineController controller, String avatarId) async {
+    try {
+      final customizationService = AvatarCustomizationService();
+      final inputs = controller.inputs;
+      
+      if (inputs.isNotEmpty) {
+        await customizationService.applyToRiveInputs(avatarId, inputs);
+        debugPrint('✨ Applied customizations to $avatarId with ${inputs.length} inputs');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Failed to apply customizations to $avatarId: $e');
+      // Continue without customizations - avatar will show with defaults
+    }
+  }
 }

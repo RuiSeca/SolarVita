@@ -184,7 +184,7 @@ class _BridgedAvatarWidgetState extends State<BridgedAvatarWidget> {
             return const SizedBox.shrink(); // Large avatar handled elsewhere
           }
           
-          return Container(
+          return SizedBox(
             width: width,
             height: height,
             child: GestureDetector(
@@ -204,22 +204,12 @@ class _BridgedAvatarWidgetState extends State<BridgedAvatarWidget> {
           return ValueListenableBuilder<bool>(
             valueListenable: controller.isVisible,
             builder: (context, isVisible, child) {
-              // Map screen ID to CoachLocation
-              CoachLocation expectedLocation = CoachLocation.aiScreen;
-              switch (widget.screenId) {
-                case 'meal_plan':
-                  expectedLocation = CoachLocation.mealPlan;
-                  break;
-                case 'workout_tips':
-                  expectedLocation = CoachLocation.workoutTips;
-                  break;
-                case 'eco_stats':
-                  expectedLocation = CoachLocation.ecoStats;
-                  break;
-              }
+              // Since quantum coach now teleports between cards within AI screen only,
+              // we show it on AI screen regardless of current card position
+              bool shouldShowOnThisScreen = widget.screenId == 'ai_screen';
 
-              if (location == expectedLocation && isVisible) {
-                return Container(
+              if (shouldShowOnThisScreen && isVisible) {
+                return SizedBox(
                   width: width,
                   height: height,
                   child: GestureDetector(
@@ -239,7 +229,7 @@ class _BridgedAvatarWidgetState extends State<BridgedAvatarWidget> {
   }
 
   Widget _buildNewAvatarWidget(double width, double height) {
-    return Container(
+    return SizedBox(
       width: width,
       height: height,
       child: GestureDetector(

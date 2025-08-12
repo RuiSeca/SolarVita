@@ -51,7 +51,7 @@ class AvatarAnimationsConfig {
     ),
     'classic_coach': AvatarAnimationConfig(
       avatarId: 'classic_coach',
-      rivAssetPath: 'assets/rive/classic.riv',
+      rivAssetPath: 'assets/rive/mummy.riv', // Using mummy.riv as fallback
       animations: {
         AnimationStage.idle: 'Idle',
         AnimationStage.jump: 'Jump',
@@ -132,10 +132,10 @@ class AvatarAnimationsConfig {
       rivAssetPath: 'assets/rive/quantum_coach.riv',
       animations: {
         AnimationStage.idle: 'Idle',
-        AnimationStage.jump: 'Jump',
-        AnimationStage.run: 'Run',
-        AnimationStage.attack: 'Attack',
-        AnimationStage.teleport: 'Teleport',
+        AnimationStage.jump: 'jump',
+        AnimationStage.run: 'Act_Touch',
+        AnimationStage.attack: 'startAct_Touch',
+        AnimationStage.teleport: 'win',
       },
       defaultAnimation: 'Idle',
       customProperties: {
@@ -143,7 +143,8 @@ class AvatarAnimationsConfig {
         'supportsTeleport': true,
         'hasCustomization': true,
         'customizationTypes': ['eyes', 'skin', 'clothing'],
-        'sequenceOrder': ['Idle', 'Jump', 'Run', 'Attack', 'Teleport'],
+        'availableAnimations': ['Idle', 'startAct_Touch', 'Act_Touch', 'jump', 'win', 'Act_1'],
+        'sequenceOrder': ['Idle', 'jump', 'startAct_Touch', 'Act_Touch', 'win'],
       },
     ),
   };
@@ -167,7 +168,7 @@ class AvatarAnimationsConfig {
   static AvatarAnimationConfig getDefaultConfig() {
     return const AvatarAnimationConfig(
       avatarId: 'classic_coach',
-      rivAssetPath: 'assets/rive/classic.riv',
+      rivAssetPath: 'assets/rive/mummy.riv', // Using mummy.riv as fallback
       animations: {AnimationStage.idle: 'Idle'},
       defaultAnimation: 'Idle',
       customProperties: {

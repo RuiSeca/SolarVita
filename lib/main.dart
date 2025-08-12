@@ -9,14 +9,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 // Import Firebase options
-import 'firebase_options.dart';
 import 'services/database/notification_service.dart';
 import 'services/database/firebase_push_notification_service.dart';
 import 'services/chat/data_sync_service.dart';
 import 'services/chat/chat_notification_service.dart';
 import 'services/user/strike_calculation_service.dart';
 import 'services/avatars/avatar_config_loader.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+import 'services/firebase/firebase_initialization_service.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -69,33 +68,12 @@ void main() async {
   });
 
   try {
-    // Initialize Firebase once
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-
-    // Activate Firebase App Check with appropriate providers
-    try {
-      await FirebaseAppCheck.instance.activate(
-        // Use debug providers only in debug mode to avoid rate limiting
-        androidProvider: AndroidProvider.debug,
-        appleProvider: AppleProvider.debug,
-        // In production, you should use:
-        // androidProvider: AndroidProvider.playIntegrity,
-        // appleProvider: AppleProvider.appAttest,
-      );
-
-      // Only get token in debug mode to avoid unnecessary requests
-      if (const bool.fromEnvironment('dart.vm.product') == false) {
-        final token = await FirebaseAppCheck.instance.getToken();
-        debugPrint(
-          '[FirebaseAppCheck] Debug token available: ${token != null}',
-        );
-      }
-    } catch (e) {
-      debugPrint('Firebase App Check initialization failed: $e');
-      // Continue without App Check in case of errors
-    }
+    // Initialize Firebase using our comprehensive initialization service
+    await FirebaseInitializationService.initialize();
+    
+    // Sign in user anonymously for avatar system access
+    final user = await FirebaseInitializationService.signInAnonymously();
+    debugPrint('Firebase user initialized: ${user?.uid}');
 
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

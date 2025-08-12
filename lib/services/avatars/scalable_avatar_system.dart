@@ -1,6 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
-import 'dart:convert';
 
 final log = Logger('ScalableAvatarSystem');
 
@@ -115,7 +115,8 @@ class AvatarPlacement {
     return AvatarPlacement(
       avatarId: json['avatarId'] as String,
       position: json['position'] as String,
-      coordinates: Map<String, double>.from(json['coordinates']),
+      coordinates: (json['coordinates'] as Map<String, dynamic>)
+          .map((key, value) => MapEntry(key, (value as num).toDouble())),
       constraints: json['constraints'] as Map<String, dynamic>? ?? {},
       zIndex: json['zIndex'] as int? ?? 0,
       containerId: json['containerId'] as String?,
@@ -478,7 +479,7 @@ class _UniversalAvatarWidgetState extends State<UniversalAvatarWidget> {
     final width = (coordinates['width'] as num).toDouble();
     final height = (coordinates['height'] as num).toDouble();
 
-    return Container(
+    return SizedBox(
       width: width,
       height: height,
       child: GestureDetector(
@@ -564,8 +565,6 @@ class AvatarScreenManager extends StatelessWidget {
     final coords = placement.coordinates;
     final x = coords['x'] ?? 0;
     final y = coords['y'] ?? 0;
-    final width = coords['width'] ?? 100;
-    final height = coords['height'] ?? 100;
     final anchor = coords['anchor'] as String?;
 
     Widget avatarWidget = UniversalAvatarWidget(

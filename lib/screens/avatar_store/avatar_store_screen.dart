@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/store/avatar_item.dart';
+import '../../models/firebase/firebase_avatar.dart';
 import '../../theme/app_theme.dart';
-import '../../providers/riverpod/avatar_state_provider.dart';
+import '../../providers/firebase/firebase_avatar_provider.dart';
 import '../../utils/translation_helper.dart';
-import 'widgets/avatar_card.dart';
+import 'widgets/firebase_avatar_card.dart';
 import 'widgets/coin_header.dart';
 import 'widgets/membership_banner.dart';
-import 'widgets/avatar_preview_modal.dart';
+import 'widgets/firebase_avatar_preview_modal.dart';
+import 'avatar_studio_screen.dart';
+import '../../widgets/avatar_display.dart';
+import '../../config/avatar_animations_config.dart';
 
 class AvatarStoreScreen extends ConsumerStatefulWidget {
   const AvatarStoreScreen({super.key});
@@ -25,7 +28,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
         setState(() {
@@ -43,6 +46,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
 
   @override
   Widget build(BuildContext context) {
+    print('🏪 Building AvatarStoreScreen - Current tab: ${_tabController.index}');
     return Scaffold(
       backgroundColor: AppColors.darkSurface,
       body: SafeArea(
@@ -60,6 +64,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             controller: _tabController,
             children: [
               _buildAllItemsTab(),
+              _buildEquippedTab(),
               _buildFreeSkinsTab(),
               _buildPremiumTab(),
               _buildMembersTab(),
@@ -211,6 +216,10 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
           ),
           SizedBox(
             width: double.infinity,
+            child: Tab(text: 'Equipped'),
+          ),
+          SizedBox(
+            width: double.infinity,
             child: Tab(text: tr(context, 'tabs_free')),
           ),
           SizedBox(
@@ -310,60 +319,205 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
   }
 
   Widget _buildAllItemsTab() {
-    final allItems = ref.watch(avatarsWithStateProvider);
-    return _buildItemGrid(allItems);
+    print('🏪 Building All Items Tab');
+    final availableAvatars = ref.watch(availableAvatarsProvider);
+    final ownerships = ref.watch(userAvatarOwnershipsProvider);
+    
+    print('🏪 Avatar provider state: ${availableAvatars.runtimeType}');
+    print('🏪 Ownership provider state: ${ownerships.runtimeType}');
+    
+    return availableAvatars.when(
+      data: (avatars) {
+        // Debug: Log avatar data
+        print('💡 Available avatars count: ${avatars.length}');
+        print('💡 Avatar IDs: ${avatars.map((a) => a.avatarId).toList()}');
+        
+        return ownerships.when(
+          data: (ownershipList) {
+            // Debug: Log ownership data  
+            print('💡 User ownerships count: ${ownershipList.length}');
+            print('💡 Ownership IDs: ${ownershipList.map((o) => o.avatarId).toList()}');
+            
+            return _buildFirebaseItemGrid(avatars, ownershipList, 'all');
+          },
+          loading: () {
+            print('💡 Ownerships still loading, showing avatars with empty ownerships...');
+            // Don't wait indefinitely for ownerships - show avatars with empty ownership list
+            return _buildFirebaseItemGrid(avatars, <UserAvatarOwnership>[], 'all');
+          },
+          error: (error, _) {
+            print('💡 Ownerships error: $error');
+            return _buildErrorState(error.toString());
+          },
+        );
+      },
+      loading: () {
+        print('💡 Avatar store: Avatars still loading...');
+        return const Center(child: CircularProgressIndicator());
+      },
+      error: (error, _) {
+        print('💡 Avatar store error: $error');
+        return _buildErrorState(error.toString());
+      },
+    );
+  }
+
+  Widget _buildEquippedTab() {
+    final availableAvatars = ref.watch(availableAvatarsProvider);
+    final ownerships = ref.watch(userAvatarOwnershipsProvider);
+    
+    return availableAvatars.when(
+      data: (avatars) => ownerships.when(
+        data: (ownershipList) {
+          // Filter for equipped avatars only
+          final equippedOwnership = ownershipList.where((ownership) => ownership.isEquipped).toList();
+          final equippedAvatars = avatars.where((avatar) => 
+            equippedOwnership.any((ownership) => ownership.avatarId == avatar.avatarId)
+          ).toList();
+          
+          if (equippedAvatars.isEmpty) {
+            return _buildNoEquippedAvatarState();
+          }
+          
+          return _buildEquippedAvatarGrid(equippedAvatars, equippedOwnership);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _buildErrorState(error.toString()),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildErrorState(error.toString()),
+    );
   }
 
   Widget _buildFreeSkinsTab() {
-    final freeItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.free));
-    return _buildItemGrid(freeItems);
+    final availableAvatars = ref.watch(availableAvatarsProvider);
+    final ownerships = ref.watch(userAvatarOwnershipsProvider);
+    
+    return availableAvatars.when(
+      data: (avatars) => ownerships.when(
+        data: (ownershipList) {
+          final freeAvatars = avatars.where((avatar) => avatar.price == 0).toList();
+          return _buildFirebaseItemGrid(freeAvatars, ownershipList, 'free');
+        },
+        loading: () {
+          final freeAvatars = avatars.where((avatar) => avatar.price == 0).toList();
+          return _buildFirebaseItemGrid(freeAvatars, <UserAvatarOwnership>[], 'free');
+        },
+        error: (error, _) => _buildErrorState(error.toString()),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildErrorState(error.toString()),
+    );
   }
 
   Widget _buildPremiumTab() {
-    final premiumItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.paid));
-    return _buildItemGrid(premiumItems);
+    final availableAvatars = ref.watch(availableAvatarsProvider);
+    final ownerships = ref.watch(userAvatarOwnershipsProvider);
+    
+    return availableAvatars.when(
+      data: (avatars) => ownerships.when(
+        data: (ownershipList) {
+          final premiumAvatars = avatars.where((avatar) => 
+            avatar.price > 0 && avatar.rarity != 'legendary'
+          ).toList();
+          return _buildFirebaseItemGrid(premiumAvatars, ownershipList, 'premium');
+        },
+        loading: () {
+          final premiumAvatars = avatars.where((avatar) => 
+            avatar.price > 0 && avatar.rarity != 'legendary'
+          ).toList();
+          return _buildFirebaseItemGrid(premiumAvatars, <UserAvatarOwnership>[], 'premium');
+        },
+        error: (error, _) => _buildErrorState(error.toString()),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildErrorState(error.toString()),
+    );
   }
 
   Widget _buildMembersTab() {
-    final memberItems = ref.watch(avatarsByAccessTypeProvider(AvatarAccessType.member));
-    return _buildItemGrid(memberItems);
+    final availableAvatars = ref.watch(availableAvatarsProvider);
+    final ownerships = ref.watch(userAvatarOwnershipsProvider);
+    
+    return availableAvatars.when(
+      data: (avatars) => ownerships.when(
+        data: (ownershipList) {
+          final legendaryAvatars = avatars.where((avatar) => 
+            avatar.rarity == 'legendary'
+          ).toList();
+          return _buildFirebaseItemGrid(legendaryAvatars, ownershipList, 'legendary');
+        },
+        loading: () {
+          final legendaryAvatars = avatars.where((avatar) => 
+            avatar.rarity == 'legendary'
+          ).toList();
+          return _buildFirebaseItemGrid(legendaryAvatars, <UserAvatarOwnership>[], 'legendary');
+        },
+        error: (error, _) => _buildErrorState(error.toString()),
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => _buildErrorState(error.toString()),
+    );
   }
 
-  Widget _buildItemGrid(List<AvatarItem> items) {
-    // Filter items based on search query
-    final filteredItems = items.where((item) {
+  Widget _buildFirebaseItemGrid(List<FirebaseAvatar> avatars, List<UserAvatarOwnership> ownerships, String category) {
+    print('🏪 Building Firebase Item Grid - Category: $category');
+    print('🏪 Input avatars: ${avatars.length}, ownerships: ${ownerships.length}');
+    
+    // Filter avatars based on search query
+    final filteredAvatars = avatars.where((avatar) {
       if (_searchQuery.isEmpty) return true;
-      return item.translatedName(context).toLowerCase().contains(_searchQuery) ||
-          item.translatedDescription(context).toLowerCase().contains(_searchQuery) ||
-          item.tags.any((tag) => tag.toLowerCase().contains(_searchQuery));
+      return avatar.name.toLowerCase().contains(_searchQuery) ||
+          avatar.description.toLowerCase().contains(_searchQuery) ||
+          avatar.rarity.toLowerCase().contains(_searchQuery);
     }).toList();
 
-    if (filteredItems.isEmpty) {
+    print('🏪 Filtered avatars: ${filteredAvatars.length}');
+    print('🏪 Search query: "$_searchQuery"');
+
+    if (filteredAvatars.isEmpty) {
+      print('🏪 No filtered avatars - showing empty state');
       return _buildEmptyState();
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12), // Reduced padding
+      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
       child: Column(
         children: [
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 1, // Fewer columns for larger cards
-              childAspectRatio: 0.75, // Adjusted for taller cards (220px height)
-              crossAxisSpacing: 16, // More spacing for larger cards
-              mainAxisSpacing: 16, // More spacing between rows
+              crossAxisCount: MediaQuery.of(context).size.width > 600 ? 2 : 1,
+              childAspectRatio: 0.75,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
             ),
-            itemCount: filteredItems.length,
+            itemCount: filteredAvatars.length,
             itemBuilder: (context, index) {
-              final item = filteredItems[index];
+              final avatar = filteredAvatars[index];
+              final ownership = ownerships.firstWhere(
+                (o) => o.avatarId == avatar.avatarId,
+                orElse: () => UserAvatarOwnership(
+                  userId: '',
+                  avatarId: avatar.avatarId,
+                  purchaseDate: DateTime.now(),
+                  isEquipped: false,
+                  customizations: {},
+                  timesUsed: 0,
+                  lastUsed: DateTime.now(),
+                  metadata: {},
+                ),
+              );
+              final isOwned = ownerships.any((o) => o.avatarId == avatar.avatarId);
+              
               return AnimatedContainer(
                 duration: Duration(milliseconds: 200 + (index * 50)),
                 curve: Curves.easeOutBack,
-                child: AvatarCard(
-                  item: item,
-                  onTap: () => _showAvatarPreview(item),
+                child: FirebaseAvatarCard(
+                  avatar: avatar,
+                  ownership: isOwned ? ownership : null,
+                  onTap: () => _showFirebaseAvatarPreview(avatar, isOwned ? ownership : null),
                 ),
               );
             },
@@ -476,13 +630,340 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     );
   }
 
-  void _showAvatarPreview(AvatarItem item) {
+  void _showFirebaseAvatarPreview(FirebaseAvatar avatar, UserAvatarOwnership? ownership) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => AvatarPreviewModal(item: item),
+      builder: (context) => FirebaseAvatarPreviewModal(
+        avatar: avatar,
+        ownership: ownership,
+      ),
     );
   }
 
+  Widget _buildErrorState(String error) {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.red.withValues(alpha: 0.1),
+                    Colors.orange.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(70),
+                border: Border.all(
+                  color: Colors.red.withValues(alpha: 0.2),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: 64,
+                color: Colors.red.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              tr(context, 'error_title'),
+              style: TextStyle(
+                color: AppColors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Failed to load avatars: ${error.length > 100 ? '${error.substring(0, 100)}...' : error}',
+              style: TextStyle(
+                color: AppColors.white.withValues(alpha: 0.6),
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary, AppColors.secondary],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    // Trigger a rebuild to retry loading
+                  });
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  tr(context, 'retry'),
+                  style: const TextStyle(
+                    color: AppColors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoEquippedAvatarState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.2),
+                  AppColors.secondary.withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(40),
+            ),
+            child: Icon(
+              Icons.person_off_outlined,
+              size: 40,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No Avatar Equipped',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Select an avatar from other tabs to equip',
+            style: TextStyle(
+              color: AppColors.white.withValues(alpha: 0.6),
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEquippedAvatarGrid(List<FirebaseAvatar> avatars, List<UserAvatarOwnership> ownerships) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Equipped Avatar',
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Show equipped avatar with customization showcase
+          ...avatars.map((avatar) {
+            final ownership = ownerships.firstWhere((o) => o.avatarId == avatar.avatarId);
+            return _buildEquippedAvatarShowcase(avatar, ownership);
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEquippedAvatarShowcase(FirebaseAvatar avatar, UserAvatarOwnership ownership) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.15),
+            AppColors.secondary.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.3),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.2),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Equipped badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.primary, AppColors.secondary],
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.star, color: Colors.white, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  'EQUIPPED',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          
+          // Large avatar display with customizations
+          Container(
+            width: 200,
+            height: 200,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.2),
+                  AppColors.primary.withValues(alpha: 0.05),
+                  Colors.transparent,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: Center(
+              child: AvatarDisplay(
+                avatarId: avatar.avatarId,
+                width: 180,
+                height: 180,
+                initialStage: AnimationStage.idle,
+                autoPlaySequence: true,
+                sequenceDelay: const Duration(seconds: 4),
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Avatar info
+          Text(
+            avatar.name,
+            style: TextStyle(
+              color: AppColors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            avatar.description,
+            style: TextStyle(
+              color: AppColors.white.withValues(alpha: 0.8),
+              fontSize: 16,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 20),
+          
+          // Customization button if available
+          if (avatar.customProperties['hasCustomization'] == true)
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.purple, Colors.purple.shade700],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => AvatarStudioScreen(
+                        avatar: avatar,
+                        isOwned: true,
+                      ),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.palette, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Customize Avatar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

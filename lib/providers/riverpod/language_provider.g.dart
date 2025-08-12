@@ -24,6 +24,7 @@ final supportedLanguagesProvider = AutoDisposeProvider<List<Language>>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef SupportedLanguagesRef = AutoDisposeProviderRef<List<Language>>;
+
 String _$currentLanguageHash() => r'1e45842dcbc32ee7248f921e435e30f108ed87cb';
 
 /// See also [currentLanguage].
@@ -41,6 +42,7 @@ final currentLanguageProvider = AutoDisposeProvider<Language>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentLanguageRef = AutoDisposeProviderRef<Language>;
+
 String _$languageNotifierHash() => r'6de1a77bb66232bba3dd13c0aa013d6c33ea7ff2';
 
 /// See also [LanguageNotifier].
@@ -57,5 +59,6 @@ final languageNotifierProvider =
     );
 
 typedef _$LanguageNotifier = AutoDisposeAsyncNotifier<Locale>;
+
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

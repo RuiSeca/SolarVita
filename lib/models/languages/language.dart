@@ -1,4 +1,4 @@
-// lib/models/language.dart
+// lib/models/languages/language.dart
 class Language {
   final String name;
   final String code;

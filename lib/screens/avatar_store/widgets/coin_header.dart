@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../models/store/coin_economy.dart';
+import '../../../models/store/currency_system.dart';
 import '../../../theme/app_theme.dart';
-import '../../../providers/riverpod/coin_provider.dart';
+import '../../../providers/store/currency_provider.dart';
 import '../../../data/mock_avatar_data.dart';
 import '../../../utils/translation_helper.dart';
+import '../../store/currency_purchase_screen.dart';
 
 class CoinHeader extends ConsumerWidget {
   const CoinHeader({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final coinBalanceAsync = ref.watch(coinBalanceProvider);
+    final currencyAsync = ref.watch(userCurrencyProvider);
     
-    return coinBalanceAsync.when(
-      data: (coinBalance) => _buildHeader(context, coinBalance),
+    return currencyAsync.when(
+      data: (currency) => _buildHeader(context, currency),
       loading: () => _buildLoadingHeader(context),
       error: (error, stackTrace) => _buildErrorHeader(context),
     );
   }
 
-  Widget _buildHeader(BuildContext context, UserCoinBalance coinBalance) {
+  Widget _buildHeader(BuildContext context, UserCurrency? currency) {
+    if (currency == null) return _buildLoadingHeader(context);
     return Column(
       children: [
         // Coins Section
@@ -52,25 +54,33 @@ class CoinHeader extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
               children: [
-                _buildCoinDisplay(
-                  icon: '🔥',
-                  label: tr(context, 'currencies_streak'),
-                  amount: coinBalance.streakCoins,
-                  color: Colors.orange,
+                // Primary spendable currency - coins (tappable to buy more)
+                GestureDetector(
+                  onTap: () => _navigateToCurrencyStore(context),
+                  child: _buildCoinDisplay(
+                    icon: '🪙',
+                    label: tr(context, 'currencies_coins'),
+                    amount: currency.getBalance(CurrencyType.coins),
+                    color: AppColors.gold,
+                    isMainCurrency: true,
+                    isTappable: true,
+                  ),
                 ),
                 _buildDivider(),
+                // Activity tracking - points (non-spendable)
                 _buildCoinDisplay(
                   icon: '⭐',
                   label: tr(context, 'currencies_points'),
-                  amount: coinBalance.coachPoints,
+                  amount: currency.getBalance(CurrencyType.points),
                   color: Colors.amber,
                 ),
                 _buildDivider(),
+                // Streak tracking (non-spendable)
                 _buildCoinDisplay(
-                  icon: '💎',
-                  label: tr(context, 'currencies_gems'),
-                  amount: coinBalance.fitGems,
-                  color: AppColors.primary,
+                  icon: '🔥',
+                  label: tr(context, 'currencies_streak'),
+                  amount: currency.getBalance(CurrencyType.streak),
+                  color: Colors.orange,
                 ),
                 _buildDivider(),
                 _buildAvatarDisplay(context),
@@ -216,42 +226,66 @@ class CoinHeader extends ConsumerWidget {
     required String label,
     required int amount,
     required Color color,
+    bool isMainCurrency = false,
+    bool isTappable = false,
   }) {
     return Flexible(
       child: Column(
         children: [
           Container(
-            width: 36,
-            height: 36,
+            width: isMainCurrency ? 42 : 36,
+            height: isMainCurrency ? 42 : 36,
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  color.withValues(alpha: 0.2),
-                  color.withValues(alpha: 0.1),
+                  color.withValues(alpha: isMainCurrency ? 0.3 : 0.2),
+                  color.withValues(alpha: isMainCurrency ? 0.15 : 0.1),
                 ],
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: color.withValues(alpha: 0.3),
-                width: 1.5,
+                color: color.withValues(alpha: isMainCurrency ? 0.4 : 0.3),
+                width: isMainCurrency ? 2 : 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: color.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
+                  color: color.withValues(alpha: isMainCurrency ? 0.3 : 0.2),
+                  blurRadius: isMainCurrency ? 12 : 8,
+                  offset: Offset(0, isMainCurrency ? 3 : 2),
                 ),
               ],
             ),
-            child: Center(
-              child: Text(
-                icon,
-                style: const TextStyle(
-                  fontSize: 24,
+            child: Stack(
+              children: [
+                Center(
+                  child: Text(
+                    icon,
+                    style: const TextStyle(
+                      fontSize: 24,
+                    ),
+                  ),
                 ),
-              ),
+                if (isTappable)
+                  Positioned(
+                    right: 2,
+                    top: 2,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(height: 8),
@@ -424,6 +458,12 @@ class CoinHeader extends ConsumerWidget {
 
 
 
-
-
+  /// Navigate to currency purchase screen
+  void _navigateToCurrencyStore(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const CurrencyPurchaseScreen(),
+      ),
+    );
+  }
 }

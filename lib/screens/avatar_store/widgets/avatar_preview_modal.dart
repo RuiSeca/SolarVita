@@ -5,7 +5,8 @@ import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/coin_provider.dart';
 import '../../../providers/riverpod/avatar_state_provider.dart';
 import '../../../utils/translation_helper.dart';
-import '../enhanced_quantum_coach_screen.dart';
+import '../avatar_studio_screen.dart';
+import '../../../models/firebase/firebase_avatar.dart';
 import '../../../services/store/avatar_customization_service.dart';
 import 'package:rive/rive.dart' as rive;
 
@@ -960,9 +961,33 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
   }
 
   void _openQuantumCoachCustomization() {
+    // Create a mock quantum coach avatar for demo
+    final quantumCoach = FirebaseAvatar(
+      avatarId: 'quantum_coach',
+      name: 'Quantum Coach',
+      description: 'Advanced AI coach with quantum customization capabilities.',
+      rivAssetPath: 'assets/rive/quantum_coach.riv',
+      availableAnimations: ['Idle', 'jump', 'Act_Touch', 'startAct_Touch', 'win', 'Act_1'],
+      customProperties: {
+        'hasComplexSequence': true,
+        'supportsTeleport': true,
+        'hasCustomization': true,
+        'customizationTypes': ['eyes', 'face', 'skin', 'clothing', 'accessories'],
+      },
+      price: 500,
+      rarity: 'legendary',
+      isPurchasable: true,
+      requiredAchievements: [],
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+    );
+
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const EnhancedQuantumCoachScreen(),
+        builder: (context) => AvatarStudioScreen(
+          avatar: quantumCoach,
+          isOwned: true, // For preview, assume owned
+        ),
       ),
     );
   }
@@ -1002,7 +1027,15 @@ class _AvatarPreviewModalState extends ConsumerState<AvatarPreviewModal>
       await customizationService.initialize();
       
       final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
-      final artboard = rivFile.mainArtboard.instance();
+      
+      // Handle RuntimeArtboard properly
+      rive.Artboard artboard;
+      try {
+        artboard = rivFile.mainArtboard.instance();
+      } catch (e) {
+        debugPrint('⚠️ Failed to clone artboard, using original: $e');
+        artboard = rivFile.mainArtboard;
+      }
       
       final controller = rive.StateMachineController.fromArtboard(
         artboard,

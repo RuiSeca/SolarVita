@@ -118,8 +118,16 @@ class _EnhancedAvatarCustomizationState
       final rivFile = await rive.RiveFile.asset(config.rivAssetPath);
       debugPrint('✅ RIVE file loaded successfully');
       
-      final artboard = rivFile.mainArtboard.instance();
-      debugPrint('🎨 Artboard created');
+      // Handle RuntimeArtboard properly
+      rive.Artboard artboard;
+      try {
+        artboard = rivFile.mainArtboard.instance();
+        debugPrint('🎨 Artboard cloned successfully');
+      } catch (e) {
+        debugPrint('⚠️ Failed to clone artboard, using original: $e');
+        artboard = rivFile.mainArtboard;
+        debugPrint('🎨 Using original artboard');
+      }
 
       final controller = rive.StateMachineController.fromArtboard(
         artboard,
@@ -659,6 +667,7 @@ class _EnhancedAvatarCustomizationState
                     final isSelected = _selectedSkin == option.id;
                     return GestureDetector(
                       onTap: () {
+                        debugPrint('🎨 DEBUG: Skin option tapped - ${option.name} (ID: ${option.id})');
                         setState(() {
                           _selectedSkin = option.id;
                         });

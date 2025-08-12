@@ -87,7 +87,16 @@ class _QuantumCoachWidgetState extends State<QuantumCoachWidget>
       await _customizationService.initialize();
       
       final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
-      final artboard = rivFile.mainArtboard.instance();
+      
+      // Handle RuntimeArtboard properly
+      rive.Artboard artboard;
+      try {
+        artboard = rivFile.mainArtboard.instance();
+      } catch (e) {
+        // Fallback if instance() fails - use the artboard directly
+        log.warning('⚠️ Failed to clone artboard, using original: $e');
+        artboard = rivFile.mainArtboard;
+      }
       
       final controller = rive.StateMachineController.fromArtboard(
         artboard,
@@ -109,9 +118,11 @@ class _QuantumCoachWidgetState extends State<QuantumCoachWidget>
           // Start with idle animation
           _playAnimation('Idle');
         }
+      } else {
+        log.warning('⚠️ Could not create StateMachineController for Quantum Coach');
       }
     } catch (e) {
-      log.severe('Error loading Quantum Coach Widget: $e');
+      log.severe('❌ Error loading Quantum Coach Widget: $e');
     }
   }
 

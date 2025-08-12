@@ -18,13 +18,11 @@ import '../../widgets/common/lottie_loading_widget.dart';
 import '../avatar_store/avatar_store_screen.dart';
 import '../../widgets/avatar_display.dart';
 import '../../config/avatar_animations_config.dart';
-import '../../providers/riverpod/avatar_state_provider.dart';
+import '../../providers/firebase/firebase_avatar_provider.dart';
 import '../../services/avatars/avatar_controller_factory.dart';
-import '../../services/avatars/mummy_avatar_controller.dart';
-import '../../services/avatars/quantum_coach_controller.dart';
+import '../../services/avatars/universal_avatar_controller.dart';
 import '../../services/avatars/avatar_interaction_manager.dart';
-import '../../services/avatars/migration_bridge.dart';
-import '../../widgets/quantum_coach_widget.dart';
+import '../../services/avatars/smart_avatar_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
@@ -55,27 +53,21 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   bool _speechListening = false;
   String _recognizedText = '';
 
-  // Avatar controller system
-  late final MummyAvatarController _mummyController;
-  late final QuantumCoachController _quantumCoachController;
+  // Universal avatar controller system
+  UniversalAvatarController? _universalController;
   final GlobalKey<AvatarDisplayState> _headerAvatarKey = GlobalKey();
   final GlobalKey<AvatarDisplayState> _largeAvatarKey = GlobalKey();
+  String? _lastInitializedAvatarId; // Track last initialized avatar to prevent duplicate initialization
 
 
   @override
   void initState() {
     super.initState();
 
-    // Initialize avatar controller system
-    _mummyController = AvatarControllerFactory().createMummyController(
-      avatarId: 'mummy_ai_screen',
-      headerAvatarKey: _headerAvatarKey,
-      largeAvatarKey: _largeAvatarKey,
-    );
-    
-    _quantumCoachController = AvatarControllerFactory().createQuantumCoachController(
-      avatarId: 'quantum_coach_teleporter',
-    );
+    // Initialize avatar controller system after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _initializeAvatarController();
+    });
 
     // Initialize animation controllers
     _sendButtonController = AnimationController(
@@ -141,6 +133,58 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     });
   }
 
+  Future<void> _initializeAvatarController() async {
+    if (!mounted) return;
+    
+    // Get current equipped avatar with debugging
+    final firebaseAvatarState = ref.read(firebaseAvatarStateProvider).valueOrNull;
+    final equippedAvatarId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+    
+    // Prevent duplicate initialization
+    if (_lastInitializedAvatarId == equippedAvatarId) {
+      _logger.i('🎯 AI Screen: Skipping duplicate initialization for: $equippedAvatarId');
+      return;
+    }
+    
+    _logger.i('🎯 AI Screen: Avatar controller initialization for: $equippedAvatarId');
+    _logger.i('🎯 Firebase avatar state: ${firebaseAvatarState?.toString()}');
+    
+    // Update last initialized ID
+    _lastInitializedAvatarId = equippedAvatarId;
+    
+    // SmartAvatarManager handles all avatar controller creation
+    // AI screen only provides the header avatar keys, the controllers are managed by SmartAvatarManager
+    _logger.i('🎯 AI Screen: Controllers managed by SmartAvatarManager, no local controller needed');
+    
+    // Add delay to ensure SmartAvatarManager controllers are registered
+    await Future.delayed(const Duration(milliseconds: 200));
+    
+    // For quantum coach, get BOTH controllers (universal for Stage 0, quantum for cards)
+    if (equippedAvatarId == 'quantum_coach') {
+      final factory = AvatarControllerFactory();
+      
+      // Get universal controller for Stage 0 teleportation
+      final universalController = factory.getController<UniversalAvatarController>('${equippedAvatarId}_ai_screen');
+      _universalController = universalController;
+      _logger.i('🌌 AI Screen: Universal controller for quantum Stage 0: ${universalController != null}');
+      
+      // Get quantum controller for card teleportation (use new ID)
+      final quantumController = factory.getQuantumCoachController('quantum_coach_logic_only');
+      _logger.i('🌌 AI Screen: Quantum controller for cards: ${quantumController != null}');
+    } else {
+      // For other avatars, get the universal controller
+      final factory = AvatarControllerFactory();
+      final universalController = factory.getController<UniversalAvatarController>('${equippedAvatarId}_ai_screen');
+      _logger.i('🎯 AI Screen: Universal controller exists: ${universalController != null}');
+      _universalController = universalController;
+    }
+    
+    // Trigger rebuild to show correct avatar
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
@@ -148,9 +192,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     _focusNode.dispose();
     _sendButtonController.dispose();
     
-    // Dispose avatar controllers
-    AvatarControllerFactory().removeAvatar('mummy_ai_screen');
-    AvatarControllerFactory().removeAvatar('quantum_coach_teleporter');
+    // Avatar controllers are managed by SmartAvatarManager, not disposed here
+    _universalController = null;
+    _lastInitializedAvatarId = null;
 
     // Enhanced cleanup for speech recognition (especially for Huawei devices)
     try {
@@ -420,7 +464,18 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BridgedAvatarScreenManager(
+    // Watch for Firebase avatar state changes
+    final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider).valueOrNull;
+    final currentEquippedId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+    
+    // Only reinitialize if avatar actually changed (prevent multiple calls)
+    if (_lastInitializedAvatarId != currentEquippedId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _initializeAvatarController();
+      });
+    }
+    
+    return SmartAvatarManager(
       screenId: 'ai_screen',
       legacyParameters: {
         'headerAvatarKey': _headerAvatarKey,
@@ -429,74 +484,23 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       child: Scaffold(
         backgroundColor: AppTheme.surfaceColor(context),
         body: SafeArea(
-          child: Stack(
-            children: [
-            Column(
-              children: [
-                _buildHeader(),
-                if (!_userHasInteracted)
-                  Expanded(
-                    child: _buildActionButtons(),
-                  ), // Show buttons until user interacts
-                if (_userHasInteracted) Expanded(child: _buildChatArea()),
-                _buildMessageInput(),
-              ],
-            ),
-            // Large avatar overlay controlled by mummy controller
-            ValueListenableBuilder<bool>(
-              valueListenable: _mummyController.showLargeAvatar,
-              builder: (context, showLargeAvatar, child) {
-                if (showLargeAvatar && !_userHasInteracted) {
-                  return Positioned(
-                    top: 120, // Below header, above eco stats
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: GestureDetector(
-                        onTap: () => _mummyController.handleInteraction(AvatarInteractionType.singleTap),
-                        child: AvatarDisplay(
-                          key: _largeAvatarKey,
-                          width: 120,
-                          height: 120,
-                          autoPlaySequence: true,
-                          sequenceDelay: const Duration(seconds: 2),
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-            // Interactive Quantum Coach positioned over specific cards
-            ValueListenableBuilder<CoachLocation>(
-              valueListenable: _quantumCoachController.currentLocation,
-              builder: (context, currentLocation, child) {
-                return ValueListenableBuilder<bool>(
-                  valueListenable: _quantumCoachController.isVisible,
-                  builder: (context, isVisible, child) {
-                    if (!isVisible) return const SizedBox.shrink();
-                    
-                    // Calculate position based on current card location
-                    final position = _getCoachPositionForCard(currentLocation, context);
-                    
-                    return Positioned(
-                      top: position['top']!,
-                      left: position['left'],
-                      right: position['right'],
-                      child: QuantumCoachWidget(
-                        expectedLocation: currentLocation,
-                        controller: _quantumCoachController,
-                        width: 80,
-                        height: 80,
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SizedBox(
+                height: constraints.maxHeight,
+                child: Column(
+                  children: [
+                    _buildHeader(),
+                    if (!_userHasInteracted)
+                      Expanded(
+                        child: _buildActionButtons(),
+                      ), // Show buttons until user interacts
+                    if (_userHasInteracted) Expanded(child: _buildChatArea()),
+                    _buildMessageInput(),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -509,35 +513,16 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       decoration: BoxDecoration(color: AppTheme.surfaceColor(context)),
       child: Row(
         children: [
-          // Mummy Avatar with Rive Animation (disappears when teleported)
-          ValueListenableBuilder<bool>(
-            valueListenable: _mummyController.showLargeAvatar,
-            builder: (context, showLargeAvatar, child) {
-              return GestureDetector(
-                onTap: () => _mummyController.handleInteraction(AvatarInteractionType.singleTap),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.purple.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: showLargeAvatar 
-                    ? null // Empty ring when avatar is teleported away
-                    : ClipOval(
-                        child: AvatarDisplay(
-                          key: _headerAvatarKey,
-                          width: 50,
-                          height: 50,
-                          initialStage: AnimationStage.idle,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                ),
-              );
+          // Avatar in header - dynamically show equipped avatar
+          Consumer(
+            builder: (context, ref, child) {
+              final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider).valueOrNull;
+              final equippedAvatarId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+              
+              _logger.i('🎯 Header building with avatar: $equippedAvatarId');
+              _logger.i('🎯 Firebase avatar state in header: ${firebaseAvatarState?.toString()}');
+              
+              return _buildHeaderAvatar(equippedAvatarId);
             },
           ),
           const SizedBox(width: 12),
@@ -549,10 +534,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                   children: [
                     Consumer(
                       builder: (context, ref, child) {
-                        final avatarState = ref.watch(avatarStateProvider).valueOrNull;
-                        final equippedAvatarId = avatarState?.equippedAvatarId ?? 'classic_coach';
+                        final equippedAvatar = ref.watch(equippedAvatarProvider);
+                        final avatarName = equippedAvatar?.name ?? 'AI Coach';
                         return Text(
-                          tr(context, 'avatar_${equippedAvatarId}_name'),
+                          avatarName,
                           style: TextStyle(
                             color: AppTheme.textColor(context),
                             fontSize: 20,
@@ -614,52 +599,92 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     );
   }
 
-  /// Calculate Quantum Coach position based on which card it should be over
-  Map<String, double?> _getCoachPositionForCard(CoachLocation location, BuildContext context) {
-    final screenSize = MediaQuery.of(context).size;
-    final isTablet = screenSize.width > 600;
-    
-    switch (location) {
-      case CoachLocation.ecoCard:
-        // Eco button is centered at top - position coach over it
-        return {
-          'top': isTablet ? 180.0 : 200.0, // Above the centered eco button
-          'left': null,
-          'right': null,
-        };
-        
-      case CoachLocation.workoutCard:
-        // Workout is in grid position [0,0] (top-left of 2x2 grid)
-        return {
-          'top': isTablet ? 280.0 : 320.0, // Over the grid area
-          'left': isTablet ? 80.0 : 40.0,  // Left side of grid
-          'right': null,
-        };
-        
-      case CoachLocation.mealCard:
-        // Meal is in grid position [0,1] (top-right of 2x2 grid)
-        return {
-          'top': isTablet ? 280.0 : 320.0, // Over the grid area
-          'left': null,
-          'right': isTablet ? 80.0 : 40.0, // Right side of grid
-        };
-        
-      case CoachLocation.scheduleCard:
-        // Schedule is in grid position [1,0] (bottom-left of 2x2 grid)
-        return {
-          'top': isTablet ? 360.0 : 420.0, // Lower in grid area
-          'left': isTablet ? 80.0 : 40.0,  // Left side of grid
-          'right': null,
-        };
-        
-      case CoachLocation.foodCard:
-        // Food recognizer is in grid position [1,1] (bottom-right of 2x2 grid)
-        return {
-          'top': isTablet ? 360.0 : 420.0, // Lower in grid area
-          'left': null,
-          'right': isTablet ? 80.0 : 40.0, // Right side of grid
-        };
+
+
+  Widget _buildHeaderAvatar(String equippedAvatarId) {
+    return _buildHeaderAvatarForType(equippedAvatarId);
+  }
+
+  Widget _buildHeaderAvatarForType(String avatarId) {
+    // All avatars now use the universal controller with same interaction pattern
+    return _buildUniversalHeaderAvatar(avatarId);
+  }
+
+  Widget _buildUniversalHeaderAvatar(String avatarId) {
+    // For quantum coach, show interactive header (now uses universal controller for Stage 0)
+    if (avatarId == 'quantum_coach') {
+      _logger.i('🌌 Building interactive header for quantum coach (universal Stage 0)');
     }
+    
+    if (_universalController == null) {
+      _logger.i('🎯 No universal controller, building static header for: $avatarId');
+      return _buildStaticHeaderAvatar(avatarId);
+    }
+    
+    _logger.i('🎯 Building interactive header for: $avatarId');
+    return ValueListenableBuilder<bool>(
+      valueListenable: _universalController!.showLargeAvatar,
+      builder: (context, showLargeAvatar, child) {
+        return GestureDetector(
+          onTap: () {
+            _logger.i('🎯 Header avatar tapped for: $avatarId');
+            _logger.i('🎯 Universal controller exists: ${_universalController != null}');
+            _logger.i('🎯 Universal controller type: ${_universalController?.avatarTypeString}');
+            _universalController!.handleInteraction(AvatarInteractionType.singleTap);
+          },
+          child: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.purple.withValues(alpha: 0.3),
+                width: 2,
+              ),
+            ),
+            child: showLargeAvatar 
+              ? null // Empty ring when avatar is teleported away
+              : ClipOval(
+                  child: AvatarDisplay(
+                    key: _headerAvatarKey,
+                    avatarId: avatarId, // Use actual equipped avatar ID
+                    width: 50,
+                    height: 50,
+                    initialStage: AnimationStage.idle,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+          ),
+        );
+      },
+    );
+  }
+
+
+
+
+  Widget _buildStaticHeaderAvatar(String avatarId) {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.purple.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: AvatarDisplay(
+          key: _headerAvatarKey,
+          avatarId: avatarId,
+          width: 50,
+          height: 50,
+          initialStage: AnimationStage.idle,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
   }
 
   Widget _buildActionButtons() {
@@ -698,13 +723,14 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
             vertical: isTablet ? 12 : 24,
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Eco button centered on top - same width as individual grid buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(flex: 1, child: Container()),
+                  const Spacer(),
                   Expanded(
                     flex: isTablet ? 1 : 2,
                     child: AspectRatio(
@@ -716,7 +742,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       ),
                     ),
                   ),
-                  Expanded(flex: 1, child: Container()),
+                  const Spacer(),
                 ],
               ),
               const SizedBox(height: 24),
@@ -839,6 +865,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         left: 16,
         right: 16,
       ),
+      constraints: const BoxConstraints(
+        maxHeight: 200, // Prevent excessive height
+      ),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
         border: Border(
@@ -937,6 +966,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
+                          constraints: BoxConstraints(
+                            maxHeight: isTablet ? 120 : 90, // Limit expansion
+                          ),
                           child: TextField(
                             controller: _messageController,
                             focusNode: _focusNode,

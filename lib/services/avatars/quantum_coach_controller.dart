@@ -8,6 +8,7 @@ final log = Logger('QuantumCoachController');
 
 /// Available locations for Quantum Coach teleportation within AI screen
 enum CoachLocation {
+  header,      // Header position (initial/idle position)
   ecoCard,     // Eco button at top center
   workoutCard, // Workout button in grid
   mealCard,    // Meal button in grid  
@@ -17,26 +18,20 @@ enum CoachLocation {
 
 /// Specific controller for Quantum Coach teleportation interactions
 class QuantumCoachController extends AvatarInteractionController {
-  final ValueNotifier<CoachLocation> _currentLocation = ValueNotifier(CoachLocation.ecoCard);
+  final ValueNotifier<CoachLocation> _currentLocation = ValueNotifier(CoachLocation.header);
   final ValueNotifier<bool> _isVisible = ValueNotifier(true);
   final ValueNotifier<String> _currentAnimation = ValueNotifier('Idle');
   final ValueNotifier<int> _teleportationStep = ValueNotifier(0);
+  bool _isInteractionBlocked = false;
 
-  // Available animations for random selection
+  // Available animations for random selection (using actual Rive animation names)
   static const List<String> _availableAnimations = [
     'Idle',
-    'scratching head',
-    'flower out',
-    'flower in',
-    'jump 2',
-    'jumpidle',
-    'jumpright',
-    'jumpleft',
-    'win 2',
-    'star idle action 1',
-    'staractTouch',
-    'Sitting position (No. 5)',
-    'Sitting posture (No. 2)',
+    'startAct_Touch',
+    'Act_Touch',
+    'jump',
+    'win',
+    'Act_1',
   ];
 
   // Teleportation sequence between card locations within AI screen
@@ -67,6 +62,12 @@ class QuantumCoachController extends AvatarInteractionController {
   @override
   Future<void> handleInteraction(AvatarInteractionType type) async {
     if (type != AvatarInteractionType.singleTap) return;
+    
+    // Block interaction if still in delay period
+    if (_isInteractionBlocked) {
+      log.info('🌌 Quantum Coach interaction blocked - waiting for delay');
+      return;
+    }
 
     final currentStep = _teleportationStep.value;
     log.info('🌌 Quantum Coach interaction - Step: $currentStep');
@@ -105,7 +106,7 @@ class QuantumCoachController extends AvatarInteractionController {
     updateInteraction(teleportData);
 
     // Play jump animation
-    _currentAnimation.value = 'jump 2';
+    _currentAnimation.value = 'jump';
     
     await Future.delayed(const Duration(milliseconds: 1500));
     
@@ -117,6 +118,9 @@ class QuantumCoachController extends AvatarInteractionController {
     _currentLocation.value = nextLocation;
     _teleportationStep.value = 1;
     _currentAnimation.value = 'Idle';
+    
+    // Add 6-second delay before allowing next interaction
+    await _addInteractionDelay();
     
     log.info('🌌 Quantum Coach teleported to ${nextLocation.name}');
   }
@@ -173,6 +177,9 @@ class QuantumCoachController extends AvatarInteractionController {
     _currentAnimation.value = 'Idle';
     _teleportationStep.value = currentStep + 1;
     
+    // Add 6-second delay before allowing next interaction
+    await _addInteractionDelay();
+    
     log.info('🌌 Quantum Coach moved to ${nextLocation.name} (step ${currentStep + 1})');
   }
 
@@ -195,7 +202,7 @@ class QuantumCoachController extends AvatarInteractionController {
     updateInteraction(teleportData);
 
     // Play win animation
-    _currentAnimation.value = 'win 2';
+    _currentAnimation.value = 'win';
     
     await Future.delayed(const Duration(seconds: 3));
     
@@ -205,7 +212,7 @@ class QuantumCoachController extends AvatarInteractionController {
     
     _currentLocation.value = CoachLocation.ecoCard;
     _isVisible.value = true;
-    _currentAnimation.value = 'star idle action 1';
+    _currentAnimation.value = 'Act_1';
     
     await Future.delayed(const Duration(seconds: 2));
     
@@ -214,7 +221,17 @@ class QuantumCoachController extends AvatarInteractionController {
     _currentAnimation.value = 'Idle';
     reset();
     
+    // Add 6-second delay before allowing next interaction
+    await _addInteractionDelay();
+    
     log.info('🌌 Quantum Coach returned to AI screen and reset cycle');
+  }
+
+  /// Add 6-second delay before allowing next interaction
+  Future<void> _addInteractionDelay() async {
+    _isInteractionBlocked = true;
+    await Future.delayed(const Duration(seconds: 6));
+    _isInteractionBlocked = false;
   }
 
   /// Get random animation (useful for external triggers)
@@ -232,7 +249,7 @@ class QuantumCoachController extends AvatarInteractionController {
   @override
   void reset() {
     super.reset();
-    _currentLocation.value = CoachLocation.aiScreen;
+    _currentLocation.value = CoachLocation.ecoCard;
     _isVisible.value = true;
     _currentAnimation.value = 'Idle';
     _teleportationStep.value = 0;

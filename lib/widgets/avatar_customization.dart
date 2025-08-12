@@ -55,7 +55,15 @@ class _AvatarCustomizationState extends ConsumerState<AvatarCustomization> {
     try {
       final config = AvatarAnimationsConfig.getConfigWithFallback(widget.avatarId);
       final rivFile = await rive.RiveFile.asset(config.rivAssetPath);
-      final artboard = rivFile.mainArtboard.instance();
+      
+      // Handle RuntimeArtboard properly
+      rive.Artboard artboard;
+      try {
+        artboard = rivFile.mainArtboard.instance();
+      } catch (e) {
+        debugPrint('⚠️ Failed to clone artboard, using original: $e');
+        artboard = rivFile.mainArtboard;
+      }
 
       // Try to create state machine controller
       final controller = rive.StateMachineController.fromArtboard(

@@ -56,7 +56,21 @@ class UserCoinBalance {
     );
   }
 
+  /// Convert to JSON for local storage (uses ISO string for DateTime)
   Map<String, dynamic> toJson() {
+    return {
+      'streakCoins': streakCoins,
+      'coachPoints': coachPoints,
+      'fitGems': fitGems,
+      'lastUpdated': lastUpdated.toIso8601String(),
+      'dailyEarnings': dailyEarnings,
+      'totalEarned': totalEarned,
+      'totalSpent': totalSpent,
+    };
+  }
+
+  /// Convert to JSON for Firestore (uses Timestamp for DateTime)
+  Map<String, dynamic> toFirestoreJson() {
     return {
       'streakCoins': streakCoins,
       'coachPoints': coachPoints,
@@ -190,7 +204,19 @@ class CoinEarningEvent {
     );
   }
 
+  /// Convert to JSON for local storage (uses ISO string for DateTime)
   Map<String, dynamic> toJson() {
+    return {
+      'type': type.toString().split('.').last,
+      'amount': amount,
+      'reason': reason,
+      'timestamp': timestamp.toIso8601String(),
+      'metadata': metadata,
+    };
+  }
+
+  /// Convert to JSON for Firestore (uses Timestamp for DateTime)
+  Map<String, dynamic> toFirestoreJson() {
     return {
       'type': type.toString().split('.').last,
       'amount': amount,
@@ -296,6 +322,7 @@ class CoinTransaction {
     );
   }
 
+  /// Convert to JSON for local storage (uses ISO string for DateTime)
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -305,6 +332,19 @@ class CoinTransaction {
       'reason': reason.name,
       'message': message,
       'timestamp': timestamp.toIso8601String(),
+    };
+  }
+
+  /// Convert to JSON for Firestore (uses Timestamp for DateTime)
+  Map<String, dynamic> toFirestoreJson() {
+    return {
+      'id': id,
+      'coinType': coinType.name,
+      'amount': amount,
+      'isPositive': isPositive,
+      'reason': reason.name,
+      'message': message,
+      'timestamp': Timestamp.fromDate(timestamp),
     };
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
 import '../../../providers/riverpod/health_data_provider.dart';
+import '../../../providers/store/currency_provider.dart';
 import '../../../models/user/user_progress.dart';
 import '../../../widgets/common/rive_emoji_widget.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
@@ -13,6 +14,9 @@ class DailyGoalsProgressWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Initialize daily goals currency service to sync with progress
+    ref.watch(dailyGoalsCurrencyServiceProvider);
+    
     final progressAsync = ref.watch(userProgressNotifierProvider);
     final healthDataAsync = ref.watch(healthDataNotifierProvider);
 

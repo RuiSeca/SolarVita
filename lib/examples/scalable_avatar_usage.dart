@@ -2,9 +2,16 @@
 
 import 'package:flutter/material.dart';
 import '../services/avatars/scalable_avatar_system.dart';
+import '../services/avatars/mummy_avatar_controller.dart';
+import '../services/avatars/quantum_coach_controller.dart';
+import '../services/avatars/avatar_controller_factory.dart';
+import '../services/avatars/avatar_interaction_manager.dart';
+import '../widgets/avatar_display.dart';
 
 /// BEFORE: Manual avatar integration (current approach)
 class OldAIAssistantScreen extends StatefulWidget {
+  const OldAIAssistantScreen({super.key});
+  
   @override
   State<OldAIAssistantScreen> createState() => _OldAIAssistantScreenState();
 }
@@ -13,19 +20,20 @@ class _OldAIAssistantScreenState extends State<OldAIAssistantScreen> {
   // Manual controller management
   late final MummyAvatarController _mummyController;
   late final QuantumCoachController _quantumController;
-  final GlobalKey _headerAvatarKey = GlobalKey();
-  final GlobalKey _largeAvatarKey = GlobalKey();
+  final GlobalKey<AvatarDisplayState> _headerAvatarKey = GlobalKey<AvatarDisplayState>();
+  final GlobalKey<AvatarDisplayState> _largeAvatarKey = GlobalKey<AvatarDisplayState>();
 
   @override
   void initState() {
     super.initState();
     // Manual initialization
-    _mummyController = AvatarControllerFactory().createMummyController(
+    final factory = AvatarControllerFactory();
+    _mummyController = factory.createMummyController(
       avatarId: 'mummy_ai_screen',
       headerAvatarKey: _headerAvatarKey,
       largeAvatarKey: _largeAvatarKey,
     );
-    _quantumController = AvatarControllerFactory().createQuantumCoachController(
+    _quantumController = factory.createQuantumCoachController(
       avatarId: 'quantum_coach_teleporter',
     );
   }
@@ -33,8 +41,9 @@ class _OldAIAssistantScreenState extends State<OldAIAssistantScreen> {
   @override
   void dispose() {
     // Manual cleanup
-    AvatarControllerFactory().removeAvatar('mummy_ai_screen');
-    AvatarControllerFactory().removeAvatar('quantum_coach_teleporter');
+    final factory = AvatarControllerFactory();
+    factory.removeAvatar('mummy_ai_screen');
+    factory.removeAvatar('quantum_coach_teleporter');
     super.dispose();
   }
 
@@ -67,7 +76,7 @@ class _OldAIAssistantScreenState extends State<OldAIAssistantScreen> {
               return ValueListenableBuilder(
                 valueListenable: _quantumController.isVisible,
                 builder: (context, isVisible, child) {
-                  if (location == CoachLocation.aiScreen && isVisible) {
+                  if (location == CoachLocation.ecoCard && isVisible) {
                     return Positioned(
                       top: 200,
                       right: 20,
@@ -90,6 +99,8 @@ class _OldAIAssistantScreenState extends State<OldAIAssistantScreen> {
 
 /// AFTER: Configuration-driven avatar system (scalable approach)
 class NewAIAssistantScreen extends StatelessWidget {
+  const NewAIAssistantScreen({super.key});
+  
   @override
   Widget build(BuildContext context) {
     // Single wrapper handles ALL avatars automatically
@@ -205,6 +216,8 @@ class AvatarAnalytics {
 
 /// MULTI-SCREEN SUPPORT: Avatars work across all screens automatically
 class MealPlanScreen extends StatelessWidget {
+  const MealPlanScreen({super.key});
+  
   @override
   Widget build(BuildContext context) {
     return AvatarScreenManager(

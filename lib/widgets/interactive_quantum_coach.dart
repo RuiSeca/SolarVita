@@ -80,7 +80,15 @@ class _InteractiveQuantumCoachState extends ConsumerState<InteractiveQuantumCoac
       await _customizationService.initialize();
       
       final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
-      final artboard = rivFile.mainArtboard.instance();
+      
+      // Handle RuntimeArtboard properly
+      rive.Artboard artboard;
+      try {
+        artboard = rivFile.mainArtboard.instance();
+      } catch (e) {
+        log.warning('⚠️ Failed to clone artboard, using original: $e');
+        artboard = rivFile.mainArtboard;
+      }
       
       final controller = rive.StateMachineController.fromArtboard(
         artboard,

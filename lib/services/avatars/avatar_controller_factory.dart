@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import '../../widgets/avatar_display.dart';
 import 'avatar_interaction_manager.dart';
+import 'universal_avatar_controller.dart';
 import 'mummy_avatar_controller.dart';
 import 'quantum_coach_controller.dart';
 
@@ -29,6 +30,26 @@ class AvatarControllerFactory {
       largeAvatarKey: largeAvatarKey,
     );
 
+    _manager.registerController(controller);
+    return controller;
+  }
+
+  /// Create universal controller for any avatar type
+  UniversalAvatarController createUniversalController({
+    required String avatarId,
+    required String avatarType,
+    GlobalKey<AvatarDisplayState>? headerAvatarKey,
+    GlobalKey<AvatarDisplayState>? largeAvatarKey,
+  }) {
+    log.info('Creating Universal controller for $avatarType: $avatarId');
+    
+    final controller = UniversalAvatarController(
+      avatarId: avatarId,
+      avatarType: avatarType,
+      headerAvatarKey: headerAvatarKey,
+      largeAvatarKey: largeAvatarKey,
+    );
+    
     _manager.registerController(controller);
     return controller;
   }

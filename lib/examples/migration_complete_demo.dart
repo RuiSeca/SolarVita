@@ -2,7 +2,7 @@
 // This shows how the system now works and how to add new avatars
 
 import 'package:flutter/material.dart';
-import '../services/avatars/migration_bridge.dart';
+import '../services/avatars/smart_avatar_manager.dart';
 
 /// ✅ MIGRATION COMPLETED SUCCESSFULLY!
 /// 
@@ -23,11 +23,13 @@ import '../services/avatars/migration_bridge.dart';
 /// ==================================================================================
 
 class AIAssistantScreenAfterMigration extends StatelessWidget {
+  const AIAssistantScreenAfterMigration({super.key});
+  
   @override
   Widget build(BuildContext context) {
     // 🎉 THIS IS ALL THE AVATAR CODE NEEDED NOW!
-    return BridgedAvatarScreenManager(
-      screenId: 'ai_screen',               // ← Screen identifier
+    return SmartAvatarManager(
+      screenId: 'ai_screen',               // ← Screen identifier  
       child: Scaffold(                     // ← Your existing UI
         body: Column(
           children: [
@@ -109,9 +111,11 @@ class AIAssistantScreenAfterMigration extends StatelessWidget {
 
 /// Meal Plan Screen - Avatars work here too!
 class MealPlanScreenAfterMigration extends StatelessWidget {
+  const MealPlanScreenAfterMigration({super.key});
+  
   @override
   Widget build(BuildContext context) {
-    return BridgedAvatarScreenManager(
+    return SmartAvatarManager(
       screenId: 'meal_plan',              // ← Different screen
       child: Scaffold(
         body: Column(
@@ -128,9 +132,11 @@ class MealPlanScreenAfterMigration extends StatelessWidget {
 
 /// Workout Screen - Avatars work here too!
 class WorkoutScreenAfterMigration extends StatelessWidget {
+  const WorkoutScreenAfterMigration({super.key});
+  
   @override
   Widget build(BuildContext context) {
-    return BridgedAvatarScreenManager(
+    return SmartAvatarManager(
       screenId: 'workout_tips',           // ← Different screen  
       child: Scaffold(
         body: Column(
