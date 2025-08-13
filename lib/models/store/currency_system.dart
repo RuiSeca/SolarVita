@@ -104,14 +104,30 @@ class UserCurrency {
     final data = doc.data() as Map<String, dynamic>;
     
     final balancesMap = <CurrencyType, int>{};
-    final balancesData = data['balances'] as Map<String, dynamic>? ?? {};
     
-    for (final entry in balancesData.entries) {
+    // Handle both old and new document formats
+    Map<String, dynamic> currencyData;
+    if (data.containsKey('balances')) {
+      // New format: nested under 'balances'
+      currencyData = data['balances'] as Map<String, dynamic>? ?? {};
+    } else {
+      // Old format: top-level currency fields
+      currencyData = data;
+    }
+    
+    for (final entry in currencyData.entries) {
       try {
+        // Skip the old 'gems' field and other non-currency fields
+        if (entry.key == 'gems' || entry.key == 'userId' || entry.key == 'lastUpdated' || entry.key == 'metadata' || entry.key == 'createdAt' || entry.key == 'version') {
+          continue;
+        }
+        
         final type = CurrencyType.values.firstWhere((t) => t.name == entry.key);
-        balancesMap[type] = entry.value as int;
+        if (entry.value is int) {
+          balancesMap[type] = entry.value as int;
+        }
       } catch (e) {
-        // Skip unknown currency types
+        // Skip unknown currency types or invalid values
       }
     }
 

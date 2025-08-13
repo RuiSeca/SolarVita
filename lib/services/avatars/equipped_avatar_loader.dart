@@ -61,6 +61,7 @@ class EquippedAvatarLoader extends ConsumerWidget {
             fit: fit,
             autoPlaySequence: autoPlaySequence,
             sequenceDelay: sequenceDelay ?? const Duration(seconds: 2),
+            preferEquipped: true, // Always prioritize equipped avatar
             // AvatarDisplay automatically loads equipped avatar from state
           ),
         ),

@@ -88,20 +88,36 @@ class _QuantumCoachWidgetState extends State<QuantumCoachWidget>
       
       final rivFile = await rive.RiveFile.asset('assets/rive/quantum_coach.riv');
       
-      // Handle RuntimeArtboard properly
+      // Handle RuntimeArtboard properly with enhanced error handling
       rive.Artboard artboard;
       try {
         artboard = rivFile.mainArtboard.instance();
+        log.info('✅ Successfully cloned quantum coach artboard');
       } catch (e) {
         // Fallback if instance() fails - use the artboard directly
         log.warning('⚠️ Failed to clone artboard, using original: $e');
         artboard = rivFile.mainArtboard;
+        
+        // Additional safety check - artboard should not be null after fallback
       }
       
-      final controller = rive.StateMachineController.fromArtboard(
-        artboard,
-        'State Machine 1',
-      );
+      // Create StateMachineController with enhanced error handling
+      rive.StateMachineController? controller;
+      try {
+        controller = rive.StateMachineController.fromArtboard(
+          artboard,
+          'State Machine 1',
+        );
+        if (controller != null) {
+          log.info('✅ StateMachineController created for quantum coach');
+        } else {
+          log.warning('⚠️ StateMachineController is null for quantum coach');
+        }
+      } catch (e) {
+        log.severe('❌ Error creating StateMachineController for quantum coach: $e');
+        // Don't proceed with null controller to avoid further casting errors
+        return;
+      }
       
       if (controller != null) {
         artboard.addController(controller);

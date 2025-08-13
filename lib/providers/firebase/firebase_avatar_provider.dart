@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import '../../models/firebase/firebase_avatar.dart';
@@ -10,7 +11,18 @@ final log = Logger('FirebaseAvatarProvider');
 final firebaseAvatarServiceProvider = Provider<FirebaseAvatarService>((ref) {
   final service = FirebaseAvatarService();
   
-  // Initialize service immediately if user is already authenticated
+  // Force initialization immediately - don't wait for auth state
+  // The service will handle null user gracefully and initialize when ready
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    try {
+      await service.initialize();
+      log.info('✅ Firebase Avatar Service force initialized on startup');
+    } catch (error) {
+      log.severe('❌ Failed to force initialize Firebase Avatar Service: $error');
+    }
+  });
+  
+  // Also initialize immediately if user is already authenticated
   final authState = ref.read(authStateProvider);
   if (authState.hasValue && authState.value != null) {
     service.initialize().catchError((error) {
@@ -89,19 +101,45 @@ final equippedAvatarProvider = Provider<FirebaseAvatar?>((ref) {
   
   return avatarState.when(
     data: (state) {
-      if (state?.equippedAvatarId == null) return null;
+      log.info('🎭 DEBUG: equippedAvatarProvider - Avatar state: ${state?.equippedAvatarId}');
       
       return availableAvatars.when(
-        data: (avatars) => avatars.firstWhere(
-          (avatar) => avatar.avatarId == state!.equippedAvatarId,
-          orElse: () => avatars.isNotEmpty ? avatars.first : _createFallbackAvatar(),
-        ),
-        loading: () => null,
-        error: (_, __) => null,
+        data: (avatars) {
+          if (avatars.isEmpty) {
+            log.info('🎭 DEBUG: No avatars available, using fallback');
+            return _createFallbackAvatar();
+          }
+          
+          if (state?.equippedAvatarId == null) {
+            log.info('🎭 DEBUG: No equipped avatar ID found, using first available avatar');
+            return avatars.first;
+          }
+          
+          final equipped = avatars.firstWhere(
+            (avatar) => avatar.avatarId == state!.equippedAvatarId,
+            orElse: () => avatars.first,
+          );
+          log.info('🎭 DEBUG: Found equipped avatar: ${equipped.avatarId}');
+          return equipped;
+        },
+        loading: () {
+          log.info('🎭 DEBUG: Available avatars still loading, using fallback');
+          return _createFallbackAvatar();
+        },
+        error: (error, _) {
+          log.warning('🎭 DEBUG: Available avatars error: $error, using fallback');
+          return _createFallbackAvatar();
+        },
       );
     },
-    loading: () => null,
-    error: (_, __) => null,
+    loading: () {
+      log.info('🎭 DEBUG: Avatar state still loading, using fallback');
+      return _createFallbackAvatar();
+    },
+    error: (error, _) {
+      log.warning('🎭 DEBUG: Avatar state error: $error, using fallback');
+      return _createFallbackAvatar();
+    },
   );
 });
 
@@ -347,7 +385,7 @@ List<FirebaseAvatar> _createFallbackAvatars() {
       price: 0, // Temporarily free while currency system is being developed
       rarity: 'legendary',
       isPurchasable: true,
-      requiredAchievements: ['complete_first_week', 'eco_warrior'],
+      requiredAchievements: [], // Made free for demo purposes
       releaseDate: DateTime(2024, 6, 1),
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),

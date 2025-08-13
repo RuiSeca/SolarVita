@@ -527,55 +527,55 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+            child: Consumer(
+              builder: (context, ref, child) {
+                final equippedAvatar = ref.watch(equippedAvatarProvider);
+                final avatarName = equippedAvatar?.name ?? 'AI Coach';
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Consumer(
-                      builder: (context, ref, child) {
-                        final equippedAvatar = ref.watch(equippedAvatarProvider);
-                        final avatarName = equippedAvatar?.name ?? 'AI Coach';
-                        return Text(
+                    Row(
+                      children: [
+                        Text(
                           avatarName,
                           style: TextStyle(
                             color: AppTheme.textColor(context),
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
-                        );
-                      },
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Colors.purple.withValues(alpha: 0.4),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            tr(context, 'status.new'),
+                            style: TextStyle(
+                              color: Colors.purple,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: Colors.purple.withValues(alpha: 0.4),
-                          width: 1,
-                        ),
-                      ),
-                      child: Text(
-                        tr(context, 'status.new'),
-                        style: TextStyle(
-                          color: Colors.purple,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      'Ancient fitness wisdom meets modern AI',
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withAlpha(153),
+                        fontSize: 14,
                       ),
                     ),
                   ],
-                ),
-                Text(
-                  'Ancient fitness wisdom meets modern AI',
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withAlpha(153),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
+                );
+              },
             ),
           ),
           // Store Icon Button
@@ -652,6 +652,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                     height: 50,
                     initialStage: AnimationStage.idle,
                     fit: BoxFit.cover,
+                    preferEquipped: true, // Always show equipped avatar in AI screen
                   ),
                 ),
           ),
@@ -682,6 +683,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           height: 50,
           initialStage: AnimationStage.idle,
           fit: BoxFit.cover,
+          preferEquipped: true, // Always show equipped avatar in AI screen
         ),
       ),
     );

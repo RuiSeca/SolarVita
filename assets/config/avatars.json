@@ -1,0 +1,303 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-08-10T11:00:00Z",
+  "avatars": [
+    {
+      "id": "mummy_classic",
+      "name": "Classic Mummy",
+      "type": "sequential",
+      "assetPath": "assets/rive/mummy.riv",
+      "animations": {
+        "idle": "Idle",
+        "jump": "Jump", 
+        "run": "Run",
+        "attack": "Attack"
+      },
+      "interactions": {
+        "type": "sequence",
+        "id": "mummy_4_stage",
+        "steps": [
+          {
+            "name": "jump_teleport",
+            "animation": "jump",
+            "duration": 2000,
+            "description": "Jump and teleport to large view"
+          },
+          {
+            "name": "run_phase", 
+            "animation": "run",
+            "duration": 10000,
+            "description": "Run animation for 10 seconds"
+          },
+          {
+            "name": "attack_phase",
+            "animation": "attack", 
+            "duration": 1000,
+            "description": "Attack animation for 1 second"
+          },
+          {
+            "name": "final_jump",
+            "animation": "jump",
+            "duration": 6000,
+            "description": "Final jump and return to profile"
+          }
+        ]
+      },
+      "positioning": {
+        "ai_screen": {
+          "position": "header",
+          "coordinates": {
+            "x": 16,
+            "y": 16, 
+            "width": 50,
+            "height": 50
+          },
+          "anchor": "top_left",
+          "zIndex": 1,
+          "container": "header_avatars"
+        }
+      },
+      "requiredScreens": ["ai_screen"],
+      "priority": 1,
+      "isEnabled": true,
+      "customProperties": {
+        "showLargeAvatar": true,
+        "largeAvatarPosition": {
+          "x": 0,
+          "y": 120,
+          "width": 120,
+          "height": 120,
+          "anchor": "center"
+        },
+        "headerKey": "headerAvatarKey",
+        "largeKey": "largeAvatarKey"
+      }
+    },
+    {
+      "id": "quantum_coach",
+      "name": "Quantum Coach",
+      "type": "teleportation",
+      "assetPath": "assets/rive/quantum_coach.riv",
+      "animations": {
+        "idle": "Idle",
+        "jump": "jump",
+        "win": "win",
+        "random": [
+          "startAct_Touch",
+          "Act_Touch",
+          "Act_1"
+        ]
+      },
+      "interactions": {
+        "type": "teleportation",
+        "id": "quantum_5_step",
+        "locations": ["ecoCard", "workoutCard", "mealCard", "scheduleCard", "foodCard"],
+        "steps": [
+          {
+            "step": 0,
+            "location": "ai_screen",
+            "action": "jump_and_teleport",
+            "animation": "jump",
+            "description": "Jump animation and teleport to random location"
+          },
+          {
+            "step": 1,
+            "location": "random",
+            "action": "random_animation_and_move", 
+            "animation": "random",
+            "description": "Idle then random animation, move to next location"
+          },
+          {
+            "step": 2,
+            "location": "next",
+            "action": "random_animation_and_move",
+            "animation": "random", 
+            "description": "Idle then random animation, move to next location"
+          },
+          {
+            "step": 3,
+            "location": "next",
+            "action": "random_animation_and_move",
+            "animation": "random",
+            "description": "Idle then random animation, move to next location"
+          },
+          {
+            "step": 4,
+            "location": "any",
+            "action": "win_and_return",
+            "animation": "win",
+            "description": "Win animation and return to AI screen"
+          }
+        ]
+      },
+      "positioning": {
+        "ecoCard": {
+          "position": "overlay",
+          "coordinates": {
+            "phone": {"x": 0, "y": 200, "width": 80, "height": 80},
+            "tablet": {"x": 0, "y": 180, "width": 80, "height": 80}
+          },
+          "anchor": "center",
+          "zIndex": 3,
+          "container": "floating_avatars"
+        },
+        "workoutCard": {
+          "position": "overlay",
+          "coordinates": {
+            "phone": {"x": 40, "y": 320, "width": 80, "height": 80},
+            "tablet": {"x": 80, "y": 280, "width": 80, "height": 80}
+          },
+          "anchor": "center",
+          "zIndex": 3,
+          "container": "floating_avatars"
+        },
+        "mealCard": {
+          "position": "overlay",
+          "coordinates": {
+            "phone": {"x": -40, "y": 320, "width": 80, "height": 80},
+            "tablet": {"x": -80, "y": 280, "width": 80, "height": 80}
+          },
+          "anchor": "center_right",
+          "zIndex": 3,
+          "container": "floating_avatars"
+        },
+        "scheduleCard": {
+          "position": "overlay",
+          "coordinates": {
+            "phone": {"x": 40, "y": 420, "width": 80, "height": 80},
+            "tablet": {"x": 80, "y": 360, "width": 80, "height": 80}
+          },
+          "anchor": "center",
+          "zIndex": 3,
+          "container": "floating_avatars"
+        },
+        "foodCard": {
+          "position": "overlay",
+          "coordinates": {
+            "phone": {"x": -40, "y": 420, "width": 80, "height": 80},
+            "tablet": {"x": -80, "y": 360, "width": 80, "height": 80}
+          },
+          "anchor": "center_right",
+          "zIndex": 3,
+          "container": "floating_avatars"
+        }
+      },
+      "requiredScreens": ["ai_screen", "meal_plan", "workout_tips", "eco_stats"],
+      "priority": 2,
+      "isEnabled": true,
+      "customProperties": {
+        "teleportationDelay": 300,
+        "animationVariations": true,
+        "crossScreenState": true
+      }
+    }
+  ],
+  "layouts": [
+    {
+      "screenId": "ai_screen",
+      "placements": [
+        {
+          "avatarId": "mummy_classic",
+          "position": "header",
+          "coordinates": {
+            "x": 16,
+            "y": 16,
+            "width": 50,
+            "height": 50
+          },
+          "zIndex": 1,
+          "containerId": "header_avatars"
+        },
+        {
+          "avatarId": "quantum_coach",
+          "position": "overlay",
+          "coordinates": {
+            "x": 20,
+            "y": 200, 
+            "width": 100,
+            "height": 100
+          },
+          "zIndex": 2,
+          "containerId": "floating_avatars", 
+          "constraints": {
+            "anchor": "top_right",
+            "responsive": true
+          }
+        }
+      ],
+      "screenProperties": {
+        "maxAvatars": 5,
+        "allowOverlap": false,
+        "responsiveLayout": true
+      }
+    },
+    {
+      "screenId": "meal_plan",
+      "placements": [
+        {
+          "avatarId": "quantum_coach",
+          "position": "overlay",
+          "coordinates": {
+            "x": 20,
+            "y": 300,
+            "width": 80, 
+            "height": 80
+          },
+          "zIndex": 2,
+          "containerId": "floating_avatars",
+          "constraints": {
+            "anchor": "top_right"
+          }
+        }
+      ]
+    },
+    {
+      "screenId": "workout_tips", 
+      "placements": [
+        {
+          "avatarId": "quantum_coach",
+          "position": "overlay",
+          "coordinates": {
+            "x": 20,
+            "y": 50,
+            "width": 80,
+            "height": 80
+          },
+          "zIndex": 2,
+          "containerId": "floating_avatars",
+          "constraints": {
+            "anchor": "top_left"
+          }
+        }
+      ]
+    },
+    {
+      "screenId": "eco_stats",
+      "placements": [
+        {
+          "avatarId": "quantum_coach", 
+          "position": "overlay",
+          "coordinates": {
+            "x": 20,
+            "y": 100,
+            "width": 80,
+            "height": 80
+          },
+          "zIndex": 2,
+          "containerId": "floating_avatars",
+          "constraints": {
+            "anchor": "bottom_right"
+          }
+        }
+      ]
+    }
+  ],
+  "globalSettings": {
+    "enableAnalytics": true,
+    "enablePerformanceMonitoring": true,
+    "defaultAnimationDuration": 1000,
+    "enableDebugMode": false,
+    "maxConcurrentAvatars": 10,
+    "memoryOptimization": true
+  }
+}

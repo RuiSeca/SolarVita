@@ -3,7 +3,6 @@ import 'package:logging/logging.dart';
 import '../../models/store/currency_system.dart';
 import '../../services/store/currency_service.dart';
 import '../../services/store/daily_goals_currency_service.dart';
-import '../../providers/firebase/firebase_avatar_provider.dart';
 
 final log = Logger('CurrencyProvider');
 
@@ -11,30 +10,9 @@ final log = Logger('CurrencyProvider');
 final currencyServiceProvider = Provider<CurrencyService>((ref) {
   final service = CurrencyService();
   
-  // Initialize service immediately if user is already authenticated
-  final authState = ref.read(authStateProvider);
-  if (authState.hasValue && authState.value != null) {
-    service.initialize().catchError((error) {
-      log.severe('Failed to initialize Currency Service immediately: $error');
-    });
-  }
-  
-  // Listen to auth state changes and reinitialize service when needed
-  ref.listen(authStateProvider, (previous, next) {
-    if (next.hasValue) {
-      final user = next.value;
-      if (user != null) {
-        // User signed in, initialize service
-        service.initialize().catchError((error) {
-          log.severe('Failed to initialize Currency Service: $error');
-        });
-      } else {
-        // User signed out, dispose service
-        service.dispose().catchError((error) {
-          log.warning('Error disposing Currency Service: $error');
-        });
-      }
-    }
+  // Initialize service immediately
+  service.initialize().catchError((error) {
+    log.severe('Failed to initialize Currency Service: $error');
   });
 
   // Dispose service when provider is disposed
@@ -50,7 +28,15 @@ final currencyServiceProvider = Provider<CurrencyService>((ref) {
 /// Provider for current user's currency
 final userCurrencyProvider = StreamProvider<UserCurrency?>((ref) {
   final service = ref.read(currencyServiceProvider);
-  return service.currencyStream;
+  log.info('💰 Currency provider initialized, watching stream');
+  return service.currencyStream.handleError((error, stackTrace) {
+    log.severe('❌ Currency stream error: $error', error, stackTrace);
+    // Return a default currency on error to prevent loading forever
+    return UserCurrency.newUser('error_fallback');
+  }).map((currency) {
+    log.info('💰 Currency provider received: ${currency.toString()}');
+    return currency;
+  });
 });
 
 /// Provider for current user's streak

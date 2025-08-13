@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart' as rive;
 import '../config/avatar_animations_config.dart';
-import '../providers/riverpod/avatar_state_provider.dart';
-import '../services/store/avatar_customization_service.dart';
+import '../providers/firebase/firebase_avatar_provider.dart';
+import '../providers/avatar/avatar_artboard_provider.dart';
+import '../utils/rive_utils.dart';
 
 class AvatarDisplay extends ConsumerStatefulWidget {
   final String? avatarId;
@@ -14,6 +15,8 @@ class AvatarDisplay extends ConsumerStatefulWidget {
   final Duration sequenceDelay;
   final VoidCallback? onSequenceComplete;
   final BoxFit fit;
+  final bool useCustomizations; // New flag to control customization loading
+  final bool preferEquipped; // New flag to prefer equipped avatar over explicit avatarId
 
   const AvatarDisplay({
     super.key,
@@ -25,6 +28,8 @@ class AvatarDisplay extends ConsumerStatefulWidget {
     this.sequenceDelay = const Duration(seconds: 2),
     this.onSequenceComplete,
     this.fit = BoxFit.contain,
+    this.useCustomizations = true, // Default to true for backward compatibility
+    this.preferEquipped = false, // Default to false for backward compatibility
   });
 
   @override
@@ -33,55 +38,98 @@ class AvatarDisplay extends ConsumerStatefulWidget {
 
 class AvatarDisplayState extends ConsumerState<AvatarDisplay>
     with TickerProviderStateMixin {
-  rive.RiveAnimationController? _controller;
-  rive.Artboard? _artboard;
-  AvatarAnimationConfig? _currentConfig;
-  AnimationStage _currentStage = AnimationStage.idle;
   bool _isSequenceRunning = false;
   int _sequenceIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _currentStage = widget.initialStage;
-  }
-
-  @override
-  void dispose() {
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  String get _effectiveAvatarId {
-    if (widget.avatarId != null) {
-      return widget.avatarId!;
-    }
-    
-    // Use equipped avatar from state
-    final avatarState = ref.read(avatarStateProvider).valueOrNull;
-    return avatarState?.equippedAvatarId ?? 'classic_coach';
   }
 
   @override
   Widget build(BuildContext context) {
-    final avatarId = _effectiveAvatarId;
-    final config = AvatarAnimationsConfig.getConfigWithFallback(avatarId);
+    final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider);
+    
+    // Smart avatar ID resolution based on preferEquipped flag
+    final effectiveAvatarId = widget.preferEquipped 
+        ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+        : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+    
+    // Debug logging for equipped avatar
+    debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, equipped=${firebaseAvatarState.valueOrNull?.equippedAvatarId}, effective=$effectiveAvatarId, preferEquipped=${widget.preferEquipped}');
 
-    // Reload if avatar configuration changed
-    if (_currentConfig?.avatarId != config.avatarId) {
-      _currentConfig = config;
-      _loadAvatarAnimation();
-    }
+    // Use appropriate provider based on whether customizations are needed
+    final artboardProvider = widget.useCustomizations 
+        ? customizedArtboardProvider(effectiveAvatarId)
+        : basicArtboardProvider(effectiveAvatarId);
+    
+    final artboardAsync = ref.watch(artboardProvider);
 
     return SizedBox(
       width: widget.width,
       height: widget.height,
-      child: _artboard != null
-          ? rive.Rive(
-              artboard: _artboard!,
+      child: artboardAsync.when(
+        data: (artboard) {
+          if (artboard != null) {
+            // Start animation sequence if requested and not already running
+            if (widget.autoPlaySequence && !_isSequenceRunning) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _startAnimationSequence(artboard);
+              });
+            }
+            
+            return rive.Rive(
+              artboard: artboard,
               fit: widget.fit,
-            )
-          : _buildFallback(avatarId),
+            );
+          } else {
+            return _buildFallback(effectiveAvatarId);
+          }
+        },
+        loading: () => _buildLoading(effectiveAvatarId),
+        error: (error, stack) {
+          debugPrint('❌ Error loading artboard for $effectiveAvatarId: $error');
+          return _buildFallback(effectiveAvatarId);
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoading(String avatarId) {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: Colors.grey.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: widget.width * 0.2,
+            height: widget.width * 0.2,
+            child: const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Loading $avatarId...',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: widget.width * 0.06,
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 
@@ -107,228 +155,192 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
           ),
           const SizedBox(height: 8),
           Text(
-            'Loading...',
+            avatarId,
             style: TextStyle(
-              color: Colors.grey.shade600,
-              fontSize: 12,
+              color: Colors.grey,
+              fontSize: widget.width * 0.08,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
   }
 
-  Future<void> _loadAvatarAnimation() async {
-    if (_currentConfig == null) return;
+  void _startAnimationSequence(rive.Artboard artboard) {
+    if (_isSequenceRunning || !widget.autoPlaySequence) return;
+    
+    final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+    final effectiveAvatarId = widget.preferEquipped 
+        ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+        : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+    final sequenceOrder = AvatarAnimationsConfig.getSequenceOrder(effectiveAvatarId);
+    
+    if (sequenceOrder == null || sequenceOrder.isEmpty) return;
 
-    try {
-      final rivFile = await rive.RiveFile.asset(_currentConfig!.rivAssetPath);
-      final artboard = rivFile.mainArtboard;
-      
-      // Clone the artboard to avoid sharing state - handle RuntimeArtboard properly
-      rive.Artboard clonedArtboard;
-      try {
-        clonedArtboard = artboard.instance();
-      } catch (e) {
-        // Fallback if instance() fails - use the artboard directly
-        debugPrint('Failed to clone artboard, using original: $e');
-        clonedArtboard = artboard;
-      }
-      
-      // Set up state machine or direct animation control
-      rive.RiveAnimationController? controller = rive.StateMachineController.fromArtboard(
-        clonedArtboard,
-        'State Machine 1', // Default state machine name
-      );
-      
-      // Fallback to simple animation controller if no state machine
-      if (controller == null) {
-        try {
-          controller = rive.SimpleAnimation(_currentConfig!.defaultAnimation);
-        } catch (e) {
-          debugPrint('Failed to create simple animation controller: $e');
-          // Continue without controller
-        }
-      }
-      
-      // Only add controller if we successfully created one
-      if (controller != null) {
-        clonedArtboard.addController(controller);
-        
-        // Apply customizations if available
-        if (widget.avatarId != null && controller is rive.StateMachineController) {
-          await _applyCustomizations(controller, widget.avatarId!);
-        }
-      }
-      
-      _controller?.dispose();
-      _controller = controller;
-      
-      if (mounted) {
-        setState(() {
-          _artboard = clonedArtboard;
-        });
-      }
+    // Find the state machine controller from the artboard
+    final controller = _findStateMachineController(artboard);
+    if (controller == null) return;
 
-      // Start auto sequence if enabled
-      if (widget.autoPlaySequence && mounted) {
-        _startAutoSequence();
-      } else {
-        // Play initial animation
-        _playAnimation(_currentStage);
-      }
-    } catch (e) {
-      debugPrint('Failed to load avatar animation: $e');
-      // Keep current state or show fallback
-    }
+    _isSequenceRunning = true;
+    _sequenceIndex = 0;
+    _playSequenceStep(controller, effectiveAvatarId);
   }
 
-  void _playAnimation(AnimationStage stage) {
-    if (_currentConfig == null || _controller == null) return;
+  void _playSequenceStep(rive.StateMachineController controller, String avatarId) {
+    if (!mounted || !_isSequenceRunning) return;
+    
+    final sequenceOrder = AvatarAnimationsConfig.getSequenceOrder(avatarId);
+    if (sequenceOrder == null || _sequenceIndex >= sequenceOrder.length) {
+      _isSequenceRunning = false;
+      _sequenceIndex = 0;
+      widget.onSequenceComplete?.call();
+      return;
+    }
 
-    final animationName = _currentConfig!.getAnimation(stage);
-    if (animationName == null) return;
+    final animationName = sequenceOrder[_sequenceIndex];
+    _playAnimation(controller, animationName, avatarId);
+    
+    _sequenceIndex++;
+    
+    Future.delayed(widget.sequenceDelay, () {
+      if (mounted && _isSequenceRunning) {
+        _playSequenceStep(controller, avatarId);
+      }
+    });
+  }
 
-    _currentStage = stage;
-
+  void _playAnimation(rive.StateMachineController controller, String animationName, String avatarId) {
     try {
-      // Handle different controller types
-      if (_controller is rive.StateMachineController) {
-        // Trigger state machine inputs if available
-        try {
-          final stateMachine = _controller as rive.StateMachineController;
-        
-        // Look for trigger inputs that match our animation names
-        try {
-          for (final input in stateMachine.inputs) {
-            try {
-              // Safer type checking to avoid RuntimeArtboard cast issues
-              if (input.name.toLowerCase() == animationName.toLowerCase()) {
-                // Check if it's a trigger type with safer casting
-                if (input.runtimeType.toString().contains('SMITrigger') || input is rive.SMITrigger) {
-                  try {
-                    final trigger = input as rive.SMITrigger;
-                    trigger.fire();
-                    debugPrint('🎬 Fired animation: $animationName');
-                    break;
-                  } catch (castError) {
-                    debugPrint('⚠️ Type casting error for trigger $animationName: $castError');
-                  }
-                }
-              }
-            } catch (inputError) {
-              debugPrint('⚠️ Error processing input ${input.name}: $inputError');
-            }
-          }
-        } catch (iterationError) {
-          debugPrint('⚠️ Error iterating inputs for $animationName: $iterationError');
-        }
-        } catch (stateMachineError) {
-          debugPrint('⚠️ StateMachineController casting error for $animationName: $stateMachineError');
-        }
-      } else if (_controller is rive.SimpleAnimation) {
-        // For simple animations, we'd need to recreate with new animation
-        // This is more complex, so we'll stick with the current approach
-        debugPrint('🎬 SimpleAnimation controller - cannot trigger: $animationName');
+      // Use safe animation triggering utility
+      final success = RiveUtils.safeTriggerAnimation(controller, animationName, avatarId);
+      
+      if (!success) {
+        debugPrint('⚠️ Failed to trigger animation $animationName for $avatarId');
       }
     } catch (e) {
       debugPrint('❌ Error playing animation $animationName: $e');
     }
   }
 
-  void _startAutoSequence() {
-    if (_isSequenceRunning || !widget.autoPlaySequence) return;
-
-    final sequenceOrder = AvatarAnimationsConfig.getSequenceOrder(_effectiveAvatarId);
-    if (sequenceOrder == null || sequenceOrder.isEmpty) return;
-
-    _isSequenceRunning = true;
-    _sequenceIndex = 0;
-    _playNextInSequence(sequenceOrder);
-  }
-
-  void _playNextInSequence(List<String> sequence) {
-    if (!mounted || !_isSequenceRunning) return;
-
-    if (_sequenceIndex >= sequence.length) {
-      _isSequenceRunning = false;
-      _sequenceIndex = 0;
-      widget.onSequenceComplete?.call();
-      
-      // Restart sequence after delay if still auto-playing
-      if (widget.autoPlaySequence) {
-        Future.delayed(widget.sequenceDelay, () {
-          if (mounted && widget.autoPlaySequence) {
-            _startAutoSequence();
-          }
-        });
-      }
-      return;
-    }
-
-    final animationName = sequence[_sequenceIndex];
-    final stage = _getStageFromAnimationName(animationName);
-    
-    if (stage != null) {
-      _playAnimation(stage);
-    }
-
-    _sequenceIndex++;
-
-    // Schedule next animation
-    Future.delayed(widget.sequenceDelay, () {
-      _playNextInSequence(sequence);
-    });
-  }
-
-  AnimationStage? _getStageFromAnimationName(String animationName) {
-    if (_currentConfig == null) return null;
-
-    for (final entry in _currentConfig!.animations.entries) {
-      if (entry.value == animationName) {
-        return entry.key;
-      }
-    }
-    return null;
-  }
-
-  // Public methods for external control
-  void playStage(AnimationStage stage) {
-    if (mounted) {
-      _playAnimation(stage);
-    }
-  }
-
-  void startSequence() {
-    if (mounted) {
-      _startAutoSequence();
+  rive.StateMachineController? _findStateMachineController(rive.Artboard artboard) {
+    try {
+      // Look for any StateMachineController in the artboard
+      return artboard.animations.whereType<rive.StateMachineController>().firstOrNull;
+    } catch (e) {
+      debugPrint('❌ Error finding StateMachineController: $e');
+      return null;
     }
   }
 
   void stopSequence() {
     _isSequenceRunning = false;
-    if (mounted) {
-      _playAnimation(AnimationStage.idle);
+  }
+
+  void playStage(AnimationStage stage) {
+    try {
+      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final effectiveAvatarId = widget.preferEquipped 
+          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+      final config = AvatarAnimationsConfig.getConfigWithFallback(effectiveAvatarId);
+      
+      // Get the animation name for this stage
+      final animationName = config.getAnimation(stage) ?? config.defaultAnimation;
+      
+      // Use the artboard cache notifier to trigger the animation
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      final success = cacheNotifier.triggerAnimation(
+        effectiveAvatarId, 
+        animationName, 
+        useCustomized: widget.useCustomizations
+      );
+      
+      if (success) {
+        debugPrint('✅ Successfully triggered $animationName for stage $stage on $effectiveAvatarId');
+      } else {
+        debugPrint('⚠️ Failed to trigger $animationName for stage $stage on $effectiveAvatarId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error in playStage: $e');
     }
   }
 
-  bool get isSequenceRunning => _isSequenceRunning;
-  AnimationStage get currentStage => _currentStage;
-  String? get currentAvatarId => _currentConfig?.avatarId;
-
-  /// Apply customizations to the Rive avatar
-  Future<void> _applyCustomizations(rive.StateMachineController controller, String avatarId) async {
+  /// Trigger a specific animation by name
+  void triggerAnimation(String animationName) {
     try {
-      final customizationService = AvatarCustomizationService();
-      final inputs = controller.inputs;
+      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final effectiveAvatarId = widget.preferEquipped 
+          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
       
-      if (inputs.isNotEmpty) {
-        await customizationService.applyToRiveInputs(avatarId, inputs);
-        debugPrint('✨ Applied customizations to $avatarId with ${inputs.length} inputs');
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      final success = cacheNotifier.triggerAnimation(
+        effectiveAvatarId, 
+        animationName, 
+        useCustomized: widget.useCustomizations
+      );
+      
+      if (success) {
+        debugPrint('✅ Successfully triggered animation $animationName on $effectiveAvatarId');
+      } else {
+        debugPrint('⚠️ Failed to trigger animation $animationName on $effectiveAvatarId');
       }
     } catch (e) {
-      debugPrint('⚠️ Failed to apply customizations to $avatarId: $e');
-      // Continue without customizations - avatar will show with defaults
+      debugPrint('❌ Error triggering animation $animationName: $e');
+    }
+  }
+
+  /// Set a number input on the avatar (for external control)
+  void setNumberInput(String inputName, double value) {
+    try {
+      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final effectiveAvatarId = widget.preferEquipped 
+          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+      
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      final success = cacheNotifier.setNumberInput(
+        effectiveAvatarId, 
+        inputName, 
+        value, 
+        useCustomized: widget.useCustomizations
+      );
+      
+      if (success) {
+        debugPrint('✅ Successfully set $inputName = $value on $effectiveAvatarId');
+      } else {
+        debugPrint('⚠️ Failed to set $inputName = $value on $effectiveAvatarId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error setting number input $inputName: $e');
+    }
+  }
+
+  /// Set a boolean input on the avatar (for external control)
+  void setBoolInput(String inputName, bool value) {
+    try {
+      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final effectiveAvatarId = widget.preferEquipped 
+          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+      
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      final success = cacheNotifier.setBoolInput(
+        effectiveAvatarId, 
+        inputName, 
+        value, 
+        useCustomized: widget.useCustomizations
+      );
+      
+      if (success) {
+        debugPrint('✅ Successfully set $inputName = $value on $effectiveAvatarId');
+      } else {
+        debugPrint('⚠️ Failed to set $inputName = $value on $effectiveAvatarId');
+      }
+    } catch (e) {
+      debugPrint('❌ Error setting bool input $inputName: $e');
     }
   }
 }

@@ -87,6 +87,7 @@ flutter:
     - assets/images/
     - assets/lotties/
     - assets/rive/
+    - assets/config/
     - .env # Commented out for CI/CD - using --dart-define instead
 
     # Translations

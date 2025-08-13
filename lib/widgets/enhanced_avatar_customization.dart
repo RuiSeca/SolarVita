@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart' as rive;
 import '../config/avatar_animations_config.dart';
 import '../models/store/quantum_coach_config.dart';
-import '../services/store/avatar_customization_service.dart';
+import '../providers/firebase/firebase_avatar_provider.dart';
+import '../providers/avatar/avatar_artboard_provider.dart';
 
 /// Enhanced avatar customization widget specifically for Quantum Coach
 class EnhancedAvatarCustomization extends ConsumerStatefulWidget {
@@ -37,7 +38,6 @@ class _EnhancedAvatarCustomizationState
   
   rive.StateMachineController? _controller;
   rive.Artboard? _artboard;
-  final AvatarCustomizationService _customizationService = AvatarCustomizationService();
   
   // Current selections
   int _selectedEye = 12;
@@ -87,10 +87,6 @@ class _EnhancedAvatarCustomizationState
     try {
       debugPrint('🔧 Starting async initialization...');
       
-      debugPrint('📋 Initializing customization service...');
-      await _customizationService.initialize();
-      debugPrint('✅ Customization service initialized');
-      
       debugPrint('🎮 Loading avatar...');
       await _loadAvatar();
       debugPrint('✅ Initialization complete');
@@ -103,6 +99,15 @@ class _EnhancedAvatarCustomizationState
 
   @override
   void dispose() {
+    // Ensure immediate cache invalidation when leaving customization screen
+    try {
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      cacheNotifier.onCustomizationsChangedImmediate('quantum_coach');
+      debugPrint('🔄 Immediate cache invalidation on dispose for quantum_coach');
+    } catch (e) {
+      debugPrint('⚠️ Error with cache invalidation on dispose: $e');
+    }
+    
     _controller?.dispose();
     _tabController.dispose();
     super.dispose();
@@ -169,40 +174,42 @@ class _EnhancedAvatarCustomizationState
 
   Future<void> _loadSavedCustomizations() async {
     try {
-      debugPrint('📖 Loading saved customizations...');
+      debugPrint('📖 Loading saved customizations from Firebase...');
       
-      final customization = await _customizationService.getCustomization('quantum_coach');
+      // Get Firebase avatar service to load customizations
+      final avatarService = ref.read(firebaseAvatarServiceProvider);
+      final customizations = avatarService.getAvatarCustomizations('quantum_coach');
       
       // Load saved face values
-      _selectedEye = (customization.numberValues['eye_color'] ?? 12.0).toInt();
-      _selectedFace = (customization.numberValues['face'] ?? 4.0).toInt();
-      _selectedSkin = (customization.numberValues['skin_color'] ?? 1.0).toInt();
+      _selectedEye = (customizations['eye_color'] ?? 12.0).toInt();
+      _selectedFace = (customizations['face'] ?? 4.0).toInt();
+      _selectedSkin = (customizations['skin_color'] ?? 1.0).toInt();
       
       // Load saved clothing states (all default to true = visible)
-      _clothingStates['top_check'] = customization.booleanValues['top_check'] ?? true;
-      _clothingStates['bottoms_check'] = customization.booleanValues['bottoms_check'] ?? true;
-      _clothingStates['skirt_check'] = customization.booleanValues['skirt_check'] ?? true;
-      _clothingStates['shoes_check'] = customization.booleanValues['shoes_check'] ?? true;
-      _clothingStates['hat_check'] = customization.booleanValues['hat_check'] ?? true;
+      _clothingStates['top_check'] = customizations['top_check'] ?? true;
+      _clothingStates['bottoms_check'] = customizations['bottoms_check'] ?? true;
+      _clothingStates['skirt_check'] = customizations['skirt_check'] ?? true;
+      _clothingStates['shoes_check'] = customizations['shoes_check'] ?? true;
+      _clothingStates['hat_check'] = customizations['hat_check'] ?? true;
       
       // Load saved accessory states (all default to true = visible)
-      _accessoryStates['earring_check'] = customization.booleanValues['earring_check'] ?? true;
-      _accessoryStates['necklace_check'] = customization.booleanValues['necklace_check'] ?? true;
-      _accessoryStates['glass_check'] = customization.booleanValues['glass_check'] ?? true;
-      _accessoryStates['hair_check'] = customization.booleanValues['hair_check'] ?? true;
-      _accessoryStates['back_check'] = customization.booleanValues['back_check'] ?? true;
-      _accessoryStates['handobject_check'] = customization.booleanValues['handobject_check'] ?? true;
+      _accessoryStates['earring_check'] = customizations['earring_check'] ?? true;
+      _accessoryStates['necklace_check'] = customizations['necklace_check'] ?? true;
+      _accessoryStates['glass_check'] = customizations['glass_check'] ?? true;
+      _accessoryStates['hair_check'] = customizations['hair_check'] ?? true;
+      _accessoryStates['back_check'] = customizations['back_check'] ?? true;
+      _accessoryStates['handobject_check'] = customizations['handobject_check'] ?? true;
       
       // Load saved state values
-      _stateValues['sit'] = customization.numberValues['sit'] ?? 0.0;
-      _stateValues['flower_state'] = customization.numberValues['flower_state'] ?? 0.0;
-      _stateValues['stateaction'] = customization.numberValues['stateaction'] ?? 0.0;
+      _stateValues['sit'] = customizations['sit'] ?? 0.0;
+      _stateValues['flower_state'] = customizations['flower_state'] ?? 0.0;
+      _stateValues['stateaction'] = customizations['stateaction'] ?? 0.0;
       
-      debugPrint('✅ Loaded saved customizations: Eye=$_selectedEye, Face=$_selectedFace, Skin=$_selectedSkin');
+      debugPrint('✅ Loaded saved customizations from Firebase: Eye=$_selectedEye, Face=$_selectedFace, Skin=$_selectedSkin');
       debugPrint('🔧 Clothing states: $_clothingStates');
       
     } catch (e) {
-      debugPrint('⚠️ Error loading saved customizations: $e');
+      debugPrint('⚠️ Error loading saved customizations from Firebase: $e');
       // Keep default values if loading fails
     }
   }
@@ -262,7 +269,7 @@ class _EnhancedAvatarCustomizationState
     if (input is rive.SMINumber) {
       input.value = value;
       if (widget.enableAutoSave) {
-        _customizationService.updateNumber('quantum_coach', name, value);
+        _saveCustomizationToFirebase();
       }
     }
   }
@@ -273,7 +280,7 @@ class _EnhancedAvatarCustomizationState
       debugPrint('✅ Setting boolean input $name = $value');
       input.value = value;
       if (widget.enableAutoSave) {
-        _customizationService.updateBoolean('quantum_coach', name, value);
+        _saveCustomizationToFirebase();
       }
     } else {
       debugPrint('❌ Boolean input $name not found in RIVE file');
@@ -281,6 +288,42 @@ class _EnhancedAvatarCustomizationState
       final allInputs = _controller?.inputs ?? [];
       final boolInputs = allInputs.whereType<rive.SMIBool>().toList();
       debugPrint('Available boolean inputs: ${boolInputs.map((i) => i.name).join(', ')}');
+    }
+  }
+
+  /// Save current customization state to Firebase
+  Future<void> _saveCustomizationToFirebase() async {
+    try {
+      final avatarService = ref.read(firebaseAvatarServiceProvider);
+      
+      // Build customization map with all current values
+      final customizations = <String, dynamic>{
+        // Face values
+        'eye_color': _selectedEye.toDouble(),
+        'face': _selectedFace.toDouble(), 
+        'skin_color': _selectedSkin.toDouble(),
+        
+        // Clothing states
+        ..._clothingStates,
+        
+        // Accessory states  
+        ..._accessoryStates,
+        
+        // State values
+        ..._stateValues,
+      };
+      
+      debugPrint('💾 Saving customizations to Firebase: $customizations');
+      await avatarService.updateAvatarCustomizations('quantum_coach', customizations);
+      debugPrint('✅ Customizations saved to Firebase successfully');
+      
+      // Use live update for smooth real-time changes without freezing
+      final cacheNotifier = ref.read(artboardCacheNotifierProvider);
+      cacheNotifier.updateCustomizationsLive('quantum_coach', customizations);
+      debugPrint('🎨 Applied live customization update for quantum_coach');
+      
+    } catch (e) {
+      debugPrint('❌ Error saving customizations to Firebase: $e');
     }
   }
   

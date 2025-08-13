@@ -21,49 +21,45 @@ class FirebaseAvatarPreviewModal extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FirebaseAvatarPreviewModal> createState() => _FirebaseAvatarPreviewModalState();
+  ConsumerState<FirebaseAvatarPreviewModal> createState() =>
+      _FirebaseAvatarPreviewModalState();
 }
 
-class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPreviewModal>
+class _FirebaseAvatarPreviewModalState
+    extends ConsumerState<FirebaseAvatarPreviewModal>
     with TickerProviderStateMixin {
   late AnimationController _slideController;
   late AnimationController _fadeController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
-  
+
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    
+
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
+
+    _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+        );
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeOut,
-    ));
-    
+    ).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeOut));
+
     _slideController.forward();
     _fadeController.forward();
   }
@@ -77,13 +73,10 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
 
   @override
   Widget build(BuildContext context) {
-    
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
-        ),
+        decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7)),
         child: SlideTransition(
           position: _slideAnimation,
           child: DraggableScrollableSheet(
@@ -101,9 +94,13 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                       AppColors.darkSurface.withValues(alpha: 0.95),
                     ],
                   ),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
+                  ),
                   border: Border.all(
-                    color: _getRarityColor(widget.avatar.rarity).withValues(alpha: 0.3),
+                    color: _getRarityColor(
+                      widget.avatar.rarity,
+                    ).withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),
@@ -116,7 +113,8 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                       _buildAvatarPreview(),
                       _buildAvatarInfo(),
                       _buildAnimationsList(),
-                      if (widget.avatar.customProperties['hasCustomization'] == true)
+                      if (widget.avatar.customProperties['hasCustomization'] ==
+                          true)
                         _buildCustomizations(),
                       _buildActionButtons(),
                       const SizedBox(height: 32),
@@ -133,7 +131,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
 
   Widget _buildHeader() {
     final isEquipped = widget.ownership?.isEquipped ?? false;
-    
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -187,7 +185,10 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                     const SizedBox(width: 12),
                     if (isEquipped)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [AppColors.primary, AppColors.secondary],
@@ -221,17 +222,26 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            _getRarityColor(widget.avatar.rarity).withValues(alpha: 0.2),
-                            _getRarityColor(widget.avatar.rarity).withValues(alpha: 0.1),
+                            _getRarityColor(
+                              widget.avatar.rarity,
+                            ).withValues(alpha: 0.2),
+                            _getRarityColor(
+                              widget.avatar.rarity,
+                            ).withValues(alpha: 0.1),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
-                          color: _getRarityColor(widget.avatar.rarity).withValues(alpha: 0.4),
+                          color: _getRarityColor(
+                            widget.avatar.rarity,
+                          ).withValues(alpha: 0.4),
                           width: 1,
                         ),
                       ),
@@ -372,7 +382,10 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
             runSpacing: 8,
             children: widget.avatar.availableAnimations.map((animation) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -404,8 +417,11 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
   }
 
   Widget _buildCustomizations() {
-    final customizationTypes = widget.avatar.customProperties['customizationTypes'] as List<dynamic>? ?? [];
-    
+    final customizationTypes =
+        widget.avatar.customProperties['customizationTypes']
+            as List<dynamic>? ??
+        [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
@@ -425,7 +441,10 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
             runSpacing: 8,
             children: customizationTypes.map<Widget>((type) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
@@ -459,19 +478,21 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
   Widget _buildActionButtons() {
     // Check real-time ownership status instead of relying on widget.ownership
     final ownerships = ref.watch(userAvatarOwnershipsProvider);
-    
+
     return ownerships.when(
       data: (ownershipList) {
         final ownership = ownershipList.cast<UserAvatarOwnership?>().firstWhere(
           (o) => o?.avatarId == widget.avatar.avatarId,
           orElse: () => null,
         );
-        
+
         final isOwned = ownership != null;
         final isEquipped = ownership?.isEquipped ?? false;
-        
-        debugPrint('🎭 DEBUG: Action buttons - Avatar: ${widget.avatar.avatarId}, Owned: $isOwned, Equipped: $isEquipped');
-        
+
+        debugPrint(
+          '🎭 DEBUG: Action buttons - Avatar: ${widget.avatar.avatarId}, Owned: $isOwned, Equipped: $isEquipped',
+        );
+
         return Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -487,7 +508,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                 // Not owned - show purchase/unlock button
                 _buildPurchaseButton(),
               ],
-              
+
               if (_errorMessage != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -528,8 +549,33 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
       },
       loading: () => Padding(
         padding: const EdgeInsets.all(24),
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+        child: Column(
+          children: [
+            // For free avatars, show action buttons even when ownership is loading
+            if (widget.avatar.price == 0) ...[
+              // Check if this free avatar is currently equipped
+              () {
+                final equippedAvatar = ref.watch(equippedAvatarProvider);
+                final isCurrentlyEquipped =
+                    equippedAvatar?.avatarId == widget.avatar.avatarId;
+
+                if (isCurrentlyEquipped &&
+                    widget.avatar.customProperties['hasCustomization'] ==
+                        true) {
+                  // Show customize button if equipped and has customization
+                  return _buildCustomizeButton(widget.ownership);
+                } else {
+                  // Show equip button
+                  return _buildEquipButton();
+                }
+              }(),
+            ] else ...[
+              // For paid avatars, show loading spinner
+              Center(
+                child: CircularProgressIndicator(color: AppColors.primary),
+              ),
+            ],
+          ],
         ),
       ),
       error: (error, _) => Padding(
@@ -541,7 +587,11 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
               style: TextStyle(color: Colors.red),
             ),
             const SizedBox(height: 16),
-            _buildPurchaseButton(), // Fallback to purchase button on error
+            // For free avatars, show equip button even on error
+            if (widget.avatar.price == 0)
+              _buildEquipButton()
+            else
+              _buildPurchaseButton(), // Fallback to purchase button on error
           ],
         ),
       ),
@@ -587,11 +637,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.star_rounded,
-                      color: AppColors.white,
-                      size: 20,
-                    ),
+                    Icon(Icons.star_rounded, color: AppColors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       tr(context, 'equip_avatar'),
@@ -612,13 +658,13 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
     // Get price and check affordability
     final price = StorePricing.getAvatarPrice(widget.avatar.avatarId);
     final currency = ref.watch(userCurrencyProvider);
-    
+
     final canAfford = currency.when(
       data: (userCurrency) => userCurrency?.canAffordMixed(price) ?? false,
       loading: () => false,
       error: (_, __) => false,
     );
-    
+
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -628,8 +674,8 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
             colors: widget.avatar.price == 0
                 ? [Colors.green, Colors.green.shade700]
                 : canAfford
-                    ? [AppColors.gold, AppColors.gold.withValues(alpha: 0.8)]
-                    : [Colors.grey, Colors.grey.shade700],
+                ? [AppColors.gold, AppColors.gold.withValues(alpha: 0.8)]
+                : [Colors.grey, Colors.grey.shade700],
           ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
@@ -710,11 +756,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.palette_rounded,
-                color: AppColors.white,
-                size: 20,
-              ),
+              Icon(Icons.palette_rounded, color: AppColors.white, size: 20),
               const SizedBox(width: 8),
               Text(
                 tr(context, 'customize_avatar'),
@@ -740,7 +782,11 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
     try {
       final equipmentService = ref.read(avatarEquipmentProvider);
       await equipmentService.equipAvatar(widget.avatar.avatarId);
-      
+
+      // For equipping, we don't need to invalidate cache since we're just changing which avatar is active
+      // The equipped avatar state will be updated by the providers automatically
+      debugPrint('✅ Avatar equipped successfully: ${widget.avatar.avatarId}');
+
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -776,7 +822,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
           'pricePaid': widget.avatar.price,
         },
       );
-      
+
       if (success && mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -802,8 +848,10 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
   }
 
   void _handleCustomizeAvatar([UserAvatarOwnership? ownership]) {
-    debugPrint('🎨 DEBUG: Customize tapped - Avatar: ${widget.avatar.avatarId}, Ownership: ${ownership?.avatarId}');
-    
+    debugPrint(
+      '🎨 DEBUG: Customize tapped - Avatar: ${widget.avatar.avatarId}, Ownership: ${ownership?.avatarId}',
+    );
+
     // Navigate to universal avatar studio
     Navigator.of(context).push(
       MaterialPageRoute(

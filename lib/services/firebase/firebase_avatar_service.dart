@@ -9,7 +9,7 @@ final log = Logger('FirebaseAvatarService');
 /// Service for managing avatar data in Firebase Firestore
 /// Handles ownership, purchases, customizations, and real-time synchronization
 class FirebaseAvatarService {
-  static const String _avatarsCollection = 'avatars';
+  static const String _avatarsCollection = 'avatars'; // Collection name matches Firestore
   static const String _userAvatarStatesCollection = 'user_avatar_states';
   static const String _userAvatarOwnershipsCollection = 'user_avatar_ownerships';
 
@@ -38,7 +38,12 @@ class FirebaseAvatarService {
   Stream<FirebaseAvatarState?> get userStateStream => _userStateController.stream;
 
   /// Stream of current user's avatar ownerships
-  Stream<List<UserAvatarOwnership>> get ownershipsStream => _ownershipsController.stream;
+  Stream<List<UserAvatarOwnership>> get ownershipsStream {
+    // Don't emit immediately on stream access - let the listener handle it
+    // This prevents confusion between initial cache and real Firebase data
+    log.info('📤 Ownerships stream accessed - listener should provide data');
+    return _ownershipsController.stream;
+  }
 
   /// Get current user ID
   String? get currentUserId => _auth.currentUser?.uid;
@@ -51,6 +56,19 @@ class FirebaseAvatarService {
     }
 
     log.info('🚀 Initializing Firebase Avatar Service for user: $currentUserId');
+    
+    // Immediate debug test - try to fetch avatars right now
+    try {
+      log.info('🔬 DEBUG: Testing immediate avatar collection access...');
+      final testSnapshot = await _firestore.collection(_avatarsCollection).limit(1).get();
+      log.info('🔬 DEBUG: Test fetch result - docs found: ${testSnapshot.docs.length}');
+      if (testSnapshot.docs.isNotEmpty) {
+        log.info('🔬 DEBUG: First doc ID: ${testSnapshot.docs.first.id}');
+        log.info('🔬 DEBUG: First doc data: ${testSnapshot.docs.first.data()}');
+      }
+    } catch (debugError) {
+      log.severe('🔬 DEBUG: Test fetch failed: $debugError');
+    }
 
     try {
       // Start listening to real-time updates
@@ -85,20 +103,40 @@ class FirebaseAvatarService {
 
     // Emit initial empty states to prevent AsyncLoading
     log.info('🎬 Emitting initial empty states to prevent loading delays');
-    _ownershipsController.add(<UserAvatarOwnership>[]);
-    _userStateController.add(null);
-    _avatarsController.add(<FirebaseAvatar>[]); // Also emit empty avatars list initially
+    if (!_ownershipsController.isClosed) {
+      _ownershipsController.add(<UserAvatarOwnership>[]);
+      log.info('📤 Emitted initial empty ownership state');
+    }
+    if (!_userStateController.isClosed) {
+      _userStateController.add(null);
+      log.info('📤 Emitted initial null user state');
+    }
+    if (!_avatarsController.isClosed) {
+      _avatarsController.add(<FirebaseAvatar>[]);
+      log.info('📤 Emitted initial empty avatars state');
+    }
 
     // Listen to all avatars
+    log.info('🎯 Starting avatars listener for collection: $_avatarsCollection');
     _avatarsSubscription = _firestore
         .collection(_avatarsCollection)
         .orderBy('createdAt', descending: false)
         .snapshots()
         .listen(
       (snapshot) {
-        final avatars = snapshot.docs
-            .map((doc) => FirebaseAvatar.fromFirestore(doc))
-            .toList();
+        log.info('📦 Avatars snapshot received - docs: ${snapshot.docs.length}');
+        
+        final avatars = <FirebaseAvatar>[];
+        for (final doc in snapshot.docs) {
+          try {
+            final avatar = FirebaseAvatar.fromFirestore(doc);
+            avatars.add(avatar);
+            log.info('✅ Loaded avatar: ${avatar.avatarId} - ${avatar.name}');
+          } catch (e) {
+            log.severe('❌ Error parsing avatar document ${doc.id}: $e');
+            log.info('📄 Raw avatar data: ${doc.data()}');
+          }
+        }
         
         // Update cache
         _avatarCache.clear();
@@ -107,14 +145,54 @@ class FirebaseAvatarService {
         }
         
         _avatarsController.add(avatars);
-        log.info('🔄 Avatars updated: ${avatars.length} total');
+        log.info('🔄 Avatars updated: ${avatars.length} total successfully loaded');
       },
       onError: (error) {
         log.severe('❌ Error listening to avatars: $error');
+        // Emit empty list on error to prevent indefinite loading
+        _avatarsController.add(<FirebaseAvatar>[]);
       },
     );
+    
+    // Also add immediate manual fetch for avatars to speed up initial load
+    Future.microtask(() async {
+      try {
+        log.info('🚀 Immediate avatar fetch for faster load');
+        final snapshot = await _firestore
+            .collection(_avatarsCollection)
+            .orderBy('createdAt', descending: false)
+            .get();
+        
+        log.info('🔍 Manual avatar fetch found ${snapshot.docs.length} avatar docs');
+        
+        if (snapshot.docs.isNotEmpty) {
+          final avatars = <FirebaseAvatar>[];
+          for (final doc in snapshot.docs) {
+            try {
+              final avatar = FirebaseAvatar.fromFirestore(doc);
+              avatars.add(avatar);
+              log.info('⚡ Manual load avatar: ${avatar.avatarId} - ${avatar.name}');
+            } catch (e) {
+              log.severe('❌ Error in manual avatar parse ${doc.id}: $e');
+            }
+          }
+          
+          // Update cache
+          _avatarCache.clear();
+          for (final avatar in avatars) {
+            _avatarCache[avatar.avatarId] = avatar;
+          }
+          
+          _avatarsController.add(avatars);
+          log.info('⚡ Manual avatar fetch successful: ${avatars.length} loaded');
+        }
+      } catch (e) {
+        log.severe('❌ Manual avatar fetch failed: $e');
+      }
+    });
 
     // Listen to user's avatar ownerships
+    log.info('🎯 Starting ownership listener for user: $currentUserId');
     _ownershipsSubscription = _firestore
         .collection(_userAvatarOwnershipsCollection)
         .where('userId', isEqualTo: currentUserId)
@@ -143,6 +221,69 @@ class FirebaseAvatarService {
         _ownershipsController.add(<UserAvatarOwnership>[]);
       },
     );
+
+    // Add a timeout to detect if the listener never fires, then try manual fetch
+    Timer(const Duration(seconds: 1), () async {
+      if (!_ownershipsController.isClosed) {
+        log.warning('⚠️ Ownership listener timeout (1s) - trying manual fetch');
+        try {
+          final snapshot = await _firestore
+              .collection(_userAvatarOwnershipsCollection)
+              .where('userId', isEqualTo: currentUserId)
+              .get();
+          
+          log.info('🔍 Manual fetch found ${snapshot.docs.length} ownership docs');
+          
+          final ownerships = snapshot.docs
+              .map((doc) => UserAvatarOwnership.fromFirestore(doc))
+              .toList();
+          
+          // Update cache
+          _ownershipCache.clear();
+          for (final ownership in ownerships) {
+            _ownershipCache['${ownership.userId}_${ownership.avatarId}'] = ownership;
+          }
+          
+          _ownershipsController.add(ownerships);
+          log.info('✅ Manual ownership fetch successful: ${ownerships.length} owned');
+        } catch (e) {
+          log.severe('❌ Manual ownership fetch failed: $e');
+          _ownershipsController.add(<UserAvatarOwnership>[]);
+        }
+      }
+    });
+    
+    // Also add immediate manual fetch to speed up initial load
+    Future.microtask(() async {
+      if (currentUserId != null) {
+        try {
+          log.info('🚀 Immediate ownership fetch for faster load');
+          final snapshot = await _firestore
+              .collection(_userAvatarOwnershipsCollection)
+              .where('userId', isEqualTo: currentUserId)
+              .get();
+          
+          log.info('⚡ Immediate fetch found ${snapshot.docs.length} ownership docs');
+          
+          final ownerships = snapshot.docs
+              .map((doc) => UserAvatarOwnership.fromFirestore(doc))
+              .toList();
+          
+          // Update cache
+          _ownershipCache.clear();
+          for (final ownership in ownerships) {
+            _ownershipCache['${ownership.userId}_${ownership.avatarId}'] = ownership;
+          }
+          
+          _ownershipsController.add(ownerships);
+          log.info('⚡ Immediate ownership fetch complete: ${ownerships.length} owned');
+        } catch (e) {
+          log.warning('⚠️ Immediate ownership fetch failed: $e');
+          // Emit empty list on error to unblock the UI
+          _ownershipsController.add(<UserAvatarOwnership>[]);
+        }
+      }
+    });
 
     // Listen to user's avatar state
     _userStateSubscription = _firestore
@@ -219,7 +360,20 @@ class FirebaseAvatarService {
   /// Check if user owns a specific avatar
   bool doesUserOwnAvatar(String avatarId) {
     if (currentUserId == null) return false;
-    return _ownershipCache.containsKey('${currentUserId}_$avatarId');
+    
+    // Check cache first
+    if (_ownershipCache.containsKey('${currentUserId}_$avatarId')) {
+      return true;
+    }
+    
+    // For free avatars (price = 0), consider them auto-owned
+    final avatar = _avatarCache[avatarId];
+    if (avatar != null && avatar.price == 0) {
+      log.info('🆓 Avatar $avatarId is free, considering it auto-owned');
+      return true;
+    }
+    
+    return false;
   }
 
   /// Get user's equipped avatar
@@ -227,6 +381,36 @@ class FirebaseAvatarService {
     final equippedId = _currentUserState?.equippedAvatarId;
     if (equippedId == null) return null;
     return _avatarCache[equippedId];
+  }
+
+  /// Create ownership record for free avatar
+  Future<void> _createOwnershipForFreeAvatar(String avatarId) async {
+    if (currentUserId == null) return;
+    
+    final ownershipId = '${currentUserId}_$avatarId';
+    final ownership = UserAvatarOwnership(
+      userId: currentUserId!,
+      avatarId: avatarId,
+      purchaseDate: DateTime.now(),
+      isEquipped: false,
+      customizations: {},
+      timesUsed: 0,
+      lastUsed: DateTime.now(),
+      metadata: {'type': 'free_avatar', 'auto_granted': true},
+    );
+
+    try {
+      await _firestore
+          .collection(_userAvatarOwnershipsCollection)
+          .doc(ownershipId)
+          .set(ownership.toFirestore());
+      
+      // Update cache
+      _ownershipCache[ownershipId] = ownership;
+      log.info('✅ Created ownership record for free avatar: $avatarId');
+    } catch (e) {
+      log.warning('⚠️ Failed to create ownership for free avatar $avatarId: $e');
+    }
   }
 
   /// Purchase an avatar for the current user
@@ -321,9 +505,16 @@ class FirebaseAvatarService {
       throw Exception('User must be authenticated to equip avatars');
     }
 
-    // Check if user owns this avatar
+    // Check if user owns this avatar or if it's a free avatar
     if (!doesUserOwnAvatar(avatarId)) {
       throw Exception('User does not own avatar: $avatarId');
+    }
+    
+    // For free avatars, ensure ownership record exists
+    final avatar = _avatarCache[avatarId];
+    if (avatar != null && avatar.price == 0 && !_ownershipCache.containsKey('${currentUserId}_$avatarId')) {
+      log.info('🎁 Creating ownership record for free avatar: $avatarId');
+      await _createOwnershipForFreeAvatar(avatarId);
     }
 
     try {
@@ -386,6 +577,42 @@ class FirebaseAvatarService {
       });
 
       log.info('✅ Successfully equipped avatar: $avatarId for user: $currentUserId');
+      
+      // Force a refresh of the streams to ensure UI updates immediately
+      try {
+        // Wait a moment for Firestore to propagate
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        // Trigger stream updates by reading the documents again
+        final userStateDoc = await _firestore.collection(_userAvatarStatesCollection).doc(currentUserId).get();
+        if (userStateDoc.exists) {
+          final updatedState = FirebaseAvatarState.fromFirestore(userStateDoc);
+          _currentUserState = updatedState;
+          _userStateController.add(updatedState);
+          log.info('🔄 Force-refreshed user state stream after equip: equipped=${updatedState.equippedAvatarId}');
+        }
+        
+        // Also refresh ownerships
+        final ownershipDocs = await _firestore
+            .collection(_userAvatarOwnershipsCollection)
+            .where('userId', isEqualTo: currentUserId)
+            .get();
+        
+        final ownerships = ownershipDocs.docs
+            .map((doc) => UserAvatarOwnership.fromFirestore(doc))
+            .toList();
+        
+        _ownershipCache.clear();
+        for (final ownership in ownerships) {
+          _ownershipCache['${ownership.userId}_${ownership.avatarId}'] = ownership;
+        }
+        
+        _ownershipsController.add(ownerships);
+        log.info('🔄 Force-refreshed ownerships stream after equip: ${ownerships.length} ownerships');
+        
+      } catch (refreshError) {
+        log.warning('⚠️ Error force-refreshing streams after equip: $refreshError');
+      }
     } catch (e, stackTrace) {
       log.severe('❌ Failed to equip avatar $avatarId: $e', e, stackTrace);
       rethrow;
@@ -468,7 +695,7 @@ class FirebaseAvatarService {
           price: 0, // Temporarily free while currency system is being developed
           rarity: 'legendary',
           isPurchasable: true,
-          requiredAchievements: ['complete_first_week', 'eco_warrior'],
+          requiredAchievements: [], // Made free for demo purposes
           releaseDate: DateTime(2024, 6, 1),
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),

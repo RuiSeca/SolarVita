@@ -53,14 +53,34 @@ class CurrencyService {
       // Start listening to streak changes
       _startStreakListener();
       
-      // Ensure user currency exists
-      await _ensureUserCurrencyExists();
+      // Try to ensure user currency exists (but don't fail if no permissions)
+      try {
+        await _ensureUserCurrencyExists();
+      } catch (e) {
+        if (e.toString().contains('permission-denied')) {
+          log.warning('⚠️ No write permission for currency - running in local mode');
+        } else {
+          log.warning('⚠️ Failed to create currency document: $e');
+        }
+      }
       
-      // Ensure user streak exists
-      await _ensureUserStreakExists();
+      // Try to ensure user streak exists (but don't fail if no permissions)
+      try {
+        await _ensureUserStreakExists();
+      } catch (e) {
+        if (e.toString().contains('permission-denied')) {
+          log.warning('⚠️ No write permission for streaks - running in local mode');
+        } else {
+          log.warning('⚠️ Failed to create streak document: $e');
+        }
+      }
       
-      // Check for daily streak reset
-      await _checkDailyStreakReset();
+      // Check for daily streak reset (only if we have streaks data)
+      try {
+        await _checkDailyStreakReset();
+      } catch (e) {
+        log.warning('⚠️ Failed to check streak reset: $e');
+      }
 
       log.info('✅ Currency Service initialized successfully');
     } catch (e, stackTrace) {
@@ -71,27 +91,41 @@ class CurrencyService {
 
   /// Start listening to currency changes
   void _startCurrencyListener() {
-    if (currentUserId == null) return;
+    if (currentUserId == null) {
+      log.warning('⚠️ Cannot start currency listener - currentUserId is null');
+      return;
+    }
 
+    log.info('🎧 Starting currency listener for user: $currentUserId');
+    
+    // Emit default currency immediately to prevent loading state
+    _currentCurrency = UserCurrency.newUser(currentUserId!);
+    _currencyController.add(_currentCurrency!);
+    log.info('📤 Emitted initial default currency while loading from Firestore');
+    
     _currencySubscription = _firestore
         .collection(_currencyCollection)
         .doc(currentUserId)
         .snapshots()
         .listen(
       (snapshot) {
+        log.info('📥 Currency snapshot received - exists: ${snapshot.exists}');
         if (snapshot.exists) {
-          _currentCurrency = UserCurrency.fromFirestore(snapshot);
-          _currencyController.add(_currentCurrency!);
-          log.info('🔄 Currency updated: ${_currentCurrency!.totalSpendable} coins available');
+          try {
+            _currentCurrency = UserCurrency.fromFirestore(snapshot);
+            _currencyController.add(_currentCurrency!);
+            log.info('🔄 Currency updated from Firestore: ${_currentCurrency!.totalSpendable} coins available');
+            log.info('💰 Full currency data: ${_currentCurrency!.toString()}');
+          } catch (e) {
+            log.severe('❌ Error parsing currency document: $e');
+            log.info('📄 Raw document data: ${snapshot.data()}');
+          }
         } else {
           // Document doesn't exist yet, emit default currency
-          log.info('💰 Currency document not found, creating default currency for user: $currentUserId');
+          log.info('💰 Currency document not found, using local default currency for user: $currentUserId');
           _currentCurrency = UserCurrency.newUser(currentUserId!);
           _currencyController.add(_currentCurrency!);
-          // Try to create the document asynchronously
-          _ensureUserCurrencyExists().catchError((e) {
-            log.warning('⚠️ Failed to create currency document: $e');
-          });
+          log.info('🔄 Currency updated: ${_currentCurrency!.totalSpendable} coins available (local mode)');
         }
       },
       onError: (error) {
@@ -116,13 +150,10 @@ class CurrencyService {
           log.info('🔥 Streak updated: ${_currentStreak!.currentStreak} days (${_currentStreak!.streakTier})');
         } else {
           // Document doesn't exist yet, emit default streak
-          log.info('🔥 Streak document not found, creating default streak for user: $currentUserId');
+          log.info('🔥 Streak document not found, using local default streak for user: $currentUserId');
           _currentStreak = UserStreak.newUser(currentUserId!);
           _streakController.add(_currentStreak!);
-          // Try to create the document asynchronously
-          _ensureUserStreakExists().catchError((e) {
-            log.warning('⚠️ Failed to create streak document: $e');
-          });
+          log.info('🔥 Streak updated: ${_currentStreak!.currentStreak} days (${_currentStreak!.streakTier}) (local mode)');
         }
       },
       onError: (error) {
