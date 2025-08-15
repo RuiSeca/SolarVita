@@ -90,9 +90,10 @@ class FirebaseAvatarCard extends ConsumerWidget {
                       width: 100,
                       height: 100,
                       initialStage: AnimationStage.idle,
-                      autoPlaySequence: true,
-                      sequenceDelay: const Duration(seconds: 3),
+                      autoPlaySequence: avatar.avatarId != 'quantum_coach' && avatar.avatarId != 'director_coach', // Disable sequences for problematic avatars
+                      sequenceDelay: const Duration(seconds: 5), // Longer delay to reduce conflicts
                       fit: BoxFit.contain,
+                      useCustomizations: false, // Use basic version in store to avoid cache conflicts
                     ),
                   ),
                 ),

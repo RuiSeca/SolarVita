@@ -57,6 +57,13 @@ class ControllableAvatarDisplay extends ConsumerWidget {
   /// Trigger a specific animation stage
   static void playStage(WidgetRef ref, String avatarId, AnimationStage stage, {bool useCustomized = true}) {
     try {
+      // Validate if the avatar supports this animation stage
+      if (!AvatarAnimationsConfig.supportsAnimationStage(avatarId, stage)) {
+        final fallbackStage = AvatarAnimationsConfig.getFallbackStage(avatarId, stage);
+        debugPrint('⚠️ Avatar $avatarId does not support stage $stage, falling back to $fallbackStage');
+        stage = fallbackStage;
+      }
+      
       final config = AvatarAnimationsConfig.getConfigWithFallback(avatarId);
       final animationName = config.getAnimation(stage) ?? config.defaultAnimation;
       

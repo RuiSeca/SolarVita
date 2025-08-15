@@ -190,6 +190,54 @@
         "animationVariations": true,
         "crossScreenState": true
       }
+    },
+    {
+      "id": "solar_coach",
+      "name": "Solar Coach",
+      "type": "simple_animation",
+      "assetPath": "assets/rive/solar.riv",
+      "animations": {
+        "idle": "FIRST FLY",
+        "jump": "SECOND FLY",
+        "run": "FIRST FLY",
+        "attack": "SECOND FLY"
+      },
+      "interactions": {
+        "type": "simple",
+        "id": "solar_simple",
+        "steps": [
+          {
+            "name": "fly_animation",
+            "animation": "FIRST FLY",
+            "duration": 3000,
+            "description": "Flying animation sequence"
+          }
+        ]
+      },
+      "positioning": {
+        "ai_screen": {
+          "position": "header",
+          "coordinates": {
+            "x": 70,
+            "y": 16,
+            "width": 50,
+            "height": 50
+          },
+          "anchor": "top_left",
+          "zIndex": 1,
+          "container": "header_avatars"
+        }
+      },
+      "requiredScreens": ["ai_screen"],
+      "priority": 3,
+      "isEnabled": true,
+      "customProperties": {
+        "useSimpleAnimations": true,
+        "stateMachineName": "State Machine 1",
+        "triggerInput": "click ri",
+        "booleanInput": "HV 1",
+        "showLargeAvatar": false
+      }
     }
   ],
   "layouts": [
@@ -221,6 +269,22 @@
           "containerId": "floating_avatars", 
           "constraints": {
             "anchor": "top_right",
+            "responsive": true
+          }
+        },
+        {
+          "avatarId": "solar_coach",
+          "position": "header",
+          "coordinates": {
+            "x": 70,
+            "y": 16,
+            "width": 50,
+            "height": 50
+          },
+          "zIndex": 1,
+          "containerId": "header_avatars",
+          "constraints": {
+            "anchor": "top_left",
             "responsive": true
           }
         }

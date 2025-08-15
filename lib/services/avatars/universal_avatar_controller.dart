@@ -31,10 +31,27 @@ class UniversalAvatarController extends AvatarInteractionController {
     _animationConfig = AvatarAnimationsConfig.getConfigWithFallback(avatarType);
     log.info('🎯 Universal controller created for $avatarType (ID: $avatarId) with animations: ${_animationConfig.animations.keys.join(", ")}');
     log.info('🎯 Using rive file: ${_animationConfig.rivAssetPath}');
+    
+    // CRITICAL: Special protection for solar_coach to prevent RangeError
+    if (avatarType.toLowerCase() == 'solar_coach') {
+      log.info('🌞 PROTECTION: Solar coach detected - limiting animation stages to prevent RangeError');
+    }
   }
 
   /// Get the avatar type as string for external use
   String get avatarTypeString => _avatarTypeString;
+  
+  /// Safely set animation stage with solar_coach protection
+  void _setAnimationStage(int stage) {
+    // CRITICAL: Solar coach only has 1 state machine (index 0)
+    // Prevent setting stage values that could be used as state machine indices
+    if (_avatarTypeString.toLowerCase() == 'solar_coach') {
+      log.info('🌞 PROTECTION: Solar coach stage change requested: $stage → clamping to 0');
+      _setAnimationStage(0); // Always use stage 0 for solar_coach
+    } else {
+      _animationStage.value = stage;
+    }
+  }
 
   /// Convert string avatar type to AvatarType enum
   static AvatarType _getAvatarTypeFromString(String avatarType) {
@@ -45,6 +62,9 @@ class UniversalAvatarController extends AvatarInteractionController {
       case 'quantum_coach':
       case 'quantum':
         return AvatarType.quantumCoach;
+      case 'solar_coach':
+      case 'solar':
+        return AvatarType.mummy; // Use mummy type for now, but handle specially
       default:
         return AvatarType.mummy; // Default fallback
     }
@@ -119,7 +139,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     // Hide header, show large avatar
     _showHeaderAvatar.value = false;
     _showLargeAvatar.value = true;
-    _animationStage.value = 1;
+    _setAnimationStage(1);
 
     // Start with idle on large avatar
     final largeState = largeAvatarKey?.currentState;
@@ -251,7 +271,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     }
 
     await Future.delayed(const Duration(seconds: 8));
-    _animationStage.value = 2;
+    _setAnimationStage(2);
     
     if (largeState != null) {
       largeState.playStage(AnimationStage.idle);
@@ -280,7 +300,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     }
 
     await Future.delayed(const Duration(seconds: 1));
-    _animationStage.value = 3;
+    _setAnimationStage(3);
     
     if (largeState != null) {
       largeState.playStage(AnimationStage.idle);
@@ -312,7 +332,7 @@ class UniversalAvatarController extends AvatarInteractionController {
 
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
 
     final headerState = headerAvatarKey?.currentState;
     if (headerState != null) {
@@ -336,7 +356,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     }
 
     await Future.delayed(const Duration(seconds: 4)); // Doubled from 2s
-    _animationStage.value = 2;
+    _setAnimationStage(2);
     
     if (largeState != null) {
       largeState.playStage(AnimationStage.idle);
@@ -353,7 +373,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     }
 
     await Future.delayed(const Duration(seconds: 8)); // Doubled from 4s
-    _animationStage.value = 3;
+    _setAnimationStage(3);
     
     if (largeState != null) {
       largeState.playStage(AnimationStage.idle);
@@ -373,7 +393,7 @@ class UniversalAvatarController extends AvatarInteractionController {
 
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
 
     final headerState = headerAvatarKey?.currentState;
     if (headerState != null) {
@@ -396,7 +416,7 @@ class UniversalAvatarController extends AvatarInteractionController {
       largeState.playStage(AnimationStage.run);
     }
     await Future.delayed(const Duration(seconds: 5));
-    _animationStage.value = 2;
+    _setAnimationStage(2);
     log.info('🔮 Complex avatar stage 1 complete');
   }
 
@@ -407,7 +427,7 @@ class UniversalAvatarController extends AvatarInteractionController {
       largeState.playStage(AnimationStage.attack);
     }
     await Future.delayed(const Duration(seconds: 3));
-    _animationStage.value = 3;
+    _setAnimationStage(3);
     log.info('🔮 Complex avatar stage 2 complete');
   }
 
@@ -418,7 +438,7 @@ class UniversalAvatarController extends AvatarInteractionController {
       largeState.playStage(AnimationStage.teleport);
     }
     await Future.delayed(const Duration(seconds: 4));
-    _animationStage.value = 4;
+    _setAnimationStage(4);
     log.info('🔮 Complex avatar stage 3 complete');
   }
 
@@ -432,7 +452,7 @@ class UniversalAvatarController extends AvatarInteractionController {
 
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
 
     final headerState = headerAvatarKey?.currentState;
     if (headerState != null) {
@@ -450,7 +470,7 @@ class UniversalAvatarController extends AvatarInteractionController {
       largeState.playStage(AnimationStage.run);
     }
     await Future.delayed(const Duration(seconds: 3));
-    _animationStage.value = 2;
+    _setAnimationStage(2);
     log.info('⚡ Basic avatar animation complete');
   }
 
@@ -464,7 +484,7 @@ class UniversalAvatarController extends AvatarInteractionController {
 
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
 
     final headerState = headerAvatarKey?.currentState;
     if (headerState != null) {
@@ -479,7 +499,7 @@ class UniversalAvatarController extends AvatarInteractionController {
   void _resetToSafeState() {
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
     
     final headerState = headerAvatarKey?.currentState;
     if (headerState != null) {
@@ -492,7 +512,7 @@ class UniversalAvatarController extends AvatarInteractionController {
     super.reset();
     _showLargeAvatar.value = false;
     _showHeaderAvatar.value = true;
-    _animationStage.value = 0;
+    _setAnimationStage(0);
     log.info('🎯 $_avatarTypeString reset');
   }
 

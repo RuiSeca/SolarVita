@@ -104,8 +104,8 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
   List<AvatarFeature> _extractFeatures(Map<String, dynamic> customProps) {
     final features = <AvatarFeature>[];
     
-    // For Quantum Coach, use the detailed configuration
-    if (widget.avatar.avatarId == 'quantum_coach') {
+    // For Quantum Coach and Director Coach, use the detailed configuration (both use same config)
+    if (widget.avatar.avatarId == 'quantum_coach' || widget.avatar.avatarId == 'director_coach') {
       features.addAll([
         AvatarFeature(
           type: 'Eyes',
@@ -307,6 +307,36 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
     );
   }
 
+  Future<void> _obtainFreeAvatar() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Get the Firebase avatar service
+      final avatarService = ref.read(firebaseAvatarServiceProvider);
+      
+      // Create ownership record for free avatar using purchase method (will be free since price = 0)
+      await avatarService.purchaseAvatar(widget.avatar.avatarId, metadata: {'obtainType': 'free_claim'});
+      
+      if (mounted) {
+        _showSuccessMessage('${widget.avatar.name} obtained successfully!');
+        
+        // Refresh the screen by popping and pushing back, or trigger a rebuild
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorMessage('Error obtaining avatar: $e');
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     debugPrint('🏪 DEBUG: AvatarStudioScreen.build() - Avatar: ${widget.avatar.avatarId}, Owned: ${widget.isOwned}');
@@ -370,6 +400,8 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
   }
 
   Widget _buildPurchaseRequiredScreen() {
+    final isFree = widget.avatar.price == 0;
+    
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A0A),
       appBar: AppBar(
@@ -392,11 +424,15 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.lock, size: 40, color: Colors.white),
+                child: Icon(
+                  isFree ? Icons.card_giftcard : Icons.lock, 
+                  size: 40, 
+                  color: Colors.white
+                ),
               ),
               const SizedBox(height: 24),
               Text(
-                'Purchase Required',
+                isFree ? 'Get for Free!' : 'Purchase Required',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -405,7 +441,9 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               ),
               const SizedBox(height: 12),
               Text(
-                'You need to own ${widget.avatar.name} to access its customization studio.',
+                isFree 
+                  ? 'Claim ${widget.avatar.name} for free to access its customization studio!'
+                  : 'You need to own ${widget.avatar.name} to access its customization studio.',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white70,
@@ -413,6 +451,17 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
                 ),
               ),
               const SizedBox(height: 24),
+              if (isFree) ...[
+                ElevatedButton(
+                  onPressed: _obtainFreeAvatar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  ),
+                  child: const Text('Obtain for Free', style: TextStyle(color: Colors.white)),
+                ),
+                const SizedBox(height: 12),
+              ],
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
@@ -658,16 +707,17 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
   }
 
   Widget _getCustomizationWidgetForAvatar() {
-    // For Quantum Coach, use the enhanced customization widget
-    if (widget.avatar.avatarId == 'quantum_coach') {
+    // For Quantum Coach and Director Coach, use the enhanced customization widget
+    if (widget.avatar.avatarId == 'quantum_coach' || widget.avatar.avatarId == 'director_coach') {
       return EnhancedAvatarCustomization(
+        avatarId: widget.avatar.avatarId, // Pass the avatarId parameter
         width: MediaQuery.of(context).size.width - 32,
         height: 300,
-        showActionsTab: _avatarConfig!.supportedAnimations.isNotEmpty,
-        showStatesTab: true,
+        showActionsTab: false, // Disabled - caused freezing issues
+        showStatesTab: false,  // Disabled - caused freezing issues
         enableAutoSave: true,
         onCustomizationChanged: () {
-          // Customization changes are auto-saved
+          // Customization changes are auto-saved with debouncing
         },
       );
     } else {

@@ -516,13 +516,13 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           // Avatar in header - dynamically show equipped avatar
           Consumer(
             builder: (context, ref, child) {
-              final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider).valueOrNull;
-              final equippedAvatarId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+              // Use the new stable equipped avatar provider
+              final equippedAvatar = ref.watch(equippedAvatarProvider);
+              final avatarId = equippedAvatar?.avatarId ?? 'mummy_coach';
               
-              _logger.i('🎯 Header building with avatar: $equippedAvatarId');
-              _logger.i('🎯 Firebase avatar state in header: ${firebaseAvatarState?.toString()}');
+              _logger.i('🎯 Header building with stable equipped avatar: $avatarId');
               
-              return _buildHeaderAvatar(equippedAvatarId);
+              return _buildHeaderAvatar(avatarId);
             },
           ),
           const SizedBox(width: 12),

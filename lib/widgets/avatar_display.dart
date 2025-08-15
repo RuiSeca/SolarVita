@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rive/rive.dart' as rive;
 import '../config/avatar_animations_config.dart';
-import '../providers/firebase/firebase_avatar_provider.dart';
 import '../providers/avatar/avatar_artboard_provider.dart';
+import '../providers/avatar/unified_avatar_provider.dart';
 import '../utils/rive_utils.dart';
+import 'solar_coach_direct_display.dart';
 
 class AvatarDisplay extends ConsumerStatefulWidget {
   final String? avatarId;
@@ -40,6 +41,7 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
     with TickerProviderStateMixin {
   bool _isSequenceRunning = false;
   int _sequenceIndex = 0;
+  String? _lastLoadedAvatarId; // Track last successfully loaded avatar to prevent cycling
 
   @override
   void initState() {
@@ -48,15 +50,44 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
 
   @override
   Widget build(BuildContext context) {
-    final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider);
-    
-    // Smart avatar ID resolution based on preferEquipped flag
-    final effectiveAvatarId = widget.preferEquipped 
-        ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-        : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
-    
-    // Debug logging for equipped avatar
-    debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, equipped=${firebaseAvatarState.valueOrNull?.equippedAvatarId}, effective=$effectiveAvatarId, preferEquipped=${widget.preferEquipped}');
+    try {
+      // Use unified provider for consistent equipped avatar state
+      final unifiedState = ref.watch(unifiedAvatarStateProvider);
+      
+      // Smart avatar ID resolution based on preferEquipped flag
+      final effectiveAvatarId = widget.preferEquipped 
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
+      
+      // SELECTIVE ISOLATION: Keep solar_coach as safe placeholder while we debug animation issues
+      if (effectiveAvatarId == 'solar_coach') {
+        debugPrint('🌞 DEBUG MODE: Using safe placeholder for solar_coach while debugging animation structure');
+        return _buildSafePlaceholder(effectiveAvatarId);
+      }
+      
+      // For mummy_coach, try safe mode if it's causing issues
+      if (effectiveAvatarId == 'mummy_coach') {
+        debugPrint('🧟 TESTING: Using direct loader for mummy_coach');
+        return SolarCoachDirectDisplay(
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          avatarType: 'mummy_coach',
+        );
+      }
+      
+      
+      // Debug logging for equipped avatar
+      debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, unified.equipped=${unifiedState.equippedAvatarId}, effective=$effectiveAvatarId, preferEquipped=${widget.preferEquipped}');
+
+    // Solar_coach should now work properly with updated configurations
+
+    // Cache switching optimization - don't aggressively clear cache to prevent freezing
+    if (_lastLoadedAvatarId != null && _lastLoadedAvatarId != effectiveAvatarId) {
+      debugPrint('🔄 Avatar switching detected: $_lastLoadedAvatarId → $effectiveAvatarId (preserving cache for smooth transition)');
+      // Removed aggressive cache clearing that was causing freezing between customized avatars
+    }
+
 
     // Use appropriate provider based on whether customizations are needed
     final artboardProvider = widget.useCustomizations 
@@ -71,6 +102,9 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
       child: artboardAsync.when(
         data: (artboard) {
           if (artboard != null) {
+            // Update last successfully loaded avatar ID
+            _lastLoadedAvatarId = effectiveAvatarId;
+            
             // Start animation sequence if requested and not already running
             if (widget.autoPlaySequence && !_isSequenceRunning) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -78,19 +112,154 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
               });
             }
             
-            return rive.Rive(
-              artboard: artboard,
-              fit: widget.fit,
-            );
+            try {
+              return rive.Rive(
+                artboard: artboard,
+                fit: widget.fit,
+              );
+            } catch (e) {
+              debugPrint('❌ Error rendering Rive widget for $effectiveAvatarId: $e');
+              if (e.toString().contains('RangeError')) {
+                debugPrint('🔍 RangeError in Rive widget rendering!');
+                debugPrint('🔍 This is likely the source of the RangeError!');
+              }
+              return _buildFallback(effectiveAvatarId);
+            }
           } else {
             return _buildFallback(effectiveAvatarId);
           }
         },
-        loading: () => _buildLoading(effectiveAvatarId),
+        loading: () {
+          // During loading, show the last successfully loaded avatar if available
+          final loadingAvatarId = _lastLoadedAvatarId ?? effectiveAvatarId;
+          return _buildLoading(loadingAvatarId);
+        },
         error: (error, stack) {
           debugPrint('❌ Error loading artboard for $effectiveAvatarId: $error');
           return _buildFallback(effectiveAvatarId);
         },
+      ),
+    );
+    } catch (e) {
+      // EMERGENCY CIRCUIT BREAKER: Catch any RangeError and show safe fallback
+      debugPrint('🚨 EMERGENCY: Avatar display error caught: $e');
+      if (e.toString().contains('RangeError')) {
+        debugPrint('🚨 EMERGENCY: RangeError in AvatarDisplay build - using emergency fallback');
+        return _buildEmergencyFallback('error_avatar');
+      }
+      // Re-throw non-RangeError exceptions
+      rethrow;
+    }
+  }
+
+  Widget _buildSafePlaceholder(String avatarId) {
+    // Color and icon based on avatar type
+    final MaterialColor color;
+    final IconData icon;
+    final String displayName;
+    
+    switch (avatarId) {
+      case 'solar_coach':
+        color = Colors.orange;
+        icon = Icons.wb_sunny;
+        displayName = 'Solar Coach';
+        break;
+      case 'mummy_coach':
+        color = Colors.brown;
+        icon = Icons.person;
+        displayName = 'Mummy Coach';
+        break;
+      case 'quantum_coach':
+        color = Colors.purple;
+        icon = Icons.psychology;
+        displayName = 'Quantum Coach';
+        break;
+      case 'director_coach':
+        color = Colors.indigo;
+        icon = Icons.movie;
+        displayName = 'Director Coach';
+        break;
+      default:
+        color = Colors.grey;
+        icon = Icons.person;
+        displayName = 'Avatar';
+    }
+    
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            size: widget.width * 0.4,
+            color: color[600] ?? color,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            displayName,
+            style: TextStyle(
+              color: color[700] ?? color,
+              fontSize: widget.width * 0.08,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Static Mode',
+            style: TextStyle(
+              color: color[500] ?? color,
+              fontSize: widget.width * 0.05,
+              fontWeight: FontWeight.w400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmergencyFallback(String avatarId) {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.red.withValues(alpha: 0.3),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.warning,
+            size: widget.width * 0.3,
+            color: Colors.red[600] ?? Colors.red,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Avatar Error',
+            style: TextStyle(
+              color: Colors.red[600] ?? Colors.red,
+              fontSize: widget.width * 0.06,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -171,10 +340,10 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
   void _startAnimationSequence(rive.Artboard artboard) {
     if (_isSequenceRunning || !widget.autoPlaySequence) return;
     
-    final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+    final unifiedState = ref.read(unifiedAvatarStateProvider);
     final effectiveAvatarId = widget.preferEquipped 
-        ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-        : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+        ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+        : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
     final sequenceOrder = AvatarAnimationsConfig.getSequenceOrder(effectiveAvatarId);
     
     if (sequenceOrder == null || sequenceOrder.isEmpty) return;
@@ -240,10 +409,18 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
 
   void playStage(AnimationStage stage) {
     try {
-      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final unifiedState = ref.read(unifiedAvatarStateProvider);
       final effectiveAvatarId = widget.preferEquipped 
-          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
+      
+      // Validate if the avatar supports this animation stage
+      if (!AvatarAnimationsConfig.supportsAnimationStage(effectiveAvatarId, stage)) {
+        final fallbackStage = AvatarAnimationsConfig.getFallbackStage(effectiveAvatarId, stage);
+        debugPrint('⚠️ Avatar $effectiveAvatarId does not support stage $stage, falling back to $fallbackStage');
+        stage = fallbackStage;
+      }
+      
       final config = AvatarAnimationsConfig.getConfigWithFallback(effectiveAvatarId);
       
       // Get the animation name for this stage
@@ -270,10 +447,10 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
   /// Trigger a specific animation by name
   void triggerAnimation(String animationName) {
     try {
-      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final unifiedState = ref.read(unifiedAvatarStateProvider);
       final effectiveAvatarId = widget.preferEquipped 
-          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
       
       final cacheNotifier = ref.read(artboardCacheNotifierProvider);
       final success = cacheNotifier.triggerAnimation(
@@ -295,10 +472,10 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
   /// Set a number input on the avatar (for external control)
   void setNumberInput(String inputName, double value) {
     try {
-      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final unifiedState = ref.read(unifiedAvatarStateProvider);
       final effectiveAvatarId = widget.preferEquipped 
-          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
       
       final cacheNotifier = ref.read(artboardCacheNotifierProvider);
       final success = cacheNotifier.setNumberInput(
@@ -321,10 +498,10 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
   /// Set a boolean input on the avatar (for external control)
   void setBoolInput(String inputName, bool value) {
     try {
-      final firebaseAvatarState = ref.read(firebaseAvatarStateProvider);
+      final unifiedState = ref.read(unifiedAvatarStateProvider);
       final effectiveAvatarId = widget.preferEquipped 
-          ? (firebaseAvatarState.valueOrNull?.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
-          : (widget.avatarId ?? firebaseAvatarState.valueOrNull?.equippedAvatarId ?? 'mummy_coach');
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
       
       final cacheNotifier = ref.read(artboardCacheNotifierProvider);
       final success = cacheNotifier.setBoolInput(

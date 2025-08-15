@@ -12,8 +12,9 @@ final log = Logger('AvatarArtboardProvider');
 final avatarArtboardManagerProvider = Provider<AvatarArtboardManager>((ref) {
   final manager = AvatarArtboardManager();
   
-  // Dispose manager when provider is disposed
+  // Dispose manager when provider is disposed (app exit/screen reset)
   ref.onDispose(() {
+    log.info('🧹 Avatar artboard manager provider disposed - clearing all caches');
     manager.dispose();
   });
   
@@ -28,8 +29,12 @@ final customizedArtboardProvider = FutureProvider.family<rive.Artboard?, String>
     final manager = ref.read(avatarArtboardManagerProvider);
     final avatarService = ref.read(firebaseAvatarServiceProvider);
     
+    
     // Get avatar config to find asset path
     final config = AvatarAnimationsConfig.getConfigWithFallback(avatarId);
+    
+    log.info('🔧 Using config for $avatarId: ${config.rivAssetPath}');
+    log.info('🔧 Has customization: ${config.customProperties?['hasCustomization']}');
     
     final artboard = await manager.getCustomizedArtboard(avatarId, config.rivAssetPath, avatarService);
     
@@ -55,6 +60,9 @@ final basicArtboardProvider = FutureProvider.family<rive.Artboard?, String>((ref
     
     // Get avatar config to find asset path
     final config = AvatarAnimationsConfig.getConfigWithFallback(avatarId);
+    
+    log.info('🔧 Using basic config for $avatarId: ${config.rivAssetPath}');
+    log.info('🔧 Has customization: ${config.customProperties?['hasCustomization']}');
     
     final artboard = await manager.getBasicArtboard(avatarId, config.rivAssetPath);
     
@@ -82,6 +90,7 @@ final artboardCacheNotifierProvider = Provider<ArtboardCacheNotifier>((ref) {
   
   return notifier;
 });
+
 
 /// Notifier for managing artboard cache invalidation and animation control
 class ArtboardCacheNotifier {
@@ -112,7 +121,7 @@ class ArtboardCacheNotifier {
       if (updated) {
         log.info('✅ Live customization update applied to $avatarId');
       } else {
-        log.warning('⚠️ Live customization update failed for $avatarId');
+        log.info('! Live customization update failed for $avatarId');
       }
     } catch (e) {
       log.warning('❌ Error updating live customizations for $avatarId: $e');
@@ -125,7 +134,9 @@ class ArtboardCacheNotifier {
     _debounceTimers[avatarId]?.cancel();
     _debounceTimers.remove(avatarId);
     _manager.invalidateArtboard(avatarId);
+    
   }
+  
   
   /// Trigger an animation on a cached artboard
   bool triggerAnimation(String avatarId, String animationName, {bool useCustomized = true}) {

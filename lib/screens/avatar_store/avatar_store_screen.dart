@@ -475,7 +475,8 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
                   metadata: {},
                 ),
               );
-              final isOwned = ownerships.any((o) => o.avatarId == avatar.avatarId);
+              // Check ownership: either in ownerships list OR is a free avatar
+              final isOwned = ownerships.any((o) => o.avatarId == avatar.avatarId) || avatar.price == 0;
               
               return AnimatedContainer(
                 duration: Duration(milliseconds: 200 + (index * 50)),

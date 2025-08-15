@@ -11,6 +11,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   geolocator_windows
   permission_handler_windows
   rive_common
+  speech_to_text_windows
   url_launcher_windows
 )
 

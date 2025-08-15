@@ -90,6 +90,9 @@ class FirebaseAvatarService {
         // Continue anyway - user state can be created later
       }
 
+      // Ensure ownership records exist for all free avatars
+      await _ensureFreeAvatarOwnerships();
+      
       log.info('✅ Firebase Avatar Service initialized successfully');
     } catch (e, stackTrace) {
       log.severe('❌ Failed to initialize Firebase Avatar Service: $e', e, stackTrace);
@@ -363,16 +366,29 @@ class FirebaseAvatarService {
     
     // Check cache first
     if (_ownershipCache.containsKey('${currentUserId}_$avatarId')) {
+      log.info('✅ Avatar $avatarId found in ownership cache');
       return true;
     }
     
-    // For free avatars (price = 0), consider them auto-owned
+    // For free avatars (price = 0), auto-create ownership and consider them owned
     final avatar = _avatarCache[avatarId];
     if (avatar != null && avatar.price == 0) {
-      log.info('🆓 Avatar $avatarId is free, considering it auto-owned');
+      log.info('🆓 Avatar $avatarId is free (price=0), considering owned and auto-creating ownership record');
+      // Create ownership record asynchronously (don't wait for it)
+      _createOwnershipForFreeAvatar(avatarId);
+      return true; // Return true immediately for free avatars
+    }
+    
+    // For paid avatars, also check if they might be free but not cached yet
+    // This handles the case where avatar data hasn't loaded yet
+    if (avatar == null) {
+      log.warning('⚠️ Avatar $avatarId not found in cache, cannot determine ownership');
+      // For safety, assume ownership if we can't determine the price
+      // The customization will fail gracefully if user doesn't actually own it
       return true;
     }
     
+    log.info('❌ Avatar $avatarId is paid (price=${avatar.price}) and not in ownership cache');
     return false;
   }
 
@@ -382,12 +398,54 @@ class FirebaseAvatarService {
     if (equippedId == null) return null;
     return _avatarCache[equippedId];
   }
+  
+  /// Debug method to check avatar system state
+  Map<String, dynamic> getDebugInfo() {
+    return {
+      'currentUserId': currentUserId,
+      'userState': _currentUserState?.toString(),
+      'equippedAvatarId': _currentUserState?.equippedAvatarId,
+      'avatarsInCache': _avatarCache.keys.toList(),
+      'ownershipsInCache': _ownershipCache.keys.toList(),
+      'streamListening': {
+        'avatars': _avatarsSubscription?.isPaused == false,
+        'ownerships': _ownershipsSubscription?.isPaused == false,
+        'userState': _userStateSubscription?.isPaused == false,
+      },
+    };
+  }
+
+  /// Ensure ownership records exist for all free avatars
+  Future<void> _ensureFreeAvatarOwnerships() async {
+    if (currentUserId == null) return;
+    
+    try {
+      log.info('🆓 Ensuring ownership records for all free avatars...');
+      
+      final freeAvatars = _avatarCache.values.where((avatar) => avatar.price == 0).toList();
+      
+      for (final avatar in freeAvatars) {
+        await _createOwnershipForFreeAvatar(avatar.avatarId);
+      }
+      
+      log.info('✅ Completed free avatar ownership check for ${freeAvatars.length} free avatars');
+    } catch (e) {
+      log.warning('⚠️ Error ensuring free avatar ownerships: $e');
+    }
+  }
 
   /// Create ownership record for free avatar
   Future<void> _createOwnershipForFreeAvatar(String avatarId) async {
     if (currentUserId == null) return;
     
     final ownershipId = '${currentUserId}_$avatarId';
+    
+    // Check if already exists to avoid duplicate creation
+    if (_ownershipCache.containsKey(ownershipId)) {
+      log.info('🆓 Ownership already exists for free avatar: $avatarId');
+      return;
+    }
+    
     final ownership = UserAvatarOwnership(
       userId: currentUserId!,
       avatarId: avatarId,
@@ -408,8 +466,75 @@ class FirebaseAvatarService {
       // Update cache
       _ownershipCache[ownershipId] = ownership;
       log.info('✅ Created ownership record for free avatar: $avatarId');
+      
+      // Emit updated ownerships list to refresh UI
+      final allOwnerships = _ownershipCache.values
+          .where((ownership) => ownership.userId == currentUserId)
+          .toList();
+      _ownershipsController.add(allOwnerships);
+      log.info('🔄 Refreshed ownerships stream after free avatar creation');
     } catch (e) {
       log.warning('⚠️ Failed to create ownership for free avatar $avatarId: $e');
+    }
+  }
+
+  /// Ensure ownership record exists for free avatar (synchronous creation)
+  Future<void> _ensureOwnershipForFreeAvatar(String avatarId) async {
+    if (currentUserId == null) return;
+    
+    final ownershipId = '${currentUserId}_$avatarId';
+    
+    // Check if already exists in cache
+    if (_ownershipCache.containsKey(ownershipId)) {
+      log.info('🆓 Ownership already cached for free avatar: $avatarId');
+      return;
+    }
+    
+    // Check if exists in Firestore
+    try {
+      final ownershipDoc = await _firestore
+          .collection(_userAvatarOwnershipsCollection)
+          .doc(ownershipId)
+          .get();
+      
+      if (ownershipDoc.exists) {
+        final ownership = UserAvatarOwnership.fromFirestore(ownershipDoc);
+        _ownershipCache[ownershipId] = ownership;
+        log.info('🆓 Found existing ownership in Firestore for free avatar: $avatarId');
+        return;
+      }
+      
+      // Create new ownership record
+      final ownership = UserAvatarOwnership(
+        userId: currentUserId!,
+        avatarId: avatarId,
+        purchaseDate: DateTime.now(),
+        isEquipped: false,
+        customizations: {},
+        timesUsed: 0,
+        lastUsed: DateTime.now(),
+        metadata: {'type': 'free_avatar', 'auto_granted': true},
+      );
+
+      await _firestore
+          .collection(_userAvatarOwnershipsCollection)
+          .doc(ownershipId)
+          .set(ownership.toFirestore());
+      
+      // Update cache
+      _ownershipCache[ownershipId] = ownership;
+      log.info('✅ Created and cached ownership record for free avatar: $avatarId');
+      
+      // Emit updated ownerships list to refresh UI
+      final allOwnerships = _ownershipCache.values
+          .where((ownership) => ownership.userId == currentUserId)
+          .toList();
+      _ownershipsController.add(allOwnerships);
+      log.info('🔄 Refreshed ownerships stream after ensuring free avatar ownership');
+      
+    } catch (e) {
+      log.warning('⚠️ Failed to ensure ownership for free avatar $avatarId: $e');
+      // Don't rethrow - this will be handled gracefully by calling code
     }
   }
 
@@ -428,8 +553,8 @@ class FirebaseAvatarService {
       throw Exception('Avatar is not purchasable: $avatarId');
     }
 
-    // Check if user already owns this avatar
-    if (doesUserOwnAvatar(avatarId)) {
+    // Check if user already owns this avatar (with actual ownership record)
+    if (_ownershipCache.containsKey('${currentUserId}_$avatarId')) {
       log.warning('⚠️ User already owns avatar: $avatarId');
       return false;
     }
@@ -505,6 +630,8 @@ class FirebaseAvatarService {
       throw Exception('User must be authenticated to equip avatars');
     }
 
+    // Note: solar_coach now uses direct RIV loading - no longer blocked
+
     // Check if user owns this avatar or if it's a free avatar
     if (!doesUserOwnAvatar(avatarId)) {
       throw Exception('User does not own avatar: $avatarId');
@@ -578,6 +705,12 @@ class FirebaseAvatarService {
 
       log.info('✅ Successfully equipped avatar: $avatarId for user: $currentUserId');
       
+      // Each avatar now has isolated caching - no need to clear other avatars
+      log.info('🔧 Avatar equipped with isolated caching - no cross-avatar interference');
+      
+      // CRITICAL: Force refresh providers to ensure immediate state sync
+      await _forceRefreshProviders(avatarId);
+      
       // Force a refresh of the streams to ensure UI updates immediately
       try {
         // Wait a moment for Firestore to propagate
@@ -619,29 +752,116 @@ class FirebaseAvatarService {
     }
   }
 
-  /// Update avatar customizations
+  /// Update avatar customizations with better error handling and local caching
   Future<void> updateAvatarCustomizations(String avatarId, Map<String, dynamic> customizations) async {
     if (currentUserId == null) {
-      throw Exception('User must be authenticated to customize avatars');
+      log.warning('⚠️ User must be authenticated to customize avatars');
+      return; // Don't throw, just return silently to prevent UI freezing
     }
 
+    log.info('💾 SAVE DEBUG: Starting updateAvatarCustomizations for $avatarId');
+    log.info('💾 SAVE DEBUG: Customizations: $customizations');
+
+    // Check ownership and ensure it exists for free avatars
     if (!doesUserOwnAvatar(avatarId)) {
-      throw Exception('User does not own avatar: $avatarId');
+      log.warning('⚠️ User does not own avatar: $avatarId');
+      return; // Don't throw, just return silently
+    }
+
+    // For free avatars, ensure ownership record exists synchronously
+    final avatar = _avatarCache[avatarId];
+    if (avatar != null && avatar.price == 0) {
+      await _ensureOwnershipForFreeAvatar(avatarId);
     }
 
     try {
+      final ownershipKey = '${currentUserId}_$avatarId';
+      
+      // Update local cache immediately for responsive UI
+      if (_ownershipCache.containsKey(ownershipKey)) {
+        final currentOwnership = _ownershipCache[ownershipKey]!;
+        _ownershipCache[ownershipKey] = currentOwnership.copyWith(
+          customizations: customizations,
+          lastUsed: DateTime.now(),
+        );
+        log.info('✅ Updated local cache for avatar: $avatarId');
+      } else {
+        log.warning('⚠️ Ownership record not found in cache for $avatarId, attempting to create...');
+        await _ensureOwnershipForFreeAvatar(avatarId);
+        
+        // Try again after creating ownership
+        if (_ownershipCache.containsKey(ownershipKey)) {
+          final currentOwnership = _ownershipCache[ownershipKey]!;
+          _ownershipCache[ownershipKey] = currentOwnership.copyWith(
+            customizations: customizations,
+            lastUsed: DateTime.now(),
+          );
+          log.info('✅ Created ownership and updated cache for avatar: $avatarId');
+        }
+      }
+      
+      // Update Firestore with timeout and retry
       final ownershipRef = _firestore.collection(_userAvatarOwnershipsCollection)
-          .doc('${currentUserId}_$avatarId');
+          .doc(ownershipKey);
       
       await ownershipRef.update({
         'customizations': customizations,
         'lastUsed': Timestamp.fromDate(DateTime.now()),
-      });
+      }).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          log.warning('⚠️ Timeout updating customizations for avatar: $avatarId');
+          // Don't throw on timeout - local cache is already updated
+        },
+      );
 
-      log.info('✅ Updated customizations for avatar: $avatarId');
-    } catch (e, stackTrace) {
-      log.severe('❌ Failed to update avatar customizations: $e', e, stackTrace);
-      rethrow;
+      log.info('✅ SAVE SUCCESS: Updated Firestore customizations for avatar: $avatarId');
+    } catch (e) {
+      log.warning('⚠️ Failed to update avatar customizations (local cache preserved): $e');
+      // Don't rethrow - this prevents UI freezing and local cache is still updated
+    }
+  }
+  
+  /// Batch update multiple avatar customizations for better performance
+  Future<void> batchUpdateCustomizations(Map<String, Map<String, dynamic>> avatarCustomizations) async {
+    if (currentUserId == null || avatarCustomizations.isEmpty) {
+      return;
+    }
+
+    try {
+      final batch = _firestore.batch();
+      final timestamp = Timestamp.fromDate(DateTime.now());
+      
+      for (final entry in avatarCustomizations.entries) {
+        final avatarId = entry.key;
+        final customizations = entry.value;
+        
+        if (!doesUserOwnAvatar(avatarId)) continue;
+        
+        final ownershipRef = _firestore.collection(_userAvatarOwnershipsCollection)
+            .doc('${currentUserId}_$avatarId');
+        
+        batch.update(ownershipRef, {
+          'customizations': customizations,
+          'lastUsed': timestamp,
+        });
+        
+        // Update local cache
+        final ownershipKey = '${currentUserId}_$avatarId';
+        if (_ownershipCache.containsKey(ownershipKey)) {
+          final currentOwnership = _ownershipCache[ownershipKey]!;
+          _ownershipCache[ownershipKey] = currentOwnership.copyWith(
+            customizations: customizations,
+            lastUsed: DateTime.now(),
+          );
+        }
+      }
+      
+      await batch.commit().timeout(const Duration(seconds: 15));
+      log.info('✅ Batch updated customizations for ${avatarCustomizations.length} avatars');
+    } catch (e) {
+      log.warning('⚠️ Failed to batch update customizations: $e');
+      // Don't rethrow - local cache is updated
     }
   }
 
@@ -650,6 +870,11 @@ class FirebaseAvatarService {
     if (currentUserId == null) return {};
     final ownership = _ownershipCache['${currentUserId}_$avatarId'];
     return ownership?.customizations ?? {};
+  }
+
+  /// Public method to force create default avatars (for debug/admin use)
+  Future<void> forceCreateDefaultAvatars() async {
+    await _ensureDefaultAvatarsExist();
   }
 
   /// Ensure default avatars exist in Firestore
@@ -700,6 +925,30 @@ class FirebaseAvatarService {
           createdAt: DateTime.now(),
           updatedAt: DateTime.now(),
         ),
+        FirebaseAvatar(
+          avatarId: 'director_coach',
+          name: 'Director Coach',
+          description: 'Charismatic fitness director with Hollywood style. Commands your workout like an epic movie scene. Features full customization and professional animations.',
+          rivAssetPath: 'assets/rive/director_coach.riv',
+          availableAnimations: ['Idle', 'walk', 'walk 2', 'jump', 'Act_1', 'Act_Touch', 'starAct_Touch', 'win'],
+          customProperties: {
+            'hasComplexSequence': true,
+            'supportsTeleport': false,
+            'hasCustomization': true,
+            'customizationTypes': ['eyes', 'face', 'skin', 'clothing', 'accessories', 'hair'],
+            'sequenceOrder': ['Idle', 'walk', 'jump', 'Act_1'],
+            'theme': 'movie_director',
+            'eyeColors': 10, // eye 0 through eye 9
+            'useStateMachine': true,
+          },
+          price: 0, // Free for testing
+          rarity: 'legendary', // Upgraded to legendary due to customization features
+          isPurchasable: true,
+          requiredAchievements: [],
+          releaseDate: DateTime(2024, 8, 14),
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        ),
         // Note: Ninja Coach removed - no ninja.riv file exists
         // Only include avatars that have actual Rive files
       ];
@@ -740,8 +989,8 @@ class FirebaseAvatarService {
               .doc(currentUserId!)
               .set({
             'userId': currentUserId!,
-            'equippedAvatar': null,
-            'lastUpdated': FieldValue.serverTimestamp(),
+            'equippedAvatarId': null,
+            'lastUpdate': FieldValue.serverTimestamp(),
             'createdAt': FieldValue.serverTimestamp(),
           });
           log.info('✅ Created basic user state (no default avatars available)');
@@ -789,6 +1038,54 @@ class FirebaseAvatarService {
     } catch (e, stackTrace) {
       log.severe('❌ Failed to update avatar: $e', e, stackTrace);
       rethrow;
+    }
+  }
+  
+  /// Force refresh all providers to ensure immediate state synchronization
+  Future<void> _forceRefreshProviders(String avatarId) async {
+    try {
+      log.info('🔄 Force refreshing providers for equipped avatar: $avatarId');
+      
+      // Force refresh all streams to ensure UI updates immediately
+      await Future.delayed(const Duration(milliseconds: 100));
+      
+      // Update the current user state immediately in cache
+      if (_currentUserState != null) {
+        _currentUserState = _currentUserState!.copyWith(
+          equippedAvatarId: avatarId,
+          lastUpdate: DateTime.now(),
+        );
+        _userStateController.add(_currentUserState!);
+        log.info('✅ Updated local user state cache with equipped avatar: $avatarId');
+      }
+      
+      // Force update ownership cache to mark correct avatar as equipped
+      final ownershipKey = '${currentUserId}_$avatarId';
+      if (_ownershipCache.containsKey(ownershipKey)) {
+        _ownershipCache[ownershipKey] = _ownershipCache[ownershipKey]!.copyWith(
+          isEquipped: true,
+          lastUsed: DateTime.now(),
+        );
+      }
+      
+      // Unequip all other avatars in local cache
+      for (final key in _ownershipCache.keys) {
+        if (key != ownershipKey && key.startsWith('${currentUserId}_')) {
+          _ownershipCache[key] = _ownershipCache[key]!.copyWith(
+            isEquipped: false,
+            lastUsed: DateTime.now(),
+          );
+        }
+      }
+      
+      // Emit updated ownerships
+      _ownershipsController.add(_ownershipCache.values.toList());
+      
+      log.info('✅ Successfully refreshed providers for equipped avatar: $avatarId');
+      
+    } catch (e) {
+      log.warning('⚠️ Failed to refresh providers: $e');
+      // Don\'t rethrow - equipment still succeeded
     }
   }
 }

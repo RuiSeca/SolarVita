@@ -10,6 +10,10 @@ import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../debug/quantum_coach_analyzer.dart';
 import '../../debug/quantum_coach_clothing_tester.dart';
+import '../../debug/solar_coach_analyzer.dart';
+import '../../debug/range_error_tracker.dart';
+import '../../debug/solar_coach_diagnostic.dart';
+import '../maintenance_screen.dart';
 import '../avatar_store/avatar_studio_screen.dart';
 import '../../models/firebase/firebase_avatar.dart';
 
@@ -455,6 +459,129 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     );
   }
 
+  void _openSolarCoachAnalyzer() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SolarCoachAnalyzer(),
+      ),
+    );
+  }
+
+  void _openRangeErrorTracker() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const RangeErrorTracker(),
+      ),
+    );
+  }
+
+  void _openSolarCoachDiagnostic() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SolarCoachDiagnostic(),
+      ),
+    );
+  }
+
+  void _openMaintenanceScreen() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MaintenanceScreen(),
+      ),
+    );
+  }
+
+  Future<void> _addSolarCoachToFirebase() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Firebase management disabled - use diagnostic tools instead
+      setState(() {
+        _lastResult = 'ℹ️ Solar Coach Firebase management has been disabled.\n'
+                     'Use the "Solar Coach Diagnostic" tool instead to:\n'
+                     '• Check Firebase avatar state\n'
+                     '• Test avatar switching\n'
+                     '• Debug ownership issues\n'
+                     '\nThis prevents conflicts during RangeError debugging.';
+      });
+
+      _showSnackBar('ℹ️ Use Solar Coach Diagnostic tool instead', Colors.blue);
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error: $e';
+      });
+      _showSnackBar('❌ Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _listFirebaseAvatars() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Avatar listing disabled - use diagnostic tools instead
+      setState(() {
+        _lastResult = 'ℹ️ Avatar listing has been disabled during debugging.\n'
+                     'Use the "Solar Coach Diagnostic" tool to:\n'
+                     '• View available avatars\n'
+                     '• Check avatar ownership\n'
+                     '• See equipped avatar status';
+      });
+
+      _showSnackBar('ℹ️ Use Solar Coach Diagnostic tool', Colors.blue);
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error: $e';
+      });
+      _showSnackBar('❌ Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _removeSolarCoachFromFirebase() async {
+    setState(() {
+      _isLoading = true;
+      _lastResult = null;
+    });
+
+    try {
+      // Avatar removal disabled - use diagnostic tools instead  
+      setState(() {
+        _lastResult = 'ℹ️ Avatar removal has been disabled during debugging.\n'
+                     'Firebase avatar management is disabled to prevent\n'
+                     'conflicts while debugging the RangeError issue.\n'
+                     '\nUse the diagnostic tools to test avatar behavior safely.';
+      });
+
+      _showSnackBar('ℹ️ Avatar removal disabled during debugging', Colors.orange);
+    } catch (e) {
+      setState(() {
+        _lastResult = 'Error: $e';
+      });
+      _showSnackBar('❌ Error: $e', Colors.red);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -674,6 +801,95 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
               icon: Icons.checkroom_outlined,
               color: Colors.orange,
               onTap: _isLoading ? null : _openClothingTester,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Solar Coach Analyzer
+            _buildDebugCard(
+              title: 'Analyze Solar Coach RIVE',
+              description: 'Debug RangeError issues and examine solar.riv structure',
+              icon: Icons.wb_sunny_outlined,
+              color: Colors.amber,
+              onTap: _isLoading ? null : _openSolarCoachAnalyzer,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Range Error Tracker
+            _buildDebugCard(
+              title: 'RangeError Tracker',
+              description: 'Real-time tracking of RangeError exceptions with stack traces',
+              icon: Icons.bug_report,
+              color: Colors.red,
+              onTap: _isLoading ? null : _openRangeErrorTracker,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Solar Coach Diagnostic
+            _buildDebugCard(
+              title: 'Solar Coach Diagnostic',
+              description: 'Firebase state and ownership debugging for solar_coach',
+              icon: Icons.medical_services,
+              color: Colors.teal,
+              onTap: _isLoading ? null : _openSolarCoachDiagnostic,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Maintenance Screen
+            _buildDebugCard(
+              title: 'Avatar Maintenance Screen',
+              description: 'Complete avatar debugging tools & director coach Firebase setup',
+              icon: Icons.engineering,
+              color: Colors.indigo,
+              onTap: _isLoading ? null : _openMaintenanceScreen,
+            ),
+
+            const SizedBox(height: 24),
+
+            // Solar Coach Firebase Section
+            Text(
+              'Solar Coach Firebase Management',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Add Solar Coach to Firebase
+            _buildDebugCard(
+              title: 'Add Solar Coach to Firebase',
+              description: 'Add the new Solar Coach avatar to Firebase avatars collection',
+              icon: Icons.wb_sunny,
+              color: Colors.amber,
+              onTap: _isLoading ? null : _addSolarCoachToFirebase,
+            ),
+
+            const SizedBox(height: 12),
+
+            // List Firebase Avatars
+            _buildDebugCard(
+              title: 'List All Firebase Avatars',
+              description: 'View all avatars currently in the Firebase database',
+              icon: Icons.list_alt,
+              color: Colors.blue,
+              onTap: _isLoading ? null : _listFirebaseAvatars,
+            ),
+
+            const SizedBox(height: 12),
+
+            // Remove Solar Coach from Firebase
+            _buildDebugCard(
+              title: 'Remove Solar Coach from Firebase',
+              description: 'Remove Solar Coach from Firebase (for testing)',
+              icon: Icons.delete_outline,
+              color: Colors.red,
+              onTap: _isLoading ? null : _removeSolarCoachFromFirebase,
             ),
 
             const SizedBox(height: 24),

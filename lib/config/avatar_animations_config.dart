@@ -63,6 +63,34 @@ class AvatarAnimationsConfig {
         'supportsTeleport': false,
       },
     ),
+    'director_coach': AvatarAnimationConfig(
+      avatarId: 'director_coach',
+      rivAssetPath: 'assets/rive/director_coach.riv',
+      animations: {
+        AnimationStage.idle: 'starAct_Touch', // Use actual SMITrigger
+        AnimationStage.jump: 'jump', // Use actual SMITrigger
+        AnimationStage.run: 'Act_Touch', // Use actual SMITrigger
+        AnimationStage.attack: 'Act_1', // Use actual SMITrigger
+        AnimationStage.teleport: 'win', // Use actual SMITrigger
+      },
+      defaultAnimation: 'starAct_Touch', // Use actual SMITrigger as default
+      customProperties: {
+        'hasComplexSequence': true,
+        'supportsTeleport': false,
+        'hasCustomization': true, // Enable customization system
+        'customizationTypes': ['eyes', 'face', 'skin', 'clothing', 'accessories', 'hair'],
+        'sequenceOrder': ['starAct_Touch', 'jump', 'Act_Touch', 'Act_1', 'win'], // Use actual triggers
+        'useStateMachine': true, // Uses State Machine 1 for advanced features
+        'availableAnimations': ['starAct_Touch', 'Act_Touch', 'Act_1', 'back_in', 'win', 'jump'], // Actual SMITriggers
+        'theme': 'movie_director',
+        'eyeColors': 10, // eye 0 through eye 9
+        'stateMachineInputs': {
+          'triggers': ['starAct_Touch', 'Act_Touch', 'Act_1', 'back_in', 'win', 'jump'],
+          'booleans': ['jumpright_check', 'home', 'flower_check'],
+          'numbers': ['stateaction', 'flower_state']
+        },
+      },
+    ),
     'ninja_coach': AvatarAnimationConfig(
       avatarId: 'ninja_coach',
       rivAssetPath: 'assets/rive/ninja.riv',
@@ -131,20 +159,48 @@ class AvatarAnimationsConfig {
       avatarId: 'quantum_coach',
       rivAssetPath: 'assets/rive/quantum_coach.riv',
       animations: {
-        AnimationStage.idle: 'Idle',
-        AnimationStage.jump: 'jump',
-        AnimationStage.run: 'Act_Touch',
-        AnimationStage.attack: 'startAct_Touch',
-        AnimationStage.teleport: 'win',
+        AnimationStage.idle: 'starAct_Touch', // Use actual SMITrigger (same as director)
+        AnimationStage.jump: 'jump', // Use actual SMITrigger
+        AnimationStage.run: 'Act_Touch', // Use actual SMITrigger
+        AnimationStage.attack: 'Act_1', // Use actual SMITrigger
+        AnimationStage.teleport: 'win', // Use actual SMITrigger
       },
-      defaultAnimation: 'Idle',
+      defaultAnimation: 'starAct_Touch', // Same default as director_coach
       customProperties: {
         'hasComplexSequence': true,
         'supportsTeleport': true,
         'hasCustomization': true,
         'customizationTypes': ['eyes', 'skin', 'clothing'],
-        'availableAnimations': ['Idle', 'startAct_Touch', 'Act_Touch', 'jump', 'win', 'Act_1'],
-        'sequenceOrder': ['Idle', 'jump', 'startAct_Touch', 'Act_Touch', 'win'],
+        'availableAnimations': ['starAct_Touch', 'Act_Touch', 'Act_1', 'back_in', 'win', 'jump'], // Actual SMITriggers
+        'sequenceOrder': ['starAct_Touch', 'jump', 'Act_Touch', 'Act_1', 'win'], // Use actual triggers
+        'useStateMachine': true, // Uses state machine
+        'stateMachineInputs': {
+          'triggers': ['starAct_Touch', 'Act_Touch', 'Act_1', 'back_in', 'win', 'jump'],
+          'booleans': ['jumpright_check', 'home', 'flower_check'],
+          'numbers': ['stateaction', 'flower_state']
+        },
+      },
+    ),
+    'solar_coach': AvatarAnimationConfig(
+      avatarId: 'solar_coach',
+      rivAssetPath: 'assets/rive/solar.riv',
+      animations: {
+        AnimationStage.idle: 'State Machine 1',
+        AnimationStage.jump: 'State Machine 1', 
+        AnimationStage.run: 'State Machine 1',
+        AnimationStage.attack: 'State Machine 1',
+      },
+      defaultAnimation: 'State Machine 1',
+      customProperties: {
+        'hasComplexSequence': false,
+        'supportsTeleport': false,
+        'hasCustomization': true, // Enable to use state machine
+        'useDirectStateMachine': true, // New flag for direct state machine usage
+        'stateMachineName': 'State Machine 1',
+        'triggerInput': 'click ri', // Single trigger input
+        'booleanInput': 'HV 1', // Boolean input for state control
+        'availableAnimations': ['ClICK 5', 'ClICK 4', 'ClICK 3', 'ClICK 2', 'ClICK 1', 'SECOND FLY', 'FIRST FLY'],
+        'sequenceOrder': ['State Machine 1'],
       },
     ),
   };
@@ -196,6 +252,34 @@ class AvatarAnimationsConfig {
   static bool supportsTeleport(String avatarId) {
     final config = getConfig(avatarId);
     return config?.customProperties?['supportsTeleport'] ?? false;
+  }
+
+  /// Check if avatar supports a specific animation stage
+  static bool supportsAnimationStage(String avatarId, AnimationStage stage) {
+    final config = getConfig(avatarId);
+    if (config == null) return false;
+    return config.animations.containsKey(stage);
+  }
+
+  /// Get fallback animation stage for unsupported stages
+  static AnimationStage getFallbackStage(String avatarId, AnimationStage requestedStage) {
+    final config = getConfigWithFallback(avatarId);
+    
+    // If the requested stage is supported, return it
+    if (config.animations.containsKey(requestedStage)) {
+      return requestedStage;
+    }
+    
+    // Fallback priority: idle -> jump -> first available
+    if (config.animations.containsKey(AnimationStage.idle)) {
+      return AnimationStage.idle;
+    }
+    if (config.animations.containsKey(AnimationStage.jump)) {
+      return AnimationStage.jump;
+    }
+    
+    // Return first available animation stage
+    return config.animations.keys.first;
   }
 
   /// Get animation sequence order for avatar
