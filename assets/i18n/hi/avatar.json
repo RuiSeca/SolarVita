@@ -38,6 +38,9 @@
   "actions_preview": "पूर्वावलोकन",
   "actions_customize": "कस्टमाइज़",
   "actions_select": "चुनें",
+  "equip_avatar": "अवतार सुसज्जित करें",
+  "customize_avatar": "अवतार अनुकूलित करें",
+  "tap_to_equip": "सुसज्जित करने के लिए टैप करें",
   "action_cost": "लागत",
   "action_insufficient_coins": "कॉइन की कमी",
   "action_join_to_unlock": "अनलॉक करने के लिए जॉइन करें",
@@ -58,6 +61,7 @@
   "currencies_streak": "स्ट्रीक",
   "currencies_points": "पॉइंट्स",
   "currencies_gems": "जेम्स",
+  "currencies_coins": "सिक्के",
   "currencies_xp": "XP",
   "currencies_energy": "ऊर्जा",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "क्वांटम कोच",
   "avatar_quantum_coach_description": "क्वांटम-संवर्धित प्रशिक्षण के साथ भविष्य का उन्नत AI",
   "avatar_quantum_coach_personality": "विश्लेषणात्मक और भविष्यवादी",
-  "avatar_quantum_coach_speciality": "वैज्ञानिक प्रशिक्षण विधियां"
+  "avatar_quantum_coach_speciality": "वैज्ञानिक प्रशिक्षण विधियां",
+
+  "avatar_solar_coach_name": "सोलर कोच",
+  "avatar_solar_coach_description": "दीप्तिमान ऊर्जा कोच जो टिकाऊ फिटनेस के लिए सूर्य की शक्ति का उपयोग करता है",
+  "avatar_solar_coach_personality": "ऊर्जावान और पर्यावरण-अनुकूल",
+  "avatar_solar_coach_speciality": "सौर-संचालित वर्कआउट और टिकाऊ प्रशिक्षण",
+
+  "customize_your_quantum_coach": "अपने क्वांटम कोच को आंखें, त्वचा, कपड़े और अधिक के साथ कस्टमाइज़ करें",
+  "customization_saved": "कस्टमाइज़ेशन सफलतापूर्वक सेव हो गया!",
+  "reset_customizations": "कस्टमाइज़ेशन रीसेट करें",
+  "reset_customizations_warning": "यह सभी कस्टमाइज़ेशन को डिफ़ॉल्ट पर रीसेट कर देगा। क्या आप सुनिश्चित हैं?",
+  "customizations_reset": "कस्टमाइज़ेशन डिफ़ॉल्ट पर रीसेट कर दिया गया",
+  "save_customizations": "कस्टमाइज़ेशन सेव करें",
+  
+  "about_avatar": "अवतार के बारे में",
+  "available_animations": "उपलब्ध एनिमेशन",
+  "customization_options": "कस्टमाइज़ेशन विकल्प"
 }

@@ -38,6 +38,9 @@
   "actions_preview": "Anteprima",
   "actions_customize": "Personalizza",
   "actions_select": "Seleziona",
+  "equip_avatar": "Equipaggia Avatar",
+  "customize_avatar": "Personalizza Avatar",
+  "tap_to_equip": "Tocca per Equipaggiare",
   "action_cost": "Costo",
   "action_insufficient_coins": "Monete Insufficienti",
   "action_join_to_unlock": "Unisciti per Sbloccare",
@@ -58,6 +61,7 @@
   "currencies_streak": "Serie",
   "currencies_points": "Punti",
   "currencies_gems": "Gemme",
+  "currencies_coins": "Monete",
   "currencies_xp": "XP",
   "currencies_energy": "Energia",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "Allenatore Quantico",
   "avatar_quantum_coach_description": "IA avanzata dal futuro con allenamento potenziato quantisticamente",
   "avatar_quantum_coach_personality": "Analitico e futuristico",
-  "avatar_quantum_coach_speciality": "Metodi di allenamento scientifici"
+  "avatar_quantum_coach_speciality": "Metodi di allenamento scientifici",
+
+  "avatar_solar_coach_name": "Allenatore Solare",
+  "avatar_solar_coach_description": "Allenatore di energia radiante che sfrutta il potere del sole per un fitness sostenibile",
+  "avatar_solar_coach_personality": "Energico ed ecologico",
+  "avatar_solar_coach_speciality": "Allenamenti solari e formazione sostenibile",
+
+  "customize_your_quantum_coach": "Personalizza il tuo Allenatore Quantico con occhi, pelle, abbigliamento e altro ancora",
+  "customization_saved": "Personalizzazione salvata con successo!",
+  "reset_customizations": "Ripristina Personalizzazioni",
+  "reset_customizations_warning": "Questo ripristinerà tutte le personalizzazioni ai valori predefiniti. Sei sicuro?",
+  "customizations_reset": "Personalizzazioni ripristinate ai valori predefiniti",
+  "save_customizations": "Salva Personalizzazioni",
+  
+  "about_avatar": "Informazioni sull'Avatar",
+  "available_animations": "Animazioni Disponibili",
+  "customization_options": "Opzioni di Personalizzazione"
 }

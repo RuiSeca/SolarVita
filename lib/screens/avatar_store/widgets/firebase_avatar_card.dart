@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/firebase/firebase_avatar.dart';
+import '../../../models/firebase/localized_firebase_avatar.dart';
 import '../../../theme/app_theme.dart';
 import '../../../widgets/avatar_display.dart';
 import '../../../config/avatar_animations_config.dart';
@@ -22,6 +23,9 @@ class FirebaseAvatarCard extends ConsumerWidget {
     final isOwned = ownership != null;
     final isEquipped = ownership?.isEquipped ?? false;
     
+    // Get localized avatar data
+    final localizedAvatar = context.getLocalizedAvatar(ref, avatar);
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -30,20 +34,28 @@ class FirebaseAvatarCard extends ConsumerWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              _getRarityColor(avatar.rarity).withValues(alpha: 0.1),
-              _getRarityColor(avatar.rarity).withValues(alpha: 0.05),
+              _getRarityColor(avatar.rarity).withValues(
+                alpha: AppTheme.isDarkMode(context) ? 0.15 : 0.1
+              ),
+              _getRarityColor(avatar.rarity).withValues(
+                alpha: AppTheme.isDarkMode(context) ? 0.08 : 0.05
+              ),
             ],
           ),
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
             color: isEquipped 
               ? AppColors.primary.withValues(alpha: 0.6)
-              : _getRarityColor(avatar.rarity).withValues(alpha: 0.3),
+              : _getRarityColor(avatar.rarity).withValues(
+                  alpha: AppTheme.isDarkMode(context) ? 0.4 : 0.3
+                ),
             width: isEquipped ? 3 : 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: _getRarityColor(avatar.rarity).withValues(alpha: 0.2),
+              color: _getRarityColor(avatar.rarity).withValues(
+                alpha: AppTheme.isDarkMode(context) ? 0.3 : 0.2
+              ),
               blurRadius: isEquipped ? 15 : 10,
               offset: const Offset(0, 5),
             ),
@@ -75,7 +87,9 @@ class FirebaseAvatarCard extends ConsumerWidget {
                     center: Alignment.center,
                     radius: 0.8,
                     colors: [
-                      _getRarityColor(avatar.rarity).withValues(alpha: 0.1),
+                      _getRarityColor(avatar.rarity).withValues(
+                        alpha: AppTheme.isDarkMode(context) ? 0.15 : 0.1
+                      ),
                       Colors.transparent,
                     ],
                   ),
@@ -109,9 +123,9 @@ class FirebaseAvatarCard extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      avatar.name,
+                      localizedAvatar?.displayName ?? avatar.name,
                       style: TextStyle(
-                        color: AppColors.white,
+                        color: AppTheme.textColor(context),
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         letterSpacing: -0.3,
@@ -121,9 +135,9 @@ class FirebaseAvatarCard extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      avatar.description,
+                      localizedAvatar?.displayDescription ?? avatar.description,
                       style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.7),
+                        color: AppTheme.textColor(context).withValues(alpha: 0.7),
                         fontSize: 12,
                         fontWeight: FontWeight.w400,
                         height: 1.3,

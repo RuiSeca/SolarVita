@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../debug/range_error_tracker.dart';
-import '../debug/solar_coach_analyzer.dart';
-import '../debug/solar_coach_diagnostic.dart';
 import '../debug/director_coach_analyzer.dart';
 import '../debug/add_director_coach_firebase.dart';
 import '../debug/update_quantum_coach_firebase.dart';
+import '../debug/translation_populator_debug.dart';
 
 /// Temporary maintenance screen to debug RangeError issues
 class MaintenanceScreen extends ConsumerWidget {
@@ -65,17 +64,6 @@ class MaintenanceScreen extends ConsumerWidget {
               
               const SizedBox(height: 16),
               
-              _buildDebugButton(
-                context,
-                'Solar Coach Analyzer',
-                'Analyze solar.riv file structure',
-                Icons.wb_sunny,
-                Colors.amber,
-                () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SolarCoachAnalyzer()),
-                ),
-              ),
               
               const SizedBox(height: 16),
               
@@ -121,17 +109,24 @@ class MaintenanceScreen extends ConsumerWidget {
               
               const SizedBox(height: 16),
               
+              
+              const SizedBox(height: 16),
+              
               _buildDebugButton(
                 context,
-                'Avatar Diagnostic',
-                'Check Firebase avatar states',
-                Icons.medical_services,
-                Colors.teal,
+                'Populate Translations',
+                'Seed Firestore with localized avatar data',
+                Icons.translate,
+                Colors.indigo,
                 () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const SolarCoachDiagnostic()),
+                  MaterialPageRoute(builder: (context) => const TranslationPopulatorDebug()),
                 ),
               ),
+              
+              const SizedBox(height: 16),
+              
+              
               
               const SizedBox(height: 40),
               

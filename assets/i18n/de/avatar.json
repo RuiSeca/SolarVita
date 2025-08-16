@@ -38,6 +38,9 @@
   "actions_preview": "Vorschau",
   "actions_customize": "Anpassen",
   "actions_select": "Auswählen",
+  "equip_avatar": "Avatar ausrüsten",
+  "customize_avatar": "Avatar anpassen",
+  "tap_to_equip": "Zum Ausrüsten tippen",
   "action_cost": "Kosten",
   "action_insufficient_coins": "Unzureichende Münzen",
   "action_join_to_unlock": "Beitreten zum Freischalten",
@@ -58,6 +61,7 @@
   "currencies_streak": "Serie",
   "currencies_points": "Punkte",
   "currencies_gems": "Edelsteine",
+  "currencies_coins": "Münzen",
   "currencies_xp": "XP",
   "currencies_energy": "Energie",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "Quantum-Trainer",
   "avatar_quantum_coach_description": "Fortgeschrittene KI aus der Zukunft mit quantum-verbessertem Training",
   "avatar_quantum_coach_personality": "Analytisch und futuristisch",
-  "avatar_quantum_coach_speciality": "Wissenschaftliche Trainingsmethoden"
+  "avatar_quantum_coach_speciality": "Wissenschaftliche Trainingsmethoden",
+
+  "avatar_solar_coach_name": "Solar-Trainer",
+  "avatar_solar_coach_description": "Strahlende Energie-Trainer, der die Kraft der Sonne für nachhaltiges Fitness nutzt",
+  "avatar_solar_coach_personality": "Energisch und umweltfreundlich",
+  "avatar_solar_coach_speciality": "Solar-betriebene Workouts und nachhaltiges Training",
+
+  "customize_your_quantum_coach": "Passe deinen Quantum-Trainer mit Augen, Haut, Kleidung und mehr an",
+  "customization_saved": "Anpassung erfolgreich gespeichert!",
+  "reset_customizations": "Anpassungen Zurücksetzen",
+  "reset_customizations_warning": "Dies wird alle Anpassungen auf Standard zurücksetzen. Bist du sicher?",
+  "customizations_reset": "Anpassungen auf Standard zurückgesetzt",
+  "save_customizations": "Anpassungen Speichern",
+  
+  "about_avatar": "Über Avatar",
+  "available_animations": "Verfügbare Animationen",
+  "customization_options": "Anpassungsoptionen"
 }

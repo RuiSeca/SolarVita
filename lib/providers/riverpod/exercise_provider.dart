@@ -1,16 +1,22 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
 import '../../services/exercises/exercise_service.dart';
+import '../../services/exercises/optimized_exercise_service.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
 
 part 'exercise_provider.g.dart';
 
-// Service provider
+final log = Logger('ExerciseProvider');
+
+// Optimized service provider
 @riverpod
-ExerciseService exerciseService(Ref ref) {
-  return ExerciseService();
+OptimizedExerciseService exerciseService(Ref ref) {
+  return OptimizedExerciseService();
 }
+
+// Note: Analytics are accessed directly from the service in widgets
 
 // Exercise state class to hold the complete state
 class ExerciseState {
@@ -57,6 +63,8 @@ class ExerciseNotifier extends _$ExerciseNotifier {
   final List<String> _recentTargets = [];
   // Maximum number of targets to keep in cache
   static const int _maxCacheSize = 5;
+  // Track total requests for analytics
+  int _totalRequestCount = 0;
 
   @override
   ExerciseState build() {
@@ -68,7 +76,8 @@ class ExerciseNotifier extends _$ExerciseNotifier {
     final normalizedTarget = target.trim().toLowerCase();
 
     // Prevent duplicate loading of the same target
-    if (state.isLoading) {
+    if (state.isLoading && state.currentTarget == normalizedTarget) {
+      log.info('🔄 Request already in progress for $normalizedTarget');
       return;
     }
 
@@ -82,11 +91,13 @@ class ExerciseNotifier extends _$ExerciseNotifier {
         errorDetails: null,
       );
       _updateRecentTargets(normalizedTarget);
+      log.info('💾 Provider cache hit for $normalizedTarget');
       return;
     }
 
     // Skip if we're already loaded for this target
     if (state.currentTarget == normalizedTarget && state.hasData) {
+      log.info('📋 Already loaded data for $normalizedTarget');
       return;
     }
 
@@ -98,11 +109,17 @@ class ExerciseNotifier extends _$ExerciseNotifier {
       errorDetails: null,
     );
 
+    final startTime = DateTime.now();
+    _totalRequestCount++;
+    
     try {
       final exerciseService = ref.read(exerciseServiceProvider);
       final exercises = await exerciseService.getExercisesByTarget(
         normalizedTarget,
       );
+
+      final loadTime = DateTime.now().difference(startTime);
+      log.info('⚡ Loaded $normalizedTarget in ${loadTime.inMilliseconds}ms');
 
       if (exercises.isEmpty) {
         state = state.copyWith(
@@ -125,7 +142,16 @@ class ExerciseNotifier extends _$ExerciseNotifier {
         errorMessage: null,
         errorDetails: null,
       );
+
+      // Log optimization status periodically
+      if (_totalRequestCount % 5 == 0) {
+        (exerciseService as OptimizedExerciseService).logOptimizationStatus();
+      }
+      
     } catch (e) {
+      final loadTime = DateTime.now().difference(startTime);
+      log.warning('❌ Failed to load $normalizedTarget after ${loadTime.inMilliseconds}ms: $e');
+      
       String errorMessage;
       String errorDetails;
 

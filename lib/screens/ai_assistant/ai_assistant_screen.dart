@@ -136,9 +136,15 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   Future<void> _initializeAvatarController() async {
     if (!mounted) return;
     
-    // Get current equipped avatar with debugging
-    final firebaseAvatarState = ref.read(firebaseAvatarStateProvider).valueOrNull;
-    final equippedAvatarId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+    // Get current equipped avatar using the stable provider
+    final equippedAvatar = ref.read(equippedAvatarProvider);
+    final equippedAvatarId = equippedAvatar?.avatarId;
+    
+    // Don't initialize if no equipped avatar is available yet
+    if (equippedAvatarId == null) {
+      _logger.i('🎯 AI Screen: No equipped avatar available yet, skipping initialization');
+      return;
+    }
     
     // Prevent duplicate initialization
     if (_lastInitializedAvatarId == equippedAvatarId) {
@@ -147,7 +153,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     }
     
     _logger.i('🎯 AI Screen: Avatar controller initialization for: $equippedAvatarId');
-    _logger.i('🎯 Firebase avatar state: ${firebaseAvatarState?.toString()}');
+    _logger.i('🎯 Equipped avatar: ${equippedAvatar?.name}');
     
     // Update last initialized ID
     _lastInitializedAvatarId = equippedAvatarId;
@@ -464,12 +470,12 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   @override
   Widget build(BuildContext context) {
-    // Watch for Firebase avatar state changes
-    final firebaseAvatarState = ref.watch(firebaseAvatarStateProvider).valueOrNull;
-    final currentEquippedId = firebaseAvatarState?.equippedAvatarId ?? 'mummy_coach';
+    // Use the stable equipped avatar provider consistently
+    final equippedAvatar = ref.watch(equippedAvatarProvider);
+    final currentEquippedId = equippedAvatar?.avatarId;
     
-    // Only reinitialize if avatar actually changed (prevent multiple calls)
-    if (_lastInitializedAvatarId != currentEquippedId) {
+    // Only initialize when we have a valid equipped avatar ID and it has changed
+    if (currentEquippedId != null && _lastInitializedAvatarId != currentEquippedId) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _initializeAvatarController();
       });
@@ -518,7 +524,13 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
             builder: (context, ref, child) {
               // Use the new stable equipped avatar provider
               final equippedAvatar = ref.watch(equippedAvatarProvider);
-              final avatarId = equippedAvatar?.avatarId ?? 'mummy_coach';
+              final avatarId = equippedAvatar?.avatarId;
+              
+              // Show loading placeholder until equipped avatar is available
+              if (avatarId == null) {
+                _logger.i('🎯 Header waiting for equipped avatar...');
+                return _buildLoadingAvatar();
+              }
               
               _logger.i('🎯 Header building with stable equipped avatar: $avatarId');
               
@@ -587,9 +599,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                 ),
               );
             },
-            icon: const Icon(
+            icon: Icon(
               Icons.store,
-              color: Colors.white,
+              color: AppTheme.textColor(context),
               size: 24,
             ),
             tooltip: 'Avatar Store',
@@ -600,6 +612,33 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
 
+
+  Widget _buildLoadingAvatar() {
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.purple.withValues(alpha: 0.3),
+          width: 2,
+        ),
+        color: AppTheme.surfaceColor(context),
+      ),
+      child: Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              AppTheme.textColor(context).withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildHeaderAvatar(String equippedAvatarId) {
     return _buildHeaderAvatarForType(equippedAvatarId);

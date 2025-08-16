@@ -69,10 +69,18 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
       debugPrint('$debugPrefix: RIV loaded successfully');
       debugPrint('$debugPrefix: Available animations: ${artboard.animations.length}');
       
-      // List available animations for debugging
+      // List available animations for debugging - using safe iteration
       for (int i = 0; i < artboard.animations.length; i++) {
-        final animation = artboard.animations[i];
-        debugPrint('$debugPrefix: Animation [$i]: ${animation.name}');
+        try {
+          final animation = artboard.animations[i];
+          debugPrint('$debugPrefix: Animation [$i]: ${animation.name}');
+        } catch (e) {
+          debugPrint('$debugPrefix: Error accessing animation at index $i: $e');
+          if (e.toString().contains('RangeError')) {
+            debugPrint('$debugPrefix: RangeError - breaking animation enumeration');
+            break;
+          }
+        }
       }
       
       // Find a simple animation to play (avoid "State Machine 1")
@@ -83,11 +91,17 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
         // For mummy_coach, prioritize Idle animation first
         debugPrint('$debugPrefix: Looking for Idle animation for mummy_coach');
         
-        for (final animation in artboard.animations) {
-          if (animation.name.toLowerCase() == 'idle') {
-            controller = rive.SimpleAnimation(animation.name);
-            artboard.addController(controller);
-            debugPrint('$debugPrefix: Using Idle animation: ${animation.name}');
+        for (int i = 0; i < artboard.animations.length; i++) {
+          try {
+            final animation = artboard.animations[i];
+            if (animation.name.toLowerCase() == 'idle') {
+              controller = rive.SimpleAnimation(animation.name);
+              artboard.addController(controller);
+              debugPrint('$debugPrefix: Using Idle animation: ${animation.name}');
+              break;
+            }
+          } catch (e) {
+            debugPrint('$debugPrefix: Error accessing animation at index $i: $e');
             break;
           }
         }
@@ -98,11 +112,17 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
         final solarAnimationPriority = ['FIRST FLY', 'SECOND FLY', 'first fly', 'second fly', 'fly', 'Fly'];
         
         for (final animationName in solarAnimationPriority) {
-          for (final animation in artboard.animations) {
-            if (animation.name == animationName) {
-              controller = rive.SimpleAnimation(animation.name);
-              artboard.addController(controller);
-              debugPrint('$debugPrefix: Using solar animation: ${animation.name}');
+          for (int i = 0; i < artboard.animations.length; i++) {
+            try {
+              final animation = artboard.animations[i];
+              if (animation.name == animationName) {
+                controller = rive.SimpleAnimation(animation.name);
+                artboard.addController(controller);
+                debugPrint('$debugPrefix: Using solar animation: ${animation.name}');
+                break;
+              }
+            } catch (e) {
+              debugPrint('$debugPrefix: Error accessing animation at index $i: $e');
               break;
             }
           }
@@ -124,11 +144,17 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
         ];
         
         for (final animationName in directorAnimationPriority) {
-          for (final animation in artboard.animations) {
-            if (animation.name == animationName) {
-              controller = rive.SimpleAnimation(animation.name);
-              artboard.addController(controller);
-              debugPrint('$debugPrefix: Using director animation: ${animation.name}');
+          for (int i = 0; i < artboard.animations.length; i++) {
+            try {
+              final animation = artboard.animations[i];
+              if (animation.name == animationName) {
+                controller = rive.SimpleAnimation(animation.name);
+                artboard.addController(controller);
+                debugPrint('$debugPrefix: Using director animation: ${animation.name}');
+                break;
+              }
+            } catch (e) {
+              debugPrint('$debugPrefix: Error accessing animation at index $i: $e');
               break;
             }
           }
@@ -137,12 +163,18 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
       } else {
         // For other avatars (like quantum_coach), use generic approach
         debugPrint('$debugPrefix: Looking for generic animations');
-        for (final animation in artboard.animations) {
-          if (animation.name.toLowerCase().contains('idle') || 
-              animation.name.toLowerCase().contains('fly')) {
-            controller = rive.SimpleAnimation(animation.name);
-            artboard.addController(controller);
-            debugPrint('$debugPrefix: Using animation: ${animation.name}');
+        for (int i = 0; i < artboard.animations.length; i++) {
+          try {
+            final animation = artboard.animations[i];
+            if (animation.name.toLowerCase().contains('idle') || 
+                animation.name.toLowerCase().contains('fly')) {
+              controller = rive.SimpleAnimation(animation.name);
+              artboard.addController(controller);
+              debugPrint('$debugPrefix: Using animation: ${animation.name}');
+              break;
+            }
+          } catch (e) {
+            debugPrint('$debugPrefix: Error accessing animation at index $i: $e');
             break;
           }
         }
@@ -151,11 +183,17 @@ class _SolarCoachDirectDisplayState extends State<SolarCoachDirectDisplay> {
       // Fallback to first non-state-machine animation
       if (controller == null) {
         debugPrint('$debugPrefix: No priority animation found, using fallback');
-        for (final animation in artboard.animations) {
-          if (!animation.name.toLowerCase().contains('state machine')) {
-            controller = rive.SimpleAnimation(animation.name);
-            artboard.addController(controller);
-            debugPrint('$debugPrefix: Using fallback animation: ${animation.name}');
+        for (int i = 0; i < artboard.animations.length; i++) {
+          try {
+            final animation = artboard.animations[i];
+            if (!animation.name.toLowerCase().contains('state machine')) {
+              controller = rive.SimpleAnimation(animation.name);
+              artboard.addController(controller);
+              debugPrint('$debugPrefix: Using fallback animation: ${animation.name}');
+              break;
+            }
+          } catch (e) {
+            debugPrint('$debugPrefix: Error accessing fallback animation at index $i: $e');
             break;
           }
         }

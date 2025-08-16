@@ -40,6 +40,8 @@ class AppLocalizations {
     'language',
     'stats',
     'avatar',
+    'cryptocurrency',
+    'customization',
   ];
 
   AppLocalizations(this.locale);

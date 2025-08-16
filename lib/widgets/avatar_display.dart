@@ -5,7 +5,6 @@ import '../config/avatar_animations_config.dart';
 import '../providers/avatar/avatar_artboard_provider.dart';
 import '../providers/avatar/unified_avatar_provider.dart';
 import '../utils/rive_utils.dart';
-import 'solar_coach_direct_display.dart';
 
 class AvatarDisplay extends ConsumerStatefulWidget {
   final String? avatarId;
@@ -59,28 +58,12 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
           ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
           : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
       
-      // SELECTIVE ISOLATION: Keep solar_coach as safe placeholder while we debug animation issues
-      if (effectiveAvatarId == 'solar_coach') {
-        debugPrint('🌞 DEBUG MODE: Using safe placeholder for solar_coach while debugging animation structure');
-        return _buildSafePlaceholder(effectiveAvatarId);
-      }
       
-      // For mummy_coach, try safe mode if it's causing issues
-      if (effectiveAvatarId == 'mummy_coach') {
-        debugPrint('🧟 TESTING: Using direct loader for mummy_coach');
-        return SolarCoachDirectDisplay(
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          avatarType: 'mummy_coach',
-        );
-      }
       
       
       // Debug logging for equipped avatar
       debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, unified.equipped=${unifiedState.equippedAvatarId}, effective=$effectiveAvatarId, preferEquipped=${widget.preferEquipped}');
 
-    // Solar_coach should now work properly with updated configurations
 
     // Cache switching optimization - don't aggressively clear cache to prevent freezing
     if (_lastLoadedAvatarId != null && _lastLoadedAvatarId != effectiveAvatarId) {
@@ -152,82 +135,6 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
     }
   }
 
-  Widget _buildSafePlaceholder(String avatarId) {
-    // Color and icon based on avatar type
-    final MaterialColor color;
-    final IconData icon;
-    final String displayName;
-    
-    switch (avatarId) {
-      case 'solar_coach':
-        color = Colors.orange;
-        icon = Icons.wb_sunny;
-        displayName = 'Solar Coach';
-        break;
-      case 'mummy_coach':
-        color = Colors.brown;
-        icon = Icons.person;
-        displayName = 'Mummy Coach';
-        break;
-      case 'quantum_coach':
-        color = Colors.purple;
-        icon = Icons.psychology;
-        displayName = 'Quantum Coach';
-        break;
-      case 'director_coach':
-        color = Colors.indigo;
-        icon = Icons.movie;
-        displayName = 'Director Coach';
-        break;
-      default:
-        color = Colors.grey;
-        icon = Icons.person;
-        displayName = 'Avatar';
-    }
-    
-    return Container(
-      width: widget.width,
-      height: widget.height,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: color.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            icon,
-            size: widget.width * 0.4,
-            color: color[600] ?? color,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            displayName,
-            style: TextStyle(
-              color: color[700] ?? color,
-              fontSize: widget.width * 0.08,
-              fontWeight: FontWeight.w600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Static Mode',
-            style: TextStyle(
-              color: color[500] ?? color,
-              fontSize: widget.width * 0.05,
-              fontWeight: FontWeight.w400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmergencyFallback(String avatarId) {
     return Container(

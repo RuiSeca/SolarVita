@@ -38,6 +38,9 @@
   "actions_preview": "プレビュー",
   "actions_customize": "カスタマイズ",
   "actions_select": "選択",
+  "equip_avatar": "アバターを装備",
+  "customize_avatar": "アバターをカスタマイズ",
+  "tap_to_equip": "装備するにはタップ",
   "action_cost": "コスト",
   "action_insufficient_coins": "コイン不足",
   "action_join_to_unlock": "参加してアンロック",
@@ -58,6 +61,7 @@
   "currencies_streak": "ストリーク",
   "currencies_points": "ポイント",
   "currencies_gems": "ジェム",
+  "currencies_coins": "コイン",
   "currencies_xp": "XP",
   "currencies_energy": "エナジー",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "クアンタムコーチ",
   "avatar_quantum_coach_description": "量子強化トレーニングを持つ未来の先進AI",
   "avatar_quantum_coach_personality": "分析的で未来的",
-  "avatar_quantum_coach_speciality": "科学的トレーニング方法"
+  "avatar_quantum_coach_speciality": "科学的トレーニング方法",
+
+  "avatar_solar_coach_name": "ソーラーコーチ",
+  "avatar_solar_coach_description": "持続可能なフィットネスのために太陽の力を活用する光輝エネルギーコーチ",
+  "avatar_solar_coach_personality": "エネルギッシュでエコフレンドリー",
+  "avatar_solar_coach_speciality": "ソーラー式ワークアウトと持続可能なトレーニング",
+
+  "customize_your_quantum_coach": "目、肌、服装などでクアンタムコーチをカスタマイズ",
+  "customization_saved": "カスタマイゼーションが正常に保存されました！",
+  "reset_customizations": "カスタマイゼーションをリセット",
+  "reset_customizations_warning": "これによりすべてのカスタマイゼーションがデフォルトにリセットされます。よろしいですか？",
+  "customizations_reset": "カスタマイゼーションがデフォルトにリセットされました",
+  "save_customizations": "カスタマイゼーションを保存",
+  
+  "about_avatar": "アバターについて",
+  "available_animations": "利用可能なアニメーション",
+  "customization_options": "カスタマイゼーションオプション"
 }

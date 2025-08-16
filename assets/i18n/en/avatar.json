@@ -38,6 +38,9 @@
   "actions_preview": "Preview",
   "actions_customize": "Customize",
   "actions_select": "Select",
+  "equip_avatar": "Equip Avatar",
+  "customize_avatar": "Customize Avatar",
+  "tap_to_equip": "Tap to Equip",
   "action_cost": "Cost",
   "action_insufficient_coins": "Insufficient Coins",
   "action_join_to_unlock": "Join to Unlock",
@@ -58,6 +61,7 @@
   "currencies_streak": "Streak",
   "currencies_points": "Points",
   "currencies_gems": "Gems",
+  "currencies_coins": "Coins",
   "currencies_xp": "XP",
   "currencies_energy": "Energy",
   
@@ -200,5 +204,9 @@
   "reset_customizations": "Reset Customizations",
   "reset_customizations_warning": "This will reset all customizations to default. Are you sure?",
   "customizations_reset": "Customizations reset to defaults",
-  "save_customizations": "Save Customizations"
+  "save_customizations": "Save Customizations",
+  
+  "about_avatar": "About Avatar",
+  "available_animations": "Available Animations",
+  "customization_options": "Customization Options"
 }

@@ -38,6 +38,9 @@
   "actions_preview": "Предварительный просмотр",
   "actions_customize": "Настроить",
   "actions_select": "Выбрать",
+  "equip_avatar": "Экипировать Аватар",
+  "customize_avatar": "Настроить Аватар",
+  "tap_to_equip": "Нажмите для Экипировки",
   "action_cost": "Стоимость",
   "action_insufficient_coins": "Недостаточно Монет",
   "action_join_to_unlock": "Присоединиться для Разблокировки",
@@ -58,6 +61,7 @@
   "currencies_streak": "Серия",
   "currencies_points": "Очки",
   "currencies_gems": "Драгоценности",
+  "currencies_coins": "Монеты",
   "currencies_xp": "Опыт",
   "currencies_energy": "Энергия",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "Квантовый Тренер",
   "avatar_quantum_coach_description": "Продвинутый ИИ из будущего с квантово-улучшенными тренировками",
   "avatar_quantum_coach_personality": "Аналитический и футуристический",
-  "avatar_quantum_coach_speciality": "Научные методы тренировок"
+  "avatar_quantum_coach_speciality": "Научные методы тренировок",
+
+  "avatar_solar_coach_name": "Солнечный Тренер",
+  "avatar_solar_coach_description": "Лучистый энергетический тренер, использующий силу солнца для экологичного фитнеса",
+  "avatar_solar_coach_personality": "Энергичный и экологичный",
+  "avatar_solar_coach_speciality": "Солнечные тренировки и устойчивые занятия",
+
+  "customize_your_quantum_coach": "Настройте своего Квантового Тренера с глазами, кожей, одеждой и многим другим",
+  "customization_saved": "Настройка успешно сохранена!",
+  "reset_customizations": "Сбросить Настройки",
+  "reset_customizations_warning": "Это сбросит все настройки к значениям по умолчанию. Вы уверены?",
+  "customizations_reset": "Настройки сброшены к значениям по умолчанию",
+  "save_customizations": "Сохранить Настройки",
+  
+  "about_avatar": "О Аватаре",
+  "available_animations": "Доступные Анимации",
+  "customization_options": "Опции Настройки"
 }

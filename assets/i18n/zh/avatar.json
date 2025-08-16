@@ -38,6 +38,9 @@
   "actions_preview": "预览",
   "actions_customize": "自定义",
   "actions_select": "选择",
+  "equip_avatar": "装备头像",
+  "customize_avatar": "自定义头像",
+  "tap_to_equip": "点击装备",
   "action_cost": "成本",
   "action_insufficient_coins": "硬币不足",
   "action_join_to_unlock": "加入解锁",
@@ -58,6 +61,7 @@
   "currencies_streak": "连击",
   "currencies_points": "积分",
   "currencies_gems": "宝石",
+  "currencies_coins": "硬币",
   "currencies_xp": "经验值",
   "currencies_energy": "能量",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "量子教练",
   "avatar_quantum_coach_description": "来自未来的先进AI，具有量子增强训练",
   "avatar_quantum_coach_personality": "分析性和未来主义",
-  "avatar_quantum_coach_speciality": "科学训练方法"
+  "avatar_quantum_coach_speciality": "科学训练方法",
+
+  "avatar_solar_coach_name": "太阳教练",
+  "avatar_solar_coach_description": "利用太阳能量进行可持续健身的光辉能量教练",
+  "avatar_solar_coach_personality": "充满活力且环保",
+  "avatar_solar_coach_speciality": "太阳能驱动的锻炼和可持续训练",
+
+  "customize_your_quantum_coach": "用眼睛、皮肤、服装等自定义您的量子教练",
+  "customization_saved": "自定义已成功保存！",
+  "reset_customizations": "重置自定义",
+  "reset_customizations_warning": "这将把所有自定义重置为默认值。您确定吗？",
+  "customizations_reset": "自定义已重置为默认值",
+  "save_customizations": "保存自定义",
+  
+  "about_avatar": "关于头像",
+  "available_animations": "可用动画",
+  "customization_options": "自定义选项"
 }

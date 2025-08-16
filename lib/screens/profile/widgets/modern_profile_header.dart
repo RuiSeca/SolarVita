@@ -4,9 +4,10 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
-import 'package:solar_vitas/utils/translation_helper.dart';
+import '../../../utils/translation_helper.dart';
 import '../settings/settings_main_screen.dart';
 
+/// Modern profile header widget with user information and stats
 class ModernProfileHeader extends ConsumerWidget {
   const ModernProfileHeader({super.key});
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/firebase/firebase_avatar.dart';
+import '../../../models/firebase/localized_firebase_avatar.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../widgets/avatar_display.dart';
@@ -33,6 +34,17 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
   
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // Helper methods to get localized avatar data
+  String _getLocalizedName(BuildContext context) {
+    final localizedAvatar = context.getLocalizedAvatar(ref, widget.avatar);
+    return localizedAvatar?.displayName ?? widget.avatar.name;
+  }
+  
+  String _getLocalizedDescription(BuildContext context) {
+    final localizedAvatar = context.getLocalizedAvatar(ref, widget.avatar);
+    return localizedAvatar?.displayDescription ?? widget.avatar.description;
+  }
 
   @override
   void initState() {
@@ -77,7 +89,6 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
 
   @override
   Widget build(BuildContext context) {
-    
     return FadeTransition(
       opacity: _fadeAnimation,
       child: Container(
@@ -175,7 +186,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
                   children: [
                     Flexible(
                       child: Text(
-                        widget.avatar.name,
+                        _getLocalizedName(context),
                         style: TextStyle(
                           color: AppColors.white,
                           fontSize: 24,
@@ -338,7 +349,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
           ),
           const SizedBox(height: 12),
           Text(
-            widget.avatar.description,
+            _getLocalizedDescription(context),
             style: TextStyle(
               color: AppColors.white.withValues(alpha: 0.8),
               fontSize: 16,
@@ -775,7 +786,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${widget.avatar.name} equipped successfully!'),
+            content: Text('${_getLocalizedName(context)} equipped successfully!'),
             backgroundColor: Colors.green,
           ),
         );
@@ -811,7 +822,7 @@ class _FirebaseAvatarPreviewModalState extends ConsumerState<FirebaseAvatarPrevi
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${widget.avatar.name} purchased successfully!'),
+            content: Text('${_getLocalizedName(context)} purchased successfully!'),
             backgroundColor: Colors.green,
           ),
         );

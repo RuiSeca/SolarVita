@@ -38,6 +38,9 @@
   "actions_preview": "미리보기",
   "actions_customize": "커스터마이즈",
   "actions_select": "선택",
+  "equip_avatar": "아바타 착용",
+  "customize_avatar": "아바타 커스터마이징",
+  "tap_to_equip": "착용하려면 탭하세요",
   "action_cost": "비용",
   "action_insufficient_coins": "코인 부족",
   "action_join_to_unlock": "가입하여 잠금 해제",
@@ -58,6 +61,7 @@
   "currencies_streak": "연속",
   "currencies_points": "포인트",
   "currencies_gems": "젬",
+  "currencies_coins": "코인",
   "currencies_xp": "XP",
   "currencies_energy": "에너지",
   
@@ -188,5 +192,21 @@
   "avatar_quantum_coach_name": "퀀텀 코치",
   "avatar_quantum_coach_description": "양자 강화 트레이닝을 갖춘 미래의 고급 AI",
   "avatar_quantum_coach_personality": "분석적이고 미래지향적",
-  "avatar_quantum_coach_speciality": "과학적 트레이닝 방법"
+  "avatar_quantum_coach_speciality": "과학적 트레이닝 방법",
+
+  "avatar_solar_coach_name": "솔라 코치",
+  "avatar_solar_coach_description": "지속 가능한 피트니스를 위해 태양의 힘을 활용하는 광채 에너지 코치",
+  "avatar_solar_coach_personality": "에너지 넘치고 친환경적",
+  "avatar_solar_coach_speciality": "태양광 구동 운동과 지속 가능한 트레이닝",
+
+  "customize_your_quantum_coach": "눈, 피부, 의복 등으로 퀀텀 코치를 커스터마이즈하세요",
+  "customization_saved": "커스터마이제이션이 성공적으로 저장되었습니다!",
+  "reset_customizations": "커스터마이제이션 재설정",
+  "reset_customizations_warning": "모든 커스터마이제이션이 기본값으로 재설정됩니다. 확실합니까?",
+  "customizations_reset": "커스터마이제이션이 기본값으로 재설정되었습니다",
+  "save_customizations": "커스터마이제이션 저장",
+  
+  "about_avatar": "아바타 정보",
+  "available_animations": "사용 가능한 애니메이션",
+  "customization_options": "커스터마이제이션 옵션"
 }

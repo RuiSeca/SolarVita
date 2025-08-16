@@ -478,26 +478,6 @@ List<FirebaseAvatar> _createFallbackAvatars() {
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     ),
-    FirebaseAvatar(
-      avatarId: 'solar_coach',
-      name: 'Solar Coach',
-      description: 'Radiant energy coach that harnesses the power of the sun. Flies with grace and solar energy.',
-      rivAssetPath: 'assets/rive/solar.riv',
-      availableAnimations: ['FIRST FLY', 'SECOND FLY'],
-      customProperties: {
-        'hasComplexSequence': true,
-        'supportsTeleport': false,
-        'hasCustomization': false,
-        'sequenceOrder': ['FIRST FLY', 'SECOND FLY', 'FIRST FLY'],
-      },
-      price: 0, // Free to showcase new avatar
-      rarity: 'epic',
-      isPurchasable: true,
-      requiredAchievements: [],
-      releaseDate: DateTime(2024, 8, 1),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    ),
     // Note: Ninja Coach removed - no ninja.riv file exists
     // Only include avatars that have actual Rive files
   ];

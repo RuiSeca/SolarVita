@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'widgets/modern_profile_header.dart';
-import 'widgets/modern_action_grid.dart';
-import 'widgets/modern_achievements_section.dart';
-import 'widgets/modern_weekly_summary.dart';
-import 'widgets/daily_goals_progress_widget.dart';
+import 'widgets/optimized_profile_widgets.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
@@ -32,11 +28,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     super.initState();
     _initializeCachedStream();
 
-    // Sync data to Firebase when profile loads
+    // Delay sync operations to improve initial load time
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _syncCurrentDataToFirebase();
-        _autoSyncSupporterCount();
+        // Delay data sync by 1 second to let UI load first
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            _syncCurrentDataToFirebase();
+            _autoSyncSupporterCount();
+          }
+        });
       }
     });
   }
@@ -123,18 +124,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const ModernProfileHeader(),
+                  const OptimizedProfileHeader(),
                   _SupporterRequestNotification(
                     stream: _supporterRequestsStream!,
                   ),
                   const SizedBox(height: 8),
-                  const DailyGoalsProgressWidget(),
+                  const OptimizedDailyGoals(),
                   const SizedBox(height: 8),
-                  const ModernWeeklySummary(),
+                  const OptimizedWeeklySummary(),
                   const SizedBox(height: 24),
-                  const ModernActionGrid(),
+                  const OptimizedActionGrid(),
                   const SizedBox(height: 24),
-                  const ModernAchievementsSection(),
+                  const OptimizedAchievements(),
                   const SizedBox(height: 32),
                 ],
               ),

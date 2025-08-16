@@ -45,7 +45,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
   Widget build(BuildContext context) {
     debugPrint('🏪 Building AvatarStoreScreen - Current tab: ${_tabController.index}');
     return Scaffold(
-      backgroundColor: AppColors.darkSurface,
+      backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
         child: NestedScrollView(
           headerSliverBuilder: (context, innerBoxIsScrolled) {
@@ -78,9 +78,12 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
+          colors: AppTheme.isDarkMode(context) ? [
             AppColors.darkSurface,
             AppColors.darkSurface.withValues(alpha: 0.95),
+          ] : [
+            Colors.white,
+            Colors.white.withValues(alpha: 0.95),
           ],
         ),
       ),
@@ -90,14 +93,16 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.1),
+              color: AppTheme.isDarkMode(context)
+                ? AppColors.white.withValues(alpha: 0.1)
+                : AppColors.black.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: IconButton(
               onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(
+              icon: Icon(
                 Icons.close,
-                color: AppColors.white,
+                color: AppTheme.textColor(context),
                 size: 18,
               ),
               padding: EdgeInsets.zero,
@@ -111,7 +116,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
                 Text(
                   tr(context, 'store_title'),
                   style: TextStyle(
-                    color: AppColors.white,
+                    color: AppTheme.textColor(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     letterSpacing: -0.5,
@@ -121,7 +126,7 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
                 Text(
                   tr(context, 'store_subtitle'),
                   style: TextStyle(
-                    color: AppColors.white.withValues(alpha: 0.65),
+                    color: AppTheme.textColor(context).withValues(alpha: 0.65),
                     fontSize: 12,
                     fontWeight: FontWeight.w400,
                   ),
@@ -162,15 +167,21 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.08),
+        color: AppTheme.isDarkMode(context)
+          ? AppColors.white.withValues(alpha: 0.08)
+          : AppColors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.12),
+          color: AppTheme.isDarkMode(context)
+            ? AppColors.white.withValues(alpha: 0.12)
+            : AppColors.black.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: AppTheme.isDarkMode(context)
+              ? Colors.black.withValues(alpha: 0.1)
+              : Colors.grey.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -193,8 +204,10 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             ),
           ],
         ),
-        labelColor: AppColors.white,
-        unselectedLabelColor: AppColors.white.withValues(alpha: 0.7),
+        labelColor: Colors.white,
+        unselectedLabelColor: AppTheme.isDarkMode(context)
+          ? AppColors.white.withValues(alpha: 0.7)
+          : AppColors.black.withValues(alpha: 0.7),
         labelStyle: const TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 12,
@@ -231,15 +244,21 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
     return Container(
       margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.08),
+        color: AppTheme.isDarkMode(context)
+          ? AppColors.white.withValues(alpha: 0.08)
+          : AppColors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.white.withValues(alpha: 0.12),
+          color: AppTheme.isDarkMode(context)
+            ? AppColors.white.withValues(alpha: 0.12)
+            : AppColors.black.withValues(alpha: 0.1),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: AppTheme.isDarkMode(context)
+              ? Colors.black.withValues(alpha: 0.05)
+              : Colors.grey.withValues(alpha: 0.2),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -252,15 +271,15 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             _searchQuery = value.toLowerCase();
           });
         },
-        style: const TextStyle(
-          color: AppColors.white,
+        style: TextStyle(
+          color: AppTheme.textColor(context),
           fontSize: 16,
           fontWeight: FontWeight.w500,
         ),
         decoration: InputDecoration(
           hintText: tr(context, 'search_placeholder'),
           hintStyle: TextStyle(
-            color: AppColors.white.withValues(alpha: 0.5),
+            color: AppTheme.textColor(context).withValues(alpha: 0.5),
             fontSize: 16,
             fontWeight: FontWeight.w400,
           ),

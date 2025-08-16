@@ -31,11 +31,6 @@ class AvatarArtboardManager {
     final instanceId = _avatarInstanceIds[avatarId]!;
     final cacheKey = '${avatarId}_${instanceId}_customized';
     
-    // EMERGENCY BYPASS: solar_coach gets completely separate handling
-    if (avatarId == 'solar_coach') {
-      log.info('🌞 EMERGENCY BYPASS: Using isolated solar_coach handler');
-      return await _getSolarCoachIsolatedArtboard(assetPath);
-    }
     
     // Check if already loading to prevent conflicts
     if (_loadingQueue.containsKey(cacheKey)) {
@@ -178,11 +173,6 @@ class AvatarArtboardManager {
 
   /// Get a basic artboard without customizations (for performance)
   Future<rive.Artboard?> getBasicArtboard(String avatarId, String assetPath) async {
-    // EMERGENCY BYPASS: solar_coach gets isolated handling
-    if (avatarId == 'solar_coach') {
-      log.info('🌞 EMERGENCY BYPASS: Basic artboard using isolated solar_coach handler');
-      return await _getSolarCoachIsolatedArtboard(assetPath);
-    }
     
     // Generate unique instance ID for complete isolation
     if (!_avatarInstanceIds.containsKey(avatarId)) {
@@ -299,21 +289,37 @@ class AvatarArtboardManager {
             // Find animation by name or use first available
             rive.LinearAnimationInstance? animationToPlay;
             
-            for (final animation in animations) {
-              if (animation.name.toLowerCase() == defaultAnimationName.toLowerCase() ||
-                  animation.name.toLowerCase().contains('fly') ||
-                  animation.name.toLowerCase().contains('idle')) {
-                animationToPlay = rive.LinearAnimationInstance(animation);
+            for (int i = 0; i < animations.length; i++) {
+              try {
+                final animation = animations[i];
+                if (animation.name.toLowerCase() == defaultAnimationName.toLowerCase() ||
+                    animation.name.toLowerCase().contains('fly') ||
+                    animation.name.toLowerCase().contains('idle')) {
+                  animationToPlay = rive.LinearAnimationInstance(animation);
+                  break;
+                }
+              } catch (e) {
+                log.warning('⚠️ Error accessing animation at index $i: $e');
                 break;
               }
             }
             
-            // Fallback to first animation
-            animationToPlay ??= rive.LinearAnimationInstance(animations.first);
+            // Fallback to first animation with safe access
+            if (animationToPlay == null && animations.isNotEmpty) {
+              try {
+                animationToPlay = rive.LinearAnimationInstance(animations[0]);
+              } catch (e) {
+                log.warning('⚠️ Error accessing first animation: $e');
+              }
+            }
             
-            // animationToPlay is guaranteed to be non-null here due to the ??= operator above
-            artboard.addController(rive.SimpleAnimation(animationToPlay.animation.name));
-            log.info('✅ Started simple animation: ${animationToPlay.animation.name} for $avatarId');
+            // Only add controller if we successfully found an animation
+            if (animationToPlay != null) {
+              artboard.addController(rive.SimpleAnimation(animationToPlay.animation.name));
+              log.info('✅ Started simple animation: ${animationToPlay.animation.name} for $avatarId');
+            } else {
+              log.warning('⚠️ No suitable animation found for $avatarId');
+            }
           }
         } catch (e) {
           log.warning('⚠️ Could not start simple animation for $avatarId: $e');
@@ -429,7 +435,7 @@ class AvatarArtboardManager {
       if (cached?.controller != null) {
         return _triggerAnimationOnController(cached!.controller!, animationName, avatarId);
       } else if (cached?.artboard != null) {
-        // Handle avatars without state machine controllers (like solar_coach)
+        // Handle avatars without state machine controllers
         log.info('🎬 Avatar $avatarId has no state machine controller, attempting simple animation trigger');
         return _triggerSimpleAnimation(cached!.artboard, animationName, avatarId);
       } else {
@@ -483,10 +489,6 @@ class AvatarArtboardManager {
   /// Helper method to trigger animation on a controller with safety checks
   bool _triggerAnimationOnController(rive.StateMachineController controller, String animationName, String context) {
     try {
-      // Special handling for solar_coach
-      if (context == 'solar_coach') {
-        return _triggerSolarCoachAnimation(controller, animationName);
-      }
       
       // Add safety check for potential index-based access issues
       if (controller.inputs.isEmpty) {
@@ -537,8 +539,8 @@ class AvatarArtboardManager {
       }
       
       // If no exact match, try fallback strategies
-      if (animationName.toLowerCase().contains('idle') || animationName.toLowerCase() == 'click ri') {
-        // For solar_coach or idle requests, try the first available trigger
+      if (animationName.toLowerCase().contains('idle')) {
+        // For idle requests, try the first available trigger
         for (final input in controller.inputs) {
           if (input is rive.SMITrigger) {
             try {
@@ -579,25 +581,37 @@ class AvatarArtboardManager {
       
       // Find the animation by name
       rive.LinearAnimation? targetAnimation;
-      for (final animation in artboard.animations) {
-        // Try exact match first
-        if (animation.name.toLowerCase() == animationName.toLowerCase()) {
-          if (animation is rive.LinearAnimation) {
-            targetAnimation = animation;
-            break;
+      for (int i = 0; i < artboard.animations.length; i++) {
+        try {
+          final animation = artboard.animations[i];
+          // Try exact match first
+          if (animation.name.toLowerCase() == animationName.toLowerCase()) {
+            if (animation is rive.LinearAnimation) {
+              targetAnimation = animation;
+              break;
+            }
           }
+        } catch (e) {
+          log.warning('⚠️ Error accessing animation at index $i during exact match: $e');
+          break;
         }
       }
       
       // If no exact match, try partial matches
       if (targetAnimation == null) {
-        for (final animation in artboard.animations) {
-          if (animation.name.toLowerCase().contains(animationName.toLowerCase()) ||
-              animationName.toLowerCase().contains(animation.name.toLowerCase())) {
-            if (animation is rive.LinearAnimation) {
-              targetAnimation = animation;
-              break;
+        for (int i = 0; i < artboard.animations.length; i++) {
+          try {
+            final animation = artboard.animations[i];
+            if (animation.name.toLowerCase().contains(animationName.toLowerCase()) ||
+                animationName.toLowerCase().contains(animation.name.toLowerCase())) {
+              if (animation is rive.LinearAnimation) {
+                targetAnimation = animation;
+                break;
+              }
             }
+          } catch (e) {
+            log.warning('⚠️ Error accessing animation at index $i during partial match: $e');
+            break;
           }
         }
       }
@@ -606,12 +620,18 @@ class AvatarArtboardManager {
       if (targetAnimation == null) {
         final fallbackNames = ['first fly', 'second fly', 'fly', 'idle', 'click'];
         for (final fallback in fallbackNames) {
-          for (final animation in artboard.animations) {
-            if (animation.name.toLowerCase().contains(fallback)) {
-              if (animation is rive.LinearAnimation) {
-                targetAnimation = animation;
-                break;
+          for (int i = 0; i < artboard.animations.length; i++) {
+            try {
+              final animation = artboard.animations[i];
+              if (animation.name.toLowerCase().contains(fallback)) {
+                if (animation is rive.LinearAnimation) {
+                  targetAnimation = animation;
+                  break;
+                }
               }
+            } catch (e) {
+              log.warning('⚠️ Error accessing animation at index $i during fallback search: $e');
+              break;
             }
           }
           if (targetAnimation != null) break;
@@ -620,9 +640,15 @@ class AvatarArtboardManager {
       
       // Ultimate fallback: first linear animation
       if (targetAnimation == null) {
-        for (final animation in artboard.animations) {
-          if (animation is rive.LinearAnimation) {
-            targetAnimation = animation;
+        for (int i = 0; i < artboard.animations.length; i++) {
+          try {
+            final animation = artboard.animations[i];
+            if (animation is rive.LinearAnimation) {
+              targetAnimation = animation;
+              break;
+            }
+          } catch (e) {
+            log.warning('⚠️ Error accessing animation at index $i during ultimate fallback: $e');
             break;
           }
         }
@@ -646,56 +672,7 @@ class AvatarArtboardManager {
     }
   }
 
-  /// Dedicated animation trigger for solar_coach
-  bool _triggerSolarCoachAnimation(rive.StateMachineController controller, String animationName) {
-    try {
-      log.info('🌞 Triggering solar_coach animation for: $animationName');
-      
-      // Solar coach uses "click ri" trigger and "HV 1" boolean
-      final clickTrigger = controller.findSMI('click ri');
-      final booleanInput = controller.findInput<bool>('HV 1');
-      
-      if (clickTrigger is rive.SMITrigger) {
-        clickTrigger.fire();
-        log.info('🌞 Solar coach click trigger fired');
-        
-        // Toggle boolean state to create variation
-        if (booleanInput is rive.SMIBool) {
-          booleanInput.value = !booleanInput.value;
-          log.info('🌞 Solar coach boolean toggled to: ${booleanInput.value}');
-        }
-        
-        return true;
-      } else {
-        log.warning('⚠️ Solar coach click trigger not found');
-        return false;
-      }
-    } catch (e) {
-      log.severe('❌ Error triggering solar_coach animation: $e');
-      return false;
-    }
-  }
 
-  /// EMERGENCY ISOLATED: solar_coach handler that bypasses ALL normal logic
-  Future<rive.Artboard?> _getSolarCoachIsolatedArtboard(String assetPath) async {
-    try {
-      log.info('🌞 ISOLATED: Creating solar_coach with NO state machine access');
-      
-      // Load fresh artboard - no caching, no controllers, no state machines
-      final rivFile = await rive.RiveFile.asset(assetPath);
-      final artboard = rivFile.mainArtboard.instance();
-      
-      // DON'T add any controllers - just return raw artboard
-      // This prevents ANY state machine access that could cause RangeError
-      
-      log.info('🌞 ISOLATED: Solar coach raw artboard created successfully');
-      return artboard;
-      
-    } catch (e) {
-      log.severe('❌ ISOLATED: Error creating solar_coach artboard: $e');
-      return null;
-    }
-  }
 
 
   /// Update customizations on cached artboards without invalidating them (for smooth real-time updates)

@@ -181,28 +181,6 @@ class AvatarAnimationsConfig {
         },
       },
     ),
-    'solar_coach': AvatarAnimationConfig(
-      avatarId: 'solar_coach',
-      rivAssetPath: 'assets/rive/solar.riv',
-      animations: {
-        AnimationStage.idle: 'State Machine 1',
-        AnimationStage.jump: 'State Machine 1', 
-        AnimationStage.run: 'State Machine 1',
-        AnimationStage.attack: 'State Machine 1',
-      },
-      defaultAnimation: 'State Machine 1',
-      customProperties: {
-        'hasComplexSequence': false,
-        'supportsTeleport': false,
-        'hasCustomization': true, // Enable to use state machine
-        'useDirectStateMachine': true, // New flag for direct state machine usage
-        'stateMachineName': 'State Machine 1',
-        'triggerInput': 'click ri', // Single trigger input
-        'booleanInput': 'HV 1', // Boolean input for state control
-        'availableAnimations': ['ClICK 5', 'ClICK 4', 'ClICK 3', 'ClICK 2', 'ClICK 1', 'SECOND FLY', 'FIRST FLY'],
-        'sequenceOrder': ['State Machine 1'],
-      },
-    ),
   };
 
   /// Get animation configuration for a specific avatar

@@ -16,6 +16,7 @@ import 'services/chat/chat_notification_service.dart';
 import 'services/user/strike_calculation_service.dart';
 import 'services/avatars/avatar_config_loader.dart';
 import 'services/firebase/firebase_initialization_service.dart';
+import 'services/translation/firebase_translation_service.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -102,6 +103,18 @@ void main() async {
   } catch (e, st) {
     debugPrint('Avatar configuration initialization failed: $e\n$st');
     // Continue without avatar system in case of errors
+  }
+
+  // Initialize Firebase Translation Service if Firebase is available
+  if (isFirebaseAvailable) {
+    try {
+      final translationService = FirebaseTranslationService();
+      await translationService.initialize();
+      debugPrint('Firebase Translation Service initialized successfully');
+    } catch (e, st) {
+      debugPrint('Firebase Translation Service initialization failed: $e\n$st');
+      // Continue without Firebase translations - static translations will still work
+    }
   }
 
   // Initialize notification service (local notifications work without Firebase)

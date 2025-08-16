@@ -10,9 +10,7 @@ import '../../providers/riverpod/user_profile_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../debug/quantum_coach_analyzer.dart';
 import '../../debug/quantum_coach_clothing_tester.dart';
-import '../../debug/solar_coach_analyzer.dart';
 import '../../debug/range_error_tracker.dart';
-import '../../debug/solar_coach_diagnostic.dart';
 import '../maintenance_screen.dart';
 import '../avatar_store/avatar_studio_screen.dart';
 import '../../models/firebase/firebase_avatar.dart';
@@ -459,14 +457,6 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     );
   }
 
-  void _openSolarCoachAnalyzer() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SolarCoachAnalyzer(),
-      ),
-    );
-  }
 
   void _openRangeErrorTracker() {
     Navigator.push(
@@ -477,14 +467,6 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
     );
   }
 
-  void _openSolarCoachDiagnostic() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const SolarCoachDiagnostic(),
-      ),
-    );
-  }
 
   void _openMaintenanceScreen() {
     Navigator.push(
@@ -805,14 +787,6 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
 
             const SizedBox(height: 12),
 
-            // Solar Coach Analyzer
-            _buildDebugCard(
-              title: 'Analyze Solar Coach RIVE',
-              description: 'Debug RangeError issues and examine solar.riv structure',
-              icon: Icons.wb_sunny_outlined,
-              color: Colors.amber,
-              onTap: _isLoading ? null : _openSolarCoachAnalyzer,
-            ),
 
             const SizedBox(height: 12),
 
@@ -823,17 +797,6 @@ class _DebugMenuScreenState extends ConsumerState<DebugMenuScreen> {
               icon: Icons.bug_report,
               color: Colors.red,
               onTap: _isLoading ? null : _openRangeErrorTracker,
-            ),
-
-            const SizedBox(height: 12),
-
-            // Solar Coach Diagnostic
-            _buildDebugCard(
-              title: 'Solar Coach Diagnostic',
-              description: 'Firebase state and ownership debugging for solar_coach',
-              icon: Icons.medical_services,
-              color: Colors.teal,
-              onTap: _isLoading ? null : _openSolarCoachDiagnostic,
             ),
 
             const SizedBox(height: 12),

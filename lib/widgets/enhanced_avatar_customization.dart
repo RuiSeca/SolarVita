@@ -5,6 +5,7 @@ import 'package:rive/rive.dart' as rive;
 import '../models/store/quantum_coach_config.dart';
 import '../providers/firebase/firebase_avatar_provider.dart';
 import '../providers/avatar/avatar_artboard_provider.dart';
+import '../theme/app_theme.dart';
 
 /// Enhanced avatar customization widget for Quantum Coach and Director Coach
 class EnhancedAvatarCustomization extends ConsumerStatefulWidget {
@@ -440,7 +441,7 @@ class _EnhancedAvatarCustomizationState
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Avatar Preview - Modern Card Design
+          // Avatar Preview - Modern Card Design with Theme Support
           Container(
             width: widget.width,
             height: widget.height,
@@ -449,19 +450,26 @@ class _EnhancedAvatarCustomizationState
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [
+                colors: AppTheme.isDarkMode(context) ? [
+                  Colors.purple.shade900.withValues(alpha: 0.3),
+                  Colors.blue.shade900.withValues(alpha: 0.3),
+                ] : [
                   Colors.purple.shade50,
                   Colors.blue.shade50,
                 ],
               ),
               borderRadius: BorderRadius.circular(24),
               border: Border.all(
-                color: Colors.purple.withValues(alpha: 0.2), 
+                color: AppTheme.isDarkMode(context) 
+                  ? Colors.purple.withValues(alpha: 0.4)
+                  : Colors.purple.withValues(alpha: 0.2), 
                 width: 1
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withValues(alpha: 0.1),
+                  color: AppTheme.isDarkMode(context)
+                    ? Colors.purple.withValues(alpha: 0.2)
+                    : Colors.purple.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                   spreadRadius: 2,
@@ -472,7 +480,7 @@ class _EnhancedAvatarCustomizationState
               borderRadius: BorderRadius.circular(23),
               child: Stack(
                 children: [
-                  // Background pattern
+                  // Background pattern with theme support
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -480,7 +488,9 @@ class _EnhancedAvatarCustomizationState
                           center: Alignment.topRight,
                           radius: 1.5,
                           colors: [
-                            Colors.purple.withValues(alpha: 0.05),
+                            AppTheme.isDarkMode(context)
+                              ? Colors.purple.withValues(alpha: 0.1)
+                              : Colors.purple.withValues(alpha: 0.05),
                             Colors.transparent,
                           ],
                         ),
@@ -495,14 +505,24 @@ class _EnhancedAvatarCustomizationState
                             artboard: _artboard!,
                             fit: BoxFit.contain,
                           )
-                        : const Center(
+                        : Center(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                CircularProgressIndicator(color: Colors.purple),
-                                SizedBox(height: 16),
-                                Text('Loading Avatar...',
-                                  style: TextStyle(color: Colors.purple)),
+                                CircularProgressIndicator(
+                                  color: AppTheme.isDarkMode(context) 
+                                    ? Colors.purple.shade300
+                                    : Colors.purple
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Loading Avatar...',
+                                  style: TextStyle(
+                                    color: AppTheme.isDarkMode(context)
+                                      ? Colors.purple.shade300
+                                      : Colors.purple
+                                  )
+                                ),
                               ],
                             ),
                           ),
@@ -514,7 +534,7 @@ class _EnhancedAvatarCustomizationState
 
           const SizedBox(height: 32),
 
-          // Customization Tabs - Modern Design with responsive height
+          // Customization Tabs - Modern Design with theme support and responsive height
           Container(
             constraints: BoxConstraints(
               minHeight: 400,
@@ -522,11 +542,17 @@ class _EnhancedAvatarCustomizationState
             ),
             margin: const EdgeInsets.symmetric(horizontal: 8),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.surfaceColor(context),
               borderRadius: BorderRadius.circular(28),
+              border: AppTheme.isDarkMode(context) ? Border.all(
+                color: Colors.purple.withValues(alpha: 0.2),
+                width: 1,
+              ) : null,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withValues(alpha: 0.08),
+                  color: AppTheme.isDarkMode(context)
+                    ? Colors.purple.withValues(alpha: 0.15)
+                    : Colors.purple.withValues(alpha: 0.08),
                   blurRadius: 30,
                   offset: const Offset(0, 15),
                   spreadRadius: 0,
@@ -537,11 +563,13 @@ class _EnhancedAvatarCustomizationState
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Modern Tab Bar
+                  // Modern Tab Bar with theme support
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: AppTheme.isDarkMode(context)
+                        ? Colors.grey.shade800
+                        : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: TabBar(
@@ -560,7 +588,9 @@ class _EnhancedAvatarCustomizationState
                         ],
                       ),
                       labelColor: Colors.white,
-                      unselectedLabelColor: Colors.grey.shade600,
+                      unselectedLabelColor: AppTheme.isDarkMode(context)
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade600,
                       labelStyle: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -609,21 +639,25 @@ class _EnhancedAvatarCustomizationState
           
           const SizedBox(height: 20),
           
-          // Save Button
+          // Save Button with theme support
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 24),
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _isSaving ? null : _manualSaveCustomizations,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
+                backgroundColor: AppTheme.isDarkMode(context)
+                  ? Colors.purple.shade400
+                  : Colors.purple,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
                 elevation: 8,
-                shadowColor: Colors.purple.withValues(alpha: 0.3),
+                shadowColor: AppTheme.isDarkMode(context)
+                  ? Colors.purple.withValues(alpha: 0.4)
+                  : Colors.purple.withValues(alpha: 0.3),
               ),
               child: _isSaving
                   ? Row(
@@ -919,9 +953,15 @@ class _EnhancedAvatarCustomizationState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.05),
+        color: AppTheme.isDarkMode(context)
+          ? color.withValues(alpha: 0.1)
+          : color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: AppTheme.isDarkMode(context)
+            ? color.withValues(alpha: 0.3)
+            : color.withValues(alpha: 0.2)
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,7 +971,9 @@ class _EnhancedAvatarCustomizationState
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
+                  color: AppTheme.isDarkMode(context)
+                    ? color.withValues(alpha: 0.3)
+                    : color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -958,19 +1000,37 @@ class _EnhancedAvatarCustomizationState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.withValues(alpha: 0.05),
+        color: AppTheme.isDarkMode(context)
+          ? Colors.grey.withValues(alpha: 0.1)
+          : Colors.grey.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+        border: Border.all(
+          color: AppTheme.isDarkMode(context)
+            ? Colors.grey.withValues(alpha: 0.3)
+            : Colors.grey.withValues(alpha: 0.2)
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: value ? Colors.green.withValues(alpha: 0.2) : Colors.grey.withValues(alpha: 0.2),
+              color: value 
+              ? (AppTheme.isDarkMode(context) 
+                  ? Colors.green.withValues(alpha: 0.3)
+                  : Colors.green.withValues(alpha: 0.2))
+              : (AppTheme.isDarkMode(context)
+                  ? Colors.grey.withValues(alpha: 0.3)
+                  : Colors.grey.withValues(alpha: 0.2)),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: value ? Colors.green : Colors.grey, size: 20),
+            child: Icon(
+            icon, 
+            color: value 
+              ? (AppTheme.isDarkMode(context) ? Colors.green.shade300 : Colors.green)
+              : (AppTheme.isDarkMode(context) ? Colors.grey.shade400 : Colors.grey), 
+            size: 20
+          ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -979,14 +1039,18 @@ class _EnhancedAvatarCustomizationState
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: value ? Colors.green : Colors.grey.shade600,
+                color: value 
+                ? (AppTheme.isDarkMode(context) ? Colors.green.shade300 : Colors.green)
+                : (AppTheme.isDarkMode(context) ? Colors.grey.shade400 : Colors.grey.shade600),
               ),
             ),
           ),
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: Colors.purple,
+            activeColor: AppTheme.isDarkMode(context)
+              ? Colors.purple.shade300
+              : Colors.purple,
           ),
         ],
       ),

@@ -6,6 +6,7 @@ import '../../widgets/avatar_customization.dart';
 import '../../services/store/avatar_customization_service.dart' as store_service;
 import '../../models/store/quantum_coach_config.dart';
 import '../../providers/firebase/firebase_avatar_provider.dart';
+import '../../theme/app_theme.dart';
 
 /// Universal Avatar Studio Screen
 /// Scalable customization system that works with any avatar
@@ -367,7 +368,7 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
 
     debugPrint('✅ DEBUG: Showing customization screen for ${widget.avatar.avatarId}');
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppTheme.surfaceColor(context),
       body: CustomScrollView(
         slivers: [
           _buildAnimatedAppBar(),
@@ -382,16 +383,22 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
 
   Widget _buildLoadingScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppTheme.surfaceColor(context),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: Colors.purple),
+            CircularProgressIndicator(
+              color: AppTheme.isDarkMode(context) 
+                ? Colors.purple.shade300
+                : Colors.purple
+            ),
             const SizedBox(height: 16),
             Text(
               'Loading ${widget.avatar.name} Studio...',
-              style: const TextStyle(color: Colors.white70),
+              style: TextStyle(
+                color: AppTheme.textColor(context).withValues(alpha: 0.7)
+              ),
             ),
           ],
         ),
@@ -403,10 +410,10 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
     final isFree = widget.avatar.price == 0;
     
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppTheme.textColor(context),
         title: Text('${widget.avatar.name} Studio'),
       ),
       body: Center(
@@ -434,7 +441,7 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               Text(
                 isFree ? 'Get for Free!' : 'Purchase Required',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textColor(context),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -445,8 +452,8 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
                   ? 'Claim ${widget.avatar.name} for free to access its customization studio!'
                   : 'You need to own ${widget.avatar.name} to access its customization studio.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
               ),
@@ -455,7 +462,9 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
                 ElevatedButton(
                   onPressed: _obtainFreeAvatar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: AppTheme.isDarkMode(context) 
+                      ? Colors.green.shade400
+                      : Colors.green,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                   ),
                   child: const Text('Obtain for Free', style: TextStyle(color: Colors.white)),
@@ -465,7 +474,9 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: AppTheme.isDarkMode(context)
+                    ? Colors.purple.shade400
+                    : Colors.purple,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
                 child: const Text('Back to Store', style: TextStyle(color: Colors.white)),
@@ -479,10 +490,10 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
 
   Widget _buildNoCustomizationScreen() {
     return Scaffold(
-      backgroundColor: const Color(0xFF0A0A0A),
+      backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppTheme.textColor(context),
         title: Text('${widget.avatar.name} Studio'),
       ),
       body: Center(
@@ -506,7 +517,7 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               Text(
                 'No Customization Available',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textColor(context),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -515,8 +526,8 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               Text(
                 '${widget.avatar.name} doesn\'t support customization at this time.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.white70,
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
                   fontSize: 16,
                 ),
               ),
@@ -524,7 +535,9 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple,
+                  backgroundColor: AppTheme.isDarkMode(context)
+                    ? Colors.purple.shade400
+                    : Colors.purple,
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
                 ),
                 child: const Text('Back to Store', style: TextStyle(color: Colors.white)),
@@ -542,7 +555,7 @@ class _AvatarStudioScreenState extends ConsumerState<AvatarStudioScreen>
       floating: false,
       pinned: true,
       backgroundColor: Colors.transparent,
-      foregroundColor: Colors.white,
+      foregroundColor: AppTheme.textColor(context),
       flexibleSpace: FlexibleSpaceBar(
         background: AnimatedBuilder(
           animation: _headerAnimationController,

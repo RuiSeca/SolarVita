@@ -630,7 +630,7 @@ class FirebaseAvatarService {
       throw Exception('User must be authenticated to equip avatars');
     }
 
-    // Note: solar_coach now uses direct RIV loading - no longer blocked
+    // All avatars use standard loading
 
     // Check if user owns this avatar or if it's a free avatar
     if (!doesUserOwnAvatar(avatarId)) {
