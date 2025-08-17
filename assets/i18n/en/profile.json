@@ -58,7 +58,7 @@
     "streak": "Streak",
     "percent_complete": "{percent}% complete",
     "error_loading_weekly_summary": "Error loading weekly summary: {error}",
-    "daily_goals_progress": "Daily Goals Progress",
+    "daily_goals": "Daily Goals Progress",
     "error_loading_progress": "Error loading progress",
     "try_again": "Try Again",
     "no_health_data_available": "No health data available",

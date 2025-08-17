@@ -101,9 +101,9 @@ class _AvatarStoreScreenState extends ConsumerState<AvatarStoreScreen>
             child: IconButton(
               onPressed: () => Navigator.of(context).pop(),
               icon: Icon(
-                Icons.close,
+                Icons.arrow_back,
                 color: AppTheme.textColor(context),
-                size: 18,
+                size: 20,
               ),
               padding: EdgeInsets.zero,
             ),

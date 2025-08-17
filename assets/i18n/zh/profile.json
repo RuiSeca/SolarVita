@@ -58,7 +58,7 @@
     "streak": "連續記錄",
     "percent_complete": "{percent}%完成",
     "error_loading_weekly_summary": "載入週摘要時發生錯誤：{error}",
-    "daily_goals_progress": "每日目標進度",
+    "daily_goals": "每日目標進度",
     "error_loading_progress": "載入進度時發生錯誤",
     "try_again": "再試一次",
     "no_health_data_available": "沒有可用的健康數據",

@@ -58,7 +58,7 @@
     "streak": "Серия",
     "percent_complete": "{percent}% выполнено",
     "error_loading_weekly_summary": "Ошибка загрузки недельной сводки: {error}",
-    "daily_goals_progress": "Прогресс ежедневных целей",
+    "daily_goals": "Прогресс ежедневных целей",
     "error_loading_progress": "Ошибка загрузки прогресса",
     "try_again": "Попробовать снова",
     "no_health_data_available": "Данные о здоровье недоступны",

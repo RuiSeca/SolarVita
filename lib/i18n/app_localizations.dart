@@ -40,7 +40,7 @@ class AppLocalizations {
     'language',
     'stats',
     'avatar',
-    'cryptocurrency',
+    'currency_purchase',
     'customization',
   ];
 
@@ -79,19 +79,22 @@ class AppLocalizations {
     }
   }
 
-  Map<String, String> _flattenMap(Map<String, dynamic> map, [String prefix = '']) {
+  Map<String, String> _flattenMap(
+    Map<String, dynamic> map, [
+    String prefix = '',
+  ]) {
     final Map<String, String> result = {};
-    
+
     map.forEach((key, value) {
       final String newKey = prefix.isEmpty ? key : '$prefix.$key';
-      
+
       if (value is Map<String, dynamic>) {
         result.addAll(_flattenMap(value, newKey));
       } else {
         result[newKey] = value.toString();
       }
     });
-    
+
     return result;
   }
 

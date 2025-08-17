@@ -58,7 +58,7 @@
     "streak": "연속 기록",
     "percent_complete": "{percent}% 완료",
     "error_loading_weekly_summary": "주간 요약을 불러오는 중 오류 발생: {error}",
-    "daily_goals_progress": "일일 목표 진행률",
+    "daily_goals": "일일 목표 진행률",
     "error_loading_progress": "진행률을 불러오는 중 오류가 발생했습니다",
     "try_again": "다시 시도",
     "no_health_data_available": "사용 가능한 건강 데이터가 없습니다",

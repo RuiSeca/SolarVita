@@ -226,7 +226,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       icon: Icon(
         Icons.filter_list,
         color: _selectedFilter != 'all'
-            ? Colors.white
+            ? Theme.of(context).primaryColor
             : AppTheme.textColor(context),
       ),
       onSelected: (value) {
@@ -329,20 +329,15 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
         padding: EdgeInsets.only(
           top: 8,
           bottom: _isBottomBarVisible ? 120 : 8, // Space for bottom bar
-          left: 8,
-          right: 8,
         ),
         itemCount: posts.length,
         itemBuilder: (context, index) {
           final post = posts[index];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SocialPostCard(
-              post: post,
-              onReaction: (postId, reaction) =>
-                  _handleReaction(postId, reaction),
-              showSupporterTag: _shouldShowSupporterTag(post),
-            ),
+          return SocialPostCard(
+            post: post,
+            onReaction: (postId, reaction) =>
+                _handleReaction(postId, reaction),
+            showSupporterTag: _shouldShowSupporterTag(post),
           );
         },
       ),

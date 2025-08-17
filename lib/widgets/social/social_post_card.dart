@@ -95,17 +95,16 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.zero, // Edge-to-edge design
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(13),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+        border: Border(
+          bottom: BorderSide(
+            color: AppTheme.textColor(context).withAlpha(26),
+            width: 1,
           ),
-        ],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +325,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     if (allMedia.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      margin: const EdgeInsets.only(top: 12),
+      margin: EdgeInsets.zero,
+      width: double.infinity,
       height: 400, // Instagram-style fixed height
       child: Stack(
         children: [

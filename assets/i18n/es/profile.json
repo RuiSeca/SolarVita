@@ -58,7 +58,7 @@
     "streak": "Racha",
     "percent_complete": "{percent}% completado",
     "error_loading_weekly_summary": "Error al cargar resumen semanal: {error}",
-    "daily_goals_progress": "Progreso de Objetivos Diarios",
+    "daily_goals": "Progreso de Objetivos Diarios",
     "error_loading_progress": "Error al cargar progreso",
     "try_again": "Intentar de Nuevo",
     "no_health_data_available": "No hay datos de salud disponibles",

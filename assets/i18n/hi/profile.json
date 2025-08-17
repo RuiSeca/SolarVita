@@ -58,7 +58,7 @@
     "streak": "लकीर",
     "percent_complete": "{percent}% पूर्ण",
     "error_loading_weekly_summary": "साप्ताहिक सारांश लोड करने में त्रुटि: {error}",
-    "daily_goals_progress": "दैनिक लक्ष्य प्रगति",
+    "daily_goals": "दैनिक लक्ष्य प्रगति",
     "error_loading_progress": "प्रगति लोड करने में त्रुटि",
     "try_again": "पुनः प्रयास करें",
     "no_health_data_available": "कोई स्वास्थ्य डेटा उपलब्ध नहीं",

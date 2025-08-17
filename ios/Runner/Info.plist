@@ -101,5 +101,11 @@
 	<key>GOOGLE_MAPS_API_KEY</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
 	-->
+	
+	<!-- Apple Pay Configuration for Testing -->
+	<key>com.apple.developer.in-app-payments</key>
+	<array>
+		<string>merchant.com.solarVita.test</string>
+	</array>
 </dict>
 </plist>

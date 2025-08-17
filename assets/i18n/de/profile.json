@@ -58,7 +58,7 @@
     "streak": "Serie",
     "percent_complete": "{percent}% abgeschlossen",
     "error_loading_weekly_summary": "Fehler beim Laden der wöchentlichen Zusammenfassung: {error}",
-    "daily_goals_progress": "Tägliche Ziele Fortschritt",
+    "daily_goals": "Tägliche Ziele Fortschritt",
     "error_loading_progress": "Fehler beim Laden des Fortschritts",
     "try_again": "Erneut Versuchen",
     "no_health_data_available": "Keine Gesundheitsdaten verfügbar",

@@ -58,7 +58,7 @@
     "streak": "Serie",
     "percent_complete": "{percent}% completato",
     "error_loading_weekly_summary": "Errore nel caricamento del riepilogo settimanale: {error}",
-    "daily_goals_progress": "Progresso Obiettivi Giornalieri",
+    "daily_goals": "Progresso Obiettivi Giornalieri",
     "error_loading_progress": "Errore nel caricamento del progresso",
     "try_again": "Riprova",
     "no_health_data_available": "Nessun dato sanitario disponibile",

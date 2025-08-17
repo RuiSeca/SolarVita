@@ -11,6 +11,8 @@ import '../../widgets/social/social_feed_tabs.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../social/create_post_screen.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
+import '../../widgets/pulse_background.dart';
+import '../../services/health_alerts/pulse_color_manager.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -19,7 +21,26 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerProviderStateMixin {
+  @override
+  void initState() {
+    super.initState();
+    _initializeHealthSystem();
+  }
+
+  Future<void> _initializeHealthSystem() async {
+    try {
+      final colorManager = PulseColorManager.instance;
+      await colorManager.initialize(
+        vsync: this,
+        userAge: 25, // TODO: Get from user profile
+      );
+    } catch (e) {
+      // Graceful fallback - breathing pulse will still work with default colors
+      debugPrint('Health system initialization failed: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -260,7 +281,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 80),
+                const SizedBox(height: 24),
+
+                // Breathing Pulse Section
+                ScrollAwarePulse(
+                  scrollController: scrollController,
+                  height: 280,
+                ),
+
+                const SizedBox(height: 24),
 
                 // Social Feed Section with Tabs
                 Row(

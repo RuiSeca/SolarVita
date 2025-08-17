@@ -58,7 +58,7 @@
     "streak": "連続記録",
     "percent_complete": "{percent}% 完了",
     "error_loading_weekly_summary": "週間サマリー読み込みエラー: {error}",
-    "daily_goals_progress": "1日の目標進捗",
+    "daily_goals": "1日の目標進捗",
     "error_loading_progress": "進捗読み込みエラー",
     "try_again": "再試行",
     "no_health_data_available": "健康データがありません",
