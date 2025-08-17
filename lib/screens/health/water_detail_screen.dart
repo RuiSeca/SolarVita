@@ -105,24 +105,40 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
         return;
       }
 
-      // Schedule multiple reminders throughout the day
+      // Schedule reminders for the next 7 days to ensure continuity
       final now = DateTime.now();
-      DateTime nextReminder = now.add(interval);
+      DateTime currentDay = DateTime(now.year, now.month, now.day);
+      int notificationId = 1;
 
-      // Schedule up to 12 reminders for the day
-      for (int i = 0; i < 12; i++) {
-        if (nextReminder.day != now.day) {
-          break; // Stop if we've moved to the next day
+      // Schedule for 7 days starting from today
+      for (int day = 0; day < 7; day++) {
+        final dayStart = currentDay.add(Duration(days: day));
+        
+        // Start reminders from 8 AM to 10 PM (14 hours)
+        final firstReminder = DateTime(dayStart.year, dayStart.month, dayStart.day, 8, 0);
+        final lastReminder = DateTime(dayStart.year, dayStart.month, dayStart.day, 22, 0);
+        
+        DateTime nextReminder = firstReminder;
+        
+        // Schedule reminders throughout this day
+        while (nextReminder.isBefore(lastReminder) && notificationId <= 84) { // Max 84 notifications (7 days × 12 max per day)
+          // Only schedule future notifications
+          if (nextReminder.isAfter(now)) {
+            await notificationService.scheduleWaterReminderAt(
+              scheduledTime: nextReminder,
+              title: '💧 Stay Hydrated!',
+              body: 'Time for a glass of water. Your body will thank you!',
+            );
+          }
+
+          nextReminder = nextReminder.add(interval);
+          notificationId++;
         }
-
-        await notificationService.scheduleWaterReminderAt(
-          scheduledTime: nextReminder,
-          title: '💧 Stay Hydrated!',
-          body: 'Time for a glass of water. Your body will thank you!',
-        );
-
-        nextReminder = nextReminder.add(interval);
       }
+
+      // Save scheduling timestamp
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('water_reminders_last_scheduled', DateTime.now().toIso8601String());
 
       // Show confirmation
       if (mounted) {
@@ -134,7 +150,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Water reminders scheduled every ${_getIntervalText()}',
+                    'Water reminders scheduled for 7 days, every ${_getIntervalText()}',
                   ),
                 ),
               ],

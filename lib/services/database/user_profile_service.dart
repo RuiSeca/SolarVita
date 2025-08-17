@@ -110,11 +110,12 @@ class UserProfileService {
   Future<UserProfile> updateUserProfile(UserProfile profile) async {
     try {
       final updatedProfile = profile.copyWith(lastUpdated: DateTime.now());
-
+      final firestoreData = updatedProfile.toFirestore();
+      
       await _firestore
           .collection(_usersCollection)
           .doc(profile.uid)
-          .update(updatedProfile.toFirestore());
+          .update(firestoreData);
 
       // Update cache with new profile
       _cachedProfile = updatedProfile;
@@ -122,7 +123,7 @@ class UserProfileService {
 
       return updatedProfile;
     } catch (e) {
-      throw Exception('Failed to update user profile');
+      throw Exception('Failed to update user profile: $e');
     }
   }
 

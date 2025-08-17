@@ -131,6 +131,9 @@ class HealthDataService {
       // Calculate average heart rate
       if (heartRateCount > 0) {
         heartRate = heartRate / heartRateCount;
+        
+        // Cache heart rate data for pulse system integration
+        await _cacheHeartRateForPulse(heartRate);
       }
 
       // Estimate calories based on activity
@@ -412,6 +415,18 @@ class HealthDataService {
     }
   }
 
+  /// Cache heart rate data specifically for pulse system integration
+  Future<void> _cacheHeartRateForPulse(double heartRate) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('health_heart_rate_value', heartRate);
+      await prefs.setInt('health_heart_rate_timestamp', DateTime.now().millisecondsSinceEpoch);
+      _logger.info('Cached heart rate for pulse system: ${heartRate.toStringAsFixed(1)} bpm');
+    } catch (e) {
+      _logger.warning('Error caching heart rate for pulse: $e');
+    }
+  }
+
   /// Get cached health data
   Future<HealthData?> _getCachedHealthData() async {
     try {
@@ -614,17 +629,36 @@ class HealthDataService {
     await prefs.setBool(_permissionsGrantedKey, granted);
   }
 
+  /// Get today's date string matching health platform format
+  String _getHealthPlatformDateString() {
+    final now = DateTime.now();
+    // Ensure this matches the same logic as health screen
+    final healthToday = DateTime(now.year, now.month, now.day);
+    return healthToday.toIso8601String().split('T')[0];
+  }
+
   /// Combine health app water intake with local tracking
   Future<double> _getCombinedWaterIntake(double healthAppWater) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final localWater = prefs.getDouble('daily_water_intake') ?? 0.0;
       
-      // Use the higher value (health app vs local tracking)
-      final combined = healthAppWater > localWater ? healthAppWater : localWater;
-      _logger.fine('Water intake - Health app: ${healthAppWater}ml, Local: ${localWater}ml, Using: ${combined}ml');
+      // Check if today's local water data exists (same logic as health screen)
+      final today = _getHealthPlatformDateString();
+      final lastDate = prefs.getString('water_last_date') ?? '';
+      
+      double localWaterML = 0.0;
+      if (lastDate == today) {
+        // Get today's water intake in liters, convert to milliliters
+        final localWaterL = prefs.getDouble('water_intake') ?? 0.0;
+        localWaterML = localWaterL * 1000; // Convert L to mL
+      }
+      
+      // Use the higher value (health app vs local tracking) - both in mL
+      final combined = healthAppWater > localWaterML ? healthAppWater : localWaterML;
+      _logger.info('Water intake - Health app: ${healthAppWater}ml, Local: ${localWaterML}ml, Using: ${combined}ml');
       return combined;
     } catch (e) {
+      _logger.warning('Error getting combined water intake: $e');
       return healthAppWater;
     }
   }

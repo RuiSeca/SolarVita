@@ -72,7 +72,6 @@ class PulseColorManager extends ChangeNotifier {
   // Initialize the color manager
   Future<void> initialize({
     required TickerProvider vsync,
-    int? userAge,
   }) async {
     try {
       _logger.i('Initializing PulseColorManager...');
@@ -93,7 +92,7 @@ class PulseColorManager extends ChangeNotifier {
       
       // Initialize health data collector
       _healthCollector = SmartHealthDataCollector.instance;
-      await _healthCollector!.initialize(userAge: userAge);
+      await _healthCollector!.initialize();
       
       // Set up initial colors
       _setupInitialColors();
@@ -210,7 +209,11 @@ class PulseColorManager extends ChangeNotifier {
   
   // Remove health alert colors
   void _removeHealthAlert() {
-    _colorSources.remove(ColorPriority.healthAlert);
+    final removed = _colorSources.remove(ColorPriority.healthAlert);
+    if (removed != null) {
+      _evaluateColorChange();
+      _logger.d('Health alert color removed, evaluating color change');
+    }
   }
   
   // User mood color selection
@@ -230,9 +233,34 @@ class PulseColorManager extends ChangeNotifier {
   // Clear user override
   void clearUserOverride() {
     _colorSources.remove(ColorPriority.userOverride);
+    
+    // Force a fresh health data evaluation to ensure we get current state
+    _forceHealthDataRefresh();
+    
     _evaluateColorChange();
     
     _logger.d('User color override cleared');
+  }
+  
+  // Force a fresh evaluation of health data and clear stale alerts
+  void _forceHealthDataRefresh() {
+    if (_healthCollector == null) return;
+    
+    try {
+      // Clear any existing health alert colors to force fresh evaluation
+      _colorSources.remove(ColorPriority.healthAlert);
+      _colorSources.remove(ColorPriority.healthNormal);
+      
+      // Update circadian color to current time
+      _updateCircadianColor();
+      
+      // Re-evaluate health status
+      _onHealthDataChanged();
+      
+      _logger.d('Forced health data refresh completed');
+    } catch (e) {
+      _logger.e('Error during forced health data refresh: $e');
+    }
   }
   
   // Get highest priority active source
@@ -250,11 +278,28 @@ class PulseColorManager extends ChangeNotifier {
   // Evaluate if color should change
   void _evaluateColorChange() {
     final newSource = _getHighestPrioritySource();
-    final newColor = newSource?.color ?? const Color(0xFF4CAF50);
+    Color newColor;
+    
+    if (newSource != null) {
+      newColor = newSource.color;
+      _logger.d('Using color source: ${newSource.description} (priority: ${newSource.priority.priority})');
+    } else {
+      // No active sources, use circadian color if available, otherwise default green
+      final circadianSource = _colorSources[ColorPriority.circadian];
+      if (circadianSource != null) {
+        newColor = circadianSource.color;
+        _logger.d('No active sources, falling back to circadian color');
+      } else {
+        newColor = const Color(0xFF4CAF50);
+        _logger.d('No active sources, using default green color');
+      }
+    }
     
     if (newColor != _currentColor) {
       _animateToColor(newColor);
-      _logger.d('Color changing to: $newColor (${newSource?.description})');
+      _logger.d('Color changing to: $newColor');
+    } else {
+      _logger.d('Color unchanged: $newColor');
     }
   }
   
@@ -342,18 +387,35 @@ class PulseColorManager extends ChangeNotifier {
   
   // Get debug information
   Map<String, dynamic> getDebugInfo() {
+    final healthSummary = _healthCollector?.getHealthSummary();
     return {
       'currentColor': _currentColor.toString(),
       'isTransitioning': isTransitioning,
       'activeSource': activeSource?.description,
       'activeSources': _colorSources.length,
+      'healthAlertLevel': healthSummary?['alertLevel']?.toString() ?? 'unknown',
+      'healthAlertCount': healthSummary?['alertCount'] ?? 0,
       'sources': _colorSources.entries.map((e) => {
         'priority': e.key.name,
+        'priorityValue': e.key.priority,
         'color': e.value.color.toString(),
         'isActive': e.value.isActive,
         'description': e.value.description,
+        'activatedAt': e.value.activatedAt?.toString(),
+        'duration': e.key.duration.toString(),
       }).toList(),
     };
+  }
+  
+  // Force cleanup of all expired sources and re-evaluate
+  void forceCleanupAndReevaluate() {
+    _logger.i('Manual cleanup and re-evaluation requested');
+    _cleanupExpiredSources();
+    _forceHealthDataRefresh();
+    _evaluateColorChange();
+    
+    final debugInfo = getDebugInfo();
+    _logger.i('After cleanup - Active sources: ${debugInfo['activeSources']}, Current source: ${debugInfo['activeSource']}');
   }
   
   // Dispose resources

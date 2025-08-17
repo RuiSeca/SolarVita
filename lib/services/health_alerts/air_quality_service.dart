@@ -24,6 +24,28 @@ class AirQualityService {
   static Future<AirQualityData> _getOpenWeatherAirPollution() async {
     final position = await _getCurrentLocation();
     
+    // Get location name from weather API first
+    String? city, country;
+    try {
+      final weatherResponse = await http.get(
+        Uri.parse(
+          '$_baseUrl/weather'
+          '?lat=${position.latitude}'
+          '&lon=${position.longitude}'
+          '&appid=$_apiKey'
+        ),
+        headers: {'Accept': 'application/json'},
+      ).timeout(Duration(seconds: 5));
+      
+      if (weatherResponse.statusCode == 200) {
+        final weatherData = json.decode(weatherResponse.body);
+        city = weatherData['name'] as String?;
+        country = weatherData['sys']?['country'] as String?;
+      }
+    } catch (e) {
+      _logger.w('Failed to get location name from weather API: $e');
+    }
+    
     final response = await http.get(
       Uri.parse(
         '$_baseUrl/air_pollution'
@@ -39,7 +61,11 @@ class AirQualityService {
     }
     
     final data = json.decode(response.body);
-    return AirQualityData.fromOpenWeatherAirPollution(data);
+    return AirQualityData.fromOpenWeatherAirPollution(
+      data,
+      city: city,
+      country: country,
+    );
   }
   
   static Future<Position> _getCurrentLocation() async {
@@ -81,6 +107,8 @@ class AirQualityService {
       },
       source: 'Mock Data',
       timestamp: DateTime.now(),
+      city: 'Mock City',
+      country: 'MC',
     );
   }
 }

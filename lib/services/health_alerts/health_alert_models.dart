@@ -34,6 +34,8 @@ class WeatherData {
   final double windSpeed;
   final String condition;
   final DateTime timestamp;
+  final String? city;
+  final String? country;
 
   WeatherData({
     required this.temperature,
@@ -42,6 +44,8 @@ class WeatherData {
     required this.windSpeed,
     required this.condition,
     required this.timestamp,
+    this.city,
+    this.country,
   });
 
   factory WeatherData.defaultSafe() {
@@ -52,6 +56,8 @@ class WeatherData {
       windSpeed: 5.0,
       condition: 'clear',
       timestamp: DateTime.now(),
+      city: 'Unknown',
+      country: 'Unknown',
     );
   }
 
@@ -68,6 +74,8 @@ class WeatherData {
       windSpeed: json['wind']['speed'].toDouble(),
       condition: json['weather'][0]['main'].toString().toLowerCase(),
       timestamp: DateTime.now(),
+      city: json['name'] as String?,
+      country: json['sys']?['country'] as String?,
     );
   }
 }
@@ -77,12 +85,16 @@ class AirQualityData {
   final Map<String, double> pollutants;
   final String source;
   final DateTime timestamp;
+  final String? city;
+  final String? country;
 
   AirQualityData({
     required this.aqi,
     required this.pollutants,
     required this.source,
     required this.timestamp,
+    this.city,
+    this.country,
   });
 
   factory AirQualityData.defaultSafe() {
@@ -91,6 +103,8 @@ class AirQualityData {
       pollutants: {},
       source: 'default',
       timestamp: DateTime.now(),
+      city: 'Unknown',
+      country: 'Unknown',
     );
   }
 
@@ -103,7 +117,11 @@ class AirQualityData {
     return 'Hazardous';
   }
 
-  factory AirQualityData.fromOpenWeatherAirPollution(Map<String, dynamic> json) {
+  factory AirQualityData.fromOpenWeatherAirPollution(
+    Map<String, dynamic> json, {
+    String? city,
+    String? country,
+  }) {
     final pollution = json['list'][0];
     final components = pollution['components'];
     final aqi = pollution['main']['aqi']; // OpenWeather provides direct AQI (1-5 scale)
@@ -132,6 +150,8 @@ class AirQualityData {
       },
       source: 'OpenWeather Air Pollution',
       timestamp: DateTime.now(),
+      city: city,
+      country: country,
     );
   }
 }

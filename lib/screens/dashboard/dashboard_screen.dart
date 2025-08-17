@@ -33,13 +33,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
       final colorManager = PulseColorManager.instance;
       await colorManager.initialize(
         vsync: this,
-        userAge: 25, // TODO: Get from user profile
       );
     } catch (e) {
       // Graceful fallback - breathing pulse will still work with default colors
       debugPrint('Health system initialization failed: $e');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

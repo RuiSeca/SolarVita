@@ -46,6 +46,8 @@ class WeatherService {
         windSpeed: weatherData['wind']?['speed']?.toDouble() ?? 0.0,
         condition: _mapWeatherCondition(weatherData['weather'][0]['main']),
         timestamp: DateTime.now(),
+        city: weatherData['name'] as String?,
+        country: weatherData['sys']?['country'] as String?,
       );
       
     } catch (e) {
@@ -131,6 +133,8 @@ class WeatherService {
       windSpeed: 3.2,
       condition: 'sunny',
       timestamp: DateTime.now(),
+      city: 'Mock City',
+      country: 'MC',
     );
   }
 }

@@ -8,6 +8,7 @@ import 'dart:convert';
 // Import all our health services
 import 'health_alert_models.dart';
 import 'weather_service.dart';
+import '../database/user_profile_service.dart';
 import 'air_quality_service.dart';
 import 'health_sensor_service.dart';
 import 'health_alert_evaluator.dart';
@@ -28,7 +29,6 @@ class SmartHealthDataCollector extends ChangeNotifier {
   int? _currentHeartRate;
   SleepData? _lastSleepData;
   double? _currentHydration;
-  int? _userAge;
   
   // Current alerts
   final List<HealthAlert> _activeAlerts = [];
@@ -36,7 +36,7 @@ class SmartHealthDataCollector extends ChangeNotifier {
   
   // Cache settings
   static const Duration _dataUpdateInterval = Duration(minutes: 15);
-  static const Duration _alertCleanupInterval = Duration(minutes: 5);
+  static const Duration _alertCleanupInterval = Duration(minutes: 2); // Check more frequently for expiration
   static const Duration _cacheExpiry = Duration(hours: 1);
   
   // Singleton pattern
@@ -64,14 +64,11 @@ class SmartHealthDataCollector extends ChangeNotifier {
   bool get isCollecting => _isCollecting;
   
   // Initialize the health data collector
-  Future<bool> initialize({int? userAge, bool enableSensors = true}) async {
+  Future<bool> initialize({bool enableSensors = true}) async {
     if (_isInitialized) return true;
     
     try {
       _logger.i('Initializing SmartHealthDataCollector...');
-      
-      // Store user age for heart rate calculations
-      _userAge = userAge;
       
       // Initialize health sensors if requested
       if (enableSensors) {
@@ -209,8 +206,13 @@ class SmartHealthDataCollector extends ChangeNotifier {
       if (_shouldUseMockData) {
         _currentHeartRate = await HealthSensorService.getMockHeartRate();
       } else {
-        _currentHeartRate = await HealthSensorService.getCurrentHeartRate();
-        // Fallback to mock if sensors not available
+        // First try to get heart rate from health screen data
+        _currentHeartRate = await _getHeartRateFromHealthScreen();
+        
+        // If not available, try device sensors
+        _currentHeartRate ??= await HealthSensorService.getCurrentHeartRate();
+        
+        // Final fallback to mock if sensors not available
         _currentHeartRate ??= await HealthSensorService.getMockHeartRate();
       }
       
@@ -234,8 +236,7 @@ class SmartHealthDataCollector extends ChangeNotifier {
   // Get hydration data from health screen (integrate with your existing water tracking)
   Future<void> _collectHydrationFromHealthScreen() async {
     try {
-      // TODO: Replace this with actual integration to your health screen water intake
-      // For now, using a placeholder that simulates getting data from your UI
+      // Get water intake from health screen SharedPreferences or health sensors
       
       double? waterIntake;
       if (_shouldUseMockData) {
@@ -252,10 +253,9 @@ class SmartHealthDataCollector extends ChangeNotifier {
         waterIntake ??= 1800.0;
       }
       
-      // Calculate hydration level based on user's daily needs
-      final userWeight = _getUserWeight(); // Get from user profile
-      final dailyNeed = userWeight * 35; // 35ml per kg body weight
-      _currentHydration = (waterIntake / dailyNeed).clamp(0.0, 2.0);
+      // Calculate hydration level using medical recommendations and user goal
+      final hydrationAssessment = await _calculateHydrationLevel(waterIntake);
+      _currentHydration = hydrationAssessment;
       
       _logger.d('Hydration updated: ${_currentHydration?.toStringAsFixed(2)}');
     } catch (e) {
@@ -266,13 +266,17 @@ class SmartHealthDataCollector extends ChangeNotifier {
   // Evaluate health status and generate alerts
   Future<void> _evaluateHealthStatus() async {
     try {
+      // Get current user age from profile (may have been updated)
+      final physicalInfo = await _getUserPhysicalInfo();
+      final currentAge = physicalInfo['age'] as int;
+      
       final newAlerts = HealthAlertEvaluator.evaluateHealthStatus(
         weather: _currentWeather,
         airQuality: _currentAirQuality,
         heartRate: _currentHeartRate,
         sleepData: _lastSleepData,
         hydrationLevel: _currentHydration,
-        userAge: _userAge,
+        userAge: currentAge,
       );
       
       // Update active alerts (remove duplicates and expired ones)
@@ -319,9 +323,17 @@ class SmartHealthDataCollector extends ChangeNotifier {
     _activeAlerts.removeWhere((alert) => alert.isExpired);
     
     if (_activeAlerts.length != initialCount) {
+      final previousAlertLevel = _currentAlertLevel;
       _currentAlertLevel = HealthAlertEvaluator.getHighestPriorityLevel(_activeAlerts);
+      
+      // Force notify listeners to update color manager even if alert level didn't change
       notifyListeners();
-      _logger.d('Cleaned up expired alerts. Active alerts: ${_activeAlerts.length}');
+      
+      _logger.d('Cleaned up expired alerts. Active alerts: ${_activeAlerts.length}, Alert level: ${_currentAlertLevel.name}');
+      
+      if (previousAlertLevel != _currentAlertLevel) {
+        _logger.d('Alert level changed from ${previousAlertLevel.name} to ${_currentAlertLevel.name}');
+      }
     }
   }
   
@@ -336,18 +348,177 @@ class SmartHealthDataCollector extends ChangeNotifier {
     return now.day != dataDate.day && now.hour >= 6;
   }
   
-  // Placeholder methods for integration with your existing code
+  // Get heart rate from health screen data (via Riverpod provider)
+  Future<int?> _getHeartRateFromHealthScreen() async {
+    try {
+      // Try to access health data from the health screen's HealthDataProvider
+      // Note: This would typically be accessed via Riverpod, but we can't inject
+      // Riverpod refs into this service. Instead, we'll need to check if there's
+      // cached health data we can access directly.
+      
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check if there's recent heart rate data cached from health screen
+      final heartRateTimestamp = prefs.getInt('health_heart_rate_timestamp') ?? 0;
+      final heartRateValue = prefs.getDouble('health_heart_rate_value') ?? 0.0;
+      
+      // Only use cached data if it's from today and within the last hour
+      final now = DateTime.now();
+      final cacheTime = DateTime.fromMillisecondsSinceEpoch(heartRateTimestamp);
+      final isFromToday = cacheTime.day == now.day && 
+                         cacheTime.month == now.month && 
+                         cacheTime.year == now.year;
+      final isRecent = now.difference(cacheTime).inHours < 1;
+      
+      if (isFromToday && isRecent && heartRateValue > 0) {
+        final heartRateInt = heartRateValue.round();
+        _logger.d('Heart rate from health screen cache: $heartRateInt bpm');
+        return heartRateInt;
+      } else {
+        _logger.d('No recent heart rate data from health screen cache');
+        return null;
+      }
+    } catch (e) {
+      _logger.w('Failed to get heart rate from health screen: $e');
+      return null;
+    }
+  }
+
+  // Get water intake from health screen SharedPreferences
   Future<double?> _getWaterIntakeFromHealthScreen() async {
-    // TODO: Integrate with your existing health screen water tracking
-    // This should return the current water intake in milliliters
-    
-    // For now, return a mock value
-    return kDebugMode ? 1500.0 : null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Check if today's data exists (same logic as health screen)
+      final today = _getHealthPlatformDateString();
+      final lastDate = prefs.getString('water_last_date') ?? '';
+      
+      if (lastDate == today) {
+        // Get today's water intake in liters, convert to milliliters
+        final waterIntakeL = prefs.getDouble('water_intake') ?? 0.0;
+        final waterIntakeML = waterIntakeL * 1000; // Convert L to mL
+        
+        _logger.d('Water intake from health screen: ${waterIntakeML}ml (${waterIntakeL}L)');
+        return waterIntakeML;
+      } else {
+        _logger.d('No water intake data for today');
+        return 0.0; // No data for today yet
+      }
+    } catch (e) {
+      _logger.w('Failed to get water intake from health screen: $e');
+      return null;
+    }
   }
   
-  double _getUserWeight() {
-    // TODO: Get user weight from your user profile/settings
-    return 70.0; // Default 70kg
+  // Get today's date string matching health platform format
+  String _getHealthPlatformDateString() {
+    final now = DateTime.now();
+    final healthToday = DateTime(now.year, now.month, now.day);
+    return healthToday.toIso8601String().split('T')[0];
+  }
+  
+  // Get user's daily water goal from health screen settings
+  Future<double> _getUserDailyWaterGoal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dailyLimitL = prefs.getDouble('water_daily_limit') ?? 2.0; // Default 2L
+      final dailyLimitML = dailyLimitL * 1000; // Convert to mL
+      
+      _logger.d('User daily water goal: ${dailyLimitML}ml (${dailyLimitL}L)');
+      return dailyLimitML;
+    } catch (e) {
+      _logger.w('Failed to get user daily water goal: $e');
+      return 2000.0; // Default 2L in mL
+    }
+  }
+
+  // Get user height, weight, and age from profile settings
+  Future<Map<String, dynamic>> _getUserPhysicalInfo() async {
+    try {
+      final userProfileService = UserProfileService();
+      final userProfile = await userProfileService.getCurrentUserProfile();
+      
+      if (userProfile != null) {
+        final additionalData = userProfile.additionalData;
+        
+        final heightStr = additionalData['height'] as String? ?? '';
+        final weightStr = additionalData['weight'] as String? ?? '';
+        final ageStr = additionalData['age'] as String? ?? '';
+        
+        return {
+          'height': double.tryParse(heightStr) ?? 170.0, // Default 170cm
+          'weight': double.tryParse(weightStr) ?? 70.0,  // Default 70kg
+          'age': int.tryParse(ageStr) ?? 25,             // Default 25 years
+        };
+      }
+    } catch (e) {
+      _logger.w('Failed to get user physical info from profile: $e');
+    }
+    
+    // Fallback to SharedPreferences if profile service fails
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return {
+        'height': prefs.getDouble('user_height') ?? 170.0,
+        'weight': prefs.getDouble('user_weight') ?? 70.0,
+        'age': prefs.getInt('user_age') ?? 25,
+      };
+    } catch (e) {
+      _logger.w('Failed to get user physical info from SharedPreferences: $e');
+      return {
+        'height': 170.0, // Default values
+        'weight': 70.0,
+        'age': 25,
+      };
+    }
+  }
+
+  // Calculate hydration level using medical recommendations and user preferences
+  Future<double> _calculateHydrationLevel(double waterIntakeML) async {
+    try {
+      final physicalInfo = await _getUserPhysicalInfo();
+      final weight = physicalInfo['weight'] as double;
+      final age = physicalInfo['age'] as int;
+      
+      // Medical recommendation: 35ml per kg body weight for adults
+      // Adjust for age: +5ml/kg for 18-30, baseline for 31-55, -5ml/kg for 55+
+      double baseRequirement = 35.0; // ml per kg
+      
+      if (age >= 18 && age <= 30) {
+        baseRequirement = 40.0; // Higher needs for younger adults
+      } else if (age > 55) {
+        baseRequirement = 30.0; // Lower baseline for older adults
+      }
+      
+      final medicalRecommendationML = weight * baseRequirement;
+      
+      // Get user's personal goal for comparison
+      final userGoalML = await _getUserDailyWaterGoal();
+      
+      // Use the higher of medical recommendation or user goal as the target
+      // This ensures medical needs are met while respecting user ambitions
+      final targetIntakeML = medicalRecommendationML > userGoalML 
+          ? medicalRecommendationML 
+          : userGoalML;
+      
+      // Calculate hydration level (0.0 to 2.0+)
+      final hydrationLevel = (waterIntakeML / targetIntakeML).clamp(0.0, 3.0);
+      
+      _logger.d('Hydration calculation: '
+          'Intake: ${waterIntakeML.toInt()}ml, '
+          'Medical: ${medicalRecommendationML.toInt()}ml, '
+          'User Goal: ${userGoalML.toInt()}ml, '
+          'Target: ${targetIntakeML.toInt()}ml, '
+          'Level: ${hydrationLevel.toStringAsFixed(2)}');
+      
+      return hydrationLevel;
+      
+    } catch (e) {
+      _logger.e('Error calculating hydration level: $e');
+      // Fallback to simple user goal calculation
+      final userGoalML = await _getUserDailyWaterGoal();
+      return (waterIntakeML / userGoalML).clamp(0.0, 2.0);
+    }
   }
   
   // Data persistence methods
@@ -405,6 +576,8 @@ class SmartHealthDataCollector extends ChangeNotifier {
       'windSpeed': weather.windSpeed,
       'condition': weather.condition,
       'timestamp': weather.timestamp.toIso8601String(),
+      'city': weather.city,
+      'country': weather.country,
     };
   }
   
@@ -416,6 +589,8 @@ class SmartHealthDataCollector extends ChangeNotifier {
       windSpeed: json['windSpeed'],
       condition: json['condition'],
       timestamp: DateTime.parse(json['timestamp']),
+      city: json['city'] as String?,
+      country: json['country'] as String?,
     );
   }
   
@@ -425,6 +600,8 @@ class SmartHealthDataCollector extends ChangeNotifier {
       'pollutants': airQuality.pollutants,
       'source': airQuality.source,
       'timestamp': airQuality.timestamp.toIso8601String(),
+      'city': airQuality.city,
+      'country': airQuality.country,
     };
   }
   
@@ -434,6 +611,8 @@ class SmartHealthDataCollector extends ChangeNotifier {
       pollutants: Map<String, double>.from(json['pollutants']),
       source: json['source'],
       timestamp: DateTime.parse(json['timestamp']),
+      city: json['city'] as String?,
+      country: json['country'] as String?,
     );
   }
   

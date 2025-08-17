@@ -35,6 +35,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
   bool _isLoading = false;
   File? _imageFile;
   String? _profileImageUrl;
+  
+  // Track if user has modified fields to prevent overwriting
+  bool _hasUserModifiedGender = false;
+  bool _hasUserModifiedActivity = false;
+  bool _hasUserModifiedWeekly = false;
 
   @override
   void initState() {
@@ -99,9 +104,18 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           _heightController.text = additionalData['height'] ?? '';
           _weightController.text = additionalData['weight'] ?? '';
           _ageController.text = additionalData['age'] ?? '';
-          _gender = _validateGender(additionalData['gender']);
-          _activityLevel = _validateActivityLevel(additionalData['activityLevel']);
-          _weeklyActivity = _validateWeeklyActivity(additionalData['weeklyActivity']);
+          
+          // Only overwrite dropdown values if user hasn't modified them
+          if (!_hasUserModifiedGender) {
+            _gender = _validateGender(additionalData['gender']);
+          }
+          if (!_hasUserModifiedActivity) {
+            _activityLevel = _validateActivityLevel(additionalData['activityLevel']);
+          }
+          if (!_hasUserModifiedWeekly) {
+            _weeklyActivity = _validateWeeklyActivity(additionalData['weeklyActivity']);
+          }
+          
         }
 
         return Scaffold(
@@ -308,6 +322,11 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
               backgroundColor: Colors.green,
             ),
           );
+          
+          // Reset modification flags after successful save
+          _hasUserModifiedGender = false;
+          _hasUserModifiedActivity = false;
+          _hasUserModifiedWeekly = false;
 
           Navigator.pop(context);
         }
@@ -510,6 +529,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           onChanged: (value) {
             setState(() {
               _gender = value!;
+              _hasUserModifiedGender = true;
             });
           },
         ),
@@ -628,6 +648,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           onChanged: (value) {
             setState(() {
               _activityLevel = value!;
+              _hasUserModifiedActivity = true;
             });
           },
         ),
@@ -647,6 +668,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
           onChanged: (value) {
             setState(() {
               _weeklyActivity = value!;
+              _hasUserModifiedWeekly = true;
             });
           },
         ),

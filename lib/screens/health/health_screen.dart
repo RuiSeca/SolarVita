@@ -15,6 +15,7 @@ import '../../providers/riverpod/user_progress_provider.dart';
 import '../../models/health/health_data.dart';
 import '../../models/user/user_progress.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
+import '../../services/database/notification_service.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
@@ -122,6 +123,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         waterDailyLimit = dailyLimit;
       });
     }
+    
+    // Check and reschedule water reminders if needed
+    await _checkWaterReminderSchedule();
   }
 
   /// Get today's date string that matches health platform reset timing
@@ -130,6 +134,109 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     // Ensure this matches the same logic as health data service
     final healthToday = DateTime(now.year, now.month, now.day);
     return healthToday.toIso8601String().split('T')[0];
+  }
+
+  Future<void> _checkWaterReminderSchedule() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final remindersEnabled = prefs.getBool('water_reminders_enabled') ?? false;
+      
+      if (!remindersEnabled) {
+        return; // User has disabled reminders
+      }
+      
+      // Check when reminders were last scheduled
+      final lastScheduled = prefs.getString('water_reminders_last_scheduled');
+      final now = DateTime.now();
+      
+      bool shouldReschedule = false;
+      
+      if (lastScheduled == null) {
+        // Never scheduled before
+        shouldReschedule = true;
+      } else {
+        final lastScheduledDate = DateTime.parse(lastScheduled);
+        final daysSinceScheduled = now.difference(lastScheduledDate).inDays;
+        
+        // Reschedule if it's been more than 5 days (leaving 2 days buffer from 7-day schedule)
+        if (daysSinceScheduled >= 5) {
+          shouldReschedule = true;
+        }
+      }
+      
+      if (shouldReschedule) {
+        // Import and call the scheduling logic
+        await _rescheduleWaterReminders();
+        await prefs.setString('water_reminders_last_scheduled', now.toIso8601String());
+      }
+    } catch (e) {
+      // Silently handle any errors in background scheduling
+    }
+  }
+
+  Future<void> _rescheduleWaterReminders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final reminderFrequency = prefs.getString('water_reminder_frequency') ?? '2';
+      final customHours = prefs.getInt('water_custom_hours') ?? 2;
+      final customMinutes = prefs.getInt('water_custom_minutes') ?? 0;
+      
+      // Calculate interval based on frequency setting (same logic as water_detail_screen)
+      Duration interval;
+      switch (reminderFrequency) {
+        case '1':
+          interval = const Duration(hours: 1);
+          break;
+        case '2':
+          interval = const Duration(hours: 2);
+          break;
+        case '3':
+          interval = const Duration(hours: 3);
+          break;
+        case 'custom':
+          interval = Duration(hours: customHours, minutes: customMinutes);
+          break;
+        default:
+          interval = const Duration(hours: 2);
+      }
+
+      if (interval.inMinutes == 0) {
+        return;
+      }
+
+      // Cancel existing water reminders and schedule new ones
+      final notificationService = NotificationService();
+      await notificationService.cancelNotificationsByType('water_reminder');
+
+      // Schedule reminders for the next 7 days (same logic as water_detail_screen)
+      final now = DateTime.now();
+      DateTime currentDay = DateTime(now.year, now.month, now.day);
+      int notificationId = 1;
+
+      for (int day = 0; day < 7; day++) {
+        final dayStart = currentDay.add(Duration(days: day));
+        
+        final firstReminder = DateTime(dayStart.year, dayStart.month, dayStart.day, 8, 0);
+        final lastReminder = DateTime(dayStart.year, dayStart.month, dayStart.day, 22, 0);
+        
+        DateTime nextReminder = firstReminder;
+        
+        while (nextReminder.isBefore(lastReminder) && notificationId <= 84) {
+          if (nextReminder.isAfter(now)) {
+            await notificationService.scheduleWaterReminderAt(
+              scheduledTime: nextReminder,
+              title: '💧 Stay Hydrated!',
+              body: 'Time for a glass of water. Your body will thank you!',
+            );
+          }
+
+          nextReminder = nextReminder.add(interval);
+          notificationId++;
+        }
+      }
+    } catch (e) {
+      // Silently handle any errors
+    }
   }
 
   Future<void> _addWater() async {
@@ -142,6 +249,9 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         _isWaterAnimating = true;
       });
       await prefs.setDouble('water_intake', waterIntake);
+      
+      // Refresh health data to update daily goals display
+      ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
 
       // Stop the water animation after a delay
       Future.delayed(const Duration(milliseconds: 800), () {
@@ -226,12 +336,16 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             setState(() {
               waterIntake = newIntake;
             });
+            // Refresh health data to update daily goals display
+            ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
           },
         ),
       ),
     ).then((_) {
       // Reload water settings when returning from detail screen
       _loadWaterIntake();
+      // Refresh health data to update daily goals display
+      ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
     });
   }
 

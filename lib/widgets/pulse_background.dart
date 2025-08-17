@@ -4,6 +4,7 @@ import '../services/health_alerts/pulse_color_manager.dart';
 import '../services/health_alerts/health_alert_models.dart';
 import '../services/health_alerts/smart_health_data_collector.dart';
 import '../utils/translation_helper.dart';
+import 'dart:async';
 
 class WellnessBreathingPulse extends StatefulWidget {
   final double height;
@@ -655,6 +656,9 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
   late Animation<double> _opacityAnimation;
   bool _isVisible = true;
   final GlobalKey<_WellnessBreathingPulseState> _pulseKey = GlobalKey<_WellnessBreathingPulseState>();
+  
+  // Track shown alerts to prevent duplicate popups
+  final Set<String> _shownAlertIds = {};
 
   @override
   void initState() {
@@ -674,6 +678,8 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     
     // Listen to scroll changes if controller provided
     widget.scrollController?.addListener(_onScroll);
+    
+    // Note: Health alert popups now triggered when opening wellness modal
   }
 
   void _onScroll() {
@@ -718,6 +724,44 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     _visibilityController.dispose();
     super.dispose();
   }
+  
+  // Check for new health alerts when wellness modal is opened
+  void _checkForNewHealthAlerts() {
+    final healthCollector = SmartHealthDataCollector.instance;
+    final alerts = healthCollector.activeAlerts;
+    
+    for (final alert in alerts) {
+      final alertId = '${alert.type.name}_${alert.level.name}';
+      if (!_shownAlertIds.contains(alertId)) {
+        _shownAlertIds.add(alertId);
+        // Delay popup slightly to allow modal to settle
+        Future.delayed(Duration(milliseconds: 300), () {
+          if (mounted) {
+            _showHealthAlertPopup(alert);
+          }
+        });
+        break; // Only show one popup at a time
+      }
+    }
+  }
+  
+  // Show health alert popup based on severity
+  void _showHealthAlertPopup(HealthAlert alert) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) => _buildHealthAlertDialog(alert),
+    );
+  }
+  
+  // Show health alert popup for manual viewing (doesn't affect auto-popup tracking)
+  void _showHealthAlertManually(HealthAlert alert) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) => _buildHealthAlertDialog(alert),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -749,6 +793,9 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
       backgroundColor: Colors.transparent,
       builder: (context) => _buildHealthInfoModal(),
     );
+    
+    // Check for new health alerts when modal opens
+    _checkForNewHealthAlerts();
   }
 
   Widget _buildHealthInfoModal() {
@@ -812,6 +859,8 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
                 children: [
                   _buildHealthStatusCard(healthSummary),
                   SizedBox(height: 16),
+                  _buildActiveAlertsCard(healthSummary),
+                  SizedBox(height: 16),
                   _buildWeatherCard(healthSummary['weather']),
                   SizedBox(height: 16),
                   _buildAirQualityCard(healthSummary['airQuality']),
@@ -819,6 +868,8 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
                   _buildHealthMetricsCard(healthSummary),
                   SizedBox(height: 16),
                   _buildRecommendationsCard(healthSummary),
+                  SizedBox(height: 16),
+                  _buildDebugCard(),
                 ],
               ),
             ),
@@ -924,11 +975,13 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final humidity = weatherData.humidity?.toString() ?? "N/A";
     final uv = weatherData.uvIndex?.toStringAsFixed(1) ?? "N/A";
     final condition = weatherData.condition ?? "Unknown";
+    final location = _formatLocation(weatherData.city, weatherData.country);
     
     return _buildInfoCard(
       title: tr(context, 'weather_conditions'),
       icon: Icons.wb_sunny,
       color: Colors.orange,
+      location: location,
       content: Column(
         children: [
           _buildDataRow(tr(context, 'temperature'), "$temp°C"),
@@ -953,6 +1006,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final aqi = airQualityData.aqi?.toString() ?? "N/A";
     final description = airQualityData.qualityDescription ?? "Unknown";
     final source = airQualityData.source ?? "Unknown";
+    final location = _formatLocation(airQualityData.city, airQualityData.country);
     
     Color aqiColor;
     if (airQualityData.aqi != null) {
@@ -973,6 +1027,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
       title: tr(context, 'air_quality'),
       icon: Icons.air,
       color: aqiColor,
+      location: location,
       content: Column(
         children: [
           _buildDataRow(tr(context, 'aqi'), aqi),
@@ -1081,6 +1136,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     required IconData icon,
     required dynamic content,
     required Color color,
+    String? location,
   }) {
     return Container(
       padding: EdgeInsets.all(16),
@@ -1096,13 +1152,42 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
             children: [
               Icon(icon, color: color, size: 24),
               SizedBox(width: 12),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
+              if (location != null)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 12,
+                        color: color,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        location,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
           SizedBox(height: 12),
@@ -1130,6 +1215,347 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Format location information, prioritizing city over country
+  String? _formatLocation(String? city, String? country) {
+    if (city != null && city.isNotEmpty && city != 'Unknown') {
+      return city;
+    } else if (country != null && country.isNotEmpty && country != 'Unknown') {
+      return country;
+    }
+    return null;
+  }
+  
+  // Build active alerts card showing current concerns
+  Widget _buildActiveAlertsCard(Map<String, dynamic>? healthSummary) {
+    final healthCollector = SmartHealthDataCollector.instance;
+    final alerts = healthCollector.activeAlerts;
+    
+    if (alerts.isEmpty) {
+      return SizedBox.shrink(); // No alerts, no card
+    }
+    
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange, size: 24),
+              SizedBox(width: 12),
+              Text(
+                tr(context, 'active_health_concerns'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          ...alerts.take(3).map((alert) => _buildAlertTile(alert)),
+          if (alerts.length > 3)
+            Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                '+${alerts.length - 3} more concerns',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+  
+  // Build individual alert tile (clickable)
+  Widget _buildAlertTile(HealthAlert alert) {
+    Color alertColor;
+    IconData alertIcon;
+    
+    switch (alert.level) {
+      case AlertLevel.critical:
+        alertColor = Colors.red;
+        alertIcon = Icons.error;
+        break;
+      case AlertLevel.high:
+        alertColor = Colors.orange;
+        alertIcon = Icons.warning;
+        break;
+      case AlertLevel.warning:
+        alertColor = Colors.yellow[700]!;
+        alertIcon = Icons.info;
+        break;
+      default:
+        alertColor = Colors.green;
+        alertIcon = Icons.check_circle;
+    }
+    
+    return GestureDetector(
+      onTap: () => _showHealthAlertManually(alert),
+      child: Container(
+        margin: EdgeInsets.only(bottom: 8),
+        padding: EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: alertColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: alertColor.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(alertIcon, color: alertColor, size: 16),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                alert.message,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: alertColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Icon(Icons.chevron_right, color: alertColor, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // Build health alert dialog (similar to mood confirmation)
+  Widget _buildHealthAlertDialog(HealthAlert alert) {
+    Color alertColor;
+    IconData alertIcon;
+    String severityText;
+    
+    switch (alert.level) {
+      case AlertLevel.critical:
+        alertColor = Colors.red;
+        alertIcon = Icons.error;
+        severityText = tr(context, 'critical_alert');
+        break;
+      case AlertLevel.high:
+        alertColor = Colors.orange;
+        alertIcon = Icons.warning;
+        severityText = tr(context, 'high_alert');
+        break;
+      case AlertLevel.warning:
+        alertColor = Colors.yellow[700]!;
+        alertIcon = Icons.info;
+        severityText = tr(context, 'warning_alert');
+        break;
+      default:
+        alertColor = Colors.green;
+        alertIcon = Icons.check_circle;
+        severityText = tr(context, 'normal_status');
+    }
+    
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 20,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Animated alert indicator
+            TweenAnimationBuilder(
+              duration: Duration(milliseconds: 600),
+              tween: Tween<double>(begin: 0.0, end: 1.0),
+              builder: (context, double value, child) {
+                return Transform.scale(
+                  scale: 0.8 + (0.2 * value),
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: alertColor.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: alertColor,
+                        width: 3,
+                      ),
+                    ),
+                    child: Icon(
+                      alertIcon,
+                      size: 40,
+                      color: alertColor,
+                    ),
+                  ),
+                );
+              },
+            ),
+            
+            SizedBox(height: 20),
+            
+            // Severity title
+            Text(
+              severityText,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: alertColor,
+              ),
+            ),
+            
+            SizedBox(height: 12),
+            
+            // Alert message
+            Text(
+              alert.message,
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+                height: 1.4,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            
+            SizedBox(height: 16),
+            
+            // Action message
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: alertColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                alert.actionMessage ?? '',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: alertColor,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            
+            SizedBox(height: 24),
+            
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      tr(context, 'dismiss'),
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      _showHealthInfoModal();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: alertColor,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text(
+                      tr(context, 'view_details'),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDebugCard() {
+    return _buildInfoCard(
+      title: 'Debug Pulse Color',
+      icon: Icons.bug_report,
+      color: Colors.purple,
+      content: Column(
+        children: [
+          Text(
+            'If the pulse color seems stuck, tap below to force a refresh of the color system.',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Force cleanup and re-evaluation
+                PulseColorManager.instance.forceCleanupAndReevaluate();
+                
+                // Show feedback
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.refresh, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Pulse color system refreshed'),
+                      ],
+                    ),
+                    backgroundColor: Colors.purple,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.purple,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Reset Pulse Color',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
