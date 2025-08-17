@@ -1,6 +1,9 @@
 {
   "take_moment_breathe": "Tómate un momento para respirar",
   "wellness_matters": "Tu bienestar importa",
+  "major_concern": "Preocupación Mayor",
+  "minor_concern": "Preocupación Menor",
+  "solar": "Solar",
   "choose_wellness_mood": "Elige tu estado de bienestar",
   "select_color_mood": "Selecciona un color que coincida con tu estado de ánimo o meta actual",
   "reset_automatic": "Restablecer a automático",
@@ -66,8 +69,8 @@
     "calm": "Tranquilo", 
     "focused": "Concentrado",
     "motivated": "Motivado",
-    "creative": "Creativo",
-    "passionate": "Apasionado"
+    "happy": "Feliz",
+    "peaceful": "Pacífico"
   },
   "air_quality_levels": {
     "good": "Bueno",

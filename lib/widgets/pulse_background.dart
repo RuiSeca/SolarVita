@@ -27,7 +27,12 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
     with TickerProviderStateMixin {
   late AnimationController _pulseController;
   late AnimationController _colorController;
+  late AnimationController _typewriterController;
   PulseColorManager? _colorManager;
+  
+  String _displayedText = '';
+  String _targetText = '';
+  bool _hasAnimated = false;
 
   @override
   void initState() {
@@ -45,6 +50,12 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
       vsync: this,
     );
     
+    // Typewriter animation
+    _typewriterController = AnimationController(
+      duration: Duration(milliseconds: 1200), // Faster: 2000ms -> 1200ms
+      vsync: this,
+    );
+    
     _initializeColorManager();
   }
 
@@ -55,15 +66,20 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
     // Listen to color changes
     _colorManager!.addListener(() {
       if (mounted) {
+        _updateStatusLabel();
         setState(() {});
       }
     });
+    
+    // Set initial status label
+    _updateStatusLabel();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
     _colorController.dispose();
+    _typewriterController.dispose();
     super.dispose();
   }
 
@@ -123,62 +139,41 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
   }
 
   Widget _buildDefaultContent() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? Colors.white : Colors.black;
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          padding: EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            Icons.spa,
-            size: 48,
-            color: Colors.white,
-          ),
+        Icon(
+          Icons.spa,
+          size: 48,
+          color: textColor,
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            children: [
-              Text(
-                tr(context, 'take_moment_breathe'),
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 4,
-                      color: Colors.black.withValues(alpha: 0.7),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
+        Column(
+          children: [
+            Text(
+              tr(context, 'take_moment_breathe'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: textColor,
               ),
-              const SizedBox(height: 4),
-              Text(
-                tr(context, 'wellness_matters'),
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.white.withValues(alpha: 0.9),
-                  shadows: [
-                    Shadow(
-                      blurRadius: 3,
-                      color: Colors.black.withValues(alpha: 0.6),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr(context, 'wellness_matters'),
+              style: TextStyle(
+                fontSize: 14,
+                color: textColor.withValues(alpha: 0.8),
               ),
-            ],
-          ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            _buildStatusLabel(textColor),
+          ],
         ),
       ],
     );
@@ -450,6 +445,123 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
     );
   }
 
+  // Update status label based on current state
+  void _updateStatusLabel() {
+    final colorManager = _colorManager;
+    if (colorManager == null) return;
+    
+    final activeSource = colorManager.activeSource;
+    String newTargetText;
+    
+    if (activeSource?.priority == ColorPriority.userOverride) {
+      // Show mood name
+      final moodName = activeSource?.description?.replaceAll('User selected mood', '').trim() ?? '';
+      if (moodName.isNotEmpty) {
+        newTargetText = tr(context, 'mood_options.${moodName.toLowerCase()}');
+      } else {
+        newTargetText = tr(context, 'solar');
+      }
+    } else {
+      // Check health data for alert level
+      final healthCollector = SmartHealthDataCollector.instance;
+      final healthSummary = healthCollector.getHealthSummary();
+      final alertLevel = healthSummary['alertLevel'] ?? AlertLevel.normal;
+      
+      switch (alertLevel) {
+        case AlertLevel.critical:
+        case AlertLevel.high:
+          newTargetText = tr(context, 'major_concern');
+          break;
+        case AlertLevel.warning:
+          newTargetText = tr(context, 'minor_concern');
+          break;
+        default:
+          newTargetText = tr(context, 'solar');
+      }
+    }
+    
+    if (newTargetText != _targetText) {
+      _targetText = newTargetText;
+      // Don't auto-start animation here, wait for scroll trigger
+      if (_hasAnimated) {
+        // Update immediately if already animated
+        setState(() {
+          _displayedText = _targetText;
+        });
+      }
+    }
+  }
+  
+  // Start typewriter animation
+  void _startTypewriterAnimation() {
+    if (_hasAnimated) return;
+    
+    _hasAnimated = true;
+    _displayedText = '';
+    _typewriterController.reset();
+    
+    // Create smooth curved animation
+    final curvedAnimation = CurvedAnimation(
+      parent: _typewriterController,
+      curve: Curves.easeOutQuart, // Smooth ease-out curve
+    );
+    
+    curvedAnimation.addListener(() {
+      final progress = curvedAnimation.value;
+      final targetLength = _targetText.length;
+      final currentLength = (progress * targetLength).round().clamp(0, targetLength);
+      
+      setState(() {
+        _displayedText = _targetText.substring(0, currentLength);
+      });
+    });
+    
+    _typewriterController.forward();
+  }
+  
+  // Reset animation state (call when user scrolls away and back)
+  void resetAnimation() {
+    _hasAnimated = false;
+    _displayedText = '';
+  }
+  
+  // Trigger animation when pulse becomes visible
+  void triggerAnimation() {
+    if (!_hasAnimated && _targetText.isNotEmpty) {
+      _startTypewriterAnimation();
+    }
+  }
+  
+  // Build status label widget
+  Widget _buildStatusLabel(Color textColor) {
+    // Animation will be triggered by scroll visibility, not automatically
+    
+    return AnimatedOpacity(
+      opacity: _displayedText.isNotEmpty ? 1.0 : 0.0,
+      duration: Duration(milliseconds: 300),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: textColor.withValues(alpha: 0.3),
+            width: 1,
+          ),
+        ),
+        child: Text(
+          _displayedText,
+          style: TextStyle(
+            fontSize: 12,
+            color: textColor.withValues(alpha: 0.9),
+            fontWeight: FontWeight.w500,
+            letterSpacing: 0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+  
   // Calculate breathing animation value
   double _getBreathingValue(double animationValue) {
     if (animationValue <= 0.4) {
@@ -542,6 +654,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
   late AnimationController _visibilityController;
   late Animation<double> _opacityAnimation;
   bool _isVisible = true;
+  final GlobalKey<_WellnessBreathingPulseState> _pulseKey = GlobalKey<_WellnessBreathingPulseState>();
 
   @override
   void initState() {
@@ -575,6 +688,11 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final hideThreshold = maxScrollExtent * 0.9;
     final shouldBeVisible = offset < hideThreshold;
     
+    // Trigger animation when user scrolls to see the pulse for the first time
+    // Animation should start when pulse area becomes visible (around 200px scroll)
+    final animationTriggerOffset = 200.0;
+    final shouldTriggerAnimation = offset >= animationTriggerOffset && _isVisible;
+    
     if (shouldBeVisible != _isVisible) {
       setState(() {
         _isVisible = shouldBeVisible;
@@ -582,8 +700,15 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
           _visibilityController.forward();
         } else {
           _visibilityController.reverse();
+          // Reset animation when pulse goes out of view
+          _pulseKey.currentState?.resetAnimation();
         }
       });
+    }
+    
+    // Trigger animation when scrolling into pulse view
+    if (shouldTriggerAnimation) {
+      _pulseKey.currentState?.triggerAnimation();
     }
   }
 
@@ -604,6 +729,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
           child: SizedBox(
             height: widget.height,
             child: WellnessBreathingPulse(
+              key: _pulseKey,
               height: widget.height,
               onTap: () {
                 // Show health information modal

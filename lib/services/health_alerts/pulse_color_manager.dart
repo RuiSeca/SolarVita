@@ -197,9 +197,8 @@ class PulseColorManager extends ChangeNotifier {
   
   // Set health alert color
   void _setHealthAlertColor(AlertLevel alertLevel) {
-    final priority = alertLevel == AlertLevel.critical 
-        ? ColorPriority.healthAlert 
-        : ColorPriority.healthNormal;
+    // All health alerts (warning, high, critical) should have 10-minute expiration
+    final priority = ColorPriority.healthAlert;
     
     _colorSources[priority] = ColorSource(
       priority: priority,
@@ -212,7 +211,6 @@ class PulseColorManager extends ChangeNotifier {
   // Remove health alert colors
   void _removeHealthAlert() {
     _colorSources.remove(ColorPriority.healthAlert);
-    _colorSources.remove(ColorPriority.healthNormal);
   }
   
   // User mood color selection

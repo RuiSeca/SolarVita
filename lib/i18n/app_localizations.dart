@@ -42,6 +42,7 @@ class AppLocalizations {
     'avatar',
     'currency_purchase',
     'customization',
+    'pulse',
   ];
 
   AppLocalizations(this.locale);

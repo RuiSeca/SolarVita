@@ -1,6 +1,9 @@
 {
   "take_moment_breathe": "Take a moment to breathe",
   "wellness_matters": "Your wellness matters",
+  "major_concern": "Major Concern",
+  "minor_concern": "Minor Concern",
+  "solar": "Solar",
   "choose_wellness_mood": "Choose your wellness mood",
   "select_color_mood": "Select a color that matches your current mood or goal",
   "reset_automatic": "Reset to automatic",
@@ -66,8 +69,8 @@
     "calm": "Calm", 
     "focused": "Focused",
     "motivated": "Motivated",
-    "creative": "Creative",
-    "passionate": "Passionate"
+    "happy": "Happy",
+    "peaceful": "Peaceful"
   },
   "air_quality_levels": {
     "good": "Good",
