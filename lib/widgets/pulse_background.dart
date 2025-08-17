@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/health_alerts/pulse_color_manager.dart';
 import '../services/health_alerts/health_alert_models.dart';
 import '../services/health_alerts/smart_health_data_collector.dart';
+import '../utils/translation_helper.dart';
 
 class WellnessBreathingPulse extends StatefulWidget {
   final double height;
@@ -125,41 +126,91 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          Icons.spa,
-          size: 48,
-          color: Colors.white.withValues(alpha: 0.9),
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.3),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            Icons.spa,
+            size: 48,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 16),
-        Text(
-          "Take a moment to breathe",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.9),
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(20),
           ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          "Your wellness matters",
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white.withValues(alpha: 0.7),
+          child: Column(
+            children: [
+              Text(
+                tr(context, 'take_moment_breathe'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 4,
+                      color: Colors.black.withValues(alpha: 0.7),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tr(context, 'wellness_matters'),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  shadows: [
+                    Shadow(
+                      blurRadius: 3,
+                      color: Colors.black.withValues(alpha: 0.6),
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
   Widget _buildColorSelector() {
-    return FloatingActionButton.small(
-      onPressed: _showMoodSelector,
-      backgroundColor: Colors.white.withValues(alpha: 0.9),
-      child: Icon(
-        Icons.palette,
-        color: _colorManager?.currentColor ?? Colors.green.shade400,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentColor = _colorManager?.currentColor ?? Colors.green.shade400;
+    
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isDark 
+          ? Colors.white.withValues(alpha: 0.9)
+          : Colors.black.withValues(alpha: 0.8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: FloatingActionButton.small(
+        onPressed: _showMoodSelector,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Icon(
+          Icons.palette,
+          color: isDark ? currentColor : Colors.white,
+          size: 20,
+        ),
       ),
     );
   }
@@ -181,7 +232,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            "Choose your wellness mood",
+            tr(context, 'choose_wellness_mood'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -189,7 +240,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
           ),
           SizedBox(height: 8),
           Text(
-            "Select a color that matches your current mood or goal",
+            tr(context, 'select_color_mood'),
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[600],
@@ -208,7 +259,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                     description: mood['name'],
                   );
                   Navigator.pop(context);
-                  _showMoodFeedback(mood['name']);
+                  _showMoodFeedback(mood['name'], mood['color']);
                 },
                 child: Column(
                   children: [
@@ -235,7 +286,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                     ),
                     SizedBox(height: 8),
                     Text(
-                      mood['name'],
+                      tr(context, 'mood_options.${mood['name'].toLowerCase()}'),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -252,23 +303,22 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
               _colorManager?.clearUserOverride();
               Navigator.pop(context);
             },
-            child: Text("Reset to automatic"),
+            child: Text(tr(context, 'reset_automatic')),
           ),
         ],
       ),
     );
   }
 
-  void _showMoodFeedback(String moodName) {
+  void _showMoodFeedback(String moodName, Color moodColor) {
     showDialog(
       context: context,
       barrierDismissible: true,
-      builder: (BuildContext context) => _buildMoodConfirmationDialog(moodName),
+      builder: (BuildContext context) => _buildMoodConfirmationDialog(moodName, moodColor),
     );
   }
 
-  Widget _buildMoodConfirmationDialog(String moodName) {
-    final moodColor = _colorManager?.currentColor ?? Colors.green;
+  Widget _buildMoodConfirmationDialog(String moodName, Color moodColor) {
     
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -320,7 +370,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
             
             // Title
             Text(
-              "Mood Set! ✨",
+              tr(context, 'mood_set'),
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -340,17 +390,17 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                   height: 1.4,
                 ),
                 children: [
-                  TextSpan(text: "Your pulse is now reflecting your "),
+                  TextSpan(text: "${tr(context, 'mood_reflecting')} "),
                   TextSpan(
-                    text: moodName.toLowerCase(),
+                    text: tr(context, 'mood_options.${moodName.toLowerCase()}').toLowerCase(),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: moodColor,
                     ),
                   ),
-                  TextSpan(text: " mood for the next "),
+                  TextSpan(text: " ${tr(context, 'mood_for_next')} "),
                   TextSpan(
-                    text: "30 minutes",
+                    text: tr(context, 'thirty_minutes'),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: moodColor,
@@ -364,7 +414,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
             SizedBox(height: 8),
             
             Text(
-              "After that, it will return to your health-based colors.",
+              tr(context, 'after_return_health'),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -387,7 +437,7 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                 elevation: 0,
               ),
               child: Text(
-                "Perfect! 💫",
+                tr(context, 'perfect'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -614,7 +664,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
                 ),
                 SizedBox(width: 12),
                 Text(
-                  "Your Wellness Environment",
+                  tr(context, 'wellness_environment'),
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -663,26 +713,26 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     
     switch (alertLevel) {
       case AlertLevel.critical:
-        statusText = "Health Alert";
-        description = "Environmental conditions require attention";
+        statusText = tr(context, 'health_alert');
+        description = tr(context, 'environmental_conditions_attention');
         icon = Icons.warning;
         color = Colors.red;
         break;
       case AlertLevel.high:
-        statusText = "Caution Advised";
-        description = "Some conditions may affect sensitive individuals";
+        statusText = tr(context, 'caution_advised');
+        description = tr(context, 'conditions_affect_sensitive');
         icon = Icons.info;
         color = Colors.orange;
         break;
       case AlertLevel.warning:
-        statusText = "Minor Concerns";
-        description = "Generally safe with minor considerations";
+        statusText = tr(context, 'minor_concerns');
+        description = tr(context, 'generally_safe_considerations');
         icon = Icons.lightbulb_outline;
         color = Colors.yellow[700]!;
         break;
       default:
-        statusText = "All Good";
-        description = "Excellent conditions for outdoor activities";
+        statusText = tr(context, 'all_good');
+        description = tr(context, 'excellent_conditions_outdoor');
         icon = Icons.check_circle;
         color = Colors.green;
     }
@@ -719,7 +769,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
                 ),
                 if (alertCount > 0)
                   Text(
-                    "$alertCount active alert${alertCount > 1 ? 's' : ''}",
+                    alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
                     style: TextStyle(
                       fontSize: 12,
                       color: color,
@@ -737,9 +787,9 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
   Widget _buildWeatherCard(dynamic weatherData) {
     if (weatherData == null) {
       return _buildInfoCard(
-        title: "Weather",
+        title: tr(context, 'weather'),
         icon: Icons.wb_sunny,
-        content: "Weather data unavailable",
+        content: tr(context, 'weather_unavailable'),
         color: Colors.grey,
       );
     }
@@ -750,15 +800,15 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final condition = weatherData.condition ?? "Unknown";
     
     return _buildInfoCard(
-      title: "Weather Conditions",
+      title: tr(context, 'weather_conditions'),
       icon: Icons.wb_sunny,
       color: Colors.orange,
       content: Column(
         children: [
-          _buildDataRow("Temperature", "$temp°C"),
-          _buildDataRow("Humidity", "$humidity%"),
-          _buildDataRow("UV Index", uv),
-          _buildDataRow("Condition", condition.toUpperCase()),
+          _buildDataRow(tr(context, 'temperature'), "$temp°C"),
+          _buildDataRow(tr(context, 'humidity'), "$humidity%"),
+          _buildDataRow(tr(context, 'uv_index'), uv),
+          _buildDataRow(tr(context, 'condition'), condition.toUpperCase()),
         ],
       ),
     );
@@ -767,9 +817,9 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
   Widget _buildAirQualityCard(dynamic airQualityData) {
     if (airQualityData == null) {
       return _buildInfoCard(
-        title: "Air Quality",
+        title: tr(context, 'air_quality'),
         icon: Icons.air,
-        content: "Air quality data unavailable",
+        content: tr(context, 'air_quality_unavailable'),
         color: Colors.grey,
       );
     }
@@ -794,14 +844,14 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     }
     
     return _buildInfoCard(
-      title: "Air Quality",
+      title: tr(context, 'air_quality'),
       icon: Icons.air,
       color: aqiColor,
       content: Column(
         children: [
-          _buildDataRow("AQI", aqi),
-          _buildDataRow("Quality", description),
-          _buildDataRow("Source", source),
+          _buildDataRow(tr(context, 'aqi'), aqi),
+          _buildDataRow(tr(context, 'quality'), description),
+          _buildDataRow(tr(context, 'source'), source),
           if (airQualityData.pollutants != null)
             ...airQualityData.pollutants.entries.take(3).map((entry) =>
               _buildDataRow(
@@ -819,23 +869,23 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final hydration = healthSummary?['hydration'];
     
     return _buildInfoCard(
-      title: "Personal Health",
+      title: tr(context, 'personal_health'),
       icon: Icons.favorite,
       color: Colors.pink,
       content: Column(
         children: [
           _buildDataRow(
-            "Heart Rate",
-            heartRate != null ? "$heartRate bpm" : "Not available",
+            tr(context, 'heart_rate'),
+            heartRate != null ? "$heartRate bpm" : tr(context, 'not_available'),
           ),
           _buildDataRow(
-            "Hydration",
+            tr(context, 'hydration'),
             hydration != null 
-              ? "${(hydration * 100).toStringAsFixed(0)}% of daily goal"
-              : "Not tracked",
+              ? "${(hydration * 100).toStringAsFixed(0)}% ${tr(context, 'daily_goal')}"
+              : tr(context, 'not_tracked'),
           ),
-          _buildDataRow("Sleep Quality", "Good"), // Placeholder
-          _buildDataRow("Activity Level", "Moderate"), // Placeholder
+          _buildDataRow(tr(context, 'sleep_quality'), tr(context, 'good')), // Placeholder
+          _buildDataRow(tr(context, 'activity_level'), tr(context, 'moderate')), // Placeholder
         ],
       ),
     );
@@ -848,39 +898,39 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     switch (alertLevel) {
       case AlertLevel.critical:
         recommendations = [
-          "Stay indoors if possible",
-          "Limit outdoor exercise",
-          "Consider wearing a mask outdoors",
-          "Keep windows closed",
+          tr(context, 'stay_indoors_possible'),
+          tr(context, 'limit_outdoor_exercise'),
+          tr(context, 'consider_mask_outdoors'),
+          tr(context, 'keep_windows_closed'),
         ];
         break;
       case AlertLevel.high:
         recommendations = [
-          "Reduce outdoor activities",
-          "Stay hydrated",
-          "Monitor symptoms if sensitive",
-          "Consider indoor alternatives",
+          tr(context, 'reduce_outdoor_activities'),
+          tr(context, 'stay_hydrated'),
+          tr(context, 'monitor_symptoms_sensitive'),
+          tr(context, 'consider_indoor_alternatives'),
         ];
         break;
       case AlertLevel.warning:
         recommendations = [
-          "Drink plenty of water",
-          "Take breaks during exercise",
-          "Monitor air quality updates",
-          "Be mindful of sun exposure",
+          tr(context, 'drink_plenty_water'),
+          tr(context, 'take_breaks_exercise'),
+          tr(context, 'monitor_air_quality'),
+          tr(context, 'mindful_sun_exposure'),
         ];
         break;
       default:
         recommendations = [
-          "Great day for outdoor activities!",
-          "Perfect for exercise",
-          "Enjoy the fresh air",
-          "Ideal conditions for wellness",
+          tr(context, 'great_day_outdoor'),
+          tr(context, 'perfect_exercise'),
+          tr(context, 'enjoy_fresh_air'),
+          tr(context, 'ideal_conditions_wellness'),
         ];
     }
     
     return _buildInfoCard(
-      title: "Recommendations",
+      title: tr(context, 'recommendations'),
       icon: Icons.lightbulb,
       color: Colors.blue,
       content: Column(

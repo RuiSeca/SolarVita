@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:logger/logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
@@ -45,6 +46,12 @@ class SmartHealthDataCollector extends ChangeNotifier {
   }
   
   SmartHealthDataCollector._internal();
+  
+  // Check if mock data should be used based on .env setting
+  bool get _shouldUseMockData {
+    final mockEnabled = dotenv.env['MOCK_DATA_ENABLED']?.toLowerCase();
+    return mockEnabled == 'true';
+  }
   
   // Getters for current data
   WeatherData? get currentWeather => _currentWeather;
@@ -160,30 +167,38 @@ class SmartHealthDataCollector extends ChangeNotifier {
   // Collect weather data
   Future<void> _collectWeatherData() async {
     try {
-      if (kDebugMode) {
-        // Use mock data in debug mode to avoid API calls during development
+      if (_shouldUseMockData) {
+        _logger.i('Using mock weather data (MOCK_DATA_ENABLED=true)');
         _currentWeather = await WeatherService.getMockWeatherData();
       } else {
+        _logger.i('Fetching real weather data from OpenWeatherMap API');
         _currentWeather = await WeatherService.getCurrentWeather();
       }
       _logger.d('Weather data updated: ${_currentWeather?.temperature}°C');
     } catch (e) {
       _logger.w('Failed to collect weather data: $e');
+      // Fallback to mock data if real API fails
+      _logger.i('Falling back to mock weather data due to API error');
+      _currentWeather = await WeatherService.getMockWeatherData();
     }
   }
   
   // Collect air quality data
   Future<void> _collectAirQualityData() async {
     try {
-      if (kDebugMode) {
-        // Use mock data in debug mode
+      if (_shouldUseMockData) {
+        _logger.i('Using mock air quality data (MOCK_DATA_ENABLED=true)');
         _currentAirQuality = await AirQualityService.getMockAirQualityData();
       } else {
+        _logger.i('Fetching real air quality data from OpenWeatherMap API');
         _currentAirQuality = await AirQualityService.getAirQuality();
       }
       _logger.d('Air quality updated: AQI ${_currentAirQuality?.aqi}');
     } catch (e) {
       _logger.w('Failed to collect air quality data: $e');
+      // Fallback to mock data if real API fails
+      _logger.i('Falling back to mock air quality data due to API error');
+      _currentAirQuality = await AirQualityService.getMockAirQualityData();
     }
   }
   
@@ -191,18 +206,22 @@ class SmartHealthDataCollector extends ChangeNotifier {
   Future<void> _collectSensorData() async {
     try {
       // Try to get heart rate
-      if (kDebugMode) {
+      if (_shouldUseMockData) {
         _currentHeartRate = await HealthSensorService.getMockHeartRate();
       } else {
         _currentHeartRate = await HealthSensorService.getCurrentHeartRate();
+        // Fallback to mock if sensors not available
+        _currentHeartRate ??= await HealthSensorService.getMockHeartRate();
       }
       
       // Try to get sleep data (only once per day)
       if (_lastSleepData == null || _shouldUpdateSleepData()) {
-        if (kDebugMode) {
+        if (_shouldUseMockData) {
           _lastSleepData = await HealthSensorService.getMockSleepData();
         } else {
           _lastSleepData = await HealthSensorService.getLastNightSleep();
+          // Fallback to mock if sensors not available
+          _lastSleepData ??= await HealthSensorService.getMockSleepData();
         }
       }
       
@@ -219,7 +238,7 @@ class SmartHealthDataCollector extends ChangeNotifier {
       // For now, using a placeholder that simulates getting data from your UI
       
       double? waterIntake;
-      if (kDebugMode) {
+      if (_shouldUseMockData) {
         // Mock hydration level for testing
         waterIntake = 1800.0; // 1.8L
       } else {
@@ -228,14 +247,15 @@ class SmartHealthDataCollector extends ChangeNotifier {
         
         // If not available, try to get from your health screen data
         waterIntake ??= await _getWaterIntakeFromHealthScreen();
+        
+        // Final fallback to mock data
+        waterIntake ??= 1800.0;
       }
       
-      if (waterIntake != null) {
-        // Calculate hydration level based on user's daily needs
-        final userWeight = _getUserWeight(); // Get from user profile
-        final dailyNeed = userWeight * 35; // 35ml per kg body weight
-        _currentHydration = (waterIntake / dailyNeed).clamp(0.0, 2.0);
-      }
+      // Calculate hydration level based on user's daily needs
+      final userWeight = _getUserWeight(); // Get from user profile
+      final dailyNeed = userWeight * 35; // 35ml per kg body weight
+      _currentHydration = (waterIntake / dailyNeed).clamp(0.0, 2.0);
       
       _logger.d('Hydration updated: ${_currentHydration?.toStringAsFixed(2)}');
     } catch (e) {
