@@ -156,7 +156,15 @@ class PulseColorManager extends ChangeNotifier {
   Color _calculateCircadianColor() {
     final hour = DateTime.now().hour;
     
-    if (hour >= 6 && hour < 9) {
+    if (hour >= 0 && hour < 6) {
+      // Sleep time (midnight to 6am): Deep purple for restful sleep
+      final progress = hour / 6.0;
+      return Color.lerp(
+        Colors.purple.shade800,
+        Colors.purple.shade600,
+        progress,
+      )!;
+    } else if (hour >= 6 && hour < 9) {
       // Morning: Energizing orange/yellow
       final progress = (hour - 6) / 3.0;
       return Color.lerp(
@@ -184,11 +192,11 @@ class PulseColorManager extends ChangeNotifier {
         progress,
       )!;
     } else {
-      // Night: Deep purple/indigo
-      final progress = (hour >= 20 ? hour - 20 : hour + 4) / 10.0;
+      // Late Night (8pm to midnight): Transition to deep sleep colors
+      final progress = (hour - 20) / 4.0;
       return Color.lerp(
         Colors.blue.shade600,
-        Colors.indigo.shade700,
+        Colors.purple.shade800,
         progress.clamp(0.0, 1.0),
       )!;
     }

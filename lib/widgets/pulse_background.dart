@@ -868,8 +868,6 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
                   _buildHealthMetricsCard(healthSummary),
                   SizedBox(height: 16),
                   _buildRecommendationsCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildDebugCard(),
                 ],
               ),
             ),
@@ -1505,61 +1503,4 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     );
   }
 
-  Widget _buildDebugCard() {
-    return _buildInfoCard(
-      title: 'Debug Pulse Color',
-      icon: Icons.bug_report,
-      color: Colors.purple,
-      content: Column(
-        children: [
-          Text(
-            'If the pulse color seems stuck, tap below to force a refresh of the color system.',
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                // Force cleanup and re-evaluation
-                PulseColorManager.instance.forceCleanupAndReevaluate();
-                
-                // Show feedback
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(Icons.refresh, color: Colors.white),
-                        SizedBox(width: 8),
-                        Text('Pulse color system refreshed'),
-                      ],
-                    ),
-                    backgroundColor: Colors.purple,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.purple,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Reset Pulse Color',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
