@@ -336,8 +336,6 @@ class HealthDataService {
   /// Check current permission status
   Future<HealthPermissionStatus> checkPermissionStatus() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final wasGranted = prefs.getBool(_permissionsGrantedKey) ?? false;
       final isInstalled = await isHealthAppInstalled();
 
       if (!isInstalled) {
@@ -348,7 +346,48 @@ class HealthDataService {
         );
       }
 
-      if (wasGranted) {
+      // Check permissions by trying to fetch a small amount of health data
+      bool hasPermissions = false;
+      try {
+        _logger.info('Testing health permissions by fetching recent step data');
+        
+        // Test permissions by trying to fetch step data from the last hour
+        final now = DateTime.now();
+        final testStart = now.subtract(const Duration(hours: 1));
+        
+        await _health.getHealthDataFromTypes(
+          types: [HealthDataType.STEPS], // Just test with steps
+          startTime: testStart,
+          endTime: now,
+        );
+        
+        // If we can fetch data without error, permissions are granted
+        hasPermissions = true;
+        await _savePermissionStatus(true);
+        _logger.info('Health permissions verified - can access health data');
+        
+      } catch (e) {
+        _logger.warning('Cannot access health data, permissions may not be granted: $e');
+        
+        // Try the old requestAuthorization method as fallback
+        try {
+          hasPermissions = await _health.requestAuthorization(
+            _healthDataTypes,
+            permissions: _permissions,
+          );
+          
+          if (hasPermissions) {
+            await _savePermissionStatus(true);
+          }
+        } catch (e2) {
+          _logger.warning('requestAuthorization also failed: $e2');
+          // Final fallback to cached value
+          final prefs = await SharedPreferences.getInstance();
+          hasPermissions = prefs.getBool(_permissionsGrantedKey) ?? false;
+        }
+      }
+
+      if (hasPermissions) {
         return HealthPermissionStatus.granted(
           isHealthAppInstalled: isInstalled,
           grantedPermissions: _healthDataTypes.map((type) => type.name).toList(),

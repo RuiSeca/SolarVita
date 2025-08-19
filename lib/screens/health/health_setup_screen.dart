@@ -643,9 +643,14 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
           
           // Wait for permission state to be updated and check again
           await permissionsNotifier.checkPermissions();
-          final permissionsStatus = ref.read(healthPermissionsNotifierProvider).value;
           
-          if (permissionsStatus?.isGranted == true) {
+          // Wait a bit more for provider to update and get fresh status
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          final permissionsStatus = ref.read(healthPermissionsNotifierProvider);
+          
+          // Check if we have a value and it's granted
+          if (permissionsStatus.hasValue && permissionsStatus.value!.isGranted) {
             // Trigger health data sync
             final healthDataNotifier = ref.read(healthDataNotifierProvider.notifier);
             await healthDataNotifier.syncHealthData();
@@ -735,11 +740,24 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
     });
 
     try {
+      // Add a small delay to allow users time to grant permissions
+      await Future.delayed(const Duration(milliseconds: 500));
+      
       final permissionsNotifier = ref.read(healthPermissionsNotifierProvider.notifier);
       await permissionsNotifier.checkPermissions();
-      final permissionsStatus = ref.read(healthPermissionsNotifierProvider).value;
       
-      if (permissionsStatus?.isGranted == true) {
+      // Wait for the async provider to update
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      final permissionsStatus = ref.read(healthPermissionsNotifierProvider);
+      
+      // Debug info
+      debugPrint('Permission check result: hasValue=${permissionsStatus.hasValue}, '
+            'isGranted=${permissionsStatus.hasValue ? permissionsStatus.value!.isGranted : 'N/A'}, '
+            'error=${permissionsStatus.hasError ? permissionsStatus.error.toString() : 'none'}');
+      
+      // Check both hasValue and the actual permission status
+      if (permissionsStatus.hasValue && permissionsStatus.value!.isGranted) {
         // Trigger health data sync
         final healthDataNotifier = ref.read(healthDataNotifierProvider.notifier);
         await healthDataNotifier.syncHealthData();
@@ -750,20 +768,52 @@ class _HealthSetupScreenState extends ConsumerState<HealthSetupScreen> {
         
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Health permissions granted successfully!')),
+            const SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text('Health permissions granted successfully!'),
+                ],
+              ),
+              backgroundColor: Colors.green,
+            ),
           );
         }
       } else {
         if (mounted) {
+          // Show more helpful error message
+          String errorMessage = 'Health permissions not yet granted. Please check that you have:';
+          if (Platform.isAndroid) {
+            errorMessage += '\n\n• Opened Health Connect\n• Found "SolarVita" in app permissions\n• Enabled all required permissions\n\nThen try "Check Permissions" again.';
+          } else {
+            errorMessage += '\n\n• Opened Health app\n• Enabled SolarVita in Sources\n• Allowed all data types\n\nThen try "Check Permissions" again.';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Health permissions not yet granted. Please try the manual setup again.')),
+            SnackBar(
+              content: Text(errorMessage),
+              duration: const Duration(seconds: 6),
+              backgroundColor: Colors.orange,
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking permissions: $e')),
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Error checking permissions: $e'),
+                const SizedBox(height: 4),
+                const Text('Please ensure you have granted permissions in the health app and try again.'),
+              ],
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

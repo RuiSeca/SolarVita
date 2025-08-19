@@ -641,6 +641,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   Widget _buildHeaderAvatar(String equippedAvatarId) {
+    // Ensure we have a valid equipped avatar ID to prevent mummy fallback
+    if (equippedAvatarId.isEmpty) {
+      return _buildLoadingAvatar();
+    }
     return _buildHeaderAvatarForType(equippedAvatarId);
   }
 

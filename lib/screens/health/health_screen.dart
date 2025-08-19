@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:ui';
 import 'dart:math';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import 'meals/meal_plan_screen.dart';
 import '../../widgets/common/rive_water_widget.dart';
 import '../../widgets/common/oriented_image.dart';
+import '../../widgets/common/sleep_toggle_widget.dart';
 import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
@@ -28,6 +30,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     with TickerProviderStateMixin {
   double waterIntake = 0.0; // Start with 0ml
   double waterDailyLimit = 2.0; // Default 2000ml = 2.0L
+  double manualSleepHours = 0.0; // Manual sleep tracking
   late AnimationController _rippleController;
   late Map<String, AnimationController> _iconAnimationControllers;
   bool _isWaterAnimating = false;
@@ -66,6 +69,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     };
 
     _loadWaterIntake();
+    _loadManualSleepData();
   }
 
   @override
@@ -131,9 +135,32 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
   /// Get today's date string that matches health platform reset timing
   String _getHealthPlatformDateString() {
     final now = DateTime.now();
-    // Ensure this matches the same logic as health data service
-    final healthToday = DateTime(now.year, now.month, now.day);
-    return healthToday.toIso8601String().split('T')[0];
+    // Match the same format as sleep toggle widget
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _loadManualSleepData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final sleepHours = prefs.getDouble('sleep_duration') ?? 0.0;
+    final sleepDate = prefs.getString('sleep_date') ?? '';
+    final today = _getHealthPlatformDateString();
+    
+    // Only use today's sleep data
+    if (sleepDate == today) {
+      setState(() {
+        manualSleepHours = sleepHours;
+      });
+    } else {
+      setState(() {
+        manualSleepHours = 0.0;
+      });
+    }
+  }
+
+  void _onSleepUpdated(double sleepHours) {
+    setState(() {
+      manualSleepHours = sleepHours;
+    });
   }
 
   Future<void> _checkWaterReminderSchedule() async {
@@ -249,9 +276,6 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         _isWaterAnimating = true;
       });
       await prefs.setDouble('water_intake', waterIntake);
-      
-      // Refresh health data to update daily goals display
-      ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
 
       // Stop the water animation after a delay
       Future.delayed(const Duration(milliseconds: 800), () {
@@ -326,6 +350,69 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     }
   }
 
+  // Helper method to build platform-specific health profile image
+  Widget _buildHealthProfileImage(AsyncValue<HealthPermissionStatus> permissionsStatus) {
+    return permissionsStatus.when(
+      data: (permissions) {
+        if (permissions.isGranted) {
+          // Show platform-specific health app icon when connected
+          if (Platform.isAndroid) {
+            return OrientedImage(
+              imageUrl: 'assets/images/health/health_profile/health_connect.png',
+              fit: BoxFit.cover,
+              width: 60,
+              height: 60,
+            );
+          } else if (Platform.isIOS) {
+            return OrientedImage(
+              imageUrl: 'assets/images/health/health_profile/apple_health.png',
+              fit: BoxFit.cover,
+              width: 60,
+              height: 60,
+            );
+          }
+        }
+        // Fallback to default profile image when not connected
+        return OrientedImage(
+          imageUrl: 'assets/images/health/health_profile/profile.webp',
+          fit: BoxFit.cover,
+          width: 60,
+          height: 60,
+        );
+      },
+      loading: () => OrientedImage(
+        imageUrl: 'assets/images/health/health_profile/profile.webp',
+        fit: BoxFit.cover,
+        width: 60,
+        height: 60,
+      ),
+      error: (_, __) => OrientedImage(
+        imageUrl: 'assets/images/health/health_profile/profile.webp',
+        fit: BoxFit.cover,
+        width: 60,
+        height: 60,
+      ),
+    );
+  }
+
+  // Helper method to get platform-specific health connection text
+  String _getHealthConnectionText(BuildContext context, AsyncValue<HealthPermissionStatus> permissionsStatus) {
+    return permissionsStatus.when(
+      data: (permissions) {
+        if (permissions.isGranted) {
+          if (Platform.isAndroid) {
+            return tr(context, 'connected_with_health_connect');
+          } else if (Platform.isIOS) {
+            return tr(context, 'connected_with_apple_health');
+          }
+        }
+        return tr(context, 'stats');
+      },
+      loading: () => tr(context, 'stats'),
+      error: (_, __) => tr(context, 'stats'),
+    );
+  }
+
   void _navigateToWaterDetail() {
     Navigator.push(
       context,
@@ -336,17 +423,157 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             setState(() {
               waterIntake = newIntake;
             });
-            // Refresh health data to update daily goals display
-            ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
           },
         ),
       ),
     ).then((_) {
       // Reload water settings when returning from detail screen
       _loadWaterIntake();
-      // Refresh health data to update daily goals display
-      ref.read(healthDataNotifierProvider.notifier).refreshHealthData();
     });
+  }
+
+  void _handleHealthProfileTap(AsyncValue<HealthPermissionStatus> permissionsStatus) {
+    permissionsStatus.when(
+      data: (permissions) {
+        if (permissions.isGranted) {
+          // Connected - show options to disconnect or open health app
+          _showHealthConnectedDialog();
+        } else {
+          // Not connected - go to setup screen
+          _navigateToHealthSetup();
+        }
+      },
+      loading: () => _navigateToHealthSetup(),
+      error: (_, __) => _navigateToHealthSetup(),
+    );
+  }
+
+  void _navigateToHealthSetup() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthSetupScreen(
+          onSetupComplete: () {
+            ref.invalidate(healthDataNotifierProvider);
+            ref.invalidate(healthPermissionsNotifierProvider);
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showHealthConnectedDialog() {
+    final healthAppName = Platform.isAndroid ? 'Health Connect' : 'Apple Health';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr(context, 'health_data_connected')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr(context, 'health_data_is_syncing').replaceAll('{app}', healthAppName)),
+            const SizedBox(height: 16),
+            Text(
+              tr(context, 'what_would_you_like_to_do'),
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textColor(context),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(tr(context, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              final service = ref.read(healthDataServiceProvider);
+              await service.openHealthConnectSettings();
+            },
+            child: Text(tr(context, 'open_health_app').replaceAll('{app}', healthAppName)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showDisconnectConfirmation();
+            },
+            child: Text(
+              tr(context, 'disconnect'),
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDisconnectConfirmation() {
+    final healthAppName = Platform.isAndroid ? 'Health Connect' : 'Apple Health';
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr(context, 'disconnect_health_data')),
+        content: Text(
+          tr(context, 'disconnect_health_confirmation').replaceAll('{app}', healthAppName),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(tr(context, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _disconnectHealthData();
+            },
+            child: Text(
+              tr(context, 'disconnect'),
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _disconnectHealthData() async {
+    try {
+      // Clear permissions status
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('health_permissions_granted', false);
+      
+      // Clear cached health data
+      await prefs.remove('cached_health_data');
+      await prefs.remove('last_health_sync');
+      
+      // Refresh providers to reflect disconnected state
+      ref.invalidate(healthDataNotifierProvider);
+      ref.invalidate(healthPermissionsNotifierProvider);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'health_data_disconnected')),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${tr(context, 'error')}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -398,7 +625,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                   lastSyncAsync,
                 ),
                 const SizedBox(height: 20),
-                _buildUserOverviewCard(context),
+                _buildUserOverviewCard(context, permissionsStatus),
                 const SizedBox(height: 20),
                 _buildMealsSection(context),
                 const SizedBox(height: 24),
@@ -411,7 +638,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     );
   }
 
-  Widget _buildUserOverviewCard(BuildContext context) {
+  Widget _buildUserOverviewCard(BuildContext context, AsyncValue<HealthPermissionStatus> permissionsStatus) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -450,20 +677,18 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
           ),
           child: Row(
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: ClipOval(
-                  child: OrientedImage(
-                    imageUrl:
-                        'assets/images/health/health_profile/profile.webp',
-                    fit: BoxFit.cover,
-                    width: 60,
-                    height: 60,
+              GestureDetector(
+                onTap: () => _handleHealthProfileTap(permissionsStatus),
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _buildHealthProfileImage(permissionsStatus),
                   ),
                 ),
               ),
@@ -482,7 +707,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      tr(context, 'eco_friendly_workouts'),
+                      _getHealthConnectionText(context, permissionsStatus),
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
@@ -859,7 +1084,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         final activeGoal =
             userProgress?.dailyGoals.activeMinutesGoal.toDouble() ?? 45.0;
         final caloriesGoal =
-            userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 2000.0;
+            userProgress?.dailyGoals.caloriesBurnGoal.toDouble() ?? 800.0;
         final sleepGoal =
             userProgress?.dailyGoals.sleepHoursGoal.toDouble() ?? 8.0;
 
@@ -870,10 +1095,6 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         );
         final caloriesProgress = (healthData.caloriesBurned / caloriesGoal)
             .clamp(0.0, 1.0);
-        final sleepProgress = (healthData.sleepHours / sleepGoal).clamp(
-          0.0,
-          1.0,
-        );
 
         // Calculate proper heart rate progress based on target zones (resting: 60-70, target: 70-85% max)
         final heartRateProgress = healthData.heartRate > 0
@@ -901,7 +1122,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 Icons.directions_run,
                 '${healthData.activeMinutes}min',
                 tr(context, 'active_time'),
-                tr(context, 'eco_friendly_workouts'),
+                tr(context, 'stats'),
                 activeProgress,
                 Colors.green,
                 'active',
@@ -922,17 +1143,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               const SizedBox(height: 12),
               _buildWaterHorizontalCard(context),
               const SizedBox(height: 12),
-              _buildHorizontalStatCard(
-                context,
-                Icons.bedtime,
-                '${healthData.sleepHours.toStringAsFixed(1)}h',
-                tr(context, 'sleep_quality'),
-                tr(context, 'restful_night_tracking'),
-                sleepProgress,
-                Colors.indigo,
-                'sleep',
-                isHealthData: healthData.isDataAvailable,
-              ),
+              _buildSleepHorizontalCard(context, sleepGoal),
               const SizedBox(height: 12),
               _buildHorizontalStatCard(
                 context,
@@ -998,7 +1209,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               Icons.directions_run,
               '45min',
               tr(context, 'active_time'),
-              'Eco-friendly workouts',
+              tr(context, 'stats'),
               0.8,
               Colors.green,
               'active',
@@ -1019,17 +1230,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             const SizedBox(height: 12),
             _buildWaterHorizontalCard(context),
             const SizedBox(height: 12),
-            _buildHorizontalStatCard(
-              context,
-              Icons.bedtime,
-              '7.2h',
-              tr(context, 'sleep_quality'),
-              tr(context, 'restful_night_tracking'),
-              0.9,
-              Colors.indigo,
-              'sleep',
-              isHealthData: false,
-            ),
+            _buildSleepHorizontalCard(context, 8.0),
             const SizedBox(height: 12),
             _buildHorizontalStatCard(
               context,
@@ -1399,6 +1600,137 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSleepHorizontalCard(BuildContext context, double sleepGoal) {
+    final sleepProgress = manualSleepHours > 0 ? (manualSleepHours / sleepGoal).clamp(0.0, 1.0) : 0.0;
+    final isGoalReached = manualSleepHours >= sleepGoal;
+
+    return Container(
+      height: 76,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.textColor(context).withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            spreadRadius: 0,
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Sleep Toggle Widget
+          SleepToggleWidget(
+            width: 40,
+            height: 40,
+            onSleepUpdated: _onSleepUpdated,
+          ),
+          const SizedBox(width: 12),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          manualSleepHours > 0 
+                              ? '${manualSleepHours.toStringAsFixed(1)}h'
+                              : tr(context, 'no_data'),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (isGoalReached)
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 8,
+                              ),
+                            ),
+                          if (isGoalReached) const SizedBox(width: 4),
+                          Text(
+                            '${(sleepProgress * 100).toInt()}%',
+                            style: TextStyle(
+                              color: Colors.indigo,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: Text(
+                    tr(context, 'sleep_quality'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Flexible(
+                  child: Text(
+                    manualSleepHours > 0
+                        ? tr(context, 'tap_to_edit_sleep')
+                        : tr(context, 'tap_to_log_sleep'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                      fontSize: 10,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Progress indicator
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: CircularProgressIndicator(
+              value: sleepProgress,
+              backgroundColor: Colors.indigo.withValues(alpha: 0.2),
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.indigo),
+              strokeWidth: 3,
+            ),
+          ),
+        ],
       ),
     );
   }

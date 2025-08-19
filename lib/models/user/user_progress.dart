@@ -183,7 +183,7 @@ class DailyGoals {
   const DailyGoals({
     this.stepsGoal = 8000,
     this.activeMinutesGoal = 45,
-    this.caloriesBurnGoal = 2000,
+    this.caloriesBurnGoal = 800,
     this.waterIntakeGoal = 2.0, // 8 glasses = 2 liters (250ml per glass)
     this.sleepHoursGoal = 8,
   });
@@ -208,7 +208,7 @@ class DailyGoals {
     return DailyGoals(
       stepsGoal: json['stepsGoal'] as int? ?? 8000,
       activeMinutesGoal: json['activeMinutesGoal'] as int? ?? 45,
-      caloriesBurnGoal: json['caloriesBurnGoal'] as int? ?? 2000,
+      caloriesBurnGoal: json['caloriesBurnGoal'] as int? ?? 800,
       waterIntakeGoal: (json['waterIntakeGoal'] as num?)?.toDouble() ?? 2.0,
       sleepHoursGoal: json['sleepHoursGoal'] as int? ?? 8,
     );

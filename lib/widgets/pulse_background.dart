@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart' as rive;
 import '../services/health_alerts/pulse_color_manager.dart';
 import '../services/health_alerts/health_alert_models.dart';
 import '../services/health_alerts/smart_health_data_collector.dart';
@@ -1503,4 +1504,301 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     );
   }
 
+}
+
+// Enhanced scroll-aware pulse with FIRST FLY animation transition
+class ScrollAwarePulseWithFly extends StatefulWidget {
+  final ScrollController? scrollController;
+  final double height;
+
+  const ScrollAwarePulseWithFly({
+    super.key,
+    this.scrollController,
+    this.height = 280,
+  });
+
+  @override
+  State<ScrollAwarePulseWithFly> createState() => _ScrollAwarePulseWithFlyState();
+}
+
+class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseVisibilityController;
+  late AnimationController _flyAnimationController;
+  late Animation<double> _pulseOpacityAnimation;
+  late Animation<double> _flyOpacityAnimation;
+  
+  bool _showPulse = true;
+  bool _showFly = false;
+  final GlobalKey<_WellnessBreathingPulseState> _pulseKey = GlobalKey<_WellnessBreathingPulseState>();
+  
+  // Rive animation for FIRST FLY
+  rive.RiveAnimationController? _riveController;
+  rive.Artboard? _riveArtboard;
+  bool _isRiveLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Pulse visibility animation
+    _pulseVisibilityController = AnimationController(
+      duration: Duration(milliseconds: 600),
+      vsync: this,
+    );
+    
+    // FIRST FLY animation
+    _flyAnimationController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _pulseOpacityAnimation = CurvedAnimation(
+      parent: _pulseVisibilityController,
+      curve: Curves.easeInOut,
+    );
+    
+    _flyOpacityAnimation = CurvedAnimation(
+      parent: _flyAnimationController,
+      curve: Curves.easeInOut,
+    );
+    
+    // Start with pulse visible
+    _pulseVisibilityController.forward();
+    
+    // Load FIRST FLY Rive animation
+    _loadRiveAnimation();
+    
+    // Listen to scroll changes
+    widget.scrollController?.addListener(_onScroll);
+  }
+
+  Future<void> _loadRiveAnimation() async {
+    try {
+      final data = await DefaultAssetBundle.of(context).load('assets/rive/thurtdeath.riv');
+      final file = rive.RiveFile.import(data);
+      final artboard = file.mainArtboard;
+      
+      // Set up the animation controller for FIRST FLY
+      _riveController = rive.SimpleAnimation('FIRST FLY');
+      artboard.addController(_riveController!);
+      
+      setState(() {
+        _riveArtboard = artboard;
+        _isRiveLoaded = true;
+      });
+    } catch (e) {
+      debugPrint('Error loading FIRST FLY animation: $e');
+    }
+  }
+
+  void _onScroll() {
+    if (widget.scrollController == null) return;
+    
+    final offset = widget.scrollController!.offset;
+    final maxScrollExtent = widget.scrollController!.position.maxScrollExtent;
+    
+    // Calculate transition points
+    // Start hiding pulse when user reaches 70% of scroll (approaching community)
+    final pulseHideThreshold = maxScrollExtent * 0.7;
+    // Show FIRST FLY when pulse starts hiding
+    final flyShowThreshold = maxScrollExtent * 0.75;
+    // Hide FIRST FLY when very close to bottom
+    final flyHideThreshold = maxScrollExtent * 0.9;
+    
+    final shouldShowPulse = offset < pulseHideThreshold;
+    final shouldShowFly = offset >= flyShowThreshold && offset < flyHideThreshold;
+    
+    // Trigger pulse animation when scrolling into view
+    final animationTriggerOffset = 200.0;
+    if (offset >= animationTriggerOffset && shouldShowPulse) {
+      _pulseKey.currentState?.triggerAnimation();
+    }
+    
+    // Handle pulse visibility
+    if (shouldShowPulse != _showPulse) {
+      setState(() {
+        _showPulse = shouldShowPulse;
+        if (_showPulse) {
+          _pulseVisibilityController.forward();
+        } else {
+          _pulseVisibilityController.reverse();
+          // Reset pulse animation when hidden
+          _pulseKey.currentState?.resetAnimation();
+        }
+      });
+    }
+    
+    // Handle FIRST FLY visibility with smooth transition
+    if (shouldShowFly != _showFly) {
+      setState(() {
+        _showFly = shouldShowFly;
+        if (_showFly) {
+          _flyAnimationController.forward();
+          // Trigger the Rive animation
+          _riveController?.isActive = true;
+        } else {
+          _flyAnimationController.reverse();
+          // Reset Rive animation
+          _riveController?.isActive = false;
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.scrollController?.removeListener(_onScroll);
+    _pulseVisibilityController.dispose();
+    _flyAnimationController.dispose();
+    _riveController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: widget.height + 100, // Extra space for FIRST FLY animation
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Pulse animation
+          AnimatedBuilder(
+            animation: _pulseOpacityAnimation,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _pulseOpacityAnimation.value,
+                child: SizedBox(
+                  height: widget.height,
+                  child: WellnessBreathingPulse(
+                    key: _pulseKey,
+                    height: widget.height,
+                    onTap: () {
+                      // Show health information modal (same as original)
+                      _showHealthInfoModal();
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          
+          // FIRST FLY animation positioned below pulse
+          Positioned(
+            bottom: 0,
+            child: AnimatedBuilder(
+              animation: _flyOpacityAnimation,
+              builder: (context, child) {
+                return Opacity(
+                  opacity: _flyOpacityAnimation.value,
+                  child: SizedBox(
+                    width: 200,
+                    height: 100,
+                    child: _buildFirstFlyAnimation(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFirstFlyAnimation() {
+    if (!_isRiveLoaded || _riveArtboard == null) {
+      return SizedBox.shrink();
+    }
+    
+    return rive.Rive(
+      artboard: _riveArtboard!,
+      fit: BoxFit.contain,
+    );
+  }
+
+  void _showHealthInfoModal() {
+    // Reuse the existing health info modal from ScrollAwarePulse
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildHealthInfoModal(),
+    );
+  }
+
+  Widget _buildHealthInfoModal() {
+    final colorManager = PulseColorManager.instance;
+    final healthCollector = SmartHealthDataCollector.instance;
+    final healthSummary = healthCollector.getHealthSummary();
+    
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.75,
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            margin: EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey[400],
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // Header
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: colorManager.currentColor,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  tr(context, 'wellness_environment'),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Spacer(),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+          
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Text(
+                    tr(context, 'wellness_transition_message'),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

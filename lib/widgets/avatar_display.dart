@@ -54,28 +54,41 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
       final unifiedState = ref.watch(unifiedAvatarStateProvider);
       
       // Smart avatar ID resolution based on preferEquipped flag
+      // When preferEquipped is true and no equipped avatar is available yet, return null to show loading
       final effectiveAvatarId = widget.preferEquipped 
-          ? (unifiedState.equippedAvatarId ?? widget.avatarId ?? 'mummy_coach')
+          ? (unifiedState.equippedAvatarId ?? widget.avatarId)
           : (widget.avatarId ?? unifiedState.equippedAvatarId ?? 'mummy_coach');
+      
+      // If preferEquipped is true but no avatar is available, show loading state
+      if (widget.preferEquipped && effectiveAvatarId == null) {
+        return SizedBox(
+          width: widget.width,
+          height: widget.height,
+          child: _buildLoading('loading'),
+        );
+      }
+      
+      // Final fallback to mummy if still null
+      final finalAvatarId = effectiveAvatarId ?? 'mummy_coach';
       
       
       
       
       // Debug logging for equipped avatar
-      debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, unified.equipped=${unifiedState.equippedAvatarId}, effective=$effectiveAvatarId, preferEquipped=${widget.preferEquipped}');
+      debugPrint('🎭 AvatarDisplay build: widget.avatarId=${widget.avatarId}, unified.equipped=${unifiedState.equippedAvatarId}, final=$finalAvatarId, preferEquipped=${widget.preferEquipped}');
 
 
     // Cache switching optimization - don't aggressively clear cache to prevent freezing
-    if (_lastLoadedAvatarId != null && _lastLoadedAvatarId != effectiveAvatarId) {
-      debugPrint('🔄 Avatar switching detected: $_lastLoadedAvatarId → $effectiveAvatarId (preserving cache for smooth transition)');
+    if (_lastLoadedAvatarId != null && _lastLoadedAvatarId != finalAvatarId) {
+      debugPrint('🔄 Avatar switching detected: $_lastLoadedAvatarId → $finalAvatarId (preserving cache for smooth transition)');
       // Removed aggressive cache clearing that was causing freezing between customized avatars
     }
 
 
     // Use appropriate provider based on whether customizations are needed
     final artboardProvider = widget.useCustomizations 
-        ? customizedArtboardProvider(effectiveAvatarId)
-        : basicArtboardProvider(effectiveAvatarId);
+        ? customizedArtboardProvider(finalAvatarId)
+        : basicArtboardProvider(finalAvatarId);
     
     final artboardAsync = ref.watch(artboardProvider);
 
@@ -86,7 +99,7 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
         data: (artboard) {
           if (artboard != null) {
             // Update last successfully loaded avatar ID
-            _lastLoadedAvatarId = effectiveAvatarId;
+            _lastLoadedAvatarId = finalAvatarId;
             
             // Start animation sequence if requested and not already running
             if (widget.autoPlaySequence && !_isSequenceRunning) {
@@ -101,25 +114,25 @@ class AvatarDisplayState extends ConsumerState<AvatarDisplay>
                 fit: widget.fit,
               );
             } catch (e) {
-              debugPrint('❌ Error rendering Rive widget for $effectiveAvatarId: $e');
+              debugPrint('❌ Error rendering Rive widget for $finalAvatarId: $e');
               if (e.toString().contains('RangeError')) {
                 debugPrint('🔍 RangeError in Rive widget rendering!');
                 debugPrint('🔍 This is likely the source of the RangeError!');
               }
-              return _buildFallback(effectiveAvatarId);
+              return _buildFallback(finalAvatarId);
             }
           } else {
-            return _buildFallback(effectiveAvatarId);
+            return _buildFallback(finalAvatarId);
           }
         },
         loading: () {
           // During loading, show the last successfully loaded avatar if available
-          final loadingAvatarId = _lastLoadedAvatarId ?? effectiveAvatarId;
+          final loadingAvatarId = _lastLoadedAvatarId ?? finalAvatarId;
           return _buildLoading(loadingAvatarId);
         },
         error: (error, stack) {
-          debugPrint('❌ Error loading artboard for $effectiveAvatarId: $error');
-          return _buildFallback(effectiveAvatarId);
+          debugPrint('❌ Error loading artboard for $finalAvatarId: $error');
+          return _buildFallback(finalAvatarId);
         },
       ),
     );

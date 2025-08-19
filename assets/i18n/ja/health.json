@@ -78,4 +78,7 @@
     "no_health_data_connected": "健康データ未接続",
     "connecting_to_health_data": "健康データに接続中...",
     "health_data_sync_error": "健康データ同期エラー"
+    ,"connected_with_health_connect": "Connected with Health Connect"
+    ,"connected_with_apple_health": "Connected with Apple Health"
+    ,"stats": "Stats"
 }

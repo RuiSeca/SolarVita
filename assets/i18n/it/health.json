@@ -78,4 +78,7 @@
     "no_health_data_connected": "Nessun dato sanitario collegato",
     "connecting_to_health_data": "Connessione ai dati sanitari...",
     "health_data_sync_error": "Errore di sincronizzazione dei dati sanitari"
+    ,"connected_with_health_connect": "Connected with Health Connect"
+    ,"connected_with_apple_health": "Connected with Apple Health"
+    ,"stats": "Stats"
 }

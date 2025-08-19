@@ -283,8 +283,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
 
                 const SizedBox(height: 24),
 
-                // Breathing Pulse Section
-                ScrollAwarePulse(
+                // Breathing Pulse Section with FIRST FLY transition
+                ScrollAwarePulseWithFly(
                   scrollController: scrollController,
                   height: 280,
                 ),

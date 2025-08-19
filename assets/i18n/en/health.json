@@ -77,5 +77,18 @@
     "last_sync_days_ago": "Last sync {days}d ago",
     "no_health_data_connected": "No health data connected",
     "connecting_to_health_data": "Connecting to health data...",
-    "health_data_sync_error": "Health data sync error"
+    "health_data_sync_error": "Health data sync error",
+    "connected_with_health_connect": "Connected with Health Connect",
+    "connected_with_apple_health": "Connected with Apple Health",
+    "stats": "Stats",
+    "select_bedtime": "Select Bedtime",
+    "select_wake_time": "Select Wake Up Time",
+    "edit_sleep_times": "Edit Sleep Times",
+    "bedtime": "Bedtime",
+    "wake_time": "Wake Time",
+    "sleep_duration": "Sleep Duration",
+    "done": "Done",
+    "reset": "Reset",
+    "tap_to_log_sleep": "Tap to log sleep",
+    "tap_to_edit_sleep": "Tap to edit sleep times"
 }

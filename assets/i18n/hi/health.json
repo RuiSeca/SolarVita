@@ -77,5 +77,8 @@
     "last_sync_days_ago": "अंतिम सिंक {days}दि पहले",
     "no_health_data_connected": "कोई स्वास्थ्य डेटा कनेक्टेड नहीं",
     "connecting_to_health_data": "स्वास्थ्य डेटा से कनेक्ट कर रहे हैं...",
-    "health_data_sync_error": "स्वास्थ्य डेटा सिंक त्रुटि"
+    "health_data_sync_error": "स्वास्थ्य डेटा सिंक त्रुटि",
+    "connected_with_health_connect": "Connected with Health Connect",
+    "connected_with_apple_health": "Connected with Apple Health",
+    "stats": "Stats"
 }

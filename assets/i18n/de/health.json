@@ -77,5 +77,8 @@
     "last_sync_days_ago": "Letzte Synchronisation vor {days}d",
     "no_health_data_connected": "Keine Gesundheitsdaten verbunden",
     "health_data_sync_error": "Fehler bei der Synchronisation der Gesundheitsdaten",
-    "connecting_to_health_data": "Verbindung zu Gesundheitsdaten..."
+    "connecting_to_health_data": "Verbindung zu Gesundheitsdaten...",
+    "connected_with_health_connect": "Verbunden mit Health Connect",
+    "connected_with_apple_health": "Verbunden mit Apple Health",
+    "stats": "Statistiken"
 }

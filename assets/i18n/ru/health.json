@@ -78,4 +78,7 @@
     "no_health_data_connected": "Данные о здоровье не подключены",
     "connecting_to_health_data": "Подключение к данным о здоровье...",
     "health_data_sync_error": "Ошибка синхронизации данных о здоровье"
+    ,"connected_with_health_connect": "Connected with Health Connect"
+    ,"connected_with_apple_health": "Connected with Apple Health"
+    ,"stats": "Stats"
 }

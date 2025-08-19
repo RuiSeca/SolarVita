@@ -78,4 +78,7 @@
     "no_health_data_connected": "연결된 건강 데이터가 없습니다",
     "connecting_to_health_data": "건강 데이터에 연결 중...",
     "health_data_sync_error": "건강 데이터 동기화 오류"
+    ,"connected_with_health_connect": "Connected with Health Connect"
+    ,"connected_with_apple_health": "Connected with Apple Health"
+    ,"stats": "Stats"
 }
