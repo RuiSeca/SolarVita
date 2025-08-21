@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:rive/rive.dart' as rive;
 import '../services/health_alerts/pulse_color_manager.dart';
 import '../services/health_alerts/health_alert_models.dart';
 import '../services/health_alerts/smart_health_data_collector.dart';
@@ -90,9 +89,11 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
     return SizedBox(
       height: widget.height,
       width: double.infinity,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
+      child: Transform.translate(
+        offset: Offset(0, -widget.height * 0.1), // Move up by 10% of height
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
           // Pulse background effect
           AnimatedBuilder(
             animation: _pulseController,
@@ -135,7 +136,8 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                 ),
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -803,6 +805,7 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     final colorManager = PulseColorManager.instance;
     final healthCollector = SmartHealthDataCollector.instance;
     final healthSummary = healthCollector.getHealthSummary();
+    
     
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -1532,10 +1535,6 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
   bool _showFly = false;
   final GlobalKey<_WellnessBreathingPulseState> _pulseKey = GlobalKey<_WellnessBreathingPulseState>();
   
-  // Rive animation for FIRST FLY
-  rive.RiveAnimationController? _riveController;
-  rive.Artboard? _riveArtboard;
-  bool _isRiveLoaded = false;
 
   @override
   void initState() {
@@ -1566,31 +1565,11 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
     // Start with pulse visible
     _pulseVisibilityController.forward();
     
-    // Load FIRST FLY Rive animation
-    _loadRiveAnimation();
     
     // Listen to scroll changes
     widget.scrollController?.addListener(_onScroll);
   }
 
-  Future<void> _loadRiveAnimation() async {
-    try {
-      final data = await DefaultAssetBundle.of(context).load('assets/rive/thurtdeath.riv');
-      final file = rive.RiveFile.import(data);
-      final artboard = file.mainArtboard;
-      
-      // Set up the animation controller for FIRST FLY
-      _riveController = rive.SimpleAnimation('FIRST FLY');
-      artboard.addController(_riveController!);
-      
-      setState(() {
-        _riveArtboard = artboard;
-        _isRiveLoaded = true;
-      });
-    } catch (e) {
-      debugPrint('Error loading FIRST FLY animation: $e');
-    }
-  }
 
   void _onScroll() {
     if (widget.scrollController == null) return;
@@ -1635,12 +1614,8 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
         _showFly = shouldShowFly;
         if (_showFly) {
           _flyAnimationController.forward();
-          // Trigger the Rive animation
-          _riveController?.isActive = true;
         } else {
           _flyAnimationController.reverse();
-          // Reset Rive animation
-          _riveController?.isActive = false;
         }
       });
     }
@@ -1651,7 +1626,6 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
     widget.scrollController?.removeListener(_onScroll);
     _pulseVisibilityController.dispose();
     _flyAnimationController.dispose();
-    _riveController?.dispose();
     super.dispose();
   }
 
@@ -1706,18 +1680,33 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
   }
 
   Widget _buildFirstFlyAnimation() {
-    if (!_isRiveLoaded || _riveArtboard == null) {
-      return SizedBox.shrink();
-    }
-    
-    return rive.Rive(
-      artboard: _riveArtboard!,
-      fit: BoxFit.contain,
+    return SizedBox(
+      width: 200,
+      height: 100,
+      child: Center(
+        child: TweenAnimationBuilder(
+          duration: Duration(seconds: 2),
+          tween: Tween<double>(begin: 0.0, end: 1.0),
+          builder: (context, double value, child) {
+            return Transform.scale(
+              scale: 0.8 + (0.2 * value),
+              child: Icon(
+                Icons.flight_takeoff,
+                size: 40,
+                color: Colors.blue.withValues(alpha: value),
+              ),
+            );
+          },
+          onEnd: () {
+            // Restart animation
+            setState(() {});
+          },
+        ),
+      ),
     );
   }
 
   void _showHealthInfoModal() {
-    // Reuse the existing health info modal from ScrollAwarePulse
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1785,14 +1774,17 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
               padding: EdgeInsets.all(20),
               child: Column(
                 children: [
-                  Text(
-                    tr(context, 'wellness_transition_message'),
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  _buildHealthStatusCard(healthSummary),
+                  SizedBox(height: 16),
+                  _buildActiveAlertsCard(healthSummary),
+                  SizedBox(height: 16),
+                  _buildWeatherCard(healthSummary['weather']),
+                  SizedBox(height: 16),
+                  _buildAirQualityCard(healthSummary['airQuality']),
+                  SizedBox(height: 16),
+                  _buildHealthMetricsCard(healthSummary),
+                  SizedBox(height: 16),
+                  _buildRecommendationsCard(healthSummary),
                 ],
               ),
             ),
@@ -1801,4 +1793,396 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
       ),
     );
   }
+
+  // Helper methods for health modal
+  Widget _buildHealthStatusCard(Map<String, dynamic>? healthSummary) {
+    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
+    final alertCount = healthSummary?['alertCount'] ?? 0;
+    
+    String statusText;
+    String description;
+    IconData icon;
+    Color color;
+    
+    switch (alertLevel) {
+      case AlertLevel.critical:
+        statusText = tr(context, 'health_alert');
+        description = tr(context, 'environmental_conditions_attention');
+        icon = Icons.warning;
+        color = Colors.red;
+        break;
+      case AlertLevel.high:
+        statusText = tr(context, 'caution_advised');
+        description = tr(context, 'conditions_affect_sensitive');
+        icon = Icons.info;
+        color = Colors.orange;
+        break;
+      case AlertLevel.warning:
+        statusText = tr(context, 'minor_concerns');
+        description = tr(context, 'generally_safe_considerations');
+        icon = Icons.lightbulb_outline;
+        color = Colors.yellow[700]!;
+        break;
+      default:
+        statusText = tr(context, 'all_good');
+        description = tr(context, 'excellent_conditions_outdoor');
+        icon = Icons.check_circle;
+        color = Colors.green;
+    }
+    
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 32),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                if (alertCount > 0)
+                  Text(
+                    alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveAlertsCard(Map<String, dynamic>? healthSummary) {
+    final healthCollector = SmartHealthDataCollector.instance;
+    final alerts = healthCollector.activeAlerts;
+    
+    if (alerts.isEmpty) {
+      return SizedBox.shrink();
+    }
+    
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber, color: Colors.orange, size: 24),
+              SizedBox(width: 12),
+              Text(
+                tr(context, 'active_health_concerns'),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          ...alerts.take(3).map((alert) => Container(
+            margin: EdgeInsets.only(bottom: 8),
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              alert.message,
+              style: TextStyle(fontSize: 14, color: Colors.orange),
+            ),
+          )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeatherCard(dynamic weatherData) {
+    if (weatherData == null) {
+      return _buildInfoCard(
+        title: tr(context, 'weather'),
+        icon: Icons.wb_sunny,
+        content: tr(context, 'weather_unavailable'),
+        color: Colors.grey,
+      );
+    }
+    
+    final temp = weatherData.temperature?.toStringAsFixed(1) ?? "N/A";
+    final humidity = weatherData.humidity?.toString() ?? "N/A";
+    final uv = weatherData.uvIndex?.toStringAsFixed(1) ?? "N/A";
+    final condition = weatherData.condition ?? "Unknown";
+    final location = _formatLocation(weatherData.city, weatherData.country);
+    
+    return _buildInfoCard(
+      title: tr(context, 'weather_conditions'),
+      icon: Icons.wb_sunny,
+      color: Colors.orange,
+      location: location,
+      content: Column(
+        children: [
+          _buildDataRow(tr(context, 'temperature'), "$temp°C"),
+          _buildDataRow(tr(context, 'humidity'), "$humidity%"),
+          _buildDataRow(tr(context, 'uv_index'), uv),
+          _buildDataRow(tr(context, 'condition'), condition.toUpperCase()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAirQualityCard(dynamic airQualityData) {
+    if (airQualityData == null) {
+      return _buildInfoCard(
+        title: tr(context, 'air_quality'),
+        icon: Icons.air,
+        content: tr(context, 'air_quality_unavailable'),
+        color: Colors.grey,
+      );
+    }
+    
+    final aqi = airQualityData.aqi?.toString() ?? "N/A";
+    final description = airQualityData.qualityDescription ?? "Unknown";
+    final source = airQualityData.source ?? "Unknown";
+    final location = _formatLocation(airQualityData.city, airQualityData.country);
+    
+    Color aqiColor;
+    if (airQualityData.aqi != null) {
+      if (airQualityData.aqi <= 50) {
+        aqiColor = Colors.green;
+      } else if (airQualityData.aqi <= 100) {
+        aqiColor = Colors.yellow[700]!;
+      } else if (airQualityData.aqi <= 150) {
+        aqiColor = Colors.orange;
+      } else {
+        aqiColor = Colors.red;
+      }
+    } else {
+      aqiColor = Colors.grey;
+    }
+    
+    return _buildInfoCard(
+      title: tr(context, 'air_quality'),
+      icon: Icons.air,
+      color: aqiColor,
+      location: location,
+      content: Column(
+        children: [
+          _buildDataRow(tr(context, 'aqi'), aqi),
+          _buildDataRow(tr(context, 'quality'), description),
+          _buildDataRow(tr(context, 'source'), source),
+          if (airQualityData.pollutants != null)
+            ...airQualityData.pollutants.entries.take(3).map((entry) =>
+              _buildDataRow(
+                entry.key.toUpperCase(),
+                "${entry.value.toStringAsFixed(1)} μg/m³",
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHealthMetricsCard(Map<String, dynamic>? healthSummary) {
+    final heartRate = healthSummary?['heartRate'];
+    final hydration = healthSummary?['hydration'];
+    
+    return _buildInfoCard(
+      title: tr(context, 'personal_health'),
+      icon: Icons.favorite,
+      color: Colors.pink,
+      content: Column(
+        children: [
+          _buildDataRow(
+            tr(context, 'heart_rate'),
+            heartRate != null ? "$heartRate bpm" : tr(context, 'not_available'),
+          ),
+          _buildDataRow(
+            tr(context, 'hydration'),
+            hydration != null 
+              ? "${(hydration * 100).toStringAsFixed(0)}% ${tr(context, 'daily_goal')}"
+              : tr(context, 'not_tracked'),
+          ),
+          _buildDataRow(tr(context, 'sleep_quality'), tr(context, 'good')), // Placeholder
+          _buildDataRow(tr(context, 'activity_level'), tr(context, 'moderate')), // Placeholder
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationsCard(Map<String, dynamic>? healthSummary) {
+    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
+    
+    List<String> recommendations;
+    switch (alertLevel) {
+      case AlertLevel.critical:
+        recommendations = [
+          tr(context, 'stay_indoors_possible'),
+          tr(context, 'limit_outdoor_exercise'),
+          tr(context, 'consider_mask_outdoors'),
+          tr(context, 'keep_windows_closed'),
+        ];
+        break;
+      case AlertLevel.high:
+        recommendations = [
+          tr(context, 'reduce_outdoor_activities'),
+          tr(context, 'stay_hydrated'),
+          tr(context, 'monitor_symptoms_sensitive'),
+          tr(context, 'consider_indoor_alternatives'),
+        ];
+        break;
+      case AlertLevel.warning:
+        recommendations = [
+          tr(context, 'drink_plenty_water'),
+          tr(context, 'take_breaks_exercise'),
+          tr(context, 'monitor_air_quality'),
+          tr(context, 'mindful_sun_exposure'),
+        ];
+        break;
+      default:
+        recommendations = [
+          tr(context, 'great_day_outdoor'),
+          tr(context, 'perfect_exercise'),
+          tr(context, 'enjoy_fresh_air'),
+          tr(context, 'ideal_conditions_wellness'),
+        ];
+    }
+    
+    return _buildInfoCard(
+      title: tr(context, 'recommendations'),
+      icon: Icons.lightbulb,
+      color: Colors.blue,
+      content: Column(
+        children: recommendations.map((rec) => 
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Icon(Icons.check_circle, size: 16, color: Colors.green),
+                SizedBox(width: 8),
+                Expanded(child: Text(rec, style: TextStyle(fontSize: 14))),
+              ],
+            ),
+          ),
+        ).toList(),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required IconData icon,
+    required dynamic content,
+    required Color color,
+    String? location,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (location != null)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 12,
+                        color: color,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        location,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: color,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 12),
+          content is Widget ? content : Text(content.toString()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  // Format location information, prioritizing city over country
+  String? _formatLocation(String? city, String? country) {
+    if (city != null && city.isNotEmpty && city != 'Unknown') {
+      return city;
+    } else if (country != null && country.isNotEmpty && country != 'Unknown') {
+      return country;
+    }
+    return null;
+  }
+
 }
