@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../services/health_alerts/pulse_color_manager.dart';
 import '../services/health_alerts/health_alert_models.dart';
 import '../services/health_alerts/smart_health_data_collector.dart';
+import '../services/health_alerts/health_info_service.dart';
+import '../widgets/health_info_popup.dart';
+import '../screens/health_info_screen.dart';
 import '../utils/translation_helper.dart';
 import 'dart:async';
 
@@ -861,17 +864,30 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
               padding: EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildHealthStatusCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildActiveAlertsCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildWeatherCard(healthSummary['weather']),
-                  SizedBox(height: 16),
-                  _buildAirQualityCard(healthSummary['airQuality']),
-                  SizedBox(height: 16),
-                  _buildHealthMetricsCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildRecommendationsCard(healthSummary),
+                  // Status Overview Card
+                  _buildModernStatusCard(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Active Alerts (if any)
+                  if (healthCollector.activeAlerts.isNotEmpty) ...[
+                    _buildActiveAlertsCard(healthSummary),
+                    SizedBox(height: 20),
+                  ],
+                  
+                  // Weather Conditions Section
+                  _buildWeatherSection(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Air Quality Section
+                  _buildAirQualitySection(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Personal Health Metrics Grid  
+                  _buildPersonalHealthGrid(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Quick Recommendations
+                  _buildQuickRecommendations(healthSummary),
                 ],
               ),
             ),
@@ -881,358 +897,13 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     );
   }
 
-  Widget _buildHealthStatusCard(Map<String, dynamic>? healthSummary) {
-    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
-    final alertCount = healthSummary?['alertCount'] ?? 0;
-    
-    String statusText;
-    String description;
-    IconData icon;
-    Color color;
-    
-    switch (alertLevel) {
-      case AlertLevel.critical:
-        statusText = tr(context, 'health_alert');
-        description = tr(context, 'environmental_conditions_attention');
-        icon = Icons.warning;
-        color = Colors.red;
-        break;
-      case AlertLevel.high:
-        statusText = tr(context, 'caution_advised');
-        description = tr(context, 'conditions_affect_sensitive');
-        icon = Icons.info;
-        color = Colors.orange;
-        break;
-      case AlertLevel.warning:
-        statusText = tr(context, 'minor_concerns');
-        description = tr(context, 'generally_safe_considerations');
-        icon = Icons.lightbulb_outline;
-        color = Colors.yellow[700]!;
-        break;
-      default:
-        statusText = tr(context, 'all_good');
-        description = tr(context, 'excellent_conditions_outdoor');
-        icon = Icons.check_circle;
-        color = Colors.green;
-    }
-    
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 32),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                if (alertCount > 0)
-                  Text(
-                    alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: color,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildWeatherCard(dynamic weatherData) {
-    if (weatherData == null) {
-      return _buildInfoCard(
-        title: tr(context, 'weather'),
-        icon: Icons.wb_sunny,
-        content: tr(context, 'weather_unavailable'),
-        color: Colors.grey,
-      );
-    }
-    
-    final temp = weatherData.temperature?.toStringAsFixed(1) ?? "N/A";
-    final humidity = weatherData.humidity?.toString() ?? "N/A";
-    final uv = weatherData.uvIndex?.toStringAsFixed(1) ?? "N/A";
-    final condition = weatherData.condition ?? "Unknown";
-    final location = _formatLocation(weatherData.city, weatherData.country);
-    
-    return _buildInfoCard(
-      title: tr(context, 'weather_conditions'),
-      icon: Icons.wb_sunny,
-      color: Colors.orange,
-      location: location,
-      content: Column(
-        children: [
-          _buildDataRow(tr(context, 'temperature'), "$temp°C"),
-          _buildDataRow(tr(context, 'humidity'), "$humidity%"),
-          _buildDataRow(tr(context, 'uv_index'), uv),
-          _buildDataRow(tr(context, 'condition'), condition.toUpperCase()),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildAirQualityCard(dynamic airQualityData) {
-    if (airQualityData == null) {
-      return _buildInfoCard(
-        title: tr(context, 'air_quality'),
-        icon: Icons.air,
-        content: tr(context, 'air_quality_unavailable'),
-        color: Colors.grey,
-      );
-    }
-    
-    final aqi = airQualityData.aqi?.toString() ?? "N/A";
-    final description = airQualityData.qualityDescription ?? "Unknown";
-    final source = airQualityData.source ?? "Unknown";
-    final location = _formatLocation(airQualityData.city, airQualityData.country);
-    
-    Color aqiColor;
-    if (airQualityData.aqi != null) {
-      if (airQualityData.aqi <= 50) {
-        aqiColor = Colors.green;
-      } else if (airQualityData.aqi <= 100) {
-        aqiColor = Colors.yellow[700]!;
-      } else if (airQualityData.aqi <= 150) {
-        aqiColor = Colors.orange;
-      } else {
-        aqiColor = Colors.red;
-      }
-    } else {
-      aqiColor = Colors.grey;
-    }
-    
-    return _buildInfoCard(
-      title: tr(context, 'air_quality'),
-      icon: Icons.air,
-      color: aqiColor,
-      location: location,
-      content: Column(
-        children: [
-          _buildDataRow(tr(context, 'aqi'), aqi),
-          _buildDataRow(tr(context, 'quality'), description),
-          _buildDataRow(tr(context, 'source'), source),
-          if (airQualityData.pollutants != null)
-            ...airQualityData.pollutants.entries.take(3).map((entry) =>
-              _buildDataRow(
-                entry.key.toUpperCase(),
-                "${entry.value.toStringAsFixed(1)} μg/m³",
-              ),
-            ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildHealthMetricsCard(Map<String, dynamic>? healthSummary) {
-    final heartRate = healthSummary?['heartRate'];
-    final hydration = healthSummary?['hydration'];
-    
-    return _buildInfoCard(
-      title: tr(context, 'personal_health'),
-      icon: Icons.favorite,
-      color: Colors.pink,
-      content: Column(
-        children: [
-          _buildDataRow(
-            tr(context, 'heart_rate'),
-            heartRate != null ? "$heartRate bpm" : tr(context, 'not_available'),
-          ),
-          _buildDataRow(
-            tr(context, 'hydration'),
-            hydration != null 
-              ? "${(hydration * 100).toStringAsFixed(0)}% ${tr(context, 'daily_goal')}"
-              : tr(context, 'not_tracked'),
-          ),
-          _buildDataRow(tr(context, 'sleep_quality'), tr(context, 'good')), // Placeholder
-          _buildDataRow(tr(context, 'activity_level'), tr(context, 'moderate')), // Placeholder
-        ],
-      ),
-    );
-  }
 
-  Widget _buildRecommendationsCard(Map<String, dynamic>? healthSummary) {
-    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
-    
-    List<String> recommendations;
-    switch (alertLevel) {
-      case AlertLevel.critical:
-        recommendations = [
-          tr(context, 'stay_indoors_possible'),
-          tr(context, 'limit_outdoor_exercise'),
-          tr(context, 'consider_mask_outdoors'),
-          tr(context, 'keep_windows_closed'),
-        ];
-        break;
-      case AlertLevel.high:
-        recommendations = [
-          tr(context, 'reduce_outdoor_activities'),
-          tr(context, 'stay_hydrated'),
-          tr(context, 'monitor_symptoms_sensitive'),
-          tr(context, 'consider_indoor_alternatives'),
-        ];
-        break;
-      case AlertLevel.warning:
-        recommendations = [
-          tr(context, 'drink_plenty_water'),
-          tr(context, 'take_breaks_exercise'),
-          tr(context, 'monitor_air_quality'),
-          tr(context, 'mindful_sun_exposure'),
-        ];
-        break;
-      default:
-        recommendations = [
-          tr(context, 'great_day_outdoor'),
-          tr(context, 'perfect_exercise'),
-          tr(context, 'enjoy_fresh_air'),
-          tr(context, 'ideal_conditions_wellness'),
-        ];
-    }
-    
-    return _buildInfoCard(
-      title: tr(context, 'recommendations'),
-      icon: Icons.lightbulb,
-      color: Colors.blue,
-      content: Column(
-        children: recommendations.map((rec) => 
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              children: [
-                Icon(Icons.check_circle, size: 16, color: Colors.green),
-                SizedBox(width: 8),
-                Expanded(child: Text(rec, style: TextStyle(fontSize: 14))),
-              ],
-            ),
-          ),
-        ).toList(),
-      ),
-    );
-  }
 
-  Widget _buildInfoCard({
-    required String title,
-    required IconData icon,
-    required dynamic content,
-    required Color color,
-    String? location,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 24),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (location != null)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: color,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        location,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: color,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          SizedBox(height: 12),
-          content is Widget ? content : Text(content.toString()),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildDataRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  // Format location information, prioritizing city over country
-  String? _formatLocation(String? city, String? country) {
-    if (city != null && city.isNotEmpty && city != 'Unknown') {
-      return city;
-    } else if (country != null && country.isNotEmpty && country != 'Unknown') {
-      return country;
-    }
-    return null;
-  }
   
   // Build active alerts card showing current concerns
   Widget _buildActiveAlertsCard(Map<String, dynamic>? healthSummary) {
@@ -1507,6 +1178,955 @@ class _ScrollAwarePulseState extends State<ScrollAwarePulse>
     );
   }
 
+
+  /// Show UV Index information popup
+  void _showUVIndexInfo(BuildContext context, double? uvIndex) {
+    final infoService = HealthInfoService.instance;
+    final uvInfo = infoService.getUVIndexInfo(uvIndex);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'UV Index Information',
+          infoData: uvInfo,
+          currentValue: uvIndex?.toStringAsFixed(1),
+          customScale: uvIndex != null ? UVIndexScale(currentUV: uvIndex) : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Temperature information popup
+  void _showTemperatureInfo(BuildContext context, double? temperature) {
+    final infoService = HealthInfoService.instance;
+    final tempInfo = infoService.getTemperatureInfo(temperature);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Temperature Information',
+          infoData: tempInfo,
+          currentValue: temperature != null ? '${temperature.toStringAsFixed(1)}°C' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Humidity information popup
+  void _showHumidityInfo(BuildContext context, double? humidity) {
+    final infoService = HealthInfoService.instance;
+    final humidityInfo = infoService.getHumidityInfo(humidity);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Humidity Information',
+          infoData: humidityInfo,
+          currentValue: humidity != null ? '${humidity.toStringAsFixed(0)}%' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Air Quality Index information popup
+  void _showAQIInfo(BuildContext context, int? aqi) {
+    final infoService = HealthInfoService.instance;
+    final aqiInfo = infoService.getAQIInfo(aqi);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Air Quality Index',
+          infoData: aqiInfo,
+          currentValue: aqi?.toString(),
+          customScale: aqi != null ? AQIScale(currentAQI: aqi) : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Heart Rate information popup
+  void _showHeartRateInfo(BuildContext context, int? heartRate) {
+    final infoService = HealthInfoService.instance;
+    final hrInfo = infoService.getHeartRateInfo(heartRate);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Heart Rate Information',
+          infoData: hrInfo,
+          currentValue: heartRate != null ? '$heartRate bpm' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Hydration information popup
+  void _showHydrationInfo(BuildContext context, double? hydration) {
+    final infoService = HealthInfoService.instance;
+    final hydrationInfo = infoService.getHydrationInfo(hydration);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Hydration Information',
+          infoData: hydrationInfo,
+          currentValue: hydration != null ? '${(hydration * 100).toStringAsFixed(0)}%' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Sleep Quality information popup
+  void _showSleepQualityInfo(BuildContext context, String sleepQuality) {
+    final infoService = HealthInfoService.instance;
+    final sleepInfo = infoService.getSleepQualityInfo(sleepQuality);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Sleep Quality Information',
+          infoData: sleepInfo,
+          currentValue: sleepQuality.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  /// Show Activity Level information popup
+  void _showActivityLevelInfo(BuildContext context, String activityLevel) {
+    final infoService = HealthInfoService.instance;
+    final activityInfo = infoService.getActivityLevelInfo(activityLevel);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Activity Level Information',
+          infoData: activityInfo,
+          currentValue: activityLevel.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  /// Modern status overview card with gradient and better layout
+  Widget _buildModernStatusCard(Map<String, dynamic>? healthSummary) {
+    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
+    final alertCount = healthSummary?['alertCount'] ?? 0;
+    
+    Color primaryColor;
+    Color secondaryColor;
+    String statusText;
+    String description;
+    IconData icon;
+    
+    switch (alertLevel) {
+      case AlertLevel.critical:
+        primaryColor = Colors.red;
+        secondaryColor = Colors.red.shade100;
+        statusText = tr(context, 'health_alert');
+        description = tr(context, 'environmental_conditions_attention');
+        icon = Icons.warning_rounded;
+        break;
+      case AlertLevel.high:
+        primaryColor = Colors.orange;
+        secondaryColor = Colors.orange.shade100;
+        statusText = tr(context, 'caution_advised');
+        description = tr(context, 'conditions_affect_sensitive');
+        icon = Icons.info_rounded;
+        break;
+      case AlertLevel.warning:
+        primaryColor = Colors.yellow[700]!;
+        secondaryColor = Colors.yellow.shade100;
+        statusText = tr(context, 'minor_concerns');
+        description = tr(context, 'generally_safe_considerations');
+        icon = Icons.lightbulb_rounded;
+        break;
+      default:
+        primaryColor = Colors.green;
+        secondaryColor = Colors.green.shade100;
+        statusText = tr(context, 'all_good');
+        description = tr(context, 'excellent_conditions_outdoor');
+        icon = Icons.check_circle_rounded;
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [secondaryColor, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 30),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                  if (alertCount > 0) ...[
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Weather conditions section
+  Widget _buildWeatherSection(Map<String, dynamic>? healthSummary) {
+    final weatherData = healthSummary?['weather'];
+    final location = weatherData != null ? _getWeatherLocation(weatherData) : null;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tr(context, 'weather_conditions'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            if (location != null) ...[
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Text(
+                location,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: 16),
+        // 2x2 Grid layout for weather metrics
+        Column(
+          children: [
+            // First row: Temperature, Humidity
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.thermostat,
+                    color: Colors.orange,
+                    title: tr(context, 'temperature'),
+                    value: weatherData?.temperature != null 
+                        ? "${weatherData!.temperature!.toStringAsFixed(1)}°C"
+                        : tr(context, 'not_available'),
+                    onTap: () => _showTemperatureInfo(context, weatherData?.temperature),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.opacity,
+                    color: Colors.blue,
+                    title: tr(context, 'humidity'),
+                    value: weatherData?.humidity != null 
+                        ? "${weatherData!.humidity}%"
+                        : tr(context, 'not_available'),
+                    onTap: () => _showHumidityInfo(context, weatherData?.humidity?.toDouble()),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            // Second row: UV Index, Weather Condition
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.wb_sunny,
+                    color: Colors.amber,
+                    title: tr(context, 'uv_index'),
+                    value: weatherData?.uvIndex != null 
+                        ? weatherData!.uvIndex!.toStringAsFixed(1)
+                        : tr(context, 'not_available'),
+                    onTap: () => _showUVIndexInfo(context, weatherData?.uvIndex),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.cloud,
+                    color: Colors.indigo,
+                    title: tr(context, 'condition'),
+                    value: weatherData?.condition != null 
+                        ? weatherData!.condition!.toUpperCase()
+                        : tr(context, 'not_available'),
+                    onTap: () => _showWeatherConditionInfo(context, weatherData?.condition),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Air quality section
+  Widget _buildAirQualitySection(Map<String, dynamic>? healthSummary) {
+    final airQualityData = healthSummary?['airQuality'];
+    final location = airQualityData != null ? _getAirQualityLocation(airQualityData) : null;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.air_rounded, color: Colors.teal, size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tr(context, 'air_quality'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            if (location != null) ...[
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Text(
+                location,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: 16),
+        // First row: AQI, Quality, Source
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.air,
+                color: airQualityData?.aqi != null && airQualityData!.aqi <= 50 ? Colors.green : 
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 100 ? Colors.yellow[700]! :
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 150 ? Colors.orange : Colors.red,
+                title: tr(context, 'aqi'),
+                value: airQualityData?.aqi != null 
+                    ? "${airQualityData!.aqi}"
+                    : tr(context, 'not_available'),
+                onTap: () => _showAQIInfo(context, airQualityData?.aqi),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.health_and_safety,
+                color: airQualityData?.aqi != null && airQualityData!.aqi <= 50 ? Colors.green : 
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 100 ? Colors.yellow[700]! :
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 150 ? Colors.orange : Colors.red,
+                title: tr(context, 'quality'),
+                value: airQualityData?.qualityDescription != null 
+                    ? airQualityData!.qualityDescription!
+                    : tr(context, 'not_available'),
+                onTap: () => _showAirQualityInfo(context, airQualityData?.qualityDescription),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.source,
+                color: Colors.grey[600]!,
+                title: tr(context, 'source'),
+                value: airQualityData?.source != null 
+                    ? airQualityData!.source!
+                    : tr(context, 'not_available'),
+                onTap: () => _showSourceInfo(context, airQualityData?.source),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        // Second row: PM2.5, PM10, NO2
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.blur_on,
+                color: Colors.purple,
+                title: 'PM2.5',
+                value: airQualityData?.pollutants?['pm2_5'] != null 
+                    ? "${airQualityData!.pollutants!['pm2_5']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showPM25Info(context, airQualityData?.pollutants?['pm2_5']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.grain,
+                color: Colors.brown,
+                title: 'PM10',
+                value: airQualityData?.pollutants?['pm10'] != null 
+                    ? "${airQualityData!.pollutants!['pm10']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showPM10Info(context, airQualityData?.pollutants?['pm10']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.local_gas_station,
+                color: Colors.red[600]!,
+                title: 'NO₂',
+                value: airQualityData?.pollutants?['no2'] != null 
+                    ? "${airQualityData!.pollutants!['no2']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showNO2Info(context, airQualityData?.pollutants?['no2']),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        // Third row: SO2, O3, CO
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.smoke_free,
+                color: Colors.orange[700]!,
+                title: 'SO₂',
+                value: airQualityData?.pollutants?['so2'] != null 
+                    ? "${airQualityData!.pollutants!['so2']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showSO2Info(context, airQualityData?.pollutants?['so2']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.wb_sunny_outlined,
+                color: Colors.cyan[600]!,
+                title: 'O₃',
+                value: airQualityData?.pollutants?['o3'] != null 
+                    ? "${airQualityData!.pollutants!['o3']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showO3Info(context, airQualityData?.pollutants?['o3']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.cloud_queue,
+                color: Colors.grey[700]!,
+                title: 'CO',
+                value: airQualityData?.pollutants?['co'] != null 
+                    ? "${(airQualityData!.pollutants!['co']! / 1000).toStringAsFixed(1)} mg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showCOInfo(context, airQualityData?.pollutants?['co']),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Personal health metrics in a modern grid
+  Widget _buildPersonalHealthGrid(Map<String, dynamic>? healthSummary) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.favorite_rounded, color: Colors.pink, size: 24),
+            SizedBox(width: 8),
+            Text(
+              tr(context, 'personal_health'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.favorite,
+                color: Colors.red,
+                title: tr(context, 'heart_rate'),
+                value: healthSummary?['heartRate'] != null ? "${healthSummary!['heartRate']} bpm" : tr(context, 'not_available'),
+                onTap: () => _showHeartRateInfo(context, healthSummary?['heartRate']),
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.water_drop,
+                color: Colors.blue,
+                title: tr(context, 'hydration'),
+                value: healthSummary?['hydration'] != null 
+                    ? "${(healthSummary!['hydration'] * 100).toStringAsFixed(0)}%"
+                    : tr(context, 'not_tracked'),
+                onTap: () => _showHydrationInfo(context, healthSummary?['hydration']),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.bedtime,
+                color: Colors.indigo,
+                title: tr(context, 'sleep_quality'),
+                value: tr(context, 'good'),
+                onTap: () => _showSleepQualityInfo(context, 'good'),
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.directions_run,
+                color: Colors.green,
+                title: tr(context, 'activity_level'),
+                value: tr(context, 'moderate'),
+                onTap: () => _showActivityLevelInfo(context, 'moderate'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+
+  /// Modern health card for personal metrics
+  Widget _buildModernHealthCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: color.withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
+
+  /// Quick recommendations card
+  Widget _buildQuickRecommendations(Map<String, dynamic>? healthSummary) {
+    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
+    
+    List<String> recommendations;
+    Color accentColor;
+    
+    switch (alertLevel) {
+      case AlertLevel.critical:
+      case AlertLevel.high:
+        recommendations = [
+          tr(context, 'stay_indoors_possible'),
+          tr(context, 'limit_outdoor_exercise'),
+          tr(context, 'stay_hydrated'),
+        ];
+        accentColor = Colors.red;
+        break;
+      case AlertLevel.warning:
+        recommendations = [
+          tr(context, 'drink_plenty_water'),
+          tr(context, 'monitor_air_quality'),
+          tr(context, 'mindful_sun_exposure'),
+        ];
+        accentColor = Colors.orange;
+        break;
+      default:
+        recommendations = [
+          tr(context, 'great_day_outdoor'),
+          tr(context, 'perfect_exercise'),
+          tr(context, 'enjoy_fresh_air'),
+        ];
+        accentColor = Colors.green;
+    }
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_rounded, color: accentColor, size: 24),
+                SizedBox(width: 8),
+                Text(
+                  tr(context, 'quick_tips'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            ...recommendations.take(3).map((rec) => 
+              Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: EdgeInsets.only(top: 6, right: 12),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        rec,
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.4,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper method to get weather location
+  String? _getWeatherLocation(dynamic weatherData) {
+    if (weatherData?.city != null && weatherData!.city!.isNotEmpty && weatherData!.city != 'Unknown') {
+      return weatherData!.city!;
+    } else if (weatherData?.country != null && weatherData!.country!.isNotEmpty && weatherData!.country != 'Unknown') {
+      return weatherData!.country!;
+    }
+    return null;
+  }
+
+  // Helper method to get air quality location
+  String? _getAirQualityLocation(dynamic airQualityData) {
+    if (airQualityData?.city != null && airQualityData!.city!.isNotEmpty && airQualityData!.city != 'Unknown') {
+      return airQualityData!.city!;
+    } else if (airQualityData?.country != null && airQualityData!.country!.isNotEmpty && airQualityData!.country != 'Unknown') {
+      return airQualityData!.country!;
+    }
+    return null;
+  }
+
+  // Show weather condition information popup
+  void _showWeatherConditionInfo(BuildContext context, String? condition) {
+    final infoService = HealthInfoService.instance;
+    final conditionInfo = infoService.getWeatherConditionInfo(condition);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Weather Condition Information',
+          infoData: conditionInfo,
+          currentValue: condition?.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  // Show air quality description popup
+  void _showAirQualityInfo(BuildContext context, String? quality) {
+    final infoService = HealthInfoService.instance;
+    final qualityInfo = infoService.getAirQualityDescriptionInfo(quality);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Air Quality Description',
+          infoData: qualityInfo,
+          currentValue: quality,
+        ),
+      ),
+    );
+  }
+
+  // Show source information popup
+  void _showSourceInfo(BuildContext context, String? source) {
+    final infoService = HealthInfoService.instance;
+    final sourceInfo = infoService.getSourceInfo(source);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Data Source Information',
+          infoData: sourceInfo,
+          currentValue: source,
+        ),
+      ),
+    );
+  }
+
+  // Show PM2.5 information popup
+  void _showPM25Info(BuildContext context, double? pm25) {
+    final infoService = HealthInfoService.instance;
+    final pm25Info = infoService.getPM25Info(pm25);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'PM2.5 Information',
+          infoData: pm25Info,
+          currentValue: pm25 != null ? "${pm25.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show PM10 information popup
+  void _showPM10Info(BuildContext context, double? pm10) {
+    final infoService = HealthInfoService.instance;
+    final pm10Info = infoService.getPM10Info(pm10);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'PM10 Information',
+          infoData: pm10Info,
+          currentValue: pm10 != null ? "${pm10.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show NO2 information popup
+  void _showNO2Info(BuildContext context, double? no2) {
+    final infoService = HealthInfoService.instance;
+    final no2Info = infoService.getNO2Info(no2);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'NO₂ Information',
+          infoData: no2Info,
+          currentValue: no2 != null ? "${no2.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show SO2 information popup
+  void _showSO2Info(BuildContext context, double? so2) {
+    final infoService = HealthInfoService.instance;
+    final so2Info = infoService.getSO2Info(so2);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'SO₂ Information',
+          infoData: so2Info,
+          currentValue: so2 != null ? "${so2.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show O3 information popup
+  void _showO3Info(BuildContext context, double? o3) {
+    final infoService = HealthInfoService.instance;
+    final o3Info = infoService.getO3Info(o3);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'O₃ Information',
+          infoData: o3Info,
+          currentValue: o3 != null ? "${o3.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show CO information popup
+  void _showCOInfo(BuildContext context, double? co) {
+    final infoService = HealthInfoService.instance;
+    final coInfo = infoService.getCOInfo(co);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'CO Information',
+          infoData: coInfo,
+          currentValue: co != null ? "${(co / 1000).toStringAsFixed(1)} mg/m³" : null,
+        ),
+      ),
+    );
+  }
 }
 
 // Enhanced scroll-aware pulse with FIRST FLY animation transition
@@ -1774,17 +2394,30 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
               padding: EdgeInsets.all(20),
               child: Column(
                 children: [
-                  _buildHealthStatusCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildActiveAlertsCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildWeatherCard(healthSummary['weather']),
-                  SizedBox(height: 16),
-                  _buildAirQualityCard(healthSummary['airQuality']),
-                  SizedBox(height: 16),
-                  _buildHealthMetricsCard(healthSummary),
-                  SizedBox(height: 16),
-                  _buildRecommendationsCard(healthSummary),
+                  // Status Overview Card
+                  _buildModernStatusCard(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Active Alerts (if any)
+                  if (healthCollector.activeAlerts.isNotEmpty) ...[
+                    _buildActiveAlertsCard(healthSummary),
+                    SizedBox(height: 20),
+                  ],
+                  
+                  // Weather Conditions Section
+                  _buildWeatherSection(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Air Quality Section
+                  _buildAirQualitySection(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Personal Health Metrics Grid  
+                  _buildPersonalHealthGrid(healthSummary),
+                  SizedBox(height: 20),
+                  
+                  // Quick Recommendations
+                  _buildQuickRecommendations(healthSummary),
                 ],
               ),
             ),
@@ -1795,87 +2428,6 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
   }
 
   // Helper methods for health modal
-  Widget _buildHealthStatusCard(Map<String, dynamic>? healthSummary) {
-    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
-    final alertCount = healthSummary?['alertCount'] ?? 0;
-    
-    String statusText;
-    String description;
-    IconData icon;
-    Color color;
-    
-    switch (alertLevel) {
-      case AlertLevel.critical:
-        statusText = tr(context, 'health_alert');
-        description = tr(context, 'environmental_conditions_attention');
-        icon = Icons.warning;
-        color = Colors.red;
-        break;
-      case AlertLevel.high:
-        statusText = tr(context, 'caution_advised');
-        description = tr(context, 'conditions_affect_sensitive');
-        icon = Icons.info;
-        color = Colors.orange;
-        break;
-      case AlertLevel.warning:
-        statusText = tr(context, 'minor_concerns');
-        description = tr(context, 'generally_safe_considerations');
-        icon = Icons.lightbulb_outline;
-        color = Colors.yellow[700]!;
-        break;
-      default:
-        statusText = tr(context, 'all_good');
-        description = tr(context, 'excellent_conditions_outdoor');
-        icon = Icons.check_circle;
-        color = Colors.green;
-    }
-    
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 32),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                if (alertCount > 0)
-                  Text(
-                    alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: color,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildActiveAlertsCard(Map<String, dynamic>? healthSummary) {
     final healthCollector = SmartHealthDataCollector.instance;
@@ -1926,263 +2478,961 @@ class _ScrollAwarePulseWithFlyState extends State<ScrollAwarePulseWithFly>
     );
   }
 
-  Widget _buildWeatherCard(dynamic weatherData) {
-    if (weatherData == null) {
-      return _buildInfoCard(
-        title: tr(context, 'weather'),
-        icon: Icons.wb_sunny,
-        content: tr(context, 'weather_unavailable'),
-        color: Colors.grey,
-      );
+
+
+
+
+
+  /// Modern status overview card with gradient and better layout
+  Widget _buildModernStatusCard(Map<String, dynamic>? healthSummary) {
+    final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
+    final alertCount = healthSummary?['alertCount'] ?? 0;
+    
+    Color primaryColor;
+    Color secondaryColor;
+    String statusText;
+    String description;
+    IconData icon;
+    
+    switch (alertLevel) {
+      case AlertLevel.critical:
+        primaryColor = Colors.red;
+        secondaryColor = Colors.red.shade100;
+        statusText = tr(context, 'health_alert');
+        description = tr(context, 'environmental_conditions_attention');
+        icon = Icons.warning_rounded;
+        break;
+      case AlertLevel.high:
+        primaryColor = Colors.orange;
+        secondaryColor = Colors.orange.shade100;
+        statusText = tr(context, 'caution_advised');
+        description = tr(context, 'conditions_affect_sensitive');
+        icon = Icons.info_rounded;
+        break;
+      case AlertLevel.warning:
+        primaryColor = Colors.yellow[700]!;
+        secondaryColor = Colors.yellow.shade100;
+        statusText = tr(context, 'minor_concerns');
+        description = tr(context, 'generally_safe_considerations');
+        icon = Icons.lightbulb_rounded;
+        break;
+      default:
+        primaryColor = Colors.green;
+        secondaryColor = Colors.green.shade100;
+        statusText = tr(context, 'all_good');
+        description = tr(context, 'excellent_conditions_outdoor');
+        icon = Icons.check_circle_rounded;
     }
     
-    final temp = weatherData.temperature?.toStringAsFixed(1) ?? "N/A";
-    final humidity = weatherData.humidity?.toString() ?? "N/A";
-    final uv = weatherData.uvIndex?.toStringAsFixed(1) ?? "N/A";
-    final condition = weatherData.condition ?? "Unknown";
-    final location = _formatLocation(weatherData.city, weatherData.country);
-    
-    return _buildInfoCard(
-      title: tr(context, 'weather_conditions'),
-      icon: Icons.wb_sunny,
-      color: Colors.orange,
-      location: location,
-      content: Column(
-        children: [
-          _buildDataRow(tr(context, 'temperature'), "$temp°C"),
-          _buildDataRow(tr(context, 'humidity'), "$humidity%"),
-          _buildDataRow(tr(context, 'uv_index'), uv),
-          _buildDataRow(tr(context, 'condition'), condition.toUpperCase()),
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [secondaryColor, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAirQualityCard(dynamic airQualityData) {
-    if (airQualityData == null) {
-      return _buildInfoCard(
-        title: tr(context, 'air_quality'),
-        icon: Icons.air,
-        content: tr(context, 'air_quality_unavailable'),
-        color: Colors.grey,
-      );
-    }
-    
-    final aqi = airQualityData.aqi?.toString() ?? "N/A";
-    final description = airQualityData.qualityDescription ?? "Unknown";
-    final source = airQualityData.source ?? "Unknown";
-    final location = _formatLocation(airQualityData.city, airQualityData.country);
-    
-    Color aqiColor;
-    if (airQualityData.aqi != null) {
-      if (airQualityData.aqi <= 50) {
-        aqiColor = Colors.green;
-      } else if (airQualityData.aqi <= 100) {
-        aqiColor = Colors.yellow[700]!;
-      } else if (airQualityData.aqi <= 150) {
-        aqiColor = Colors.orange;
-      } else {
-        aqiColor = Colors.red;
-      }
-    } else {
-      aqiColor = Colors.grey;
-    }
-    
-    return _buildInfoCard(
-      title: tr(context, 'air_quality'),
-      icon: Icons.air,
-      color: aqiColor,
-      location: location,
-      content: Column(
-        children: [
-          _buildDataRow(tr(context, 'aqi'), aqi),
-          _buildDataRow(tr(context, 'quality'), description),
-          _buildDataRow(tr(context, 'source'), source),
-          if (airQualityData.pollutants != null)
-            ...airQualityData.pollutants.entries.take(3).map((entry) =>
-              _buildDataRow(
-                entry.key.toUpperCase(),
-                "${entry.value.toStringAsFixed(1)} μg/m³",
+      child: Padding(
+        padding: EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: primaryColor,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: primaryColor.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Icon(icon, color: Colors.white, size: 30),
+            ),
+            SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    statusText,
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: primaryColor,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[700],
+                      height: 1.4,
+                    ),
+                  ),
+                  if (alertCount > 0) ...[
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        alertCount > 1 ? "$alertCount ${tr(context, 'active_alerts')}" : "$alertCount ${tr(context, 'active_alert')}",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildHealthMetricsCard(Map<String, dynamic>? healthSummary) {
-    final heartRate = healthSummary?['heartRate'];
-    final hydration = healthSummary?['hydration'];
+  /// Weather conditions section
+  Widget _buildWeatherSection(Map<String, dynamic>? healthSummary) {
+    final weatherData = healthSummary?['weather'];
+    final location = weatherData != null ? _getWeatherLocation(weatherData) : null;
     
-    return _buildInfoCard(
-      title: tr(context, 'personal_health'),
-      icon: Icons.favorite,
-      color: Colors.pink,
-      content: Column(
-        children: [
-          _buildDataRow(
-            tr(context, 'heart_rate'),
-            heartRate != null ? "$heartRate bpm" : tr(context, 'not_available'),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.wb_sunny_rounded, color: Colors.orange, size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tr(context, 'weather_conditions'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            if (location != null) ...[
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Text(
+                location,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: 16),
+        // 2x2 Grid layout for weather metrics
+        Column(
+          children: [
+            // First row: Temperature, Humidity
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.thermostat,
+                    color: Colors.orange,
+                    title: tr(context, 'temperature'),
+                    value: weatherData?.temperature != null 
+                        ? "${weatherData!.temperature!.toStringAsFixed(1)}°C"
+                        : tr(context, 'not_available'),
+                    onTap: () => _showTemperatureInfo(context, weatherData?.temperature),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.opacity,
+                    color: Colors.blue,
+                    title: tr(context, 'humidity'),
+                    value: weatherData?.humidity != null 
+                        ? "${weatherData!.humidity}%"
+                        : tr(context, 'not_available'),
+                    onTap: () => _showHumidityInfo(context, weatherData?.humidity?.toDouble()),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12),
+            // Second row: UV Index, Weather Condition
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.wb_sunny,
+                    color: Colors.amber,
+                    title: tr(context, 'uv_index'),
+                    value: weatherData?.uvIndex != null 
+                        ? weatherData!.uvIndex!.toStringAsFixed(1)
+                        : tr(context, 'not_available'),
+                    onTap: () => _showUVIndexInfo(context, weatherData?.uvIndex),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Expanded(
+                  child: _buildModernHealthCard(
+                    icon: Icons.cloud,
+                    color: Colors.indigo,
+                    title: tr(context, 'condition'),
+                    value: weatherData?.condition != null 
+                        ? weatherData!.condition!.toUpperCase()
+                        : tr(context, 'not_available'),
+                    onTap: () => _showWeatherConditionInfo(context, weatherData?.condition),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Air quality section
+  Widget _buildAirQualitySection(Map<String, dynamic>? healthSummary) {
+    final airQualityData = healthSummary?['airQuality'];
+    final location = airQualityData != null ? _getAirQualityLocation(airQualityData) : null;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.air_rounded, color: Colors.teal, size: 24),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tr(context, 'air_quality'),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.titleLarge?.color,
+                ),
+              ),
+            ),
+            if (location != null) ...[
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Text(
+                location,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ],
+        ),
+        SizedBox(height: 16),
+        // First row: AQI, Quality, Source
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.air,
+                color: airQualityData?.aqi != null && airQualityData!.aqi <= 50 ? Colors.green : 
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 100 ? Colors.yellow[700]! :
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 150 ? Colors.orange : Colors.red,
+                title: tr(context, 'aqi'),
+                value: airQualityData?.aqi != null 
+                    ? "${airQualityData!.aqi}"
+                    : tr(context, 'not_available'),
+                onTap: () => _showAQIInfo(context, airQualityData?.aqi),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.health_and_safety,
+                color: airQualityData?.aqi != null && airQualityData!.aqi <= 50 ? Colors.green : 
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 100 ? Colors.yellow[700]! :
+                       airQualityData?.aqi != null && airQualityData!.aqi <= 150 ? Colors.orange : Colors.red,
+                title: tr(context, 'quality'),
+                value: airQualityData?.qualityDescription != null 
+                    ? airQualityData!.qualityDescription!
+                    : tr(context, 'not_available'),
+                onTap: () => _showAirQualityInfo(context, airQualityData?.qualityDescription),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.source,
+                color: Colors.grey[600]!,
+                title: tr(context, 'source'),
+                value: airQualityData?.source != null 
+                    ? airQualityData!.source!
+                    : tr(context, 'not_available'),
+                onTap: () => _showSourceInfo(context, airQualityData?.source),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        // Second row: PM2.5, PM10, NO2
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.blur_on,
+                color: Colors.purple,
+                title: 'PM2.5',
+                value: airQualityData?.pollutants?['pm2_5'] != null 
+                    ? "${airQualityData!.pollutants!['pm2_5']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showPM25Info(context, airQualityData?.pollutants?['pm2_5']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.grain,
+                color: Colors.brown,
+                title: 'PM10',
+                value: airQualityData?.pollutants?['pm10'] != null 
+                    ? "${airQualityData!.pollutants!['pm10']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showPM10Info(context, airQualityData?.pollutants?['pm10']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.local_gas_station,
+                color: Colors.red[600]!,
+                title: 'NO₂',
+                value: airQualityData?.pollutants?['no2'] != null 
+                    ? "${airQualityData!.pollutants!['no2']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showNO2Info(context, airQualityData?.pollutants?['no2']),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        // Third row: SO2, O3, CO
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.smoke_free,
+                color: Colors.orange[700]!,
+                title: 'SO₂',
+                value: airQualityData?.pollutants?['so2'] != null 
+                    ? "${airQualityData!.pollutants!['so2']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showSO2Info(context, airQualityData?.pollutants?['so2']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.wb_sunny_outlined,
+                color: Colors.cyan[600]!,
+                title: 'O₃',
+                value: airQualityData?.pollutants?['o3'] != null 
+                    ? "${airQualityData!.pollutants!['o3']!.toStringAsFixed(1)} μg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showO3Info(context, airQualityData?.pollutants?['o3']),
+              ),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.cloud_queue,
+                color: Colors.grey[700]!,
+                title: 'CO',
+                value: airQualityData?.pollutants?['co'] != null 
+                    ? "${(airQualityData!.pollutants!['co']! / 1000).toStringAsFixed(1)} mg/m³"
+                    : tr(context, 'not_available'),
+                onTap: () => _showCOInfo(context, airQualityData?.pollutants?['co']),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Personal health metrics in a modern grid
+  Widget _buildPersonalHealthGrid(Map<String, dynamic>? healthSummary) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.favorite_rounded, color: Colors.pink, size: 24),
+            SizedBox(width: 8),
+            Text(
+              tr(context, 'personal_health'),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.titleLarge?.color,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.favorite,
+                color: Colors.red,
+                title: tr(context, 'heart_rate'),
+                value: healthSummary?['heartRate'] != null ? "${healthSummary!['heartRate']} bpm" : tr(context, 'not_available'),
+                onTap: () => _showHeartRateInfo(context, healthSummary?['heartRate']),
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.water_drop,
+                color: Colors.blue,
+                title: tr(context, 'hydration'),
+                value: healthSummary?['hydration'] != null 
+                    ? "${(healthSummary!['hydration'] * 100).toStringAsFixed(0)}%"
+                    : tr(context, 'not_tracked'),
+                onTap: () => _showHydrationInfo(context, healthSummary?['hydration']),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.bedtime,
+                color: Colors.indigo,
+                title: tr(context, 'sleep_quality'),
+                value: tr(context, 'good'),
+                onTap: () => _showSleepQualityInfo(context, 'good'),
+              ),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: _buildModernHealthCard(
+                icon: Icons.directions_run,
+                color: Colors.green,
+                title: tr(context, 'activity_level'),
+                value: tr(context, 'moderate'),
+                onTap: () => _showActivityLevelInfo(context, 'moderate'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+
+  /// Modern health card for personal metrics
+  Widget _buildModernHealthCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(
+                    Icons.info_outline,
+                    size: 14,
+                    color: color.withValues(alpha: 0.7),
+                  ),
+                ],
+              ),
+              SizedBox(height: 12),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          _buildDataRow(
-            tr(context, 'hydration'),
-            hydration != null 
-              ? "${(hydration * 100).toStringAsFixed(0)}% ${tr(context, 'daily_goal')}"
-              : tr(context, 'not_tracked'),
-          ),
-          _buildDataRow(tr(context, 'sleep_quality'), tr(context, 'good')), // Placeholder
-          _buildDataRow(tr(context, 'activity_level'), tr(context, 'moderate')), // Placeholder
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildRecommendationsCard(Map<String, dynamic>? healthSummary) {
+
+
+  /// Quick recommendations card
+  Widget _buildQuickRecommendations(Map<String, dynamic>? healthSummary) {
     final alertLevel = healthSummary?['alertLevel'] ?? AlertLevel.normal;
     
     List<String> recommendations;
+    Color accentColor;
+    
     switch (alertLevel) {
       case AlertLevel.critical:
+      case AlertLevel.high:
         recommendations = [
           tr(context, 'stay_indoors_possible'),
           tr(context, 'limit_outdoor_exercise'),
-          tr(context, 'consider_mask_outdoors'),
-          tr(context, 'keep_windows_closed'),
-        ];
-        break;
-      case AlertLevel.high:
-        recommendations = [
-          tr(context, 'reduce_outdoor_activities'),
           tr(context, 'stay_hydrated'),
-          tr(context, 'monitor_symptoms_sensitive'),
-          tr(context, 'consider_indoor_alternatives'),
         ];
+        accentColor = Colors.red;
         break;
       case AlertLevel.warning:
         recommendations = [
           tr(context, 'drink_plenty_water'),
-          tr(context, 'take_breaks_exercise'),
           tr(context, 'monitor_air_quality'),
           tr(context, 'mindful_sun_exposure'),
         ];
+        accentColor = Colors.orange;
         break;
       default:
         recommendations = [
           tr(context, 'great_day_outdoor'),
           tr(context, 'perfect_exercise'),
           tr(context, 'enjoy_fresh_air'),
-          tr(context, 'ideal_conditions_wellness'),
         ];
+        accentColor = Colors.green;
     }
     
-    return _buildInfoCard(
-      title: tr(context, 'recommendations'),
-      icon: Icons.lightbulb,
-      color: Colors.blue,
-      content: Column(
-        children: recommendations.map((rec) => 
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: accentColor.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Icon(Icons.check_circle, size: 16, color: Colors.green),
+                Icon(Icons.lightbulb_rounded, color: accentColor, size: 24),
                 SizedBox(width: 8),
-                Expanded(child: Text(rec, style: TextStyle(fontSize: 14))),
+                Text(
+                  tr(context, 'quick_tips'),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: accentColor,
+                  ),
+                ),
               ],
             ),
-          ),
-        ).toList(),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required String title,
-    required IconData icon,
-    required dynamic content,
-    required Color color,
-    String? location,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 24),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              if (location != null)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        size: 12,
-                        color: color,
+            SizedBox(height: 16),
+            ...recommendations.take(3).map((rec) => 
+              Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: EdgeInsets.only(top: 6, right: 12),
+                      decoration: BoxDecoration(
+                        color: accentColor,
+                        shape: BoxShape.circle,
                       ),
-                      SizedBox(width: 4),
-                      Text(
-                        location,
+                    ),
+                    Expanded(
+                      child: Text(
+                        rec,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: color,
+                          fontSize: 14,
+                          height: 1.4,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
-          SizedBox(height: 12),
-          content is Widget ? content : Text(content.toString()),
-        ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildDataRow(String label, String value) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-        ],
+
+
+
+  /// Show UV Index information popup
+  void _showUVIndexInfo(BuildContext context, double? uvIndex) {
+    final infoService = HealthInfoService.instance;
+    final uvInfo = infoService.getUVIndexInfo(uvIndex);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'UV Index Information',
+          infoData: uvInfo,
+          currentValue: uvIndex?.toStringAsFixed(1),
+          customScale: uvIndex != null ? UVIndexScale(currentUV: uvIndex) : null,
+        ),
       ),
     );
   }
 
-  // Format location information, prioritizing city over country
-  String? _formatLocation(String? city, String? country) {
-    if (city != null && city.isNotEmpty && city != 'Unknown') {
-      return city;
-    } else if (country != null && country.isNotEmpty && country != 'Unknown') {
-      return country;
+  /// Show Temperature information popup
+  void _showTemperatureInfo(BuildContext context, double? temperature) {
+    final infoService = HealthInfoService.instance;
+    final tempInfo = infoService.getTemperatureInfo(temperature);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Temperature Information',
+          infoData: tempInfo,
+          currentValue: temperature != null ? '${temperature.toStringAsFixed(1)}°C' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Humidity information popup
+  void _showHumidityInfo(BuildContext context, double? humidity) {
+    final infoService = HealthInfoService.instance;
+    final humidityInfo = infoService.getHumidityInfo(humidity);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Humidity Information',
+          infoData: humidityInfo,
+          currentValue: humidity != null ? '${humidity.toStringAsFixed(0)}%' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Air Quality Index information popup
+  void _showAQIInfo(BuildContext context, int? aqi) {
+    final infoService = HealthInfoService.instance;
+    final aqiInfo = infoService.getAQIInfo(aqi);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Air Quality Index',
+          infoData: aqiInfo,
+          currentValue: aqi?.toString(),
+          customScale: aqi != null ? AQIScale(currentAQI: aqi) : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Heart Rate information popup
+  void _showHeartRateInfo(BuildContext context, int? heartRate) {
+    final infoService = HealthInfoService.instance;
+    final hrInfo = infoService.getHeartRateInfo(heartRate);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Heart Rate Information',
+          infoData: hrInfo,
+          currentValue: heartRate != null ? '$heartRate bpm' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Hydration information popup
+  void _showHydrationInfo(BuildContext context, double? hydration) {
+    final infoService = HealthInfoService.instance;
+    final hydrationInfo = infoService.getHydrationInfo(hydration);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Hydration Information',
+          infoData: hydrationInfo,
+          currentValue: hydration != null ? '${(hydration * 100).toStringAsFixed(0)}%' : null,
+        ),
+      ),
+    );
+  }
+
+  /// Show Sleep Quality information popup
+  void _showSleepQualityInfo(BuildContext context, String sleepQuality) {
+    final infoService = HealthInfoService.instance;
+    final sleepInfo = infoService.getSleepQualityInfo(sleepQuality);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Sleep Quality Information',
+          infoData: sleepInfo,
+          currentValue: sleepQuality.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  /// Show Activity Level information popup
+  void _showActivityLevelInfo(BuildContext context, String activityLevel) {
+    final infoService = HealthInfoService.instance;
+    final activityInfo = infoService.getActivityLevelInfo(activityLevel);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Activity Level Information',
+          infoData: activityInfo,
+          currentValue: activityLevel.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  // Helper method to get weather location
+  String? _getWeatherLocation(dynamic weatherData) {
+    if (weatherData?.city != null && weatherData!.city!.isNotEmpty && weatherData!.city != 'Unknown') {
+      return weatherData!.city!;
+    } else if (weatherData?.country != null && weatherData!.country!.isNotEmpty && weatherData!.country != 'Unknown') {
+      return weatherData!.country!;
     }
     return null;
+  }
+
+  // Helper method to get air quality location
+  String? _getAirQualityLocation(dynamic airQualityData) {
+    if (airQualityData?.city != null && airQualityData!.city!.isNotEmpty && airQualityData!.city != 'Unknown') {
+      return airQualityData!.city!;
+    } else if (airQualityData?.country != null && airQualityData!.country!.isNotEmpty && airQualityData!.country != 'Unknown') {
+      return airQualityData!.country!;
+    }
+    return null;
+  }
+
+  // Show weather condition information popup
+  void _showWeatherConditionInfo(BuildContext context, String? condition) {
+    final infoService = HealthInfoService.instance;
+    final conditionInfo = infoService.getWeatherConditionInfo(condition);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Weather Condition Information',
+          infoData: conditionInfo,
+          currentValue: condition?.toUpperCase(),
+        ),
+      ),
+    );
+  }
+
+  // Show air quality description popup
+  void _showAirQualityInfo(BuildContext context, String? quality) {
+    final infoService = HealthInfoService.instance;
+    final qualityInfo = infoService.getAirQualityDescriptionInfo(quality);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Air Quality Description',
+          infoData: qualityInfo,
+          currentValue: quality,
+        ),
+      ),
+    );
+  }
+
+  // Show source information popup
+  void _showSourceInfo(BuildContext context, String? source) {
+    final infoService = HealthInfoService.instance;
+    final sourceInfo = infoService.getSourceInfo(source);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'Data Source Information',
+          infoData: sourceInfo,
+          currentValue: source,
+        ),
+      ),
+    );
+  }
+
+  // Show PM2.5 information popup
+  void _showPM25Info(BuildContext context, double? pm25) {
+    final infoService = HealthInfoService.instance;
+    final pm25Info = infoService.getPM25Info(pm25);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'PM2.5 Information',
+          infoData: pm25Info,
+          currentValue: pm25 != null ? "${pm25.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show PM10 information popup
+  void _showPM10Info(BuildContext context, double? pm10) {
+    final infoService = HealthInfoService.instance;
+    final pm10Info = infoService.getPM10Info(pm10);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'PM10 Information',
+          infoData: pm10Info,
+          currentValue: pm10 != null ? "${pm10.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show NO2 information popup
+  void _showNO2Info(BuildContext context, double? no2) {
+    final infoService = HealthInfoService.instance;
+    final no2Info = infoService.getNO2Info(no2);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'NO₂ Information',
+          infoData: no2Info,
+          currentValue: no2 != null ? "${no2.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show SO2 information popup
+  void _showSO2Info(BuildContext context, double? so2) {
+    final infoService = HealthInfoService.instance;
+    final so2Info = infoService.getSO2Info(so2);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'SO₂ Information',
+          infoData: so2Info,
+          currentValue: so2 != null ? "${so2.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show O3 information popup
+  void _showO3Info(BuildContext context, double? o3) {
+    final infoService = HealthInfoService.instance;
+    final o3Info = infoService.getO3Info(o3);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'O₃ Information',
+          infoData: o3Info,
+          currentValue: o3 != null ? "${o3.toStringAsFixed(1)} μg/m³" : null,
+        ),
+      ),
+    );
+  }
+
+  // Show CO information popup
+  void _showCOInfo(BuildContext context, double? co) {
+    final infoService = HealthInfoService.instance;
+    final coInfo = infoService.getCOInfo(co);
+    
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HealthInfoScreen(
+          title: 'CO Information',
+          infoData: coInfo,
+          currentValue: co != null ? "${(co / 1000).toStringAsFixed(1)} mg/m³" : null,
+        ),
+      ),
+    );
   }
 
 }

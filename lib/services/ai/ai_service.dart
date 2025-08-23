@@ -1,15 +1,20 @@
 // lib/services/ai_service.dart
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:async';
 import '../../models/user/user_context.dart';
 import '../../config/gemini_api_config.dart';
+import 'ai_security_service.dart';
 
 class AIService {
   final UserContext context;
   late final GenerativeModel? _fastModel;
   late final GenerativeModel? _standardModel;
   bool _useGemini = true;
+  
+  // Security service for dissertation implementation
+  final AISecurityService _securityService = AISecurityService();
 
   // Rate limiting for free tier
   static const int _maxRequestsPerMinute = 15; // Free tier limit
@@ -137,7 +142,10 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
   String _getPersonalizedSystemPrompt() {
     String conversationContext;
 
-    if (_conversationHistory.isEmpty) {
+    // Check if this is the first interaction (should introduce)
+    bool shouldIntroduce = !_hasIntroduced;
+    
+    if (shouldIntroduce) {
       conversationContext =
           '''
 CONVERSATION STATUS: This is the start of a new conversation. 
@@ -176,52 +184,70 @@ CONVERSATION STATUS: This is a continuing conversation.
   // Main response generation method
   Future<String> generateResponseAsync(String userMessage) async {
     try {
+      // SECURITY LAYER: Validate input for prompt injection and malicious content
+      final securityValidation = await _securityService.validateInput(userMessage);
+      if (!securityValidation.isValid) {
+        // Return security-friendly message without revealing detection details
+        return "I want to keep our conversation focused on health and fitness topics that I can safely help with. Let's talk about your wellness goals instead! 💪";
+      }
+
+      // Use sanitized input for processing
+      final sanitizedInput = securityValidation.sanitizedInput ?? userMessage;
+
       // Check rate limits first
       if (!await _checkRateLimit()) {
         return _getRateLimitMessage();
       }
 
       // Check cache for recent similar queries
-      final cachedResponse = _getCachedResponse(userMessage);
+      final cachedResponse = _getCachedResponse(sanitizedInput);
       if (cachedResponse != null) {
         return cachedResponse;
       }
 
-      // Add to conversation history
+      // Add to conversation history (use original message for history)
       _addToHistory(userMessage, isUser: true);
 
-      // Build contextual prompt with conversation history
-      final contextualPrompt = _buildContextualPrompt(userMessage);
+      // Build contextual prompt with conversation history (use sanitized input)
+      final contextualPrompt = _buildContextualPrompt(sanitizedInput);
 
       // Select appropriate model based on query complexity
-      final model = _selectModel(userMessage);
+      final model = _selectModel(sanitizedInput);
 
       if (model == null) {
-        return _getContextAwareFallback(userMessage);
+        return _getContextAwareFallback(sanitizedInput);
       }
 
       // Generate response with timeout
       final response = await _generateWithTimeout(model, contextualPrompt);
 
       if (response.isEmpty) {
-        return _getContextAwareFallback(userMessage);
+        return _getContextAwareFallback(sanitizedInput);
       }
 
-      // Cache the response
-      _cacheResponse(userMessage, response);
+      // SECURITY LAYER: Filter response for medical content and safety
+      final responseFilter = await _securityService.filterResponse(response, userMessage);
+      
+      final finalResponse = responseFilter.isBlocked 
+          ? "I can't provide that type of health information, but I'm here to help with your fitness and wellness journey in other ways! What would you like to know about exercise or healthy living? 🌟"
+          : (responseFilter.filteredResponse ?? response);
 
-      // Add to conversation history
-      _addToHistory(response, isUser: false);
+      // Cache the original response (before filtering)
+      _cacheResponse(sanitizedInput, response);
+
+      // Add filtered response to conversation history
+      _addToHistory(finalResponse, isUser: false);
 
       // Mark as introduced if this was the first interaction
       if (!_hasIntroduced) {
         _hasIntroduced = true;
+        _saveIntroductionState(); // Persist the introduction state
       }
 
       // Track request for rate limiting
       _trackRequest();
 
-      return response;
+      return finalResponse;
     } catch (e) {
       return _getContextAwareFallback(userMessage);
     }
@@ -514,11 +540,53 @@ CONVERSATION STATUS: This is a continuing conversation.
     _conversationHistory.clear();
   }
 
+  // Conversation history management for UI controls
+  void clearConversationHistory() {
+    _conversationHistory.clear();
+    _hasIntroduced = false; // This will trigger a new introduction
+    _saveIntroductionState(); // Persist the reset state
+    debugPrint('🔄 Conversation history cleared - next message will include introduction');
+  }
+
+  List<ConversationTurn> getConversationHistory() {
+    return List.from(_conversationHistory);
+  }
+
+  int getConversationLength() {
+    return _conversationHistory.length;
+  }
+
+  bool hasActiveConversation() {
+    return _conversationHistory.isNotEmpty;
+  }
+
+  String getConversationSummary() {
+    if (_conversationHistory.isEmpty) {
+      return 'No active conversation';
+    }
+    return '${_conversationHistory.length} messages exchanged';
+  }
+
+  // Save introduction state to prevent multiple greetings
+  Future<void> _saveIntroductionState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('ai_has_introduced', _hasIntroduced);
+      debugPrint('💾 Saved introduction state: $_hasIntroduced');
+    } catch (e) {
+      debugPrint('❌ Failed to save introduction state: $e');
+    }
+  }
+
   // Persistence
   Future<void> _loadRequestHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       _dailyRequestCount = prefs.getInt('daily_request_count') ?? 0;
+      
+      // Load introduction flag to prevent multiple greetings
+      _hasIntroduced = prefs.getBool('ai_has_introduced') ?? false;
+      debugPrint('🔄 Loaded introduction state: $_hasIntroduced');
 
       final lastDateString = prefs.getString('last_request_date');
       if (lastDateString != null) {
@@ -621,6 +689,16 @@ CONVERSATION STATUS: This is a continuing conversation.
           ? _conversationHistory.first.timestamp.toIso8601String()
           : null,
     };
+  }
+
+  // Get security metrics for dissertation analysis
+  Future<SecurityMetrics> getSecurityMetrics() async {
+    return await _securityService.getSecurityMetrics();
+  }
+
+  // Reset security metrics for testing
+  Future<void> resetSecurityMetrics() async {
+    await _securityService.resetMetrics();
   }
 }
 

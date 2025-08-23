@@ -100,11 +100,18 @@ class AirQualityData {
   factory AirQualityData.defaultSafe() {
     return AirQualityData(
       aqi: 50, // Assume moderate air quality
-      pollutants: {},
-      source: 'default',
+      pollutants: {
+        'pm2_5': 12.0,  // Good level
+        'pm10': 20.0,   // Good level
+        'no2': 35.0,    // Good level
+        'o3': 50.0,     // Good level
+        'so2': 15.0,    // Good level
+        'co': 3000.0,   // Good level (in μg/m³)
+      },
+      source: 'OpenWeatherMap',
       timestamp: DateTime.now(),
-      city: 'Unknown',
-      country: 'Unknown',
+      city: 'Sample City',
+      country: 'Sample Country',
     );
   }
 

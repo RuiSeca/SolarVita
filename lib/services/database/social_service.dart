@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/social/social_activity.dart';
 import '../../models/user/supporter.dart';
-import '../../models/user/support.dart';
 import '../../models/community/community_challenge.dart';
+import '../../models/user/support.dart';
 import '../../models/user/privacy_settings.dart';
 import 'firebase_push_notification_service.dart';
 

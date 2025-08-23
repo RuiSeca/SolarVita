@@ -120,17 +120,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     // Initialize speech recognition
     _initializeSpeech();
 
-    // Add initial greeting message only if user hasn't interacted
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted && !_userHasInteracted && _messages.isEmpty) {
-        setState(() {
-          _messages.insert(
-            0,
-            ChatMessage(text: tr(context, 'assistant_greeting'), isUser: false),
-          );
-        });
-      }
-    });
+    // Remove UI-level greeting - let AI service handle introductions properly
   }
 
   Future<void> _initializeAvatarController() async {
@@ -983,6 +973,16 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                             ],
                           ),
                         ),
+                        PopupMenuItem<String>(
+                          value: 'chat_history',
+                          child: Row(
+                            children: [
+                              Icon(Icons.history, color: Colors.purple),
+                              const SizedBox(width: 12),
+                              Text('Chat History'),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -1543,6 +1543,9 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       case 'files':
         _handleFiles();
         break;
+      case 'chat_history':
+        _showChatHistory();
+        break;
     }
   }
 
@@ -1584,6 +1587,33 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
   void _handleFiles() {
     // Will be implemented for handling other file types
+  }
+
+  void _showChatHistory() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return ChatHistoryModal(
+          aiService: _aiService,
+          onClearHistory: () {
+            setState(() {
+              _messages.clear();
+              _userHasInteracted = false; // Reset interaction flag
+              _aiService.clearConversationHistory();
+            });
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Chat history cleared! Next message will include a new introduction.'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -2168,5 +2198,320 @@ class VoiceListeningIndicator extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class ChatHistoryModal extends StatelessWidget {
+  final AIService aiService;
+  final VoidCallback onClearHistory;
+
+  const ChatHistoryModal({
+    super.key,
+    required this.aiService,
+    required this.onClearHistory,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final conversationHistory = aiService.getConversationHistory();
+    final usageStats = aiService.getUsageStats();
+
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceColor(context),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Handle bar
+          Container(
+            width: 40,
+            height: 4,
+            margin: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: AppTheme.textColor(context).withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.history,
+                  color: AppTheme.textColor(context),
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Chat History',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${conversationHistory.length} messages • ${usageStats['daily_requests']}/${usageStats['daily_limit']} daily requests',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(
+                    Icons.close,
+                    color: AppTheme.textColor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const Divider(height: 1),
+          
+          // Usage Stats
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.textFieldBackground(context),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.textColor(context).withValues(alpha: 0.1),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Session Statistics',
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatItem(
+                      context,
+                      'Today\'s Requests',
+                      '${usageStats['daily_requests']}/${usageStats['daily_limit']}',
+                      Icons.today,
+                    ),
+                    _buildStatItem(
+                      context,
+                      'Cache Size',
+                      '${usageStats['cache_size']}',
+                      Icons.storage,
+                    ),
+                    _buildStatItem(
+                      context,
+                      'Has Introduced',
+                      usageStats['has_introduced'] ? 'Yes' : 'No',
+                      Icons.waving_hand,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // Conversation history
+          Expanded(
+            child: conversationHistory.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.chat_bubble_outline,
+                          size: 64,
+                          color: AppTheme.textColor(context).withValues(alpha: 0.3),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No conversation history yet',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Start chatting to see your message history here',
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.4),
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: conversationHistory.length,
+                    itemBuilder: (context, index) {
+                      final turn = conversationHistory[index];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: turn.isUser
+                              ? AppColors.primary.withValues(alpha: 0.1)
+                              : AppTheme.textFieldBackground(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  turn.isUser ? Icons.person : Icons.smart_toy,
+                                  size: 16,
+                                  color: turn.isUser
+                                      ? AppColors.primary
+                                      : AppTheme.textColor(context).withValues(alpha: 0.6),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  turn.isUser ? 'You' : 'AI Coach',
+                                  style: TextStyle(
+                                    color: AppTheme.textColor(context),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  _formatTimestamp(turn.timestamp),
+                                  style: TextStyle(
+                                    color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              turn.message,
+                              style: TextStyle(
+                                color: AppTheme.textColor(context),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          
+          // Actions
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceColor(context),
+              border: Border(
+                top: BorderSide(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.1),
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: conversationHistory.isEmpty ? null : onClearHistory,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Clear History'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Done'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppTheme.textColor(context).withValues(alpha: 0.6),
+            fontSize: 10,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  String _formatTimestamp(DateTime timestamp) {
+    final now = DateTime.now();
+    final difference = now.difference(timestamp);
+    
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inHours < 1) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inDays < 1) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inDays}d ago';
+    }
   }
 }
