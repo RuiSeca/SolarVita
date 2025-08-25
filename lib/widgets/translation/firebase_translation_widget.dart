@@ -143,7 +143,7 @@ class _TranslationManagerState extends ConsumerState<TranslationManager> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
-              value: _selectedLanguage,
+              initialValue: _selectedLanguage,
               decoration: const InputDecoration(
                 labelText: 'Language',
                 border: OutlineInputBorder(),

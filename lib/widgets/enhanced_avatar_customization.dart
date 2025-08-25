@@ -1048,7 +1048,7 @@ class _EnhancedAvatarCustomizationState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppTheme.isDarkMode(context)
+            activeThumbColor: AppTheme.isDarkMode(context)
               ? Colors.purple.shade300
               : Colors.purple,
           ),

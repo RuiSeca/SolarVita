@@ -71,6 +71,9 @@
   "enjoy_fresh_air": "Enjoy the fresh air",
   "ideal_conditions_wellness": "Ideal conditions for wellness",
   "breathing_exercise_coming": "Breathing exercise feature coming soon!",
+  "wellness_transitionmessage": "Your wellness environment is dynamically adapting to your current health data and environmental conditions.",
+  "wellness_environment_description": "This holistic view combines your personal health metrics with real-time environmental factors to provide personalized wellness insights.",
+  "wellness_score": "Wellness Score",
   "mood_options": {
     "energetic": "Energetic",
     "calm": "Calm", 

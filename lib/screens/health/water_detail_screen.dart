@@ -728,7 +728,7 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
               Switch(
                 value: _remindersEnabled,
                 onChanged: _toggleReminders,
-                activeColor: Colors.blue,
+                activeThumbColor: Colors.blue,
               ),
             ],
           ),

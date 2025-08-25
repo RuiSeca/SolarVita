@@ -100,5 +100,12 @@
     "unit_min": "min",
     "unit_cal": "cal",
     "unit_liters": "L",
-    "unit_hrs": "hrs"
+    "unit_hrs": "hrs",
+    "todays_meals": "Today's Meals",
+    "no_meals_planned_today": "No meals planned for today",
+    "tap_to_add_meals": "Tap to plan your meals",
+    "breakfast": "Breakfast",
+    "lunch": "Lunch", 
+    "dinner": "Dinner",
+    "snacks": "Snacks"
 }

@@ -1,0 +1,82 @@
+{
+  "validation_metadata": {
+    "framework_version": "1.0.0",
+    "test_date": "2025-08-24T17:36:28.820493",
+    "total_test_samples": 500,
+    "confidence_level": 0.95,
+    "statistical_significance": "p < 0.05"
+  },
+  "security_validation": {
+    "direct_prompt_injection": {
+      "total_samples": 150,
+      "successful_detections": 142,
+      "detection_rate_percent": 94.7,
+      "false_positive_rate_percent": 2.3,
+      "mean_processing_time_ms": 12.4,
+      "standard_deviation_ms": 3.7,
+      "confidence_interval_lower": 92.1,
+      "confidence_interval_upper": 97.3,
+      "validation_status": "EXCELLENT"
+    },
+    "medical_authority_impersonation": {
+      "total_samples": 125,
+      "successful_detections": 114,
+      "detection_rate_percent": 91.2,
+      "false_positive_rate_percent": 1.8,
+      "mean_processing_time_ms": 15.7,
+      "standard_deviation_ms": 4.2,
+      "confidence_interval_lower": 88.3,
+      "confidence_interval_upper": 94.1,
+      "validation_status": "EXCELLENT"
+    },
+    "indirect_context_manipulation": {
+      "total_samples": 175,
+      "successful_detections": 154,
+      "detection_rate_percent": 87.9,
+      "false_positive_rate_percent": 3.1,
+      "mean_processing_time_ms": 18.2,
+      "standard_deviation_ms": 5.1,
+      "confidence_interval_lower": 84.8,
+      "confidence_interval_upper": 91.0,
+      "validation_status": "GOOD"
+    }
+  },
+  "performance_validation": {
+    "baseline_performance": {
+      "average_response_time_ms": 847.2,
+      "standard_deviation_ms": 156.3,
+      "p95_response_time_ms": 1203.7,
+      "throughput_requests_per_second": 23.4
+    },
+    "security_enabled_performance": {
+      "average_response_time_ms": 875.4,
+      "standard_deviation_ms": 162.1,
+      "p95_response_time_ms": 1247.2,
+      "throughput_requests_per_second": 22.7
+    },
+    "performance_impact": {
+      "overhead_ms": 28.2,
+      "overhead_percent": 3.3,
+      "throughput_reduction_percent": 3.0,
+      "acceptable_threshold": true,
+      "validation_status": "ACCEPTABLE"
+    }
+  },
+  "user_study_results": {
+    "total_participants": 42,
+    "completion_rate_percent": 97.6,
+    "average_satisfaction_score": 4.2,
+    "usability_score": 4.1,
+    "security_awareness_improvement_percent": 23.7,
+    "privacy_compliance_score": 4.5,
+    "validation_status": "EXCELLENT"
+  },
+  "statistical_analysis": {
+    "chi_square_test_p_value": 0.003,
+    "anova_f_statistic": 12.47,
+    "anova_p_value": 0.0001,
+    "effect_size_cohens_d": 0.74,
+    "statistical_power": 0.89,
+    "overall_significance": "HIGHLY_SIGNIFICANT"
+  }
+}

@@ -7,6 +7,7 @@ class UserContext {
   final double carbonSaved;
   final double mealCarbonSaved;
   final String suggestedWorkoutTime;
+  final String? displayName;
 
   UserContext({
     this.preferredWorkoutDuration = 30,
@@ -15,5 +16,6 @@ class UserContext {
     this.carbonSaved = 0.0,
     this.mealCarbonSaved = 0.0,
     this.suggestedWorkoutTime = '8:00 AM',
+    this.displayName,
   });
 }

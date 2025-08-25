@@ -9,8 +9,11 @@ import '../../services/database/social_service.dart';
 import '../../services/chat/data_sync_service.dart';
 import '../../models/user/supporter.dart';
 import 'supporter/supporter_requests_screen.dart';
+import '../health/meals/meal_plan_screen.dart';
 import '../../utils/translation_helper.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -128,6 +131,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   _SupporterRequestNotification(
                     stream: _supporterRequestsStream!,
                   ),
+                  const _TodaysMealWidget(),
                   const SizedBox(height: 8),
                   const OptimizedDailyGoals(),
                   const SizedBox(height: 8),
@@ -344,6 +348,324 @@ class _SupporterRequestCard extends StatelessWidget {
                   size: 16,
                   color: theme.primaryColor,
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TodaysMealWidget extends ConsumerStatefulWidget {
+  const _TodaysMealWidget();
+
+  @override
+  ConsumerState<_TodaysMealWidget> createState() => _TodaysMealWidgetState();
+}
+
+class _TodaysMealWidgetState extends ConsumerState<_TodaysMealWidget> {
+  Map<String, List<Map<String, dynamic>>> _todaysMeals = {};
+  bool _isLoading = true;
+  int _totalMeals = 0;
+  double _totalCalories = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodaysMeals();
+  }
+
+  Future<void> _loadTodaysMeals() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedWeeklyData = prefs.getString('weeklyMealData');
+      
+      if (savedWeeklyData != null) {
+        final decodedData = json.decode(savedWeeklyData);
+        final today = DateTime.now();
+        final todayIndex = today.weekday - 1; // Convert to 0-6 index
+        final todayKey = todayIndex.toString();
+        
+        if (decodedData[todayKey] != null) {
+          final todayData = decodedData[todayKey] as Map<String, dynamic>;
+          
+          setState(() {
+            _todaysMeals = {};
+            _totalMeals = 0;
+            _totalCalories = 0;
+            
+            todayData.forEach((mealTime, meals) {
+              if (meals is List) {
+                final mealsList = meals.map((meal) => Map<String, dynamic>.from(meal)).toList();
+                // Filter out suggested meals for counting
+                final regularMeals = mealsList.where((meal) => meal['isSuggested'] != true).toList();
+                
+                _todaysMeals[mealTime] = regularMeals;
+                _totalMeals += regularMeals.length;
+                
+                // Calculate calories for regular meals only
+                for (var meal in regularMeals) {
+                  final calories = double.tryParse(
+                    meal['nutritionFacts']?['calories']?.toString().replaceAll(RegExp(r'[^0-9.]'), '') ?? '0'
+                  ) ?? 0;
+                  _totalCalories += calories;
+                }
+              }
+            });
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading today\'s meals: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> _getAllMealsForToday() {
+    List<Map<String, dynamic>> allMeals = [];
+    _todaysMeals.forEach((mealTime, meals) {
+      for (var meal in meals) {
+        allMeals.add({...meal, 'mealTime': mealTime});
+      }
+    });
+    return allMeals;
+  }
+
+  Widget _buildMealImage(String? imagePath) {
+    if (imagePath == null || imagePath.isEmpty) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor(context),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.restaurant, size: 20, color: Colors.grey),
+      );
+    }
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          imagePath,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => Container(
+            color: AppTheme.cardColor(context),
+            child: const Icon(Icons.restaurant, size: 20, color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const SizedBox.shrink();
+    }
+
+    if (_totalMeals == 0) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MealPlanScreen(),
+                ),
+              ).then((_) => _loadTodaysMeals()); // Refresh when coming back
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.orange.withAlpha(25),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.withAlpha(76),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.restaurant_menu,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr(context, 'no_meals_planned_today'),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          tr(context, 'tap_to_add_meals'),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.orange.withAlpha(179),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final allMeals = _getAllMealsForToday();
+    final displayMeals = allMeals.take(3).toList(); // Show max 3 meals
+    final hasMoreMeals = allMeals.length > 3;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MealPlanScreen(),
+              ),
+            ).then((_) => _loadTodaysMeals()); // Refresh when coming back
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.withAlpha(25),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withAlpha(76),
+                width: 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.restaurant_menu,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr(context, 'todays_meals'),
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$_totalMeals ${_totalMeals == 1 ? 'meal' : 'meals'} • ${_totalCalories.toInt()} kcal',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Colors.green.withAlpha(179),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+                if (displayMeals.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  ...displayMeals.map((meal) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        _buildMealImage(meal['imagePath']),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                meal['titleKey'] ?? meal['name'] ?? 'Unnamed Meal',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                '${tr(context, meal['mealTime'])} • ${meal['nutritionFacts']?['calories'] ?? '0'} kcal',
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.green.withAlpha(179),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )),
+                  if (hasMoreMeals)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '+${allMeals.length - 3} more meals',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.green.withAlpha(153),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),

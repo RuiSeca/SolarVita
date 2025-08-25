@@ -512,7 +512,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _gender,
+          initialValue: _gender,
           decoration: InputDecoration(
             labelText: tr(context, 'gender'),
             prefixIcon: const Icon(Icons.person_outline),
@@ -631,7 +631,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _activityLevel,
+          initialValue: _activityLevel,
           decoration: InputDecoration(
             labelText: tr(context, 'current_activity_level'),
             prefixIcon: const Icon(Icons.fitness_center),
@@ -654,7 +654,7 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _weeklyActivity,
+          initialValue: _weeklyActivity,
           decoration: InputDecoration(
             labelText: tr(context, 'weekly_exercise_frequency'),
             prefixIcon: const Icon(Icons.calendar_today),

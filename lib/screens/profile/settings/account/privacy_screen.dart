@@ -815,7 +815,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       ),
       value: value,
       onChanged: enabled ? onChanged : null,
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
     );
   }
 
@@ -852,7 +852,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       ),
       value: value,
       onChanged: onChanged,
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
     );
   }
 

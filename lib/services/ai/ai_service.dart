@@ -35,13 +35,12 @@ class AIService {
   final List<ConversationTurn> _conversationHistory = [];
   static const int _maxHistoryLength = 10;
 
-  // Introduction tracking
-  bool _hasIntroduced = false;
+  // Session tracking
   String? _currentSessionId;
 
   // Fitness coach system prompt with your new personality
   static const String _fitnessSystemPrompt = '''
-You're SolarVita's fun, down-to-earth fitness coach — think: gym bro/gal with a brain, heart, and an eco-friendly water bottle. You're here to help users get fit, stay healthy, and save the planet a bit while they're at it.
+You're SolarVita's fun, down-to-earth fitness coach — think: gym bro/gal with a brain, heart, and an eco-friendly water bottle. You're here to help{userName} get fit, stay healthy, and save the planet a bit while they're at it.
 
 Current user profile:
 - Workout duration goal: {workoutDuration} mins
@@ -140,32 +139,25 @@ Keep it real, keep it fun, and remember — you're not just a fitness bot, you'r
   }
 
   String _getPersonalizedSystemPrompt() {
-    String conversationContext;
+    // Simple, consistent system prompt - no introduction logic
+    String conversationContext = '''
+CONVERSATION STATUS: You are their SolarVita fitness coach.
+- Be helpful, friendly, and direct
+- Jump straight into answering their question or providing advice
+- Keep responses concise and actionable
+- Reference conversation history when relevant
+- No need for greetings or introductions
+- Focus on being genuinely helpful
+''';
 
-    // Check if this is the first interaction (should introduce)
-    bool shouldIntroduce = !_hasIntroduced;
-    
-    if (shouldIntroduce) {
-      conversationContext =
-          '''
-CONVERSATION STATUS: This is the start of a new conversation. 
-- Give a fun, casual intro as their SolarVita fitness coach
-- Mention their awesome eco achievements (${context.ecoScore}/100 eco score, ${context.carbonSaved} kg CO₂ saved)
-- Ask what they want to chat about today — fitness, life, or whatever!
-- Keep it friendly and welcoming, not robotic
-''';
-    } else {
-      conversationContext = '''
-CONVERSATION STATUS: This is a continuing conversation.
-- Jump right back into the flow — no need to re-introduce yourself
-- Reference what you talked about before when relevant
-- Keep the same fun, supportive energy
-- Don't repeat info you already shared
-''';
-    }
+    // Personalize with user's name if available
+    final userName = context.displayName != null 
+        ? ' ${context.displayName}' 
+        : '';
 
     // Fixed: Removed the ?. operator since mealCarbonSaved is not nullable
     return _fitnessSystemPrompt
+        .replaceAll('{userName}', userName)
         .replaceAll(
           '{workoutDuration}',
           context.preferredWorkoutDuration.toString(),
@@ -238,11 +230,7 @@ CONVERSATION STATUS: This is a continuing conversation.
       // Add filtered response to conversation history
       _addToHistory(finalResponse, isUser: false);
 
-      // Mark as introduced if this was the first interaction
-      if (!_hasIntroduced) {
-        _hasIntroduced = true;
-        _saveIntroductionState(); // Persist the introduction state
-      }
+      // No introduction tracking needed
 
       // Track request for rate limiting
       _trackRequest();
@@ -286,10 +274,7 @@ CONVERSATION STATUS: This is a continuing conversation.
         _cacheResponse(userMessage, fullResponse);
         _addToHistory(fullResponse, isUser: false);
 
-        // Mark as introduced if this was the first interaction
-        if (!_hasIntroduced) {
-          _hasIntroduced = true;
-        }
+        // No introduction tracking needed
 
         _trackRequest();
       }
@@ -384,44 +369,32 @@ CONVERSATION STATUS: This is a continuing conversation.
     }
   }
 
-  // Context-aware fallback with personality
+  // Simple fallback without introductions or eco mentions
   String _getContextAwareFallback(String userMessage) {
     final lowerMessage = userMessage.toLowerCase();
 
-    // Check if this is the first interaction
-    if (_conversationHistory.isEmpty) {
-      return "Hey there! 👋 I'm your SolarVita fitness coach, and I'm having a tiny tech hiccup right now, "
-          "but I'm still pumped to help you out! I can see you've got a solid ${context.ecoScore}/100 eco score "
-          "and have saved ${context.carbonSaved} kg CO₂ - that's seriously awesome! 🌱 "
-          "What's on your mind today? Fitness, food, life stuff, or just want to chat?";
-    }
-
-    // Analyze the message for continuing conversations
+    // Analyze the message for specific topics
     if (lowerMessage.contains('workout') || lowerMessage.contains('exercise')) {
-      return "💪 Ugh, my brain's buffering right now, but I'm still here for you! "
-          "Since you're thinking ${context.preferredWorkoutDuration}-minute workouts, "
-          "how about we start with some quick warm-up moves? Give me a sec to get my head straight, "
-          "or tell me more about what kind of workout vibe you're feeling!";
+      return "I'm having a technical issue right now, but I'm still here to help with your workout! "
+          "Can you tell me more about what kind of workout you're looking for? "
+          "Home workout, gym routine, or something specific?";
     }
 
     if (lowerMessage.contains('nutrition') ||
         lowerMessage.contains('meal') ||
         lowerMessage.contains('food')) {
-      return "🥗 My nutrition brain is being a bit slow today, but hey - you've already saved "
-          "${context.plasticBottlesSaved} plastic bottles, so you're clearly making smart choices! "
-          "What kind of food situation are we talking about? Meal prep, snack attack, or something else?";
+      return "My nutrition knowledge is having a brief hiccup, but I'd still love to help! "
+          "What kind of nutrition question do you have? Meal planning, healthy recipes, or dietary advice?";
     }
 
     if (lowerMessage.contains('eco') || lowerMessage.contains('environment')) {
-      return "🌱 Love that you're thinking green! My eco-knowledge is taking a breather, "
-          "but your ${context.ecoScore}/100 score and ${context.carbonSaved} kg CO₂ saved speaks for itself! "
-          "What sustainability stuff is on your mind?";
+      return "I'm having some technical difficulties, but I can still help with sustainability topics! "
+          "What eco-friendly aspect would you like to discuss?";
     }
 
     // General casual fallback
-    return "😅 My brain's having a moment, but I'm still here! "
-        "Can you give me a different angle on what you're asking? "
-        "I'm ready to get back to helping you crush your goals! 💪";
+    return "I'm experiencing a technical issue at the moment, but I'm still here to help! "
+        "Could you rephrase your question or let me know what specific topic you'd like assistance with?";
   }
 
   // Rate limiting implementation
@@ -530,22 +503,18 @@ CONVERSATION STATUS: This is a continuing conversation.
 
   // Session management
   void startNewConversation() {
-    _hasIntroduced = false;
     _conversationHistory.clear();
     _currentSessionId = DateTime.now().millisecondsSinceEpoch.toString();
   }
 
   void endConversation() {
-    _hasIntroduced = false;
     _conversationHistory.clear();
   }
 
   // Conversation history management for UI controls
   void clearConversationHistory() {
     _conversationHistory.clear();
-    _hasIntroduced = false; // This will trigger a new introduction
-    _saveIntroductionState(); // Persist the reset state
-    debugPrint('🔄 Conversation history cleared - next message will include introduction');
+    debugPrint('🔄 Conversation history cleared');
   }
 
   List<ConversationTurn> getConversationHistory() {
@@ -567,26 +536,13 @@ CONVERSATION STATUS: This is a continuing conversation.
     return '${_conversationHistory.length} messages exchanged';
   }
 
-  // Save introduction state to prevent multiple greetings
-  Future<void> _saveIntroductionState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('ai_has_introduced', _hasIntroduced);
-      debugPrint('💾 Saved introduction state: $_hasIntroduced');
-    } catch (e) {
-      debugPrint('❌ Failed to save introduction state: $e');
-    }
-  }
+  // Introduction state management removed
 
   // Persistence
   Future<void> _loadRequestHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       _dailyRequestCount = prefs.getInt('daily_request_count') ?? 0;
-      
-      // Load introduction flag to prevent multiple greetings
-      _hasIntroduced = prefs.getBool('ai_has_introduced') ?? false;
-      debugPrint('🔄 Loaded introduction state: $_hasIntroduced');
 
       final lastDateString = prefs.getString('last_request_date');
       if (lastDateString != null) {
@@ -663,7 +619,6 @@ CONVERSATION STATUS: This is a continuing conversation.
 
   void clearHistory() {
     _conversationHistory.clear();
-    _hasIntroduced = false;
   }
 
   // Get usage statistics
@@ -674,7 +629,6 @@ CONVERSATION STATUS: This is a continuing conversation.
       'requests_remaining': _maxRequestsPerDay - _dailyRequestCount,
       'cache_size': _responseCache.length,
       'conversation_length': _conversationHistory.length,
-      'has_introduced': _hasIntroduced,
       'session_id': _currentSessionId,
     };
   }
@@ -682,7 +636,6 @@ CONVERSATION STATUS: This is a continuing conversation.
   // Get conversation state
   Map<String, dynamic> getConversationState() {
     return {
-      'has_introduced': _hasIntroduced,
       'message_count': _conversationHistory.length,
       'session_id': _currentSessionId,
       'last_message_time': _conversationHistory.isNotEmpty

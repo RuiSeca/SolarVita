@@ -258,19 +258,23 @@ class _DiaryPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._templateOptions.map((template) {
-          return RadioListTile<String>(
-            title: Text(_formatTemplateName(template)),
-            subtitle: Text(_getTemplateDescription(template)),
-            value: template,
-            groupValue: _defaultTemplate,
-            onChanged: (value) {
-              setState(() {
-                _defaultTemplate = value!;
-              });
-            },
-          );
-        }),
+        RadioGroup<String>(
+          groupValue: _defaultTemplate,
+          onChanged: (value) {
+            setState(() {
+              _defaultTemplate = value!;
+            });
+          },
+          child: Column(
+            children: _templateOptions.map((template) {
+              return RadioListTile<String>(
+                title: Text(_formatTemplateName(template)),
+                subtitle: Text(_getTemplateDescription(template)),
+                value: template,
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }

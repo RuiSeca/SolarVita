@@ -24,6 +24,7 @@ import '../../services/avatars/universal_avatar_controller.dart';
 import '../../services/avatars/avatar_interaction_manager.dart';
 import '../../services/avatars/smart_avatar_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/riverpod/user_profile_provider.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -92,6 +93,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       }
     });
     try {
+      // Get user's display name from profile
+      final userProfile = ref.read(userProfileNotifierProvider).value;
+      final displayName = userProfile?.displayName;
+      
       _aiService = AIService(
         context: UserContext(
           preferredWorkoutDuration: 30,
@@ -100,10 +105,14 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           carbonSaved: 12.5,
           mealCarbonSaved: 8.3,
           suggestedWorkoutTime: '8:00 AM',
+          displayName: displayName,
         ),
       );
     } catch (e) {
       // Initialize with a placeholder service that provides basic responses
+      final userProfile = ref.read(userProfileNotifierProvider).value;
+      final displayName = userProfile?.displayName;
+      
       _aiService = AIService(
         context: UserContext(
           preferredWorkoutDuration: 30,
@@ -112,6 +121,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
           carbonSaved: 12.5,
           mealCarbonSaved: 8.3,
           suggestedWorkoutTime: '8:00 AM',
+          displayName: displayName,
         ),
       );
     }
@@ -894,96 +904,46 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     return Container(
-      padding: EdgeInsets.only(
-        top: 12,
-        bottom: MediaQuery.of(context).viewInsets.bottom > 0 ? 8 : 16,
-        left: 16,
-        right: 16,
-      ),
-      constraints: const BoxConstraints(
-        maxHeight: 200, // Prevent excessive height
-      ),
       decoration: BoxDecoration(
         color: AppTheme.surfaceColor(context),
         border: Border(
           top: BorderSide(color: AppTheme.textColor(context).withAlpha(26)),
         ),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Input row with attachment button
-          Row(
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            top: 12,
+            bottom: 8,
+            left: 16,
+            right: 16,
+          ),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              // Attachment button outside input
+              // Attachment button
               Container(
-                margin: const EdgeInsets.only(right: 8, bottom: 8),
+                width: 40,
+                height: 40,
+                margin: const EdgeInsets.only(right: 8, bottom: 4),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.textFieldBackground(context),
+                  border: Border.all(
+                    color: AppTheme.textColor(context).withAlpha(26),
+                    width: 1,
+                  ),
+                ),
                 child: Material(
                   color: Colors.transparent,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.textFieldBackground(context),
-                      border: Border.all(
-                        color: AppTheme.textColor(context).withAlpha(26),
-                        width: 1,
-                      ),
-                    ),
-                    child: PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      offset: const Offset(0, -180),
-                      position: PopupMenuPosition.over,
-                      icon: Icon(
-                        Icons.add,
-                        color: AppTheme.textColor(context).withAlpha(128),
-                        size: 20,
-                      ),
-                      onSelected: _handleAttachmentSelection,
-                      itemBuilder: (context) => <PopupMenuEntry<String>>[
-                        PopupMenuItem<String>(
-                          value: 'photos',
-                          child: Row(
-                            children: [
-                              Icon(Icons.photo_library, color: Colors.blue),
-                              const SizedBox(width: 12),
-                              Text(tr(context, 'attach_photos')),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'camera',
-                          child: Row(
-                            children: [
-                              Icon(Icons.camera_alt, color: Colors.green),
-                              const SizedBox(width: 12),
-                              Text(tr(context, 'attach_camera')),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'files',
-                          child: Row(
-                            children: [
-                              Icon(Icons.attach_file, color: Colors.orange),
-                              const SizedBox(width: 12),
-                              Text(tr(context, 'attach_files')),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem<String>(
-                          value: 'chat_history',
-                          child: Row(
-                            children: [
-                              Icon(Icons.history, color: Colors.purple),
-                              const SizedBox(width: 12),
-                              Text('Chat History'),
-                            ],
-                          ),
-                        ),
-                      ],
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: _showModernAttachmentMenu,
+                    child: Icon(
+                      Icons.add,
+                      color: AppTheme.textColor(context).withAlpha(128),
+                      size: 20,
                     ),
                   ),
                 ),
@@ -993,27 +953,23 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
               Expanded(
                 child: Container(
                   constraints: BoxConstraints(
-                    minHeight: 50,
+                    minHeight: 48,
                     maxHeight: isTablet ? 120 : 100,
                   ),
                   decoration: BoxDecoration(
                     color: AppTheme.textFieldBackground(context),
-                    borderRadius: BorderRadius.circular(25),
+                    borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: AppTheme.textColor(context).withAlpha(26),
                       width: 1,
                     ),
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       // Text input
                       Expanded(
-                        child: Container(
+                        child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          constraints: BoxConstraints(
-                            maxHeight: isTablet ? 120 : 90, // Limit expansion
-                          ),
                           child: TextField(
                             controller: _messageController,
                             focusNode: _focusNode,
@@ -1027,9 +983,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                             decoration: InputDecoration(
                               hintText: tr(context, 'input_placeholder'),
                               hintStyle: TextStyle(
-                                color: AppTheme.textColor(
-                                  context,
-                                ).withAlpha(128),
+                                color: AppTheme.textColor(context).withAlpha(128),
                                 fontSize: 16,
                               ),
                               border: InputBorder.none,
@@ -1037,6 +991,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                                 horizontal: 0,
                                 vertical: 12,
                               ),
+                              isDense: true,
                             ),
                             onSubmitted: _handleSubmitted,
                           ),
@@ -1044,63 +999,46 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       ),
 
                       // Microphone and Send buttons
-                      Container(
-                        margin: const EdgeInsets.only(right: 8, bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             // Microphone button (shown when no text)
                             AnimatedBuilder(
                               animation: _sendButtonAnimation,
                               builder: (context, child) {
                                 final microphoneOpacity =
-                                    (1.0 - _sendButtonAnimation.value).clamp(
-                                      0.0,
-                                      1.0,
-                                    );
+                                    (1.0 - _sendButtonAnimation.value).clamp(0.0, 1.0);
                                 final microphoneScale =
-                                    (1.0 - _sendButtonAnimation.value).clamp(
-                                      0.0,
-                                      1.0,
-                                    );
+                                    (1.0 - _sendButtonAnimation.value).clamp(0.0, 1.0);
                                 return Transform.scale(
                                   scale: microphoneScale,
                                   child: Opacity(
                                     opacity: microphoneOpacity,
-                                    child:
-                                        _messageController.text.trim().isEmpty
+                                    child: _messageController.text.trim().isEmpty
                                         ? Container(
                                             width: 32,
                                             height: 32,
-                                            margin: const EdgeInsets.only(
-                                              right: 2,
-                                            ),
+                                            margin: const EdgeInsets.only(right: 2),
                                             child: Material(
                                               color: Colors.transparent,
+                                              borderRadius: BorderRadius.circular(16),
                                               child: InkWell(
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
+                                                borderRadius: BorderRadius.circular(16),
                                                 onTap: _handleVoiceInput,
                                                 child: Container(
                                                   decoration: BoxDecoration(
                                                     shape: BoxShape.circle,
                                                     color: _speechListening
-                                                        ? AppColors.primary
-                                                              .withAlpha(51)
-                                                        : AppTheme.textColor(
-                                                            context,
-                                                          ).withAlpha(26),
+                                                        ? AppColors.primary.withAlpha(51)
+                                                        : AppTheme.textColor(context).withAlpha(26),
                                                   ),
                                                   child: Icon(
-                                                    _speechListening
-                                                        ? Icons.stop
-                                                        : Icons.mic,
+                                                    _speechListening ? Icons.stop : Icons.mic,
                                                     color: _speechListening
                                                         ? AppColors.primary
-                                                        : AppTheme.textColor(
-                                                            context,
-                                                          ).withAlpha(128),
+                                                        : AppTheme.textColor(context).withAlpha(128),
                                                     size: 18,
                                                   ),
                                                 ),
@@ -1117,36 +1055,27 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                             AnimatedBuilder(
                               animation: _sendButtonAnimation,
                               builder: (context, child) {
-                                final sendOpacity = _sendButtonAnimation.value
-                                    .clamp(0.0, 1.0);
-                                final sendScale = _sendButtonAnimation.value
-                                    .clamp(0.0, 1.0);
+                                final sendOpacity = _sendButtonAnimation.value.clamp(0.0, 1.0);
+                                final sendScale = _sendButtonAnimation.value.clamp(0.0, 1.0);
                                 return Transform.scale(
                                   scale: sendScale,
                                   child: Opacity(
                                     opacity: sendOpacity,
-                                    child:
-                                        _messageController.text
-                                            .trim()
-                                            .isNotEmpty
+                                    child: _messageController.text.trim().isNotEmpty
                                         ? SizedBox(
                                             width: 32,
                                             height: 32,
                                             child: Material(
                                               color: Colors.transparent,
+                                              borderRadius: BorderRadius.circular(16),
                                               child: InkWell(
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                                onTap: () => _handleSubmitted(
-                                                  _messageController.text,
-                                                ),
+                                                borderRadius: BorderRadius.circular(16),
+                                                onTap: () => _handleSubmitted(_messageController.text),
                                                 child: Container(
-                                                  decoration:
-                                                      const BoxDecoration(
-                                                        shape: BoxShape.circle,
-                                                        color:
-                                                            AppColors.primary,
-                                                      ),
+                                                  decoration: const BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: AppColors.primary,
+                                                  ),
                                                   child: const Icon(
                                                     Icons.send,
                                                     color: Colors.white,
@@ -1170,7 +1099,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1532,7 +1461,36 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     }
   }
 
+  void _showModernAttachmentMenu() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return ModernAttachmentMenu(
+          aiService: _aiService,
+          onActionSelected: _handleAttachmentSelection,
+          onClearHistory: () {
+            setState(() {
+              _messages.clear();
+              _userHasInteracted = false;
+              _aiService.clearConversationHistory();
+            });
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Chat history cleared! Next message will include a new introduction.'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _handleAttachmentSelection(String value) {
+    Navigator.pop(context); // Close the bottom sheet first
     switch (value) {
       case 'photos':
         _pickFromGallery();
@@ -1542,9 +1500,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         break;
       case 'files':
         _handleFiles();
-        break;
-      case 'chat_history':
-        _showChatHistory();
         break;
     }
   }
@@ -1589,32 +1544,6 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     // Will be implemented for handling other file types
   }
 
-  void _showChatHistory() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return ChatHistoryModal(
-          aiService: _aiService,
-          onClearHistory: () {
-            setState(() {
-              _messages.clear();
-              _userHasInteracted = false; // Reset interaction flag
-              _aiService.clearConversationHistory();
-            });
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Chat history cleared! Next message will include a new introduction.'),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 }
 
 class ChatMessage extends StatelessWidget {
@@ -2201,13 +2130,15 @@ class VoiceListeningIndicator extends StatelessWidget {
   }
 }
 
-class ChatHistoryModal extends StatelessWidget {
+class ModernAttachmentMenu extends StatelessWidget {
   final AIService aiService;
+  final Function(String) onActionSelected;
   final VoidCallback onClearHistory;
 
-  const ChatHistoryModal({
+  const ModernAttachmentMenu({
     super.key,
     required this.aiService,
+    required this.onActionSelected,
     required this.onClearHistory,
   });
 
@@ -2222,69 +2153,173 @@ class ChatHistoryModal extends StatelessWidget {
         color: AppTheme.surfaceColor(context),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: AppTheme.textColor(context).withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle bar
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
-          ),
-          
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
+
+            // --- Top Attachment Buttons Row ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildTopButton(
+                  context,
+                  Icons.camera_alt,
+                  tr(context, 'attach_camera'),
+                  Colors.green,
+                  () => onActionSelected('camera'),
+                ),
+                _buildTopButton(
+                  context,
+                  Icons.photo_library,
+                  tr(context, 'attach_photos'),
+                  Colors.blue,
+                  () => onActionSelected('photos'),
+                ),
+                _buildTopButton(
+                  context,
+                  Icons.attach_file,
+                  tr(context, 'attach_files'),
+                  Colors.orange,
+                  () => onActionSelected('files'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Divider line
+            Divider(
+              color: AppTheme.textColor(context).withValues(alpha: 0.2),
+              thickness: 1,
+            ),
+
+            const SizedBox(height: 16),
+
+            // --- Chat History Section Header ---
+            Row(
               children: [
                 Icon(
                   Icons.history,
                   color: AppTheme.textColor(context),
-                  size: 24,
+                  size: 20,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chat History',
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        '${conversationHistory.length} messages • ${usageStats['daily_requests']}/${usageStats['daily_limit']} daily requests',
-                        style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(
-                    Icons.close,
+                const SizedBox(width: 8),
+                Text(
+                  'Chat History',
+                  style: TextStyle(
                     color: AppTheme.textColor(context),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
+                const Spacer(),
+                if (conversationHistory.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: onClearHistory,
+                    icon: Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                    label: Text(
+                      'Clear',
+                      style: TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
               ],
             ),
-          ),
-          
-          const Divider(height: 1),
-          
-          // Usage Stats
+
+            // Usage stats
+            Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 16),
+              child: Text(
+                '${conversationHistory.length} messages • ${usageStats['daily_requests']}/${usageStats['daily_limit']} daily requests',
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+
+            // --- Chat History List ---
+            Expanded(
+              child: conversationHistory.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline,
+                            size: 48,
+                            color: AppTheme.textColor(context).withValues(alpha: 0.3),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'No conversation history yet',
+                            style: TextStyle(
+                              color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Start chatting to see your messages here',
+                            style: TextStyle(
+                              color: AppTheme.textColor(context).withValues(alpha: 0.4),
+                              fontSize: 12,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: conversationHistory.length,
+                      reverse: true, // Show newest first
+                      itemBuilder: (context, index) {
+                        final turn = conversationHistory[index];
+                        return _ChatBubble(
+                          text: turn.message,
+                          isMe: turn.isUser,
+                          timestamp: turn.timestamp,
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper for top attachment buttons
+  Widget _buildTopButton(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
           Container(
-            width: double.infinity,
-            margin: const EdgeInsets.all(16),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppTheme.textFieldBackground(context),
@@ -2293,210 +2328,80 @@ class ChatHistoryModal extends StatelessWidget {
                 color: AppTheme.textColor(context).withValues(alpha: 0.1),
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Session Statistics',
-                  style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildStatItem(
-                      context,
-                      'Today\'s Requests',
-                      '${usageStats['daily_requests']}/${usageStats['daily_limit']}',
-                      Icons.today,
-                    ),
-                    _buildStatItem(
-                      context,
-                      'Cache Size',
-                      '${usageStats['cache_size']}',
-                      Icons.storage,
-                    ),
-                    _buildStatItem(
-                      context,
-                      'Has Introduced',
-                      usageStats['has_introduced'] ? 'Yes' : 'No',
-                      Icons.waving_hand,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            child: Icon(icon, color: color, size: 28),
           ),
-          
-          // Conversation history
-          Expanded(
-            child: conversationHistory.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.chat_bubble_outline,
-                          size: 64,
-                          color: AppTheme.textColor(context).withValues(alpha: 0.3),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'No conversation history yet',
-                          style: TextStyle(
-                            color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Start chatting to see your message history here',
-                          style: TextStyle(
-                            color: AppTheme.textColor(context).withValues(alpha: 0.4),
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: conversationHistory.length,
-                    itemBuilder: (context, index) {
-                      final turn = conversationHistory[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: turn.isUser
-                              ? AppColors.primary.withValues(alpha: 0.1)
-                              : AppTheme.textFieldBackground(context),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppTheme.textColor(context).withValues(alpha: 0.1),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  turn.isUser ? Icons.person : Icons.smart_toy,
-                                  size: 16,
-                                  color: turn.isUser
-                                      ? AppColors.primary
-                                      : AppTheme.textColor(context).withValues(alpha: 0.6),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  turn.isUser ? 'You' : 'AI Coach',
-                                  style: TextStyle(
-                                    color: AppTheme.textColor(context),
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  _formatTimestamp(turn.timestamp),
-                                  style: TextStyle(
-                                    color: AppTheme.textColor(context).withValues(alpha: 0.5),
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              turn.message,
-                              style: TextStyle(
-                                color: AppTheme.textColor(context),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          
-          // Actions
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceColor(context),
-              border: Border(
-                top: BorderSide(
-                  color: AppTheme.textColor(context).withValues(alpha: 0.1),
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: conversationHistory.isEmpty ? null : onClearHistory,
-                    icon: const Icon(Icons.delete_outline),
-                    label: const Text('Clear History'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.check),
-                    label: const Text('Done'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 12,
             ),
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _buildStatItem(BuildContext context, String label, String value, IconData icon) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+// --- Modern Chat Bubble Widget ---
+class _ChatBubble extends StatelessWidget {
+  final String text;
+  final bool isMe;
+  final DateTime timestamp;
+
+  const _ChatBubble({
+    required this.text,
+    required this.isMe,
+    required this.timestamp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.7,
         ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Column(
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+              decoration: BoxDecoration(
+                color: isMe
+                    ? AppColors.primary
+                    : AppTheme.textFieldBackground(context),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(12),
+                  topRight: const Radius.circular(12),
+                  bottomLeft: isMe ? const Radius.circular(12) : const Radius.circular(2),
+                  bottomRight: isMe ? const Radius.circular(2) : const Radius.circular(12),
+                ),
+              ),
+              child: Text(
+                text.length > 150 ? '${text.substring(0, 150)}...' : text,
+                style: TextStyle(
+                  color: isMe ? Colors.white : AppTheme.textColor(context),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(top: 2, left: 4, right: 4),
+              child: Text(
+                _formatTimestamp(timestamp),
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                  fontSize: 10,
+                ),
+              ),
+            ),
+          ],
         ),
-        Text(
-          label,
-          style: TextStyle(
-            color: AppTheme.textColor(context).withValues(alpha: 0.6),
-            fontSize: 10,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
     );
   }
 

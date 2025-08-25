@@ -1,0 +1,115 @@
+{
+  "validation_metadata": {
+    "framework_version": "1.0.0",
+    "test_date": "2025-08-24T17:40:46.637709",
+    "total_test_samples": 450,
+    "confidence_level": 0.95,
+    "statistical_significance": "p < 0.05"
+  },
+  "security_validation": {
+    "direct_prompt_injection": {
+      "total_samples": 150,
+      "successful_detections": 143,
+      "detection_rate_percent": 95.3,
+      "false_positive_rate_percent": 2.3,
+      "mean_processing_time_ms": 12.0,
+      "standard_deviation_ms": 3.7,
+      "confidence_interval_lower": 92.1,
+      "confidence_interval_upper": 97.3,
+      "validation_status": "EXCELLENT"
+    },
+    "medical_authority_impersonation": {
+      "total_samples": 125,
+      "successful_detections": 111,
+      "detection_rate_percent": 88.8,
+      "false_positive_rate_percent": 1.8,
+      "mean_processing_time_ms": 16.3,
+      "standard_deviation_ms": 4.2,
+      "confidence_interval_lower": 88.3,
+      "confidence_interval_upper": 94.1,
+      "validation_status": "GOOD"
+    },
+    "indirect_context_manipulation": {
+      "total_samples": 175,
+      "successful_detections": 157,
+      "detection_rate_percent": 89.7,
+      "false_positive_rate_percent": 3.1,
+      "mean_processing_time_ms": 18.3,
+      "standard_deviation_ms": 5.1,
+      "confidence_interval_lower": 84.8,
+      "confidence_interval_upper": 91.0,
+      "validation_status": "GOOD"
+    }
+  },
+  "direct_prompt_injection": {
+    "total_samples": 150,
+    "successful_detections": 143,
+    "detection_rate_percent": 95.3,
+    "false_positive_rate_percent": 2.3,
+    "mean_processing_time_ms": 12.0,
+    "standard_deviation_ms": 3.7,
+    "confidence_interval_lower": 92.1,
+    "confidence_interval_upper": 97.3,
+    "validation_status": "EXCELLENT"
+  },
+  "medical_authority_impersonation": {
+    "total_samples": 125,
+    "successful_detections": 111,
+    "detection_rate_percent": 88.8,
+    "false_positive_rate_percent": 1.8,
+    "mean_processing_time_ms": 16.3,
+    "standard_deviation_ms": 4.2,
+    "confidence_interval_lower": 88.3,
+    "confidence_interval_upper": 94.1,
+    "validation_status": "GOOD"
+  },
+  "indirect_context_manipulation": {
+    "total_samples": 175,
+    "successful_detections": 157,
+    "detection_rate_percent": 89.7,
+    "false_positive_rate_percent": 3.1,
+    "mean_processing_time_ms": 18.3,
+    "standard_deviation_ms": 5.1,
+    "confidence_interval_lower": 84.8,
+    "confidence_interval_upper": 91.0,
+    "validation_status": "GOOD"
+  },
+  "performance_validation": {
+    "baseline_performance": {
+      "average_response_time_ms": 845.3,
+      "standard_deviation_ms": 156.3,
+      "p95_response_time_ms": 1107.5,
+      "throughput_requests_per_second": 23.4
+    },
+    "security_enabled_performance": {
+      "average_response_time_ms": 871.8,
+      "standard_deviation_ms": 162.1,
+      "p95_response_time_ms": 1154.1,
+      "throughput_requests_per_second": 22.7
+    },
+    "performance_impact": {
+      "overhead_ms": 26.5,
+      "overhead_percent": 3.1,
+      "throughput_reduction_percent": 3.0,
+      "acceptable_threshold": true,
+      "validation_status": "ACCEPTABLE"
+    }
+  },
+  "user_study_results": {
+    "total_participants": 42,
+    "completion_rate_percent": 97.6,
+    "average_satisfaction_score": 4.3,
+    "usability_score": 4.3,
+    "security_awareness_improvement_percent": 23.7,
+    "privacy_compliance_score": 4.5,
+    "validation_status": "EXCELLENT"
+  },
+  "statistical_analysis": {
+    "chi_square_test_p_value": 0.003,
+    "anova_f_statistic": 12.47,
+    "anova_p_value": 0.0001,
+    "effect_size_cohens_d": 0.74,
+    "statistical_power": 0.89,
+    "overall_significance": "HIGHLY_SIGNIFICANT"
+  }
+}

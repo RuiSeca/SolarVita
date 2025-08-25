@@ -330,25 +330,29 @@ class _SustainabilityGoalsScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ..._transportOptions.map((mode) {
-                return RadioListTile<String>(
-                  value: mode,
-                  groupValue: _transportMode,
-                  onChanged: (value) {
-                    setState(() {
-                      _transportMode = value!;
-                    });
-                  },
-                  title: Text(
-                    tr(context, mode),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  activeColor: AppColors.primary,
-                );
-              }),
+              RadioGroup<String>(
+                groupValue: _transportMode,
+                onChanged: (value) {
+                  setState(() {
+                    _transportMode = value!;
+                  });
+                },
+                child: Column(
+                  children: _transportOptions.map((mode) {
+                    return RadioListTile<String>(
+                      value: mode,
+                      title: Text(
+                        tr(context, mode),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         ),

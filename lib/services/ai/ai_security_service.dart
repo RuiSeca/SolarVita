@@ -338,22 +338,21 @@ class AISecurityService {
 
   /// Detects medical content in AI responses
   MedicalContentAnalysis _detectMedicalContent(String response) {
+    // Only the most critical medical terms that absolutely require disclaimers
     List<String> medicalTerms = [
-      // Medical terms
-      'diagnosis', 'treatment', 'medication', 'prescription', 'symptoms',
-      'condition', 'disease', 'illness', 'disorder', 'syndrome',
-      'take medication', 'stop medication', 'medical advice', 'consult doctor',
+      // Direct medical diagnosis/treatment
+      'diagnose you with', 'treatment for your', 'prescription for',
+      'stop taking your medication', 'medical advice for', 'medical treatment for',
+      'you should see a doctor', 'consult a doctor about',
       
-      // Health-related terms that should trigger disclaimers
-      'health', 'healthy', 'pain', 'hurt', 'injury', 'injured', 'sick', 'wellness',
-      'diet', 'nutrition', 'supplement', 'vitamin', 'recovery', 'healing',
-      'sleep', 'rest', 'energy', 'fatigue', 'tired', 'exhausted',
-      'heart rate', 'blood', 'muscle', 'joint', 'bone', 'body',
-      'doctor', 'physician', 'medical', 'healthcare', 'clinic', 'hospital',
+      // Serious health conditions
+      'serious health condition', 'medical emergency', 'chronic disease',
+      'heart attack', 'stroke symptoms', 'blood pressure medication',
+      'chest pain symptoms', 'breathing difficulties',
       
-      // Fitness-health crossover terms
-      'workout', 'exercise', 'training', 'fitness', 'muscle soreness',
-      'recovery time', 'hydration', 'protein', 'carbs', 'calories'
+      // Emergency medical situations
+      'call emergency services', 'go to hospital', 'seek immediate medical care',
+      'urgent medical attention', 'emergency room visit'
     ];
     
     List<String> dangerousAdvice = [
@@ -413,22 +412,21 @@ class AISecurityService {
 
   /// Helper function to identify which medical terms were found (for debugging)
   List<String> _findMedicalTermsInResponse(String response) {
+    // Only the most critical medical terms that absolutely require disclaimers
     List<String> medicalTerms = [
-      // Medical terms
-      'diagnosis', 'treatment', 'medication', 'prescription', 'symptoms',
-      'condition', 'disease', 'illness', 'disorder', 'syndrome',
-      'take medication', 'stop medication', 'medical advice', 'consult doctor',
+      // Direct medical diagnosis/treatment
+      'diagnose you with', 'treatment for your', 'prescription for',
+      'stop taking your medication', 'medical advice for', 'medical treatment for',
+      'you should see a doctor', 'consult a doctor about',
       
-      // Health-related terms that should trigger disclaimers
-      'health', 'healthy', 'pain', 'hurt', 'injury', 'injured', 'sick', 'wellness',
-      'diet', 'nutrition', 'supplement', 'vitamin', 'recovery', 'healing',
-      'sleep', 'rest', 'energy', 'fatigue', 'tired', 'exhausted',
-      'heart rate', 'blood', 'muscle', 'joint', 'bone', 'body',
-      'doctor', 'physician', 'medical', 'healthcare', 'clinic', 'hospital',
+      // Serious health conditions
+      'serious health condition', 'medical emergency', 'chronic disease',
+      'heart attack', 'stroke symptoms', 'blood pressure medication',
+      'chest pain symptoms', 'breathing difficulties',
       
-      // Fitness-health crossover terms
-      'workout', 'exercise', 'training', 'fitness', 'muscle soreness',
-      'recovery time', 'hydration', 'protein', 'carbs', 'calories'
+      // Emergency medical situations
+      'call emergency services', 'go to hospital', 'seek immediate medical care',
+      'urgent medical attention', 'emergency room visit'
     ];
     
     String lowerResponse = response.toLowerCase();

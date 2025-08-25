@@ -319,7 +319,7 @@ class _PersonalInfoPreferencesScreenState
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _gender,
+          initialValue: _gender,
           decoration: const InputDecoration(
             labelText: 'Gender',
             prefixIcon: Icon(Icons.person),
@@ -438,7 +438,7 @@ class _PersonalInfoPreferencesScreenState
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _activityLevel,
+          initialValue: _activityLevel,
           decoration: const InputDecoration(
             labelText: 'Current Activity Level',
             prefixIcon: Icon(Icons.fitness_center),
@@ -455,7 +455,7 @@ class _PersonalInfoPreferencesScreenState
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<String>(
-          value: _weeklyActivity,
+          initialValue: _weeklyActivity,
           decoration: const InputDecoration(
             labelText: 'Weekly Exercise Frequency',
             prefixIcon: Icon(Icons.calendar_today),

@@ -1,0 +1,10 @@
+# Analysis options for validation framework
+# This is a CLI tool, so print statements are acceptable
+
+analyzer:
+  errors:
+    avoid_print: ignore
+  
+linter:
+  rules:
+    avoid_print: false

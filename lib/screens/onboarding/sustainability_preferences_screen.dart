@@ -154,19 +154,23 @@ class _SustainabilityPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._carbonTargetOptions.map((target) {
-          return RadioListTile<String>(
-            title: Text(_formatCarbonTarget(target)),
-            subtitle: Text(_getCarbonTargetDescription(target)),
-            value: target,
-            groupValue: _carbonFootprintTarget,
-            onChanged: (value) {
-              setState(() {
-                _carbonFootprintTarget = value!;
-              });
-            },
-          );
-        }),
+        RadioGroup<String>(
+          groupValue: _carbonFootprintTarget,
+          onChanged: (value) {
+            setState(() {
+              _carbonFootprintTarget = value!;
+            });
+          },
+          child: Column(
+            children: _carbonTargetOptions.map((target) {
+              return RadioListTile<String>(
+                title: Text(_formatCarbonTarget(target)),
+                subtitle: Text(_getCarbonTargetDescription(target)),
+                value: target,
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }

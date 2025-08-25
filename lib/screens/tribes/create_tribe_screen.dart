@@ -321,6 +321,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                 ),
                 child: Column(
                   children: [
+                    // ignore: deprecated_member_use
                     RadioListTile<TribeVisibility>(
                       title: const Row(
                         children: [
@@ -334,8 +335,8 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                         style: TextStyle(fontSize: 12),
                       ),
                       value: TribeVisibility.public,
-                      groupValue: _visibility,
-                      onChanged: (value) {
+                      groupValue: _visibility, // ignore: deprecated_member_use
+                      onChanged: (value) { // ignore: deprecated_member_use
                         setState(() {
                           _visibility = value!;
                         });
@@ -345,6 +346,7 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
 
                     const Divider(),
 
+                    // ignore: deprecated_member_use
                     RadioListTile<TribeVisibility>(
                       title: const Row(
                         children: [
@@ -358,8 +360,8 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                         style: TextStyle(fontSize: 12),
                       ),
                       value: TribeVisibility.private,
-                      groupValue: _visibility,
-                      onChanged: (value) {
+                      groupValue: _visibility, // ignore: deprecated_member_use
+                      onChanged: (value) { // ignore: deprecated_member_use
                         setState(() {
                           _visibility = value!;
                         });
@@ -367,37 +369,35 @@ class _CreateTribeScreenState extends ConsumerState<CreateTribeScreen> {
                       contentPadding: EdgeInsets.zero,
                     ),
 
-                    if (_visibility == TribeVisibility.private) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info,
-                              color: theme.primaryColor,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'A unique invite code will be generated for your private tribe',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: theme.primaryColor,
-                                ),
+                    if (_visibility == TribeVisibility.private)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: theme.primaryColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info,
+                            color: theme.primaryColor,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'A unique invite code will be generated for your private tribe',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.primaryColor,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                ],
+              ),
               ),
 
               const SizedBox(height: 24),

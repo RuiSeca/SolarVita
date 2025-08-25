@@ -281,25 +281,28 @@ class _DietaryPreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ..._dietTypeOptions.map((type) {
-                return RadioListTile<String>(
-                  value: type,
-                  groupValue: _selectedDietType,
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedDietType = value!;
-                    });
-                  },
-                  title: Text(
-                    tr(context, type),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  activeColor: Theme.of(context).primaryColor,
-                );
-              }),
+              RadioGroup<String>(
+                groupValue: _selectedDietType,
+                onChanged: (value) {
+                  setState(() {
+                    _selectedDietType = value!;
+                  });
+                },
+                child: Column(
+                  children: _dietTypeOptions.map((type) {
+                    return RadioListTile<String>(
+                      value: type,
+                      title: Text(
+                        tr(context, type),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         ),
@@ -428,7 +431,7 @@ class _DietaryPreferencesScreenState
           ),
           value: _preferOrganic,
           onChanged: (value) => setState(() => _preferOrganic = value),
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text(
@@ -437,7 +440,7 @@ class _DietaryPreferencesScreenState
           ),
           value: _preferLocal,
           onChanged: (value) => setState(() => _preferLocal = value),
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text(
@@ -446,7 +449,7 @@ class _DietaryPreferencesScreenState
           ),
           value: _preferSeasonal,
           onChanged: (value) => setState(() => _preferSeasonal = value),
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text(
@@ -455,7 +458,7 @@ class _DietaryPreferencesScreenState
           ),
           value: _reduceMeatConsumption,
           onChanged: (value) => setState(() => _reduceMeatConsumption = value),
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
         SwitchListTile(
           title: Text(
@@ -464,7 +467,7 @@ class _DietaryPreferencesScreenState
           ),
           value: _sustainableSeafood,
           onChanged: (value) => setState(() => _sustainableSeafood = value),
-          activeColor: Theme.of(context).primaryColor,
+          activeThumbColor: Theme.of(context).primaryColor,
         ),
       ],
     );
@@ -550,7 +553,7 @@ class _DietaryPreferencesScreenState
                 ),
                 value: _enableSnacks,
                 onChanged: (value) => setState(() => _enableSnacks = value),
-                activeColor: Theme.of(context).primaryColor,
+                activeThumbColor: Theme.of(context).primaryColor,
               ),
               SwitchListTile(
                 title: Text(
@@ -560,7 +563,7 @@ class _DietaryPreferencesScreenState
                 value: _intermittentFasting,
                 onChanged: (value) =>
                     setState(() => _intermittentFasting = value),
-                activeColor: Theme.of(context).primaryColor,
+                activeThumbColor: Theme.of(context).primaryColor,
               ),
             ],
           ),

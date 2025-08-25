@@ -359,25 +359,29 @@ class _WorkoutPreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ..._fitnessLevelOptions.map((level) {
-                return RadioListTile<String>(
-                  value: level,
-                  groupValue: _fitnessLevel,
-                  onChanged: (value) {
-                    setState(() {
-                      _fitnessLevel = value!;
-                    });
-                  },
-                  title: Text(
-                    level.toUpperCase(),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  activeColor: AppColors.primary,
-                );
-              }),
+              RadioGroup<String>(
+                groupValue: _fitnessLevel,
+                onChanged: (value) {
+                  setState(() {
+                    _fitnessLevel = value!;
+                  });
+                },
+                child: Column(
+                  children: _fitnessLevelOptions.map((level) {
+                    return RadioListTile<String>(
+                      value: level,
+                      title: Text(
+                        level.toUpperCase(),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         ),
@@ -493,25 +497,29 @@ class _WorkoutPreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ..._timeOptions.map((time) {
-                return RadioListTile<String>(
-                  value: time,
-                  groupValue: _preferredTime,
-                  onChanged: (value) {
-                    setState(() {
-                      _preferredTime = value!;
-                    });
-                  },
-                  title: Text(
-                    time.toUpperCase(),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  activeColor: AppColors.primary,
-                );
-              }),
+              RadioGroup<String>(
+                groupValue: _preferredTime,
+                onChanged: (value) {
+                  setState(() {
+                    _preferredTime = value!;
+                  });
+                },
+                child: Column(
+                  children: _timeOptions.map((time) {
+                    return RadioListTile<String>(
+                      value: time,
+                      title: Text(
+                        time.toUpperCase(),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      activeColor: AppColors.primary,
+                    );
+                  }).toList(),
+                ),
+              ),
             ],
           ),
         ),

@@ -199,7 +199,7 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
         ),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
-          value: _selectedCategory,
+          initialValue: _selectedCategory,
           decoration: InputDecoration(
             hintText: tr(context, 'select_category'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),

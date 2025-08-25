@@ -239,18 +239,22 @@ class _WorkoutPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._fitnessLevelOptions.map((level) {
-          return RadioListTile<String>(
-            title: Text(level.capitalize()),
-            value: level,
-            groupValue: _fitnessLevel,
-            onChanged: (value) {
-              setState(() {
-                _fitnessLevel = value!;
-              });
-            },
-          );
-        }),
+        RadioGroup<String>(
+          groupValue: _fitnessLevel,
+          onChanged: (value) {
+            setState(() {
+              _fitnessLevel = value!;
+            });
+          },
+          child: Column(
+            children: _fitnessLevelOptions.map((level) {
+              return RadioListTile<String>(
+                title: Text(level.capitalize()),
+                value: level,
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
@@ -327,18 +331,22 @@ class _WorkoutPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._timeOptions.map((time) {
-          return RadioListTile<String>(
-            title: Text(time.capitalize()),
-            value: time,
-            groupValue: _preferredTime,
-            onChanged: (value) {
-              setState(() {
-                _preferredTime = value!;
-              });
-            },
-          );
-        }),
+        RadioGroup<String>(
+          groupValue: _preferredTime,
+          onChanged: (value) {
+            setState(() {
+              _preferredTime = value!;
+            });
+          },
+          child: Column(
+            children: _timeOptions.map((time) {
+              return RadioListTile<String>(
+                title: Text(time.capitalize()),
+                value: time,
+              );
+            }).toList(),
+          ),
+        ),
       ],
     );
   }
