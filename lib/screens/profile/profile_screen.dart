@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/optimized_profile_widgets.dart';
+import 'widgets/story_highlights_widget.dart';
+import 'widgets/reorderable_profile_content.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../providers/riverpod/health_data_provider.dart';
+import '../../providers/riverpod/profile_layout_provider.dart';
 import '../../services/database/social_service.dart';
 import '../../services/chat/data_sync_service.dart';
 import '../../models/user/supporter.dart';
@@ -113,73 +116,91 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     // Get scroll controller directly in build method
     final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('profile');
 
+    final isEditMode = ref.watch(profileEditModeProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
-        child: userProfileAsync.when(
-          data: (userProfile) => RefreshIndicator(
-            onRefresh: _refreshData,
-            child: SingleChildScrollView(
-              controller: scrollController,
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const OptimizedProfileHeader(),
-                  _SupporterRequestNotification(
-                    stream: _supporterRequestsStream!,
+        child: Stack(
+          children: [
+            userProfileAsync.when(
+              data: (userProfile) => RefreshIndicator(
+                onRefresh: _refreshData,
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  physics: isEditMode 
+                      ? const NeverScrollableScrollPhysics()
+                      : const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // FIXED HEADER SECTION - Not reorderable
+                      const OptimizedProfileHeader(),
+                      
+                      // FIXED SUPPORTER REQUESTS - Not reorderable  
+                      _SupporterRequestNotification(
+                        stream: _supporterRequestsStream!,
+                      ),
+                      
+                      // FIXED STORY HIGHLIGHTS - Not reorderable
+                      const StoryHighlightsWidget(),
+                      const SizedBox(height: 8),
+                      
+                      // REORDERABLE CONTENT SECTION
+                      const ReorderableProfileContent(),
+                      
+                      // Bottom padding
+                      const SizedBox(height: 100),
+                    ],
                   ),
-                  const _TodaysMealWidget(),
-                  const SizedBox(height: 8),
-                  const OptimizedDailyGoals(),
-                  const SizedBox(height: 8),
-                  const OptimizedWeeklySummary(),
-                  const SizedBox(height: 24),
-                  const OptimizedActionGrid(),
-                  const SizedBox(height: 24),
-                  const OptimizedAchievements(),
-                  const SizedBox(height: 32),
-                ],
+                ),
+              ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 48,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      tr(context, 'error_loading_profile'),
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error.toString(),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.invalidate(userProfileNotifierProvider);
+                      },
+                      child: Text(tr(context, 'retry')),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  tr(context, 'error_loading_profile'),
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  error.toString(),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    ref.invalidate(userProfileNotifierProvider);
-                  },
-                  child: Text(tr(context, 'retry')),
-                ),
-              ],
-            ),
-          ),
+            
+            // EDIT MODE OVERLAY
+            const EditModeOverlay(),
+          ],
         ),
       ),
+      
+      // FLOATING ACTION BUTTON FOR EDIT MODE
+      floatingActionButton: const EditModeFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }
