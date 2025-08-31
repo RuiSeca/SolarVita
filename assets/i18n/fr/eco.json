@@ -1,0 +1,73 @@
+{
+  "eco_impact": "Impact Écologique",
+  "view_all": "Voir Tout",
+  "loading": "Chargement",
+  "error_loading_eco_data": "Erreur lors du chargement des données écologiques",
+  "future_earth_today": "La Terre du futur, aujourd'hui",
+  "bottles_saved": "Bouteilles Économisées",
+  "carbon_saved": "Carbone Économisé",
+  "eco_streak": "Série Écologique",
+  "eco_score": "Score Écologique",
+  "days": "jours",
+  "pts": "pts",
+  
+  "popup": {
+    "todays_impact": "Impact d'Aujourd'hui",
+    "alltime_impact": "Impact Total",
+    "your_daily_progress": "Votre progrès quotidien",
+    "your_journey_so_far": "Votre parcours jusqu'à présent",
+    "track_environmental_impact": "Suivez votre impact environnemental",
+    "every_action_counts": "Chaque action compte",
+    
+    "stats": {
+      "co2_saved": "CO₂ Économisé",
+      "bottles_equivalent": "Équivalent Bouteilles",
+      "eco_actions": "Actions Écologiques",
+      "total_co2": "CO₂ Total",
+      "day_streak": "Série de Jours",
+      "eco_points": "Points Écologiques",
+      "loading_todays_impact": "Chargement de l'impact d'aujourd'hui...",
+      "unable_to_load_stats": "Impossible de charger les statistiques d'aujourd'hui",
+      "loading": "Chargement",
+      "error": "Erreur"
+    },
+    
+    "tips": [
+      "🌱 Excellent travail ! Vous faites la différence !",
+      "🌍 Chaque petite action compte pour un avenir plus vert",
+      "♻️ Vos choix écologiques inspirent les autres à suivre",
+      "🌿 Ensemble, nous pouvons guérir notre planète",
+      "💚 La vie durable est la voie à suivre",
+      "🌳 Merci de prendre soin de notre Terre",
+      "⚡ L'énergie propre alimente un avenir meilleur",
+      "🚲 Le transport actif vous garde en bonne santé, vous et la Terre"
+    ],
+    
+    "toggle": {
+      "todays_stats": "Statistiques d'Aujourd'hui",
+      "all_time": "Tout le Temps"
+    },
+    
+    "buttons": {
+      "view_details": "Voir les Détails",
+      "log_activity": "Enregistrer Activité"
+    }
+  },
+  
+  "quick_log": {
+    "title": "Enregistrer Activité Rapide",
+    "subtitle": "Choisissez une action écologique que vous venez de terminer",
+    "activities": {
+      "reusable_bottle": "Utilisé Bouteille Réutilisable",
+      "walked_biked": "Marché/Fait du Vélo",
+      "recycled_items": "Recyclé des Objets",
+      "saved_energy": "Économisé de l'Énergie"
+    },
+    "success_messages": {
+      "reusable_bottle": "Bouteille réutilisable enregistrée !",
+      "active_transport": "Transport actif enregistré !",
+      "recycling": "Activité de recyclage enregistrée !",
+      "energy_saving": "Économie d'énergie enregistrée !"
+    }
+  }
+}

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import 'dart:io';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
@@ -768,6 +770,9 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   // Updated _handleAddToMealPlan: Use context directly after awaiting.
 
   void _handleAddToMealPlan() async {
+    // Check if widget is still mounted before starting
+    if (!mounted) return;
+    
     final mealData = {
       'id': widget.mealId,
       'titleKey': widget.mealTitle,
@@ -783,53 +788,98 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
       'isFavorite': _isFavorite,
     };
 
+    // Check mounted state before async operation
+    if (!mounted) return;
+
     // Always show the meal time selection bottom sheet
     final String? selectedMealTime = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent,
-      isScrollControlled: true, // Add this to ensure proper display
+      isScrollControlled: true,
+      enableDrag: true,
+      isDismissible: true,
       builder: (modalContext) => Container(
         decoration: BoxDecoration(
           color: AppTheme.cardColor(modalContext),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              spreadRadius: 0,
+            ),
+          ],
         ),
         child: SafeArea(
-          // Add SafeArea to handle notches and system UI
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Handle bar
               Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
+                margin: const EdgeInsets.symmetric(vertical: 12),
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppTheme.textColor(modalContext).withAlpha(51),
+                  color: AppTheme.textColor(modalContext).withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              // Title
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  tr(context, 'select_meal_time'),
+                  tr(modalContext, 'select_meal_time'),
                   style: TextStyle(
-                    color: AppTheme.textColor(context),
-                    fontSize: 18,
+                    color: AppTheme.textColor(modalContext),
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
+              // Meal time options
               ...['breakfast', 'lunch', 'dinner', 'snacks'].map(
-                (mealTime) => ListTile(
-                  leading: Icon(_getMealTimeIcon(mealTime),
-                      color: AppColors.primary),
-                  title: Text(
-                    tr(context, mealTime),
-                    style: TextStyle(color: AppTheme.textColor(modalContext)),
-                  ),
+                (mealTime) => InkWell(
                   onTap: () => Navigator.pop(modalContext, mealTime),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getMealTimeIcon(mealTime),
+                            color: AppColors.primary,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            tr(modalContext, mealTime),
+                            style: TextStyle(
+                              color: AppTheme.textColor(modalContext),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: AppTheme.textColor(modalContext).withValues(alpha: 0.5),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -839,22 +889,118 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
     if (!mounted) return;
 
     if (selectedMealTime != null) {
-      final result = {
-        'action': 'add_meal',
-        'mealTime': selectedMealTime,
-        'meal': mealData,
+      // Save meal to SharedPreferences
+      final success = await _saveMealToPlan(selectedMealTime, mealData);
+      
+      if (success && mounted) {
+        final messenger = ScaffoldMessenger.of(context);
+        final navigator = Navigator.of(context);
+        final translatedMessage = tr(context, 'meal_added_to_plan');
+        
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(translatedMessage),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+
+        // Return result to trigger profile refresh
+        final result = {
+          'action': 'add_meal',
+          'mealTime': selectedMealTime,
+          'meal': mealData,
+          'success': true,
+        };
+
+        navigator.pop(result);
+      } else if (mounted) {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'error_adding_meal')),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<bool> _saveMealToPlan(String mealTime, Map<String, dynamic> mealData) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final weekOffset = 0; // Current week
+      final dayIndex = now.weekday - 1; // 0-6 for Mon-Sun
+      
+      // Get existing data or create new structure
+      String? existingDataString = prefs.getString('weeklyMealData');
+      Map<String, dynamic> weeklyData = {};
+      
+      if (existingDataString != null) {
+        final decoded = jsonDecode(existingDataString);
+        weeklyData = Map<String, dynamic>.from(decoded);
+      }
+      
+      // Initialize week data if not exists
+      final weekOffsetKey = weekOffset.toString();
+      if (!weeklyData.containsKey(weekOffsetKey)) {
+        weeklyData[weekOffsetKey] = <String, dynamic>{};
+      }
+      
+      final weekDataDynamic = weeklyData[weekOffsetKey];
+      final weekData = Map<String, dynamic>.from(weekDataDynamic);
+      weeklyData[weekOffsetKey] = weekData;
+      
+      // Initialize day data if not exists
+      final dayIndexKey = dayIndex.toString();
+      if (!weekData.containsKey(dayIndexKey)) {
+        weekData[dayIndexKey] = <String, dynamic>{};
+      }
+      
+      final dayDataDynamic = weekData[dayIndexKey];
+      final dayData = Map<String, dynamic>.from(dayDataDynamic);
+      weekData[dayIndexKey] = dayData;
+      
+      // Initialize meal time array if not exists
+      if (!dayData.containsKey(mealTime)) {
+        dayData[mealTime] = <Map<String, dynamic>>[];
+      }
+      
+      final mealsForTimeDynamic = dayData[mealTime];
+      final mealsForTime = List<dynamic>.from(mealsForTimeDynamic);
+      
+      // Format meal data consistently with meal_plan_screen.dart
+      final formattedMeal = <String, dynamic>{
+        'id': mealData['id'] ?? '',
+        'name': mealData['titleKey'] ?? '',
+        'imagePath': mealData['imagePath'] ?? '',
+        'nutritionFacts': mealData['nutritionFacts'] ?? {},
+        'ingredients': mealData['ingredients'] ?? [],
+        'measures': mealData['measures'] ?? [],
+        'instructions': mealData['instructions'] ?? [],
+        'area': mealData['area'] ?? '',
+        'category': mealData['category'] ?? '',
+        'isVegan': mealData['isVegan'] ?? false,
+        'isFavorite': mealData['isFavorite'] ?? false,
+        'isSuggested': false, // This is a user-added meal
+        'dateAdded': now.toIso8601String(),
       };
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr(context, 'meal_added_to_plan')),
-          backgroundColor: AppColors.primary,
-          behavior: SnackBarBehavior.floating,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-
-      Navigator.of(context).pop(result);
+      
+      // Add meal to the list
+      mealsForTime.add(formattedMeal);
+      dayData[mealTime] = mealsForTime;
+      
+      // Save back to SharedPreferences
+      await prefs.setString('weeklyMealData', jsonEncode(weeklyData));
+      
+      return true;
+    } catch (e) {
+      debugPrint('Error saving meal to plan: $e');
+      return false;
     }
   }
 

@@ -62,9 +62,80 @@ class HealthDataService {
     );
   }
 
+  /// Check if health services are available on this device
+  Future<bool> isHealthServiceAvailable() async {
+    try {
+      if (Platform.isAndroid) {
+        // Try to check Health Connect availability
+        await _health.getHealthDataFromTypes(
+          types: [HealthDataType.STEPS],
+          startTime: DateTime.now().subtract(const Duration(hours: 1)),
+          endTime: DateTime.now(),
+        );
+        return true;
+      } else if (Platform.isIOS) {
+        // iOS HealthKit is usually available
+        return true;
+      }
+      return false;
+    } catch (e) {
+      if (e.toString().contains('Health Connect is not available') ||
+          e.toString().contains('not available on this Android device')) {
+        _logger.info('Health Connect is not available on this device');
+        return false;
+      }
+      // Other errors might be permission related, so assume available
+      return true;
+    }
+  }
+
+  /// Get default/fallback health data for devices without health integration
+  HealthData _getDefaultHealthData() {
+    _logger.info('Using default health data values (no health integration available)');
+    return HealthData(
+      steps: 0, // No data available
+      activeMinutes: 0, // No data available
+      caloriesBurned: 0, // No data available
+      heartRate: 0, // No data available
+      sleepHours: 0, // No data available
+      waterIntake: 0, // No data available
+      lastUpdated: DateTime.now(),
+      isDataAvailable: false, // Mark as not real data
+    );
+  }
+
+  /// Check if the device supports health integration
+  Future<bool> isHealthIntegrationSupported() async {
+    try {
+      final isAvailable = await isHealthServiceAvailable();
+      return isAvailable;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Get a user-friendly message about health integration status
+  Future<String> getHealthIntegrationStatus() async {
+    final isSupported = await isHealthIntegrationSupported();
+    if (isSupported) {
+      return 'Health integration is available on this device';
+    } else if (Platform.isAndroid) {
+      return 'Health Connect is not installed or available on this device. Using estimated health data.';
+    } else {
+      return 'Health integration is not available. Using estimated health data.';
+    }
+  }
+
   /// Fetch health data using Health Connect aggregate API for accurate active minutes
   Future<HealthData> fetchHealthData() async {
     try {
+      // First check if health services are available
+      final isAvailable = await isHealthServiceAvailable();
+      if (!isAvailable) {
+        _logger.info('Health services not available, using default values');
+        return _getDefaultHealthData();
+      }
+
       // Define time range for today only
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -163,13 +234,24 @@ class HealthDataService {
       return result;
     } catch (e) {
       _logger.severe('Error fetching health data: $e');
+      
+      // Check if error is related to Health Connect not being available
+      if (e.toString().contains('Health Connect is not available') ||
+          e.toString().contains('not available on this Android device')) {
+        _logger.info('Health Connect not available, returning default values');
+        return _getDefaultHealthData();
+      }
+      
       // Return cached data if available
       final cachedData = await _getCachedHealthData();
       if (cachedData != null) {
         _logger.info('Returning cached health data');
         return cachedData;
       }
-      rethrow;
+      
+      // If no cached data and no health services, return defaults
+      _logger.warning('No cached data available and health services unavailable, using defaults');
+      return _getDefaultHealthData();
     }
   }
 
@@ -224,6 +306,11 @@ class HealthDataService {
       _logger.info('Total Health Connect active minutes: $totalActiveMinutes');
       return totalActiveMinutes;
     } catch (e) {
+      if (e.toString().contains('Health Connect is not available') ||
+          e.toString().contains('not available on this Android device')) {
+        _logger.info('Health Connect not available for active minutes');
+        return 0; // No data available
+      }
       _logger.warning('Error calculating Health Connect active minutes: $e');
       return 0;
     }
@@ -263,6 +350,11 @@ class HealthDataService {
 
       return estimatedActiveMinutes;
     } catch (e) {
+      if (e.toString().contains('Health Connect is not available') ||
+          e.toString().contains('not available on this Android device')) {
+        _logger.info('Health Connect not available for step data');
+        return 0; // No data available
+      }
       _logger.warning('Error estimating active minutes from steps: $e');
       return 0;
     }

@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../models/profile/profile_layout_config.dart';
 import 'optimized_profile_widgets.dart';
 import 'user_routine_widget.dart';
-import '../../../models/user/supporter.dart';
+import 'eco_impact_widget.dart';
+import 'enhanced_profile_meal_widget.dart';
 
 /// Factory for creating profile widgets based on type
 class ProfileWidgetFactory {
@@ -10,7 +11,7 @@ class ProfileWidgetFactory {
   static Widget buildWidget(ProfileWidgetType type) {
     switch (type) {
       case ProfileWidgetType.meals:
-        return const _TodaysMealWidgetWrapper();
+        return const EnhancedProfileMealWidget();
 
       case ProfileWidgetType.userRoutine:
         return const UserRoutineWidget();
@@ -26,6 +27,9 @@ class ProfileWidgetFactory {
 
       case ProfileWidgetType.achievements:
         return const OptimizedAchievements();
+        
+      case ProfileWidgetType.ecoImpact:
+        return const EcoImpactWidget();
     }
   }
 
@@ -42,7 +46,7 @@ class ProfileWidgetFactory {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         transform: isEditMode 
-            ? (Matrix4.identity()..scaleByDouble(0.98)) 
+            ? Matrix4.diagonal3Values(0.98, 0.98, 1.0)
             : Matrix4.identity(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
@@ -101,84 +105,6 @@ class ProfileWidgetFactory {
   /// Get icon for a widget type
   static IconData getWidgetIcon(ProfileWidgetType type) {
     return type.icon;
-  }
-}
-
-
-/// Wrapper for meals widget (simplified version)
-class _TodaysMealWidgetWrapper extends StatelessWidget {
-  const _TodaysMealWidgetWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    // For now, return a simplified version
-    // This should ideally use the same logic as the original _TodaysMealWidget
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            // Navigate to meal plan screen
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.green.withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Colors.green.withAlpha(76),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.restaurant_menu,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Today\'s Meals',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Tap to view meal plan',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.green.withAlpha(179),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.green,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

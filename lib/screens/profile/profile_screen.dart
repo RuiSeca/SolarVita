@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'widgets/optimized_profile_widgets.dart';
-import 'widgets/story_highlights_widget.dart';
 import 'widgets/reorderable_profile_content.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
@@ -129,7 +128,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: SingleChildScrollView(
                   controller: scrollController,
                   physics: isEditMode 
-                      ? const NeverScrollableScrollPhysics()
+                      ? const ClampingScrollPhysics()
                       : const BouncingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
@@ -144,9 +143,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         stream: _supporterRequestsStream!,
                       ),
                       
-                      // FIXED STORY HIGHLIGHTS - Not reorderable
-                      const StoryHighlightsWidget(),
-                      const SizedBox(height: 8),
                       
                       // REORDERABLE CONTENT SECTION
                       const ReorderableProfileContent(),
@@ -197,10 +193,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ],
         ),
       ),
-      
       // FLOATING ACTION BUTTON FOR EDIT MODE
       floatingActionButton: const EditModeFAB(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 }

@@ -54,5 +54,6 @@
     "exact_amount": "Exact amount",
     "serving_size_info": "Serving size info",
     "nutritional_values": "Nutritional values",
-    "update_instantly": "Updates instantly"
+    "update_instantly": "Updates instantly",
+    "error_adding_meal": "Failed to add meal to plan"
 }

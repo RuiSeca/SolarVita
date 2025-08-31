@@ -352,6 +352,7 @@ class _SupporterProfileScreenState
                   supporterId: widget.supporter.userId,
                   privacySettings: _privacySettings!,
                   dailyMeals: _dailyMeals,
+                  onRefresh: _refreshSupporterData,
                 ),
 
               // Action Buttons
@@ -654,6 +655,43 @@ class _SupporterProfileScreenState
       );
     } catch (e) {
       _logger.e('Error refreshing supporter count for viewed user: $e');
+    }
+  }
+
+  Future<void> _refreshSupporterData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load privacy settings
+      final privacySettings = await _loadSupporterPrivacySettings();
+
+      // Force refresh meals if privacy allows
+      Map<String, List<Map<String, dynamic>>>? dailyMeals;
+      if (privacySettings?.showNutritionStats == true) {
+        final supporterProfileService = SupporterProfileService();
+        dailyMeals = await supporterProfileService.getSupporterDailyMeals(
+          widget.supporter.userId,
+          privacySettings!,
+          forceRefresh: true, // Force refresh from server
+        );
+      }
+
+      if (mounted) {
+        setState(() {
+          _privacySettings = privacySettings;
+          _dailyMeals = dailyMeals;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      _logger.e('Error refreshing supporter data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

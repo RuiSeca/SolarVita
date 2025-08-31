@@ -91,8 +91,9 @@ class SupporterProfileService {
   /// Get supporter's daily meals
   Future<Map<String, List<Map<String, dynamic>>>?> getSupporterDailyMeals(
     String supporterId,
-    PrivacySettings privacy,
-  ) async {
+    PrivacySettings privacy, {
+    bool forceRefresh = false,
+  }) async {
     try {
       if (!privacy.showNutritionStats) {
         return null;
@@ -103,12 +104,23 @@ class SupporterProfileService {
       final dateKey =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
-      final doc = await _firestore
-          .collection('daily_meals')
-          .doc(supporterId)
-          .collection('meals')
-          .doc(dateKey)
-          .get();
+      DocumentSnapshot doc;
+      if (forceRefresh) {
+        // Force fresh data from server, bypass cache
+        doc = await _firestore
+            .collection('daily_meals')
+            .doc(supporterId)
+            .collection('meals')
+            .doc(dateKey)
+            .get(const GetOptions(source: Source.server));
+      } else {
+        doc = await _firestore
+            .collection('daily_meals')
+            .doc(supporterId)
+            .collection('meals')
+            .doc(dateKey)
+            .get();
+      }
 
       if (doc.exists) {
         final data = doc.data() as Map<String, dynamic>;

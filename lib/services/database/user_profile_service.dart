@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../../models/user/user_profile.dart';
 
 class UserProfileService {
@@ -124,6 +125,41 @@ class UserProfileService {
       return updatedProfile;
     } catch (e) {
       throw Exception('Failed to update user profile: $e');
+    }
+  }
+
+  /// Update specific user profile fields
+  Future<bool> updateUserProfileFields({
+    String? bio,
+    String? username,
+    String? displayName,
+    List<String>? interests,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      final updateData = <String, dynamic>{
+        'lastUpdated': FieldValue.serverTimestamp(),
+      };
+
+      if (bio != null) updateData['bio'] = bio;
+      if (username != null) updateData['username'] = username;
+      if (displayName != null) updateData['displayName'] = displayName;
+      if (interests != null) updateData['interests'] = interests;
+
+      await _firestore
+          .collection(_usersCollection)
+          .doc(user.uid)
+          .update(updateData);
+
+      // Clear cache to force refresh on next read
+      clearCache();
+
+      return true;
+    } catch (e) {
+      debugPrint('Failed to update user profile fields: $e');
+      return false;
     }
   }
 
@@ -394,6 +430,54 @@ class UserProfileService {
 
       final isAvailable = query.docs.isEmpty;
       return isAvailable;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Update user interests in Firebase
+  Future<bool> updateUserInterests(List<String> interests) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      await _firestore
+          .collection(_usersCollection)
+          .doc(user.uid)
+          .update({
+        'interests': interests,
+        'lastUpdated': FieldValue.serverTimestamp(),
+      });
+
+      // Update cached profile if it exists
+      if (_cachedProfile != null && _cachedUid == user.uid) {
+        _cachedProfile = UserProfile(
+          uid: _cachedProfile!.uid,
+          email: _cachedProfile!.email,
+          displayName: _cachedProfile!.displayName,
+          username: _cachedProfile!.username,
+          photoURL: _cachedProfile!.photoURL,
+          bio: _cachedProfile!.bio,
+          createdAt: _cachedProfile!.createdAt,
+          lastUpdated: DateTime.now(),
+          lastActive: _cachedProfile!.lastActive,
+          isOnboardingComplete: _cachedProfile!.isOnboardingComplete,
+          isPublic: _cachedProfile!.isPublic,
+          isVerified: _cachedProfile!.isVerified,
+          workoutPreferences: _cachedProfile!.workoutPreferences,
+          sustainabilityPreferences: _cachedProfile!.sustainabilityPreferences,
+          diaryPreferences: _cachedProfile!.diaryPreferences,
+          dietaryPreferences: _cachedProfile!.dietaryPreferences,
+          supportersCount: _cachedProfile!.supportersCount,
+          followersCount: _cachedProfile!.followersCount,
+          followingCount: _cachedProfile!.followingCount,
+          postsCount: _cachedProfile!.postsCount,
+          interests: interests, // Updated interests
+          additionalData: _cachedProfile!.additionalData,
+        );
+      }
+
+      return true;
     } catch (e) {
       return false;
     }

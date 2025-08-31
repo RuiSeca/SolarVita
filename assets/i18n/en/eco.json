@@ -1,0 +1,73 @@
+{
+  "eco_impact": "Eco Impact",
+  "view_all": "View All",
+  "loading": "Loading",
+  "error_loading_eco_data": "Error loading eco data",
+  "future_earth_today": "Future earth, today",
+  "bottles_saved": "Bottles Saved",
+  "carbon_saved": "Carbon Saved",
+  "eco_streak": "Eco Streak",
+  "eco_score": "Eco Score",
+  "days": "days",
+  "pts": "pts",
+  
+  "popup": {
+    "todays_impact": "Today's Impact",
+    "alltime_impact": "All-Time Impact",
+    "your_daily_progress": "Your daily progress",
+    "your_journey_so_far": "Your journey so far",
+    "track_environmental_impact": "Track your environmental impact",
+    "every_action_counts": "Every action counts",
+    
+    "stats": {
+      "co2_saved": "CO₂ Saved",
+      "bottles_equivalent": "Bottles Equivalent",
+      "eco_actions": "Eco Actions",
+      "total_co2": "Total CO₂",
+      "day_streak": "Day Streak",
+      "eco_points": "Eco Points",
+      "loading_todays_impact": "Loading today's impact...",
+      "unable_to_load_stats": "Unable to load today's stats",
+      "loading": "Loading",
+      "error": "Error"
+    },
+    
+    "tips": [
+      "🌱 Great job! You're making a difference!",
+      "🌍 Every small action counts toward a greener future",
+      "♻️ Your eco choices inspire others to follow",
+      "🌿 Together we can heal our planet",
+      "💚 Sustainable living is the way forward",
+      "🌳 Thank you for caring about our Earth",
+      "⚡ Clean energy powers a better tomorrow",
+      "🚲 Active transportation keeps you and Earth healthy"
+    ],
+    
+    "toggle": {
+      "todays_stats": "Today's Stats",
+      "all_time": "All-Time"
+    },
+    
+    "buttons": {
+      "view_details": "View Details",
+      "log_activity": "Log Activity"
+    }
+  },
+  
+  "quick_log": {
+    "title": "Quick Log Activity",
+    "subtitle": "Choose an eco-friendly action you just completed",
+    "activities": {
+      "reusable_bottle": "Used Reusable Bottle",
+      "walked_biked": "Walked/Biked Instead",
+      "recycled_items": "Recycled Items",
+      "saved_energy": "Saved Energy"
+    },
+    "success_messages": {
+      "reusable_bottle": "Reusable bottle logged!",
+      "active_transport": "Active transport logged!",
+      "recycling": "Recycling activity logged!",
+      "energy_saving": "Energy saving logged!"
+    }
+  }
+}

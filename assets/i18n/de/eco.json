@@ -1,0 +1,73 @@
+{
+  "eco_impact": "Umwelt-Auswirkungen",
+  "view_all": "Alle anzeigen",
+  "loading": "Lädt",
+  "error_loading_eco_data": "Fehler beim Laden der Umweltdaten",
+  "future_earth_today": "Zukunft der Erde, heute",
+  "bottles_saved": "Flaschen gespart",
+  "carbon_saved": "CO₂ gespart",
+  "eco_streak": "Umwelt-Serie",
+  "eco_score": "Umwelt-Punkte",
+  "days": "Tage",
+  "pts": "Pkt",
+  
+  "popup": {
+    "todays_impact": "Heutige Auswirkung",
+    "alltime_impact": "Gesamte Auswirkung",
+    "your_daily_progress": "Ihr täglicher Fortschritt",
+    "your_journey_so_far": "Ihre bisherige Reise",
+    "track_environmental_impact": "Verfolgen Sie Ihre Umweltauswirkung",
+    "every_action_counts": "Jede Handlung zählt",
+    
+    "stats": {
+      "co2_saved": "CO₂ gespart",
+      "bottles_equivalent": "Flaschen-Äquivalent",
+      "eco_actions": "Umwelt-Aktionen",
+      "total_co2": "Gesamt CO₂",
+      "day_streak": "Tage-Serie",
+      "eco_points": "Umwelt-Punkte",
+      "loading_todays_impact": "Lade heutige Auswirkung...",
+      "unable_to_load_stats": "Kann heutige Statistiken nicht laden",
+      "loading": "Lädt",
+      "error": "Fehler"
+    },
+    
+    "tips": [
+      "🌱 Großartig! Sie machen einen Unterschied!",
+      "🌍 Jede kleine Handlung zählt für eine grünere Zukunft",
+      "♻️ Ihre Umwelt-Entscheidungen inspirieren andere zum Nachfolgen",
+      "🌿 Zusammen können wir unseren Planeten heilen",
+      "💚 Nachhaltiges Leben ist der Weg nach vorn",
+      "🌳 Danke, dass Sie sich um unsere Erde sorgen",
+      "⚡ Saubere Energie antreibt ein besseres Morgen",
+      "🚲 Aktive Fortbewegung hält Sie und die Erde gesund"
+    ],
+    
+    "toggle": {
+      "todays_stats": "Heutige Statistiken",
+      "all_time": "Gesamt"
+    },
+    
+    "buttons": {
+      "view_details": "Details anzeigen",
+      "log_activity": "Aktivität protokollieren"
+    }
+  },
+  
+  "quick_log": {
+    "title": "Schnell Aktivität protokollieren",
+    "subtitle": "Wählen Sie eine umweltfreundliche Aktion, die Sie gerade abgeschlossen haben",
+    "activities": {
+      "reusable_bottle": "Wiederverwendbare Flasche benutzt",
+      "walked_biked": "Stattdessen gelaufen/Rad gefahren",
+      "recycled_items": "Gegenstände recycelt",
+      "saved_energy": "Energie gespart"
+    },
+    "success_messages": {
+      "reusable_bottle": "Wiederverwendbare Flasche protokolliert!",
+      "active_transport": "Aktive Fortbewegung protokolliert!",
+      "recycling": "Recycling-Aktivität protokolliert!",
+      "energy_saving": "Energiesparen protokolliert!"
+    }
+  }
+}

@@ -4,6 +4,7 @@ import 'dart:async'; // Kept for TimeoutException in ExerciseProvider
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../providers/riverpod/exercise_provider.dart';
+import '../../providers/riverpod/unified_routine_provider.dart';
 import 'workout_detail/workout_detail_screen.dart';
 import 'workout_detail/workout_detail_type.dart' as detail_types;
 import 'workout_detail/workout_list_screen.dart';
@@ -613,7 +614,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       MaterialPageRoute(
         builder: (context) => const RoutineMainScreen(),
       ),
-    );
+    ).then((_) {
+      // Refresh routine provider when returning from routine screen
+      ref.read(unifiedRoutineProvider.notifier).refreshRoutineData();
+    });
   }
 
 

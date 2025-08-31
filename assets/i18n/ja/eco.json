@@ -1,0 +1,73 @@
+{
+  "eco_impact": "環境への影響",
+  "view_all": "すべて表示",
+  "loading": "読み込み中",
+  "error_loading_eco_data": "環境データの読み込みエラー",
+  "future_earth_today": "未来の地球、今日",
+  "bottles_saved": "節約したボトル",
+  "carbon_saved": "節約した炭素",
+  "eco_streak": "エコストリーク",
+  "eco_score": "エコスコア",
+  "days": "日",
+  "pts": "ポイント",
+  
+  "popup": {
+    "todays_impact": "今日の影響",
+    "alltime_impact": "累計の影響",
+    "your_daily_progress": "あなたの日々の進歩",
+    "your_journey_so_far": "これまでの歩み",
+    "track_environmental_impact": "環境への影響を追跡",
+    "every_action_counts": "すべての行動が大切",
+    
+    "stats": {
+      "co2_saved": "CO₂削減量",
+      "bottles_equivalent": "ボトル相当",
+      "eco_actions": "エコアクション",
+      "total_co2": "総CO₂",
+      "day_streak": "日数ストリーク",
+      "eco_points": "エコポイント",
+      "loading_todays_impact": "今日の影響を読み込み中...",
+      "unable_to_load_stats": "今日の統計を読み込めません",
+      "loading": "読み込み中",
+      "error": "エラー"
+    },
+    
+    "tips": [
+      "🌱 素晴らしい！あなたは変化を起こしています！",
+      "🌍 小さな行動一つ一つが、より緑豊かな未来につながります",
+      "♻️ あなたのエコな選択が他の人にも良い影響を与えています",
+      "🌿 共に私たちの惑星を癒すことができます",
+      "💚 持続可能な生活が進むべき道です",
+      "🌳 私たちの地球を大切にしてくださり、ありがとうございます",
+      "⚡ クリーンエネルギーがより良い明日を支えます",
+      "🚲 アクティブな移動であなたと地球を健康に保ちます"
+    ],
+    
+    "toggle": {
+      "todays_stats": "今日の統計",
+      "all_time": "すべての期間"
+    },
+    
+    "buttons": {
+      "view_details": "詳細を表示",
+      "log_activity": "活動を記録"
+    }
+  },
+  
+  "quick_log": {
+    "title": "クイック活動記録",
+    "subtitle": "完了したエコフレンドリーな行動を選択してください",
+    "activities": {
+      "reusable_bottle": "再利用可能なボトルを使用",
+      "walked_biked": "徒歩/自転車で移動",
+      "recycled_items": "物品をリサイクル",
+      "saved_energy": "エネルギーを節約"
+    },
+    "success_messages": {
+      "reusable_bottle": "再利用可能なボトルを記録しました！",
+      "active_transport": "アクティブな移動を記録しました！",
+      "recycling": "リサイクル活動を記録しました！",
+      "energy_saving": "エネルギー節約を記録しました！"
+    }
+  }
+}

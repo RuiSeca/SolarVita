@@ -419,6 +419,50 @@ final todaysActivitiesProvider = Provider<AsyncValue<List<EcoActivity>>>((ref) {
   return ref.watch(userEcoActivitiesProvider(query));
 });
 
+// Today's carbon saved (calculated from today's activities only)
+final todaysCarbonSavedProvider = Provider<AsyncValue<double>>((ref) {
+  final todaysActivities = ref.watch(todaysActivitiesProvider);
+  return todaysActivities.whenData((activities) {
+    return activities.fold<double>(0.0, (sum, activity) => sum + activity.carbonSaved);
+  });
+});
+
+// Today's bottles saved equivalent
+final todaysBottlesSavedProvider = Provider<AsyncValue<int>>((ref) {
+  final todaysCarbon = ref.watch(todaysCarbonSavedProvider);
+  return todaysCarbon.whenData((carbon) => EcoMetrics.carbonToBottles(carbon));
+});
+
+// Today's activity count
+final todaysActivityCountProvider = Provider<AsyncValue<int>>((ref) {
+  final todaysActivities = ref.watch(todaysActivitiesProvider);
+  return todaysActivities.whenData((activities) => activities.length);
+});
+
+// Today's activities by type
+final todaysActivitiesByTypeProvider = Provider<AsyncValue<Map<EcoActivityType, List<EcoActivity>>>>((ref) {
+  final todaysActivities = ref.watch(todaysActivitiesProvider);
+  return todaysActivities.whenData((activities) {
+    final byType = <EcoActivityType, List<EcoActivity>>{};
+    for (final activity in activities) {
+      byType[activity.type] = [...(byType[activity.type] ?? []), activity];
+    }
+    return byType;
+  });
+});
+
+// Today's carbon by category
+final todaysCarbonByTypeProvider = Provider<AsyncValue<Map<EcoActivityType, double>>>((ref) {
+  final todaysActivities = ref.watch(todaysActivitiesProvider);
+  return todaysActivities.whenData((activities) {
+    final byType = <EcoActivityType, double>{};
+    for (final activity in activities) {
+      byType[activity.type] = (byType[activity.type] ?? 0.0) + activity.carbonSaved;
+    }
+    return byType;
+  });
+});
+
 // This week's carbon savings
 final thisWeekCarbonSavedProvider = FutureProvider<double>((ref) async {
   final today = DateTime.now();

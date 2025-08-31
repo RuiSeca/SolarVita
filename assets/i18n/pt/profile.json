@@ -33,7 +33,7 @@
     "you_have_one_supporter_request": "Você tem 1 solicitação de apoiador",
     "you_have_supporter_requests": "Você tem {count} solicitações de apoiador",
     "tap_to_view_and_respond": "Toque para ver e responder",
-    "quick_actions": "Ações Rápidas",
+    "actions_hub": "Central de Ações",
     "log_workout": "Registrar Treino",
     "track_your_fitness": "Acompanhe seu fitness",
     "add_meal": "Adicionar Refeição",
@@ -99,5 +99,22 @@
     "unit_min": "min",
     "unit_cal": "cal",
     "unit_liters": "L",
-    "unit_hrs": "hrs"
+    "unit_hrs": "hrs",
+    "edit_layout": "Edit Layout",
+    "customize_profile_layout": "Customize your profile layout",
+    "share_profile": "Share Profile",
+    "copy_profile_message": "Copy profile message",
+    "profile_share_message": "Check out my profile on SolarVita! Join me in tracking fitness and eco-friendly habits.",
+    "profile_copied_clipboard": "Profile link copied to clipboard",
+    "about_user": "About {name}",
+    "profile_info_interests": "Profile Info & Interests",
+    "interests_hobbies": "Interests & Hobbies",
+    "add_interests": "Add interests",
+    "add_interest_hint": "What are you interested in?",
+    "done": "Done",
+    "drop_zone": "Drop zone",
+    "press_drag_reorder": "Press "press_drag_reorder": "Press "press_drag_reorder": "Press & Drag to Reorder" Drag to Reorder", Drag to Reorder",
+    "press_drag_widgets": "Press and drag widgets to reorder them",
+    "got_it": "Got it",
+    "layout_saved": "Layout saved successfully!"
 }

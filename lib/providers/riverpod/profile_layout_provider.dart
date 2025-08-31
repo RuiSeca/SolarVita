@@ -27,6 +27,8 @@ class ProfileLayoutNotifier extends StateNotifier<AsyncValue<ProfileLayoutConfig
 
   /// Update widget order (during drag and drop)
   Future<void> updateWidgetOrder(List<ProfileWidgetType> newOrder) async {
+    if (!mounted) return;
+    
     final currentConfig = state.value;
     if (currentConfig == null) return;
 
@@ -34,7 +36,9 @@ class ProfileLayoutNotifier extends StateNotifier<AsyncValue<ProfileLayoutConfig
       final newConfig = currentConfig.copyWithOrder(newOrder);
       
       // Update state immediately for smooth UI
-      state = AsyncValue.data(newConfig);
+      if (mounted) {
+        state = AsyncValue.data(newConfig);
+      }
       
       // Save to local storage immediately
       await _service.saveLayoutLocally(newConfig);
@@ -43,7 +47,9 @@ class ProfileLayoutNotifier extends StateNotifier<AsyncValue<ProfileLayoutConfig
       _service.syncLayoutToFirebase(newConfig);
     } catch (e) {
       // Revert state if save fails
-      loadLayout();
+      if (mounted) {
+        loadLayout();
+      }
     }
   }
 
@@ -71,16 +77,26 @@ class ProfileLayoutNotifier extends StateNotifier<AsyncValue<ProfileLayoutConfig
 
   /// Enter edit mode
   void enterEditMode() {
-    _isEditMode = true;
-    // Notify listeners that edit mode changed (for UI updates)
-    state = state; // Trigger rebuild
+    if (mounted) {
+      _isEditMode = true;
+      // Force rebuild of dependent providers by creating new state instance
+      final currentState = state;
+      if (currentState is AsyncData<ProfileLayoutConfig>) {
+        state = AsyncData(currentState.value);
+      }
+    }
   }
 
   /// Exit edit mode
   void exitEditMode() {
-    _isEditMode = false;
-    // Notify listeners that edit mode changed
-    state = state; // Trigger rebuild
+    if (mounted) {
+      _isEditMode = false;
+      // Force rebuild of dependent providers by creating new state instance
+      final currentState = state;
+      if (currentState is AsyncData<ProfileLayoutConfig>) {
+        state = AsyncData(currentState.value);
+      }
+    }
   }
 
   /// Reset to default layout

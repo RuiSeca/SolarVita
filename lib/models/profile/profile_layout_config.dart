@@ -8,7 +8,8 @@ enum ProfileWidgetType {
   dailyGoals('daily_goals', 'Daily Goals', Icons.track_changes),
   weeklySummary('weekly_summary', 'Weekly Summary', Icons.bar_chart),
   actionGrid('action_grid', 'Quick Actions', Icons.dashboard),
-  achievements('achievements', 'Achievements', Icons.emoji_events);
+  achievements('achievements', 'Achievements', Icons.emoji_events),
+  ecoImpact('eco_impact', 'Eco Impact', Icons.eco);
 
   const ProfileWidgetType(this.key, this.displayName, this.icon);
 
@@ -47,6 +48,7 @@ class ProfileLayoutConfig {
       ProfileWidgetType.weeklySummary,
       ProfileWidgetType.actionGrid,
       ProfileWidgetType.achievements,
+      ProfileWidgetType.ecoImpact,
     ];
 
     final defaultVisibility = Map<ProfileWidgetType, bool>.fromEntries(
@@ -102,10 +104,10 @@ class ProfileLayoutConfig {
 
   /// Create from JSON
   factory ProfileLayoutConfig.fromJson(Map<String, dynamic> json) {
-    final widgetOrder = (json['widgetOrder'] as List<dynamic>?)
+    final savedWidgetOrder = (json['widgetOrder'] as List<dynamic>?)
         ?.cast<String>()
         .map(ProfileWidgetType.fromKey)
-        .toList() ?? ProfileLayoutConfig.defaultLayout().widgetOrder;
+        .toList();
 
     final visibilityMap = json['widgetVisibility'] as Map<String, dynamic>?;
     final widgetVisibility = <ProfileWidgetType, bool>{};
@@ -123,8 +125,21 @@ class ProfileLayoutConfig {
       widgetVisibility.putIfAbsent(type, () => true);
     }
 
+    // Merge existing order with new widgets for existing users
+    List<ProfileWidgetType> finalWidgetOrder;
+    if (savedWidgetOrder != null) {
+      final defaultOrder = ProfileLayoutConfig.defaultLayout().widgetOrder;
+      final existingTypes = savedWidgetOrder.toSet();
+      final newTypes = defaultOrder.where((type) => !existingTypes.contains(type)).toList();
+      
+      // Add new widgets to the end of existing layout
+      finalWidgetOrder = [...savedWidgetOrder, ...newTypes];
+    } else {
+      finalWidgetOrder = ProfileLayoutConfig.defaultLayout().widgetOrder;
+    }
+
     return ProfileLayoutConfig(
-      widgetOrder: widgetOrder,
+      widgetOrder: finalWidgetOrder,
       widgetVisibility: widgetVisibility,
       lastModified: DateTime.tryParse(json['lastModified'] as String? ?? '') ?? 
           DateTime.now(),

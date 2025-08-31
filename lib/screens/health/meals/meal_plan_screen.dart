@@ -16,6 +16,7 @@ import '../../../utils/translation_helper.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
 import '../../../services/chat/data_sync_service.dart';
 import '../../../providers/riverpod/interactive_coach_provider.dart';
+import '../../../providers/riverpod/unified_meal_provider.dart';
 import '../../../widgets/interactive_quantum_coach.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
@@ -284,7 +285,16 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       _mealData[mealTime]!.add(acceptedMeal);
     });
 
-    _saveMealData();
+    _saveMealData().then((_) {
+      // Trigger refresh on unified meal provider after data is saved
+      if (mounted) {
+        try {
+          ref.read(unifiedMealProvider.notifier).refreshMealData();
+        } catch (e) {
+          // Ignore errors since this is not critical
+        }
+      }
+    });
   }
 
   // Reject a suggested meal (remove it)
@@ -293,7 +303,16 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       _mealData[mealTime]?.removeWhere((meal) => meal['id'] == suggestedMealId);
     });
 
-    _saveMealData();
+    _saveMealData().then((_) {
+      // Trigger refresh on unified meal provider after data is saved
+      if (mounted) {
+        try {
+          ref.read(unifiedMealProvider.notifier).refreshMealData();
+        } catch (e) {
+          // Ignore errors since this is not critical
+        }
+      }
+    });
   }
 
 
@@ -427,35 +446,75 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
         json.encode(_favoriteMealsList),
       );
 
-      // Sync today's meals to Firebase for supporters to see
+      // Always sync today's meals to Firebase for supporters to see
       await _syncTodaysMealsToFirebase();
     } catch (e) {
       logger.d('Error saving meal data: $e');
     }
   }
 
-  // Sync today's meals to Firebase
+  // Sync today's meals to Firebase - always sync current day's data
   Future<void> _syncTodaysMealsToFirebase() async {
     try {
       final today = DateTime.now();
       final currentDayIndex = today.weekday - 1; // Convert to 0-6 index
 
-      // Only sync if we're viewing today's meals
+      // Always sync today's data, regardless of which day is selected
+      Map<String, List<Map<String, dynamic>>> todaysMeals;
+      
       if (_selectedDayIndex == currentDayIndex) {
+        // If viewing today, use current _mealData
+        todaysMeals = _mealData;
+      } else {
+        // If viewing another day, get today's data from weekly storage
+        todaysMeals = _weeklyMealData[currentDayIndex] ?? {
+          'breakfast': [],
+          'lunch': [],
+          'dinner': [],
+          'snacks': [],
+        };
+      }
+
+      // Only sync if today has actual meals (not empty)
+      bool hasNonSuggestedMeals = false;
+      for (final mealList in todaysMeals.values) {
+        if (mealList.any((meal) => meal['isSuggested'] != true)) {
+          hasNonSuggestedMeals = true;
+          break;
+        }
+      }
+
+      if (hasNonSuggestedMeals) {
+        // Filter out suggested meals before syncing
+        final realMealsOnly = <String, List<Map<String, dynamic>>>{};
+        todaysMeals.forEach((mealTime, meals) {
+          realMealsOnly[mealTime] = meals
+              .where((meal) => meal['isSuggested'] != true)
+              .toList();
+        });
+
         // Sync meals and get back the processed data with Firebase URLs
         final processedMeals = await DataSyncService().syncDailyMealsWithReturn(
-          _mealData,
+          realMealsOnly,
         );
 
         if (processedMeals != null) {
-          // Update local storage with Firebase URLs
-          setState(() {
-            _mealData = processedMeals;
-          });
-
-          // Update weekly data
-          _weeklyMealData[_selectedDayIndex] =
-              Map<String, List<Map<String, dynamic>>>.from(_mealData);
+          // Update today's data in weekly storage
+          _weeklyMealData[currentDayIndex] = processedMeals;
+          
+          // If we're currently viewing today, update the UI
+          if (_selectedDayIndex == currentDayIndex) {
+            setState(() {
+              _mealData = Map<String, List<Map<String, dynamic>>>.from(processedMeals);
+              
+              // Re-add suggested meals if any
+              final suggestedMeals = _getSuggestedMealsFromPreviousDay(currentDayIndex);
+              for (final mealTime in _mealTimes) {
+                final suggestions = suggestedMeals[mealTime] ?? [];
+                _mealData[mealTime]!.addAll(suggestions);
+              }
+            });
+          }
 
           // Save updated data locally
           final prefs = await SharedPreferences.getInstance();
@@ -464,6 +523,8 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
             dataToSave[key.toString()] = value;
           });
           await prefs.setString(_weeklyMealDataKey, json.encode(dataToSave));
+          
+          logger.d('Successfully synced today\'s meals to Firebase');
         }
       }
     } catch (e) {
@@ -540,8 +601,18 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       }
     });
 
-    // Save the updated data
-    _saveMealData();
+    // Save the updated data and refresh provider
+    _saveMealData().then((_) {
+      // Trigger refresh on unified meal provider after data is saved
+      if (mounted) {
+        try {
+          ref.read(unifiedMealProvider.notifier).refreshMealData();
+        } catch (e) {
+          // Ignore errors since this is not critical - provider might not be available
+        }
+      }
+    });
+    
     return true;
   }
 
@@ -550,7 +621,16 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
     setState(() {
       _mealData[mealTime]?.removeWhere((meal) => meal['id'] == mealId);
     });
-    _saveMealData();
+    _saveMealData().then((_) {
+      // Trigger refresh on unified meal provider after data is saved
+      if (mounted) {
+        try {
+          ref.read(unifiedMealProvider.notifier).refreshMealData();
+        } catch (e) {
+          // Ignore errors since this is not critical
+        }
+      }
+    });
   }
 
   // Toggle meal favorite status

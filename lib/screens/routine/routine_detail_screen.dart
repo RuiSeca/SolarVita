@@ -668,7 +668,7 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          tr(context, 'quick_actions'),
+          tr(context, 'actions_hub'),
           style: TextStyle(
             color: AppTheme.textColor(context),
             fontSize: 18,

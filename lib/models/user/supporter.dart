@@ -84,6 +84,8 @@ class Supporter {
   final String? ecoScore;
   final Map<String, dynamic>? stats;
   final int? supportersCount;
+  final DateTime? createdAt;
+  final List<String> interests;
 
   Supporter({
     required this.userId,
@@ -93,6 +95,8 @@ class Supporter {
     this.ecoScore,
     this.stats,
     this.supportersCount,
+    this.createdAt,
+    this.interests = const [],
   });
 
   factory Supporter.fromFirestore(DocumentSnapshot doc) {
@@ -105,6 +109,12 @@ class Supporter {
       ecoScore: data['ecoScore']?.toString(),
       stats: data['stats'],
       supportersCount: data['supportersCount'],
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as Timestamp).toDate()
+          : null,
+      interests: data['interests'] != null 
+          ? List<String>.from(data['interests'])
+          : const [],
     );
   }
 }

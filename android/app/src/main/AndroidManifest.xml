@@ -159,6 +159,11 @@
             android:value="${GOOGLE_MAPS_API_KEY}"/>
         -->
 
+        <!-- Google Pay API Configuration for Testing -->
+        <meta-data
+            android:name="com.google.android.gms.wallet.api.enabled"
+            android:value="true" />
+
         <!-- Required for Flutter engine -->
         <meta-data
             android:name="flutterEmbedding"

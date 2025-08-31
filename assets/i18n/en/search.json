@@ -407,5 +407,7 @@
     "replying_to_user": "Replying to {username}",
     "failed_update_comment": "Failed to update comment: {error}",
     "failed_delete_comment": "Failed to delete comment: {error}",
-    "failed_update_pin": "Failed to update pin status: {error}"
+    "failed_update_pin": "Failed to update pin status: {error}",
+    "todays_workout": "Today's Workout",
+    "no_exercises_today": "No exercises for today"
 }

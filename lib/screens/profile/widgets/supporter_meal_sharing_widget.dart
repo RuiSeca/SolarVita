@@ -13,22 +13,43 @@ class SupporterMealSharingWidget extends ConsumerWidget {
   final String supporterId;
   final PrivacySettings privacySettings;
   final Map<String, List<Map<String, dynamic>>>? dailyMeals;
+  final VoidCallback? onRefresh;
 
   const SupporterMealSharingWidget({
     super.key,
     required this.supporterId,
     required this.privacySettings,
     this.dailyMeals,
+    this.onRefresh,
   });
 
   // Helper method to determine whether to use File or Network image
-  Widget _buildImageWidget(String? imagePath) {
+  Widget _buildImageWidget(String? imagePath, {String? mealName}) {
     if (imagePath == null || imagePath.isEmpty) {
       return Container(
         width: 60,
         height: 60,
-        color: Colors.grey[300],
-        child: Icon(Icons.restaurant, color: Colors.grey[500]),
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.restaurant, color: Colors.grey[500], size: 24),
+            if (mealName != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                mealName[0].toUpperCase(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ],
+        ),
       );
     }
 
@@ -38,45 +59,81 @@ class SupporterMealSharingWidget extends ConsumerWidget {
     if (isLocalFile) {
       final file = File(imagePath.replaceFirst('file://', ''));
       if (file.existsSync()) {
-        return Image.file(
-          file,
-          width: 60,
-          height: 60,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) => Container(
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Image.file(
+            file,
             width: 60,
             height: 60,
-            color: Colors.grey[300],
-            child: Icon(Icons.restaurant, color: Colors.grey[500]),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackImage(mealName),
           ),
         );
       } else {
-        // File doesn't exist, show default icon
-        return Container(
-          width: 60,
-          height: 60,
-          color: Colors.grey[300],
-          child: Icon(Icons.restaurant, color: Colors.grey[500]),
-        );
+        // File doesn't exist, show fallback
+        return _buildFallbackImage(mealName);
       }
     }
 
-    return CachedNetworkImage(
-      imageUrl: imagePath,
+    // Network image from Firebase Storage
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: CachedNetworkImage(
+        imageUrl: imagePath,
+        width: 60,
+        height: 60,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          width: 60,
+          height: 60,
+          decoration: BoxDecoration(
+            color: Colors.grey[200],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Center(
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => _buildFallbackImage(mealName),
+      ),
+    );
+  }
+
+  Widget _buildFallbackImage(String? mealName) {
+    return Container(
       width: 60,
       height: 60,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        width: 60,
-        height: 60,
-        color: Colors.grey[300],
-        child: Icon(Icons.restaurant, color: Colors.grey[500]),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Colors.orange.withValues(alpha: 0.3),
+            Colors.red.withValues(alpha: 0.2),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(8),
       ),
-      errorWidget: (context, url, error) => Container(
-        width: 60,
-        height: 60,
-        color: Colors.grey[300],
-        child: Icon(Icons.restaurant, color: Colors.grey[500]),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.restaurant_menu, color: Colors.orange[600], size: 24),
+          if (mealName != null && mealName.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              mealName[0].toUpperCase(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange[700],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -118,6 +175,12 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (onRefresh != null)
+                IconButton(
+                  onPressed: onRefresh,
+                  icon: Icon(Icons.refresh, color: Colors.orange, size: 20),
+                  tooltip: 'Refresh meal data',
+                ),
               if (!privacySettings.showNutritionStats)
                 Icon(Icons.lock_outline, color: Colors.grey[500], size: 20),
             ],
@@ -207,6 +270,17 @@ class SupporterMealSharingWidget extends ConsumerWidget {
             style: TextStyle(fontSize: 14, color: Colors.orange[600]),
             textAlign: TextAlign.center,
           ),
+          if (onRefresh != null) ...[
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: onRefresh,
+              icon: Icon(Icons.refresh, color: Colors.orange[600]),
+              label: Text(
+                'Refresh',
+                style: TextStyle(color: Colors.orange[600]),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -317,9 +391,9 @@ class SupporterMealSharingWidget extends ConsumerWidget {
           child: Row(
             children: [
               // Meal Image
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: _buildImageWidget(meal['image'] ?? meal['imagePath']),
+              _buildImageWidget(
+                meal['image'] ?? meal['imagePath'], 
+                mealName: meal['name'] ?? meal['titleKey'],
               ),
               const SizedBox(width: 12),
 
@@ -329,7 +403,7 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      meal['name'] ?? tr(context, 'unnamed_meal'),
+                      meal['name'] ?? meal['titleKey'] ?? tr(context, 'unnamed_meal'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -338,13 +412,13 @@ class SupporterMealSharingWidget extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (meal['calories'] != null) ...[
+                    if (meal['calories'] != null || meal['nutritionFacts']?['calories'] != null) ...[
                       const SizedBox(height: 4),
                       Text(
                         tr(
                           context,
                           'calories_count',
-                        ).replaceAll('{calories}', meal['calories'].toString()),
+                        ).replaceAll('{calories}', (meal['calories'] ?? meal['nutritionFacts']?['calories'] ?? '0').toString()),
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],

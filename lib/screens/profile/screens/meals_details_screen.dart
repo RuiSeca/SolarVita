@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
-import '../../../providers/riverpod/meal_provider.dart';
+import '../../../providers/riverpod/unified_meal_provider.dart';
 import '../../../providers/riverpod/eco_provider.dart';
 import '../../../services/database/eco_service.dart';
 import '../../../models/eco/eco_metrics.dart';
+import '../../health/meals/meal_plan_screen.dart';
 
 class MealsDetailsScreen extends ConsumerStatefulWidget {
   const MealsDetailsScreen({super.key});
@@ -16,7 +17,7 @@ class MealsDetailsScreen extends ConsumerStatefulWidget {
 class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   @override
   Widget build(BuildContext context) {
-    final mealsState = ref.watch(mealNotifierProvider);
+    final unifiedMealState = ref.watch(unifiedMealProvider);
     final ecoMetrics = ref.watch(userEcoMetricsProvider);
 
     return Scaffold(
@@ -36,7 +37,7 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
           IconButton(
             icon: Icon(Icons.refresh, color: AppTheme.textColor(context)),
             onPressed: () {
-              ref.invalidate(mealNotifierProvider);
+              ref.read(unifiedMealProvider.notifier).refreshMealData();
               ref.invalidate(userEcoMetricsProvider);
             },
           ),
@@ -59,48 +60,66 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
             ],
           ),
         ),
-        data: (metrics) => SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Hero section with today's meal overview
-              _buildHeroSection(context, ref, metrics, mealsState),
-              const SizedBox(height: 24),
+        data: (metrics) => unifiedMealState.isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : unifiedMealState.hasError
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 64, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error loading meal data: ${unifiedMealState.error}'),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () => ref.read(unifiedMealProvider.notifier).refreshMealData(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Hero section with today's meal overview
+                        _buildHeroSection(context, ref, metrics, unifiedMealState),
+                        const SizedBox(height: 24),
 
-              // Today's meals detailed list
-              _buildTodaysMealsSection(context, ref, mealsState),
-              const SizedBox(height: 24),
+                        // Today's meals detailed list
+                        _buildTodaysMealsSection(context, ref, unifiedMealState),
+                        const SizedBox(height: 24),
 
-              // Sustainability analysis
-              _buildSustainabilityAnalysis(context, ref, mealsState, metrics),
-              const SizedBox(height: 24),
+                        // Sustainability analysis
+                        _buildSustainabilityAnalysis(context, ref, unifiedMealState, metrics),
+                        const SizedBox(height: 24),
 
-              // Meal categories breakdown
-              _buildMealCategoriesSection(context, ref, mealsState),
-              const SizedBox(height: 24),
+                        // Meal categories breakdown
+                        _buildMealCategoriesSection(context, ref, unifiedMealState),
+                        const SizedBox(height: 24),
 
-              // Weekly meal trends
-              _buildWeeklyTrendsSection(context, ref, metrics),
-              const SizedBox(height: 24),
+                        // Weekly meal trends
+                        _buildWeeklyTrendsSection(context, ref, metrics),
+                        const SizedBox(height: 24),
 
-              // Nutrition vs sustainability balance
-              _buildNutritionSustainabilitySection(context, ref, mealsState),
-              const SizedBox(height: 24),
+                        // Nutrition vs sustainability balance
+                        _buildNutritionSustainabilitySection(context, ref, unifiedMealState),
+                        const SizedBox(height: 24),
 
-              // Achievements and goals
-              _buildMealAchievementsSection(context, ref, metrics, mealsState),
-              const SizedBox(height: 24),
+                        // Achievements and goals
+                        _buildMealAchievementsSection(context, ref, metrics, unifiedMealState),
+                        const SizedBox(height: 24),
 
-              // Sustainable eating tips
-              _buildSustainableEatingTips(context),
-              const SizedBox(height: 24),
+                        // Sustainable eating tips
+                        _buildSustainableEatingTips(context),
+                        const SizedBox(height: 24),
 
-              // Action buttons
-              _buildActionButtonsSection(context, ref, mealsState),
-            ],
-          ),
-        ),
+                        // Action buttons
+                        _buildActionButtonsSection(context, ref, unifiedMealState),
+                      ],
+                    ),
+                  ),
       ),
     );
   }
@@ -109,17 +128,18 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
     BuildContext context,
     WidgetRef ref,
     EcoMetrics metrics,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
+    final nutrition = ref.read(unifiedMealProvider.notifier).getTodaysNutrition();
+    
     double todaysCarbonSaved = 0.0;
     int sustainableMeals = 0;
-    int totalCalories = 0;
+    int totalCalories = nutrition['calories']?.round() ?? 0;
 
     for (final meal in todaysMeals) {
       final category = _inferMealCategory(meal);
       final calories = _extractCalories(meal) ?? 0;
-      totalCalories += calories;
 
       final carbonSaved = EcoService.calculateMealCarbonSaved(
         category,
@@ -258,13 +278,9 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   Widget _buildTodaysMealsSection(
     BuildContext context,
     WidgetRef ref,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
-    if (mealsState.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
     if (todaysMeals.isEmpty) {
       return _buildEmptyMealsCard(context);
     }
@@ -342,7 +358,7 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
     WidgetRef ref,
     Map<String, dynamic> meal,
   ) {
-    final mealName = meal['strMeal'] ?? meal['food_name'] ?? 'Unknown Meal';
+    final mealName = meal['titleKey'] ?? meal['name'] ?? meal['strMeal'] ?? meal['food_name'] ?? 'Unknown Meal';
     final category = _inferMealCategory(meal);
     final calories = _extractCalories(meal);
     final carbonSaved = EcoService.calculateMealCarbonSaved(
@@ -477,10 +493,10 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   Widget _buildSustainabilityAnalysis(
     BuildContext context,
     WidgetRef ref,
-    MealState mealsState,
+    UnifiedMealState mealState,
     EcoMetrics metrics,
   ) {
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
     final categoryBreakdown = <String, int>{};
     double totalCarbonSaved = 0.0;
 
@@ -634,9 +650,9 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   Widget _buildMealCategoriesSection(
     BuildContext context,
     WidgetRef ref,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
     final categoryBreakdown = <String, Map<String, dynamic>>{};
 
     for (final meal in todaysMeals) {
@@ -881,7 +897,7 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   Widget _buildNutritionSustainabilitySection(
     BuildContext context,
     WidgetRef ref,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1006,9 +1022,10 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
     BuildContext context,
     WidgetRef ref,
     EcoMetrics metrics,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
-    final achievements = _calculateMealAchievements(metrics, mealsState);
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
+    final achievements = _calculateMealAchievements(metrics, mealState, todaysMeals);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1246,9 +1263,9 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
   Widget _buildActionButtonsSection(
     BuildContext context,
     WidgetRef ref,
-    MealState mealsState,
+    UnifiedMealState mealState,
   ) {
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
+    final todaysMeals = ref.read(unifiedMealProvider.notifier).getAllMealsAsList();
 
     return Column(
       children: [
@@ -1273,40 +1290,29 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
         ),
         const SizedBox(height: 12),
 
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Navigate to meal logging or planning
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Log New Meal'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MealPlanScreen(),
                 ),
+              ).then((_) {
+                // Refresh meal data when coming back from meal plan
+                ref.read(unifiedMealProvider.notifier).refreshMealData();
+              });
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('Log New Meal'),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  // Navigate to meal planning
-                },
-                icon: const Icon(Icons.calendar_today),
-                label: const Text('Plan Meals'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
@@ -1433,10 +1439,10 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
 
   List<Map<String, dynamic>> _calculateMealAchievements(
     EcoMetrics metrics,
-    MealState mealsState,
+    UnifiedMealState mealState,
+    List<Map<String, dynamic>> todaysMeals,
   ) {
     final achievements = <Map<String, dynamic>>[];
-    final todaysMeals = mealsState.meals?.take(10).toList() ?? [];
 
     if (metrics.mealCarbonSaved >= 1.0) {
       achievements.add({
@@ -1491,7 +1497,7 @@ class _MealsDetailsScreenState extends ConsumerState<MealsDetailsScreen> {
 
     for (final meal in meals) {
       final category = _inferMealCategory(meal);
-      final mealName = meal['strMeal'] ?? meal['food_name'] ?? 'Unknown Meal';
+      final mealName = meal['titleKey'] ?? meal['name'] ?? meal['strMeal'] ?? meal['food_name'] ?? 'Unknown Meal';
       final calories = _extractCalories(meal);
 
       try {
