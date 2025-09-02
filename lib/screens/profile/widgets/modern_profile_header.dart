@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
 import '../../../providers/riverpod/user_progress_provider.dart';
+import '../../../providers/riverpod/eco_provider.dart';
 import '../../../utils/translation_helper.dart';
 import '../settings/settings_main_screen.dart';
 import '../../../providers/riverpod/profile_layout_provider.dart';
@@ -295,11 +296,58 @@ class ModernProfileHeader extends ConsumerWidget {
                           ),
                           _buildDivider(),
                           Flexible(
-                            child: _buildQuickStat(
-                              context,
-                              Icons.eco_outlined,
-                              '2.4kg',
-                              tr(context, 'co2_saved'),
+                            child: Consumer(
+                              builder: (context, ref, child) {
+                                final isShowingToday = ref.watch(ecoWidgetViewStateProvider);
+                                
+                                if (isShowingToday) {
+                                  // Show today's CO₂ saved
+                                  final todaysCarbon = ref.watch(todaysCarbonSavedProvider);
+                                  return todaysCarbon.when(
+                                    data: (carbon) => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '${carbon.toStringAsFixed(1)}kg',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                    loading: () => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '--',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                    error: (_, __) => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '0.0kg',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                  );
+                                } else {
+                                  // Show all-time CO₂ saved
+                                  final ecoMetrics = ref.watch(userEcoMetricsProvider);
+                                  return ecoMetrics.when(
+                                    data: (metrics) => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '${metrics.totalCarbonSaved.toStringAsFixed(1)}kg',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                    loading: () => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '--',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                    error: (_, __) => _buildQuickStat(
+                                      context,
+                                      Icons.eco_outlined,
+                                      '0.0kg',
+                                      tr(context, 'co2_saved'),
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
                           _buildDivider(),

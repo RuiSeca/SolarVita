@@ -693,4 +693,65 @@ class EcoService {
 
     return counts;
   }
+
+  /// Supporter Eco Data Methods
+
+  // Get supporter's eco metrics
+  Stream<EcoMetrics> getSupporterEcoMetrics(String supporterId) {
+    return _firestore
+        .collection('users')
+        .doc(supporterId)
+        .collection(ecoMetricsCollection)
+        .doc('current')
+        .snapshots()
+        .map((doc) {
+          if (doc.exists) {
+            return EcoMetrics.fromFirestore(doc);
+          } else {
+            return EcoMetrics.empty(supporterId);
+          }
+        });
+  }
+
+  // Get supporter's eco activities with optional filtering
+  Stream<List<EcoActivity>> getSupporterEcoActivities(
+    String supporterId, {
+    EcoActivityType? type,
+    int limit = 50,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    Query query = _firestore
+        .collection('users')
+        .doc(supporterId)
+        .collection(ecoActivitiesCollection)
+        .orderBy('date', descending: true);
+
+    // Apply filters
+    if (type != null) {
+      query = query.where('type', isEqualTo: type.toString());
+    }
+
+    if (startDate != null) {
+      query = query.where(
+        'date',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+      );
+    }
+
+    if (endDate != null) {
+      query = query.where(
+        'date',
+        isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+      );
+    }
+
+    query = query.limit(limit);
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => EcoActivity.fromFirestore(doc))
+          .toList();
+    });
+  }
 }

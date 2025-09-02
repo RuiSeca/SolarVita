@@ -9,6 +9,7 @@ import '../../../models/eco/carbon_activity.dart';
 import '../../../models/health/health_data.dart';
 import '../../../services/database/eco_service.dart';
 import '../../../widgets/common/optimized_map_factory.dart';
+import '../../../utils/translation_helper.dart';
 import '../supporter/transportation_details_screen.dart';
 
 class EcoImpactScreen extends ConsumerStatefulWidget {
@@ -60,15 +61,6 @@ class _EcoImpactScreenState extends ConsumerState<EcoImpactScreen> {
                 elevation: 0,
                 iconTheme: IconThemeData(color: AppTheme.textColor(context)),
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(
-                    'Eco Impact',
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 22,
-                    ),
-                  ),
-                  titlePadding: const EdgeInsets.only(left: 72, bottom: 16), // More space for back arrow
                   background: Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -84,12 +76,20 @@ class _EcoImpactScreenState extends ConsumerState<EcoImpactScreen> {
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(72, 16, 16, 16), // Left padding for back arrow
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const SizedBox(height: 32), // Reduced space since title has proper padding
                             Text(
-                              'Track your environmental impact',
+                              tr(context, 'eco_impact'),
+                              style: TextStyle(
+                                color: AppTheme.textColor(context),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 24,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              tr(context, 'track_environmental_impact'),
                               style: TextStyle(
                                 color: AppTheme.textColor(context).withValues(alpha: 0.8),
                                 fontSize: 14,
@@ -106,7 +106,7 @@ class _EcoImpactScreenState extends ConsumerState<EcoImpactScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Every action counts',
+                                  tr(context, 'every_action_counts'),
                                   style: TextStyle(
                                     color: Colors.green.withValues(alpha: 0.8),
                                     fontSize: 12,
@@ -137,7 +137,7 @@ class _EcoImpactScreenState extends ConsumerState<EcoImpactScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () => ref.invalidate(userEcoMetricsProvider),
-                          child: const Text('Retry'),
+                          child: Text(tr(context, 'retry')),
                         ),
                       ],
                     ),

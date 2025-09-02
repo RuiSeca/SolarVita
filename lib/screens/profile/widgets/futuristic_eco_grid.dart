@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../models/eco/eco_metrics.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../providers/riverpod/eco_provider.dart';
 import 'eco_impact_popup.dart';
 
 /// Futuristic eco impact widget with 2x2 grid layout
 /// Combines modern tech aesthetics with nature-inspired design
-class FuturisticEcoGrid extends StatelessWidget {
+class FuturisticEcoGrid extends ConsumerWidget {
   final EcoMetrics ecoMetrics;
   
   const FuturisticEcoGrid({
@@ -14,7 +16,9 @@ class FuturisticEcoGrid extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isShowingToday = ref.watch(ecoWidgetViewStateProvider);
+    
     return GestureDetector(
       onTap: () => EcoImpactPopup.show(context, ecoMetrics),
       child: Container(
@@ -56,17 +60,17 @@ class FuturisticEcoGrid extends StatelessWidget {
       child: Column(
         children: [
           // Header with holographic effect
-          _buildHeader(context),
+          _buildHeader(context, ref, isShowingToday),
           const SizedBox(height: 24),
           // 2x2 Grid
-          _build2x2Grid(context),
+          _build2x2Grid(context, ref, isShowingToday),
         ],
       ),
     ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, bool isShowingToday) {
     return Row(
       children: [
         // Animated eco icon with glow
@@ -110,7 +114,7 @@ class FuturisticEcoGrid extends StatelessWidget {
                   ],
                 ).createShader(bounds),
                 child: Text(
-                  tr(context, 'eco_impact'),
+                  isShowingToday ? tr(context, 'todays_impact') : tr(context, 'alltime_impact'),
                   style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
@@ -153,7 +157,115 @@ class FuturisticEcoGrid extends StatelessWidget {
     );
   }
 
-  Widget _build2x2Grid(BuildContext context) {
+  Widget _build2x2Grid(BuildContext context, WidgetRef ref, bool isShowingToday) {
+    if (isShowingToday) {
+      // Today's stats - show daily progress
+      return _buildTodayStatsGrid(context, ref);
+    } else {
+      // All-time stats - show cumulative achievements
+      return _buildAllTimeStatsGrid(context);
+    }
+  }
+
+  Widget _buildTodayStatsGrid(BuildContext context, WidgetRef ref) {
+    final todaysCarbon = ref.watch(todaysCarbonSavedProvider);
+    final todaysBottles = ref.watch(todaysBottlesSavedProvider);
+    final todaysActivityCount = ref.watch(todaysActivityCountProvider);
+
+    return Column(
+      children: [
+        // Top row
+        Row(
+          children: [
+            Expanded(
+              child: todaysCarbon.when(
+                data: (carbon) => _buildEcoStatCard(
+                  context,
+                  icon: Icons.co2_outlined,
+                  value: carbon.toStringAsFixed(1),
+                  unit: 'kg',
+                  label: tr(context, 'co2_saved'),
+                  color: const Color(0xFF4CAF50), // Natural green
+                  gradient: const [
+                    Color(0xFF2E7D32),
+                    Color(0xFF4CAF50),
+                    Color(0xFF66BB6A),
+                  ],
+                  animationType: EcoCardAnimation.particles,
+                ),
+                loading: () => _buildLoadingCard(context, tr(context, 'co2_saved')),
+                error: (_, __) => _buildErrorCard(context, tr(context, 'co2_saved')),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: todaysBottles.when(
+                data: (bottles) => _buildEcoStatCard(
+                  context,
+                  icon: Icons.water_drop_outlined,
+                  value: '$bottles',
+                  label: tr(context, 'bottles_equivalent'),
+                  color: const Color(0xFF03A9F4), // Cyan blue - water
+                  gradient: const [
+                    Color(0xFF0277BD),
+                    Color(0xFF03A9F4),
+                    Color(0xFF4FC3F7),
+                  ],
+                  animationType: EcoCardAnimation.flow,
+                ),
+                loading: () => _buildLoadingCard(context, tr(context, 'bottles_equivalent')),
+                error: (_, __) => _buildErrorCard(context, tr(context, 'bottles_equivalent')),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Bottom row
+        Row(
+          children: [
+            Expanded(
+              child: todaysActivityCount.when(
+                data: (count) => _buildEcoStatCard(
+                  context,
+                  icon: Icons.eco_outlined,
+                  value: '$count',
+                  label: tr(context, 'eco_actions'),
+                  color: const Color(0xFF8BC34A), // Light green
+                  gradient: const [
+                    Color(0xFF689F38),
+                    Color(0xFF8BC34A),
+                    Color(0xFFAED581),
+                  ],
+                  animationType: EcoCardAnimation.pulse,
+                ),
+                loading: () => _buildLoadingCard(context, tr(context, 'eco_actions')),
+                error: (_, __) => _buildErrorCard(context, tr(context, 'eco_actions')),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildEcoStatCard(
+                context,
+                icon: Icons.local_fire_department_outlined,
+                value: '${ecoMetrics.currentStreak}',
+                label: tr(context, 'day_streak'),
+                unit: tr(context, 'days'),
+                color: const Color(0xFFFF6F00), // Energy orange
+                gradient: const [
+                  Color(0xFFE65100),
+                  Color(0xFFFF6F00),
+                  Color(0xFFFF8F00),
+                ],
+                animationType: EcoCardAnimation.pulse,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAllTimeStatsGrid(BuildContext context) {
     return Column(
       children: [
         // Top row
@@ -171,7 +283,6 @@ class FuturisticEcoGrid extends StatelessWidget {
                   Color(0xFF03A9F4),
                   Color(0xFF4FC3F7),
                 ],
-                // Flowing animation for water theme
                 animationType: EcoCardAnimation.flow,
               ),
             ),
@@ -182,14 +293,13 @@ class FuturisticEcoGrid extends StatelessWidget {
                 icon: Icons.co2_outlined,
                 value: ecoMetrics.totalCarbonSaved.toStringAsFixed(1),
                 unit: 'kg',
-                label: tr(context, 'carbon_saved'),
+                label: tr(context, 'total_co2'),
                 color: const Color(0xFF4CAF50), // Natural green
                 gradient: const [
                   Color(0xFF2E7D32),
                   Color(0xFF4CAF50),
                   Color(0xFF66BB6A),
                 ],
-                // Particle effect for carbon
                 animationType: EcoCardAnimation.particles,
               ),
             ),
@@ -212,7 +322,6 @@ class FuturisticEcoGrid extends StatelessWidget {
                   Color(0xFFFF6F00),
                   Color(0xFFFF8F00),
                 ],
-                // Pulse effect for streak
                 animationType: EcoCardAnimation.pulse,
               ),
             ),
@@ -230,7 +339,6 @@ class FuturisticEcoGrid extends StatelessWidget {
                   Color(0xFFFFC107),
                   Color(0xFFFFD54F),
                 ],
-                // Shimmer effect for score
                 animationType: EcoCardAnimation.shimmer,
               ),
             ),
@@ -447,6 +555,38 @@ class FuturisticEcoGrid extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLoadingCard(BuildContext context, String label) {
+    return _buildEcoStatCard(
+      context,
+      icon: Icons.hourglass_empty,
+      value: '--',
+      label: label,
+      color: Colors.grey,
+      gradient: const [
+        Color(0xFF757575),
+        Color(0xFF9E9E9E),
+        Color(0xFFBDBDBD),
+      ],
+      animationType: EcoCardAnimation.pulse,
+    );
+  }
+
+  Widget _buildErrorCard(BuildContext context, String label) {
+    return _buildEcoStatCard(
+      context,
+      icon: Icons.error_outline,
+      value: '!',
+      label: label,
+      color: Colors.orange,
+      gradient: const [
+        Color(0xFFE65100),
+        Color(0xFFFF6F00),
+        Color(0xFFFF8F00),
+      ],
+      animationType: EcoCardAnimation.pulse,
     );
   }
 }

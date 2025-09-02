@@ -1,236 +1,223 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../models/social/story_highlight.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
+import '../../../providers/riverpod/story_provider.dart';
+import 'story_viewer_screen.dart';
+import 'story_creation_screen.dart';
 
-/// Story highlights widget - fixed position in profile
-class StoryHighlightsWidget extends StatelessWidget {
-  const StoryHighlightsWidget({super.key});
+class StoryHighlightsWidget extends ConsumerWidget {
+  final String userId;
+  final bool isOwnProfile;
+  final VoidCallback? onAddStoryTap;
+
+  const StoryHighlightsWidget({
+    super.key,
+    required this.userId,
+    required this.isOwnProfile,
+    this.onAddStoryTap,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      height: 100,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(
-              'Story Highlights',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textColor(context),
-              ),
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildStoryHighlight(
-                  context,
-                  'Workouts',
-                  Icons.fitness_center,
-                  Colors.red,
-                ),
-                _buildStoryHighlight(
-                  context,
-                  'Meals',
-                  Icons.restaurant,
-                  Colors.green,
-                ),
-                _buildStoryHighlight(
-                  context,
-                  'Progress',
-                  Icons.trending_up,
-                  Colors.blue,
-                ),
-                _buildStoryHighlight(
-                  context,
-                  'Goals',
-                  Icons.flag,
-                  Colors.orange,
-                ),
-                _buildStoryHighlight(
-                  context,
-                  'Achievements',
-                  Icons.emoji_events,
-                  Colors.purple,
-                ),
-                // Add new highlight button
-                _buildAddHighlight(context),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final canViewHighlights = ref.watch(canViewStoryHighlightsProvider(userId));
+    final storyHighlights = ref.watch(userStoryHighlightsProvider(userId));
 
-  Widget _buildStoryHighlight(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              // Navigate to story highlight detail
-              _showStoryHighlight(context, title);
-            },
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color,
-                    color.withValues(alpha: 0.7),
-                  ],
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: color.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+    return canViewHighlights.when(
+      loading: () => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        child: _buildLoadingGrid(),
+      ),
+      error: (error, stackTrace) => const SizedBox.shrink(),
+      data: (canView) {
+        if (!canView && !isOwnProfile) {
+          return _buildPrivacyBlockedWidget(context);
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Section Header
+              Row(
+                children: [
+                  Text(
+                    tr(context, 'story_highlights'),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor(context),
+                    ),
                   ),
+                  const Spacer(),
+                  if (isOwnProfile)
+                    TextButton.icon(
+                      onPressed: () => _showCreateHighlightDialog(context, ref),
+                      icon: Icon(
+                        Icons.add_circle_outline,
+                        size: 20,
+                        color: AppTheme.primaryColor,
+                      ),
+                      label: Text(
+                        tr(context, 'add_highlight'),
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                 ],
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
+              const SizedBox(height: 16),
+
+              // Story Highlights Grid
+              storyHighlights.when(
+                loading: () => _buildLoadingGrid(),
+                error: (error, stackTrace) => _buildErrorWidget(context, error),
+                data: (highlights) => _buildHighlightsGrid(context, ref, highlights),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textColor(context),
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHighlightsGrid(BuildContext context, WidgetRef ref, List<StoryHighlight> highlights) {
+    if (highlights.isEmpty) {
+      return _buildEmptyState(context, ref);
+    }
+
+    // Show highlights in a horizontal scrollable list
+    final highlightsToShow = highlights.take(12).toList(); // Limit to 12 for clean UI
+    
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: highlightsToShow.length + (isOwnProfile ? 1 : 0),
+        itemBuilder: (context, index) {
+          // Add "New" button for own profile
+          if (isOwnProfile && index == 0) {
+            return _buildAddHighlightButton(context, ref);
+          }
+
+          final highlightIndex = isOwnProfile ? index - 1 : index;
+          final highlight = highlightsToShow[highlightIndex];
+          return _buildHighlightCircle(context, ref, highlight);
+        },
       ),
     );
   }
 
-  Widget _buildAddHighlight(BuildContext context) {
+  Widget _buildAddHighlightButton(BuildContext context, WidgetRef ref) {
     return Container(
-      margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        children: [
-          GestureDetector(
-            onTap: () {
-              _showAddHighlightDialog(context);
-            },
-            child: Container(
-              width: 56,
-              height: 56,
+      margin: const EdgeInsets.only(right: 16),
+      child: GestureDetector(
+        onTap: () => _showCreateHighlightDialog(context, ref),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
               decoration: BoxDecoration(
-                color: AppTheme.cardColor(context),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppTheme.textColor(context).withValues(alpha: 0.3),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.5),
                   width: 2,
                   style: BorderStyle.solid,
                 ),
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
               ),
               child: Icon(
                 Icons.add,
-                color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                size: 24,
+                color: AppTheme.primaryColor,
+                size: 32,
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'New',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w500,
-              color: AppTheme.textColor(context).withValues(alpha: 0.6),
+            const SizedBox(height: 6),
+            Text(
+              tr(context, 'new'),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  void _showStoryHighlight(BuildContext context, String title) {
-    // Show story highlight details
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceColor(context),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
+  Widget _buildHighlightCircle(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+    final category = highlight.category;
+    final colors = category.colorGradient;
+
+    return Container(
+      margin: const EdgeInsets.only(right: 16),
+      child: GestureDetector(
+        onTap: () => _openStoryViewer(context, ref, highlight),
+        onLongPress: isOwnProfile 
+            ? () => _showHighlightOptions(context, ref, highlight)
+            : null,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              width: 40,
-              height: 4,
+              width: 70,
+              height: 70,
               decoration: BoxDecoration(
-                color: AppTheme.textColor(context).withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: colors.map((c) => Color(c)).toList(),
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(colors.first).withValues(alpha: 0.3),
+                    spreadRadius: 0,
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Container(
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.surfaceColor(context),
+                ),
+                child: ClipOval(
+                  child: highlight.coverImageUrl.isNotEmpty
+                      ? Image.network(
+                          highlight.coverImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => _buildDefaultIcon(category),
+                        )
+                      : _buildDefaultIcon(category),
+                ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(20),
+            const SizedBox(height: 6),
+            SizedBox(
+              width: 80,
               child: Text(
-                '$title Story',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor(context),
+                highlight.displayTitle,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
                 ),
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.photo_library_outlined,
-                      size: 64,
-                      color: AppTheme.textColor(context).withValues(alpha: 0.3),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No stories yet',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Stories you add will appear here',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppTheme.textColor(context).withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
-                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -239,23 +226,347 @@ class StoryHighlightsWidget extends StatelessWidget {
     );
   }
 
-  void _showAddHighlightDialog(BuildContext context) {
+  Widget _buildDefaultIcon(StoryHighlightCategory category) {
+    final colors = category.colorGradient;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors.map((c) => Color(c).withValues(alpha: 0.2)).toList(),
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          _getCategoryIcon(category),
+          color: Color(colors.first),
+          size: 24,
+        ),
+      ),
+    );
+  }
+
+  IconData _getCategoryIcon(StoryHighlightCategory category) {
+    switch (category) {
+      case StoryHighlightCategory.workouts:
+        return Icons.fitness_center;
+      case StoryHighlightCategory.progress:
+        return Icons.trending_up;
+      case StoryHighlightCategory.challenges:
+        return Icons.emoji_events;
+      case StoryHighlightCategory.recovery:
+        return Icons.spa;
+      case StoryHighlightCategory.meals:
+        return Icons.restaurant;
+      case StoryHighlightCategory.cooking:
+        return Icons.kitchen;
+      case StoryHighlightCategory.hydration:
+        return Icons.local_drink;
+      case StoryHighlightCategory.ecoActions:
+        return Icons.eco;
+      case StoryHighlightCategory.nature:
+        return Icons.nature;
+      case StoryHighlightCategory.greenLiving:
+        return Icons.park;
+      case StoryHighlightCategory.dailyLife:
+        return Icons.today;
+      case StoryHighlightCategory.travel:
+        return Icons.flight;
+      case StoryHighlightCategory.community:
+        return Icons.people;
+      case StoryHighlightCategory.motivation:
+        return Icons.psychology;
+      case StoryHighlightCategory.custom:
+        return Icons.star;
+    }
+  }
+
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    return Container(
+      height: 120,
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.photo_library_outlined,
+              size: 32,
+              color: AppTheme.textColor(context).withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isOwnProfile 
+                  ? tr(context, 'no_story_highlights_own')
+                  : tr(context, 'no_story_highlights_other'),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textColor(context).withValues(alpha: 0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (isOwnProfile) ...[
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => _showCreateHighlightDialog(context, ref),
+                child: Text(
+                  tr(context, 'create_first_highlight'),
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingGrid() {
+    return SizedBox(
+      height: 90,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 6,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: Column(
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.grey.withValues(alpha: 0.3),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  width: 60,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget(BuildContext context, dynamic error) {
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.red.withValues(alpha: 0.3),
+          width: 1,
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr(context, 'failed_to_load_highlights'),
+              style: TextStyle(
+                color: Colors.red,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivacyBlockedWidget(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 80,
+        decoration: BoxDecoration(
+          color: AppTheme.cardColor(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppTheme.primaryColor.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.lock_outline,
+                color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                tr(context, 'story_highlights_private'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openStoryViewer(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+    final canViewStories = ref.read(canViewStoriesProvider(userId));
+    canViewStories.when(
+      loading: () {}, // Show loading or do nothing
+      error: (error, stackTrace) {}, // Handle error silently
+      data: (canView) {
+        if (canView || isOwnProfile) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => StoryViewerScreen(
+                highlight: highlight,
+                isOwnStory: isOwnProfile,
+              ),
+              fullscreenDialog: true,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  void _showCreateHighlightDialog(BuildContext context, WidgetRef ref) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const StoryCreationScreen(),
+      ),
+    );
+  }
+
+  void _showHighlightOptions(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            ListTile(
+              leading: Icon(Icons.edit, color: AppTheme.primaryColor),
+              title: Text(tr(context, 'edit_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to edit highlight screen
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.add_photo_alternate, color: AppTheme.primaryColor),
+              title: Text(tr(context, 'add_story')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => StoryCreationScreen(existingHighlight: highlight),
+                  ),
+                );
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.visibility_off, color: Colors.orange),
+              title: Text(tr(context, 'hide_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+                _hideHighlight(ref, highlight);
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.delete, color: Colors.red),
+              title: Text(tr(context, 'delete_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteHighlight(context, ref, highlight);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _hideHighlight(WidgetRef ref, StoryHighlight highlight) {
+    final storyActions = ref.read(storyActionsProvider);
+    storyActions.updateStoryHighlight(
+      highlight.id,
+      highlight.copyWith(isVisible: false),
+    );
+  }
+
+  void _confirmDeleteHighlight(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add Story Highlight'),
-        content: const Text('Create a new story highlight category.'),
+        backgroundColor: AppTheme.cardColor(context),
+        title: Text(
+          tr(context, 'delete_highlight'),
+          style: TextStyle(color: AppTheme.textColor(context)),
+        ),
+        content: Text(
+          tr(context, 'delete_highlight_confirmation'),
+          style: TextStyle(color: AppTheme.textColor(context)),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context),
+            child: Text(tr(context, 'cancel')),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
-              // Add new highlight logic
+              Navigator.pop(context);
+              final storyActions = ref.read(storyActionsProvider);
+              storyActions.deleteStoryHighlight(highlight.id);
             },
-            child: const Text('Add'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(tr(context, 'delete')),
           ),
         ],
       ),

@@ -143,7 +143,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         stream: _supporterRequestsStream!,
                       ),
                       
-                      
                       // REORDERABLE CONTENT SECTION
                       const ReorderableProfileContent(),
                       

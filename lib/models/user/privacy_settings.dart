@@ -11,6 +11,9 @@ class PrivacySettings {
   final bool showEcoScore;
   final bool showAchievements;
   final bool allowChallengeInvites;
+  final bool showStoryHighlights;
+  final bool allowStoryViews;
+  final bool showStoryViewers;
   final DateTime updatedAt;
 
   PrivacySettings({
@@ -23,6 +26,9 @@ class PrivacySettings {
     this.showEcoScore = true,
     this.showAchievements = true,
     this.allowChallengeInvites = true,
+    this.showStoryHighlights = true,
+    this.allowStoryViews = true,
+    this.showStoryViewers = true,
     required this.updatedAt,
   });
 
@@ -44,6 +50,9 @@ class PrivacySettings {
       showEcoScore: data['showEcoScore'] ?? true,
       showAchievements: data['showAchievements'] ?? true,
       allowChallengeInvites: data['allowChallengeInvites'] ?? true,
+      showStoryHighlights: data['showStoryHighlights'] ?? true,
+      allowStoryViews: data['allowStoryViews'] ?? true,
+      showStoryViewers: data['showStoryViewers'] ?? true,
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
@@ -58,6 +67,9 @@ class PrivacySettings {
       'showEcoScore': showEcoScore,
       'showAchievements': showAchievements,
       'allowChallengeInvites': allowChallengeInvites,
+      'showStoryHighlights': showStoryHighlights,
+      'allowStoryViews': allowStoryViews,
+      'showStoryViewers': showStoryViewers,
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
   }
@@ -71,6 +83,9 @@ class PrivacySettings {
     bool? showEcoScore,
     bool? showAchievements,
     bool? allowChallengeInvites,
+    bool? showStoryHighlights,
+    bool? allowStoryViews,
+    bool? showStoryViewers,
   }) {
     return PrivacySettings(
       userId: userId,
@@ -84,6 +99,9 @@ class PrivacySettings {
       showAchievements: showAchievements ?? this.showAchievements,
       allowChallengeInvites:
           allowChallengeInvites ?? this.allowChallengeInvites,
+      showStoryHighlights: showStoryHighlights ?? this.showStoryHighlights,
+      allowStoryViews: allowStoryViews ?? this.allowStoryViews,
+      showStoryViewers: showStoryViewers ?? this.showStoryViewers,
       updatedAt: DateTime.now(),
     );
   }

@@ -10,6 +10,7 @@ class AppLocalizations {
   static const List<String> translationFiles = [
     'nav',
     'dashboard',
+    'eco',
     'eco_tips',
     'welcome',
     'auth',

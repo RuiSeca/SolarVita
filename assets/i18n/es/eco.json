@@ -2,6 +2,7 @@
   "eco_impact": "Impacto Ecológico",
   "view_all": "Ver Todo",
   "loading": "Cargando",
+  "retry": "Reintentar",
   "error_loading_eco_data": "Error al cargar datos ecológicos",
   "future_earth_today": "La Tierra del futuro, hoy",
   "bottles_saved": "Botellas Ahorradas",
@@ -10,64 +11,50 @@
   "eco_score": "Puntuación Ecológica",
   "days": "días",
   "pts": "pts",
-  
-  "popup": {
-    "todays_impact": "Impacto de Hoy",
-    "alltime_impact": "Impacto Total",
-    "your_daily_progress": "Tu progreso diario",
-    "your_journey_so_far": "Tu viaje hasta ahora",
-    "track_environmental_impact": "Rastrea tu impacto ambiental",
-    "every_action_counts": "Cada acción cuenta",
-    
-    "stats": {
-      "co2_saved": "CO₂ Ahorrado",
-      "bottles_equivalent": "Equivalente en Botellas",
-      "eco_actions": "Acciones Ecológicas",
-      "total_co2": "CO₂ Total",
-      "day_streak": "Racha de Días",
-      "eco_points": "Puntos Ecológicos",
-      "loading_todays_impact": "Cargando impacto de hoy...",
-      "unable_to_load_stats": "No se pueden cargar las estadísticas de hoy",
-      "loading": "Cargando",
-      "error": "Error"
-    },
-    
-    "tips": [
-      "🌱 ¡Excelente trabajo! ¡Estás marcando la diferencia!",
-      "🌍 Cada pequeña acción cuenta para un futuro más verde",
-      "♻️ Tus decisiones ecológicas inspiran a otros a seguir",
-      "🌿 Juntos podemos sanar nuestro planeta",
-      "💚 La vida sostenible es el camino a seguir",
-      "🌳 Gracias por cuidar nuestra Tierra",
-      "⚡ La energía limpia impulsa un mañana mejor",
-      "🚲 El transporte activo te mantiene saludable a ti y a la Tierra"
-    ],
-    
-    "toggle": {
-      "todays_stats": "Estadísticas de Hoy",
-      "all_time": "Todo el Tiempo"
-    },
-    
-    "buttons": {
-      "view_details": "Ver Detalles",
-      "log_activity": "Registrar Actividad"
-    }
-  },
-  
-  "quick_log": {
-    "title": "Registrar Actividad Rápida",
-    "subtitle": "Elige una acción ecológica que acabas de completar",
-    "activities": {
-      "reusable_bottle": "Usé Botella Reutilizable",
-      "walked_biked": "Caminé/Anduve en Bici",
-      "recycled_items": "Reciclé Objetos",
-      "saved_energy": "Ahorré Energía"
-    },
-    "success_messages": {
-      "reusable_bottle": "¡Botella reutilizable registrada!",
-      "active_transport": "¡Transporte activo registrado!",
-      "recycling": "¡Actividad de reciclaje registrada!",
-      "energy_saving": "¡Ahorro de energía registrado!"
-    }
-  }
+  "todays_impact": "Impacto de Hoy",
+  "alltime_impact": "Impacto Total",
+  "your_daily_progress": "Tu progreso diario",
+  "your_journey_so_far": "Tu viaje hasta ahora",
+  "track_environmental_impact": "Rastrea tu impacto ambiental",
+  "every_action_counts": "Cada acción cuenta",
+  "co2_saved": "CO₂ Ahorrado",
+  "bottles_equivalent": "Equivalente en Botellas",
+  "eco_actions": "Acciones Ecológicas",
+  "total_co2": "CO₂ Total",
+  "day_streak": "Racha de Días",
+  "eco_points": "Puntos Ecológicos",
+  "loading_todays_impact": "Cargando impacto de hoy...",
+  "unable_to_load_stats": "No se pueden cargar las estadísticas de hoy",
+  "todays_stats": "Estadísticas de Hoy",
+  "all_time": "Todo el Tiempo",
+  "view_details": "Ver Detalles",
+  "log_activity": "Registrar Actividad",
+  "quick_log_title": "Registrar Actividad Rápida",
+  "quick_log_subtitle": "Elige una acción ecológica que acabas de completar",
+  "reusable_bottle": "Usé Botella Reutilizable",
+  "walked_biked": "Caminé/Anduve en Bici",
+  "recycled_items": "Reciclé Objetos",
+  "saved_energy": "Ahorré Energía",
+  "reusable_bottle_success": "¡Botella reutilizable registrada!",
+  "active_transport_success": "¡Transporte activo registrado!",
+  "recycling_success": "¡Actividad de reciclaje registrada!",
+  "energy_saving_success": "¡Ahorro de energía registrado!",
+  "tip_0": "🌱 ¡Excelente trabajo! ¡Estás marcando la diferencia!",
+  "tip_1": "🌍 Cada pequeña acción cuenta para un futuro más verde",
+  "tip_2": "♻️ Tus decisiones ecológicas inspiran a otros a seguir",
+  "tip_3": "🌿 Juntos podemos sanar nuestro planeta",
+  "tip_4": "💚 La vida sostenible es el camino a seguir",
+  "tip_5": "🌳 Gracias por cuidar nuestra Tierra",
+  "tip_6": "⚡ La energía limpia impulsa un mañana mejor",
+  "tip_7": "🚲 El transporte activo te mantiene saludable a ti y a la Tierra",
+  "tip_8": "🌊 Cada gota de agua ahorrada hace la diferencia",
+  "tip_9": "🔋 Desconecta los dispositivos cuando no los uses para ahorrar energía",
+  "tip_10": "🛒 Elige bolsas reutilizables en lugar de plásticas",
+  "tip_11": "🌞 La energía solar es el futuro de la energía limpia",
+  "tip_12": "🥬 Las comidas a base de plantas reducen tu huella de carbono",
+  "tip_13": "📱 Los recibos digitales ayudan a ahorrar papel y árboles",
+  "tip_14": "🚿 Duchas más cortas conservan recursos hídricos preciosos",
+  "tip_15": "🌺 Las plantas nativas requieren menos agua y apoyan la vida silvestre",
+  "tip_16": "💡 Las bombillas LED usan 75% menos energía que las incandescentes",
+  "tip_17": "🏠 Un aislamiento adecuado reduce las necesidades de calefacción y refrigeración"
 }

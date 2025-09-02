@@ -96,6 +96,9 @@ final ecoActivityActionsProvider = Provider<EcoActivityActions>((ref) {
   return EcoActivityActions(ecoService, ref);
 });
 
+// Eco widget view state provider (true = Today's, false = All-time)
+final ecoWidgetViewStateProvider = StateProvider<bool>((ref) => true);
+
 // Query class for filtering activities
 class EcoActivitiesQuery {
   final EcoActivityType? type;
@@ -558,4 +561,84 @@ class TransportationCarbonQuery {
 
   @override
   int get hashCode => steps.hashCode ^ activeMinutes.hashCode;
+}
+
+// Supporter eco data providers
+
+// Supporter's eco metrics stream
+final supporterEcoMetricsProvider = StreamProvider.family<EcoMetrics, String>((ref, supporterId) {
+  final ecoService = ref.watch(ecoServiceProvider);
+  return ecoService.getSupporterEcoMetrics(supporterId);
+});
+
+// Supporter's today's activities
+final supporterTodaysActivitiesProvider = Provider.family<AsyncValue<List<EcoActivity>>, String>((ref, supporterId) {
+  final today = DateTime.now();
+  final startOfDay = DateTime(today.year, today.month, today.day);
+  final endOfDay = startOfDay.add(const Duration(days: 1));
+
+  final query = EcoActivitiesQuery(
+    startDate: startOfDay,
+    endDate: endOfDay,
+    limit: 20,
+  );
+
+  return ref.watch(supporterEcoActivitiesProvider(SupporterEcoQuery(
+    supporterId: supporterId,
+    query: query,
+  )));
+});
+
+// Supporter's today's carbon saved
+final supporterTodaysCarbonSavedProvider = Provider.family<AsyncValue<double>, String>((ref, supporterId) {
+  final todaysActivities = ref.watch(supporterTodaysActivitiesProvider(supporterId));
+  return todaysActivities.whenData((activities) {
+    return activities.fold<double>(0.0, (sum, activity) => sum + activity.carbonSaved);
+  });
+});
+
+// Supporter's today's bottles saved equivalent
+final supporterTodaysBottlesSavedProvider = Provider.family<AsyncValue<int>, String>((ref, supporterId) {
+  final todaysCarbon = ref.watch(supporterTodaysCarbonSavedProvider(supporterId));
+  return todaysCarbon.whenData((carbon) => EcoMetrics.carbonToBottles(carbon));
+});
+
+// Supporter's today's activity count
+final supporterTodaysActivityCountProvider = Provider.family<AsyncValue<int>, String>((ref, supporterId) {
+  final todaysActivities = ref.watch(supporterTodaysActivitiesProvider(supporterId));
+  return todaysActivities.whenData((activities) => activities.length);
+});
+
+// Supporter's eco activities stream with optional filtering
+final supporterEcoActivitiesProvider = StreamProvider.family<List<EcoActivity>, SupporterEcoQuery>((ref, query) {
+  final ecoService = ref.watch(ecoServiceProvider);
+  return ecoService.getSupporterEcoActivities(
+    query.supporterId,
+    type: query.query.type,
+    limit: query.query.limit,
+    startDate: query.query.startDate,
+    endDate: query.query.endDate,
+  );
+});
+
+// Query class for supporter eco data
+class SupporterEcoQuery {
+  final String supporterId;
+  final EcoActivitiesQuery query;
+
+  const SupporterEcoQuery({
+    required this.supporterId,
+    required this.query,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SupporterEcoQuery &&
+          runtimeType == other.runtimeType &&
+          supporterId == other.supporterId &&
+          query == other.query;
+
+  @override
+  int get hashCode => supporterId.hashCode ^ query.hashCode;
 }

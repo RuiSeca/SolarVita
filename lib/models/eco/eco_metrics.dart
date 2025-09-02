@@ -45,7 +45,7 @@ class EcoMetrics {
       ecoScore: data['ecoScore'] ?? 0,
       currentStreak: data['currentStreak'] ?? 0,
       longestStreak: data['longestStreak'] ?? 0,
-      lastUpdated: (data['lastUpdated'] as Timestamp).toDate(),
+      lastUpdated: (data['lastUpdated'] as Timestamp?)?.toDate() ?? DateTime.now(),
       activityCounts: data['activityCounts'] != null
           ? Map<String, int>.from(data['activityCounts'])
           : {},

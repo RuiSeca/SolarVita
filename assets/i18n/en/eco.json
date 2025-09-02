@@ -2,6 +2,7 @@
   "eco_impact": "Eco Impact",
   "view_all": "View All",
   "loading": "Loading",
+  "retry": "Retry",
   "error_loading_eco_data": "Error loading eco data",
   "future_earth_today": "Future earth, today",
   "bottles_saved": "Bottles Saved",
@@ -10,64 +11,52 @@
   "eco_score": "Eco Score",
   "days": "days",
   "pts": "pts",
-  
-  "popup": {
-    "todays_impact": "Today's Impact",
-    "alltime_impact": "All-Time Impact",
-    "your_daily_progress": "Your daily progress",
-    "your_journey_so_far": "Your journey so far",
-    "track_environmental_impact": "Track your environmental impact",
-    "every_action_counts": "Every action counts",
-    
-    "stats": {
-      "co2_saved": "CO₂ Saved",
-      "bottles_equivalent": "Bottles Equivalent",
-      "eco_actions": "Eco Actions",
-      "total_co2": "Total CO₂",
-      "day_streak": "Day Streak",
-      "eco_points": "Eco Points",
-      "loading_todays_impact": "Loading today's impact...",
-      "unable_to_load_stats": "Unable to load today's stats",
-      "loading": "Loading",
-      "error": "Error"
-    },
-    
-    "tips": [
-      "🌱 Great job! You're making a difference!",
-      "🌍 Every small action counts toward a greener future",
-      "♻️ Your eco choices inspire others to follow",
-      "🌿 Together we can heal our planet",
-      "💚 Sustainable living is the way forward",
-      "🌳 Thank you for caring about our Earth",
-      "⚡ Clean energy powers a better tomorrow",
-      "🚲 Active transportation keeps you and Earth healthy"
-    ],
-    
-    "toggle": {
-      "todays_stats": "Today's Stats",
-      "all_time": "All-Time"
-    },
-    
-    "buttons": {
-      "view_details": "View Details",
-      "log_activity": "Log Activity"
-    }
-  },
-  
-  "quick_log": {
-    "title": "Quick Log Activity",
-    "subtitle": "Choose an eco-friendly action you just completed",
-    "activities": {
-      "reusable_bottle": "Used Reusable Bottle",
-      "walked_biked": "Walked/Biked Instead",
-      "recycled_items": "Recycled Items",
-      "saved_energy": "Saved Energy"
-    },
-    "success_messages": {
-      "reusable_bottle": "Reusable bottle logged!",
-      "active_transport": "Active transport logged!",
-      "recycling": "Recycling activity logged!",
-      "energy_saving": "Energy saving logged!"
-    }
-  }
+  "todays_impact": "Today's Impact",
+  "alltime_impact": "All-Time Impact",
+  "your_daily_progress": "Your daily progress",
+  "your_journey_so_far": "Your journey so far",
+  "track_environmental_impact": "Track your environmental impact",
+  "every_action_counts": "Every action counts",
+  "co2_saved": "CO₂ Saved",
+  "bottles_equivalent": "Bottles Equivalent",
+  "eco_actions": "Eco Actions",
+  "total_co2": "Total CO₂",
+  "day_streak": "Day Streak",
+  "eco_points": "Eco Points",
+  "loading_todays_impact": "Loading today's impact...",
+  "unable_to_load_stats": "Unable to load today's stats",
+  "todays_stats": "Today's Stats",
+  "all_time": "All-Time",
+  "view_details": "View Details",
+  "log_activity": "Log Activity",
+  "quick_log_title": "Quick Log Activity",
+  "quick_log_subtitle": "Choose an eco-friendly action you just completed",
+  "reusable_bottle": "Used Reusable Bottle",
+  "walked_biked": "Walked/Biked Instead", 
+  "recycled_items": "Recycled Items",
+  "saved_energy": "Saved Energy",
+  "reusable_bottle_success": "Reusable bottle logged!",
+  "active_transport_success": "Active transport logged!",
+  "recycling_success": "Recycling activity logged!",
+  "energy_saving_success": "Energy saving logged!",
+  "tip_0": "🌱 Great job! You're making a difference!",
+  "tip_1": "🌍 Every small action counts toward a greener future",
+  "tip_2": "♻️ Your eco choices inspire others to follow",
+  "tip_3": "🌿 Together we can heal our planet",
+  "tip_4": "💚 Sustainable living is the way forward",
+  "tip_5": "🌳 Thank you for caring about our Earth",
+  "tip_6": "⚡ Clean energy powers a better tomorrow",
+  "tip_7": "🚲 Active transportation keeps you and Earth healthy",
+  "tip_8": "🌊 Every drop of water saved makes a difference",
+  "tip_9": "🔋 Unplug devices when not in use to save energy",
+  "tip_10": "🛒 Choose reusable bags over plastic ones",
+  "tip_11": "🌞 Solar power is the future of clean energy",
+  "tip_12": "🥬 Plant-based meals reduce your carbon footprint",
+  "tip_13": "📱 Digital receipts help save paper and trees",
+  "tip_14": "🚿 Shorter showers conserve precious water resources",
+  "tip_15": "🌺 Native plants require less water and support wildlife",
+  "tip_16": "💡 LED bulbs use 75% less energy than incandescent",
+  "tip_17": "🏠 Proper insulation reduces heating and cooling needs",
+  "eco_stats_private": "Eco Stats Private",
+  "eco_stats_privacy_message": "This user has chosen to keep their eco impact data private"
 }

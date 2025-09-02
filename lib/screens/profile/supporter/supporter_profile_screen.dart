@@ -15,9 +15,10 @@ import '../../chat/chat_screen.dart';
 import '../widgets/supporter_profile_header.dart';
 import '../widgets/supporter_daily_goals_widget.dart';
 import '../widgets/supporter_weekly_summary.dart';
-import '../widgets/supporter_achievements.dart';
 import '../widgets/supporter_meal_sharing_widget.dart';
 import '../widgets/supporter_routine_widget.dart';
+import '../widgets/supporter_eco_widget.dart';
+import '../widgets/story_highlights_widget.dart';
 
 class SupporterProfileScreen extends ConsumerStatefulWidget {
   final Supporter supporter;
@@ -40,7 +41,6 @@ class _SupporterProfileScreenState
   UserProgress? _supporterProgress;
   HealthData? _supporterHealthData;
   Map<String, dynamic>? _weeklyData;
-  List<Achievement>? _achievements;
   Map<String, List<Map<String, dynamic>>>? _dailyMeals;
 
   @override
@@ -75,7 +75,6 @@ class _SupporterProfileScreenState
       UserProgress? progress;
       HealthData? healthData;
       Map<String, dynamic>? weeklyData;
-      List<Achievement>? achievements;
       Map<String, List<Map<String, dynamic>>>? dailyMeals;
 
       if (privacySettings?.showWorkoutStats == true ||
@@ -98,12 +97,6 @@ class _SupporterProfileScreenState
           );
         }
 
-        if (privacySettings.showAchievements) {
-          achievements = await supporterProfileService.getSupporterAchievements(
-            widget.supporter.userId,
-            privacySettings,
-          );
-        }
 
         if (privacySettings.showNutritionStats) {
           dailyMeals = await supporterProfileService.getSupporterDailyMeals(
@@ -119,7 +112,6 @@ class _SupporterProfileScreenState
       _logger.d('Progress data loaded: $progress');
       _logger.d('Health data loaded: $healthData');
       _logger.d('Weekly data loaded: $weeklyData');
-      _logger.d('Achievements loaded: $achievements');
       _logger.d('Daily meals loaded: $dailyMeals');
 
       if (mounted) {
@@ -130,7 +122,6 @@ class _SupporterProfileScreenState
           _supporterProgress = progress;
           _supporterHealthData = healthData;
           _weeklyData = weeklyData;
-          _achievements = achievements;
           _dailyMeals = dailyMeals;
           _isLoading = false;
         });
@@ -314,6 +305,13 @@ class _SupporterProfileScreenState
                   supporterHealthData: _supporterHealthData,
                 ),
 
+              // Story Highlights (Privacy-Aware)
+              if (_privacySettings != null)
+                StoryHighlightsWidget(
+                  userId: widget.supporter.userId,
+                  isOwnProfile: false,
+                ),
+
               // Daily Goals Progress (Privacy-Aware)
               if (_privacySettings != null)
                 SupporterDailyGoalsWidget(
@@ -331,12 +329,12 @@ class _SupporterProfileScreenState
                   weeklyData: _weeklyData,
                 ),
 
-              // Achievements (Privacy-Aware)
+              // Eco Impact (Privacy-Aware)
               if (_privacySettings != null)
-                SupporterAchievements(
+                SupporterEcoWidget(
                   supporterId: widget.supporter.userId,
                   privacySettings: _privacySettings!,
-                  achievements: _achievements,
+                  supporterName: widget.supporter.displayName,
                 ),
 
               // Weekly Routine Sharing (Privacy-Aware)

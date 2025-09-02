@@ -6,6 +6,7 @@ import '../../../providers/riverpod/auth_provider.dart';
 import '../../../models/eco/eco_metrics.dart';
 import '../../../models/eco/carbon_activity.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import '../screens/eco_impact_screen.dart';
 
 /// Modern custom overlay popup for eco impact stats
@@ -41,23 +42,39 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   late AnimationController _fadeController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
-  bool _showTodaysStats = true;
+  late int _selectedTipIndex;
 
-  // Rotating eco tips
-  final List<String> _ecoTips = [
-    "🌱 Great job! You're making a difference!",
-    "🌍 Every small action counts toward a greener future",
-    "♻️ Your eco choices inspire others to follow",
-    "🌿 Together we can heal our planet",
-    "💚 Sustainable living is the way forward",
-    "🌳 Thank you for caring about our Earth",
-    "⚡ Clean energy powers a better tomorrow",
-    "🚲 Active transportation keeps you and Earth healthy",
-  ];
+  // Get rotating eco tips from translations
+  List<String> _getEcoTips(BuildContext context) {
+    return [
+      tr(context, 'tip_0'),
+      tr(context, 'tip_1'),
+      tr(context, 'tip_2'),
+      tr(context, 'tip_3'),
+      tr(context, 'tip_4'),
+      tr(context, 'tip_5'),
+      tr(context, 'tip_6'),
+      tr(context, 'tip_7'),
+      tr(context, 'tip_8'),
+      tr(context, 'tip_9'),
+      tr(context, 'tip_10'),
+      tr(context, 'tip_11'),
+      tr(context, 'tip_12'),
+      tr(context, 'tip_13'),
+      tr(context, 'tip_14'),
+      tr(context, 'tip_15'),
+      tr(context, 'tip_16'),
+      tr(context, 'tip_17'),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
+    
+    // Select a random tip index that stays fixed for this popup session
+    _selectedTipIndex = DateTime.now().millisecondsSinceEpoch % 18;
+    
     _setupAnimations();
     _startEntryAnimation();
   }
@@ -237,7 +254,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _showTodaysStats ? "Today's Impact" : "All-Time Impact",
+                ref.watch(ecoWidgetViewStateProvider) ? tr(context, 'todays_impact') : tr(context, 'alltime_impact'),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -245,7 +262,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
                 ),
               ),
               Text(
-                _showTodaysStats ? "Your daily progress" : "Your journey so far",
+                ref.watch(ecoWidgetViewStateProvider) ? tr(context, 'your_daily_progress') : tr(context, 'your_journey_so_far'),
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey.shade600,
@@ -268,7 +285,8 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   }
 
   Widget _buildStatsDisplay() {
-    if (_showTodaysStats) {
+    final showTodaysStats = ref.watch(ecoWidgetViewStateProvider);
+    if (showTodaysStats) {
       return _buildTodaysStats();
     } else {
       return _buildAllTimeStats();
@@ -283,41 +301,60 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
     return todaysCarbon.when(
       loading: () => _buildLoadingStats(),
       error: (_, __) => _buildErrorStats(),
-      data: (carbonSaved) => Row(
+      data: (carbonSaved) => Column(
         children: [
-          Expanded(
-            child: _buildStatCard(
-              icon: Icons.co2,
-              value: '${carbonSaved.toStringAsFixed(1)}kg',
-              label: 'CO₂ Saved',
-              color: const Color(0xFF4CAF50),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: todaysBottles.when(
-              data: (bottles) => _buildStatCard(
-                icon: Icons.water_drop,
-                value: '$bottles',
-                label: 'Bottles',
-                color: const Color(0xFF2196F3),
+          // Top row
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(
+                  icon: Icons.co2,
+                  value: '${carbonSaved.toStringAsFixed(1)}kg',
+                  label: tr(context, 'co2_saved'),
+                  color: const Color(0xFF4CAF50),
+                ),
               ),
-              loading: () => _buildLoadingStatCard(),
-              error: (_, __) => _buildErrorStatCard(),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: todaysActivityCount.when(
-              data: (count) => _buildStatCard(
-                icon: Icons.eco,
-                value: '$count',
-                label: 'Actions',
-                color: const Color(0xFF8BC34A),
+              const SizedBox(width: 12),
+              Expanded(
+                child: todaysBottles.when(
+                  data: (bottles) => _buildStatCard(
+                    icon: Icons.water_drop,
+                    value: '$bottles',
+                    label: tr(context, 'bottles_equivalent'),
+                    color: const Color(0xFF2196F3),
+                  ),
+                  loading: () => _buildLoadingStatCard(),
+                  error: (_, __) => _buildErrorStatCard(),
+                ),
               ),
-              loading: () => _buildLoadingStatCard(),
-              error: (_, __) => _buildErrorStatCard(),
-            ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Bottom row
+          Row(
+            children: [
+              Expanded(
+                child: todaysActivityCount.when(
+                  data: (count) => _buildStatCard(
+                    icon: Icons.eco,
+                    value: '$count',
+                    label: tr(context, 'eco_actions'),
+                    color: const Color(0xFF8BC34A),
+                  ),
+                  loading: () => _buildLoadingStatCard(),
+                  error: (_, __) => _buildErrorStatCard(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(
+                  icon: Icons.local_fire_department,
+                  value: '${widget.ecoMetrics.currentStreak}',
+                  label: tr(context, 'day_streak'),
+                  color: const Color(0xFFFF9800),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -325,33 +362,52 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   }
 
   Widget _buildAllTimeStats() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.co2,
-            value: '${widget.ecoMetrics.totalCarbonSaved.toStringAsFixed(1)}kg',
-            label: 'Total CO₂',
-            color: const Color(0xFF4CAF50),
-          ),
+        // Top row
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.co2,
+                value: '${widget.ecoMetrics.totalCarbonSaved.toStringAsFixed(1)}kg',
+                label: tr(context, 'total_co2'),
+                color: const Color(0xFF4CAF50),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.water_drop,
+                value: '${widget.ecoMetrics.plasticBottlesSaved}',
+                label: tr(context, 'bottles_saved'),
+                color: const Color(0xFF2196F3),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.local_fire_department,
-            value: '${widget.ecoMetrics.currentStreak}',
-            label: 'Day Streak',
-            color: const Color(0xFFFF9800),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildStatCard(
-            icon: Icons.stars,
-            value: '${widget.ecoMetrics.ecoScore}',
-            label: 'Eco Points',
-            color: const Color(0xFFFFC107),
-          ),
+        const SizedBox(height: 12),
+        // Bottom row
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.local_fire_department,
+                value: '${widget.ecoMetrics.currentStreak}',
+                label: tr(context, 'day_streak'),
+                color: const Color(0xFFFF9800),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildStatCard(
+                icon: Icons.stars,
+                value: '${widget.ecoMetrics.ecoScore}',
+                label: tr(context, 'eco_points'),
+                color: const Color(0xFFFFC107),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -400,19 +456,19 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   }
 
   Widget _buildLoadingStats() {
-    return const Row(
+    return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        CircularProgressIndicator(color: Color(0xFF4CAF50)),
-        SizedBox(width: 16),
-        Text('Loading today\'s impact...'),
+        const CircularProgressIndicator(color: Color(0xFF4CAF50)),
+        const SizedBox(width: 16),
+        Text(tr(context, 'loading_todays_impact')),
       ],
     );
   }
 
   Widget _buildErrorStats() {
     return Text(
-      'Unable to load today\'s stats',
+      tr(context, 'unable_to_load_stats'),
       style: TextStyle(color: Colors.red.shade600),
     );
   }
@@ -458,8 +514,8 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   }
 
   Widget _buildEcoTip() {
-    final tipIndex = DateTime.now().millisecond % _ecoTips.length;
-    final tip = _ecoTips[tipIndex];
+    final ecoTips = _getEcoTips(context);
+    final tip = ecoTips[_selectedTipIndex];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -502,6 +558,8 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
   }
 
   Widget _buildToggleButtons() {
+    final showTodaysStats = ref.watch(ecoWidgetViewStateProvider);
+    
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -512,16 +570,16 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
         children: [
           Expanded(
             child: _buildToggleButton(
-              text: "Today's Stats",
-              isSelected: _showTodaysStats,
-              onTap: () => setState(() => _showTodaysStats = true),
+              text: tr(context, 'todays_stats'),
+              isSelected: showTodaysStats,
+              onTap: () => ref.read(ecoWidgetViewStateProvider.notifier).state = true,
             ),
           ),
           Expanded(
             child: _buildToggleButton(
-              text: "All-Time",
-              isSelected: !_showTodaysStats,
-              onTap: () => setState(() => _showTodaysStats = false),
+              text: tr(context, 'all_time'),
+              isSelected: !showTodaysStats,
+              onTap: () => ref.read(ecoWidgetViewStateProvider.notifier).state = false,
             ),
           ),
         ],
@@ -578,7 +636,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
               }
             },
             icon: const Icon(Icons.analytics, size: 18),
-            label: const Text('View Details'),
+            label: Text(tr(context, 'view_details')),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4CAF50),
               foregroundColor: Colors.white,
@@ -599,7 +657,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
               }
             },
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Log Activity'),
+            label: Text(tr(context, 'log_activity')),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF4CAF50),
               side: const BorderSide(color: Color(0xFF4CAF50)),
@@ -645,7 +703,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             ),
             const SizedBox(height: 16),
             Text(
-              'Quick Log Activity',
+              tr(context, 'quick_log_title'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -654,7 +712,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             ),
             const SizedBox(height: 8),
             Text(
-              'Choose an eco-friendly action you just completed',
+              tr(context, 'quick_log_subtitle'),
               style: TextStyle(
                 fontSize: 14,
                 color: AppTheme.textColor(context).withValues(alpha: 0.7),
@@ -665,7 +723,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             _buildQuickActivityButton(
               context,
               ref,
-              'Used Reusable Bottle',
+              tr(context, 'reusable_bottle'),
               Icons.water_drop,
               Colors.blue,
               () async {
@@ -673,7 +731,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
                 await actions.logConsumptionActivity('reusableBottle');
                 if (context.mounted) {
                   Navigator.pop(context);
-                  _showSuccessMessage(context, 'Reusable bottle logged!');
+                  _showSuccessMessage(context, tr(context, 'reusable_bottle_success'));
                 }
               },
             ),
@@ -681,7 +739,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             _buildQuickActivityButton(
               context,
               ref,
-              'Walked/Biked Instead',
+              tr(context, 'walked_biked'),
               Icons.directions_walk,
               Colors.green,
               () async {
@@ -689,7 +747,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
                 await actions.logTransportActivity('walking');
                 if (context.mounted) {
                   Navigator.pop(context);
-                  _showSuccessMessage(context, 'Active transport logged!');
+                  _showSuccessMessage(context, tr(context, 'active_transport_success'));
                 }
               },
             ),
@@ -697,7 +755,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             _buildQuickActivityButton(
               context,
               ref,
-              'Recycled Items',
+              tr(context, 'recycled_items'),
               Icons.recycling,
               Colors.orange,
               () async {
@@ -716,7 +774,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
                 }
                 if (context.mounted) {
                   Navigator.pop(context);
-                  _showSuccessMessage(context, 'Recycling activity logged!');
+                  _showSuccessMessage(context, tr(context, 'recycling_success'));
                 }
               },
             ),
@@ -724,7 +782,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
             _buildQuickActivityButton(
               context,
               ref,
-              'Saved Energy',
+              tr(context, 'saved_energy'),
               Icons.lightbulb_outline,
               Colors.amber,
               () async {
@@ -743,7 +801,7 @@ class _EcoImpactPopupState extends ConsumerState<EcoImpactPopup>
                 }
                 if (context.mounted) {
                   Navigator.pop(context);
-                  _showSuccessMessage(context, 'Energy saving logged!');
+                  _showSuccessMessage(context, tr(context, 'energy_saving_success'));
                 }
               },
             ),
