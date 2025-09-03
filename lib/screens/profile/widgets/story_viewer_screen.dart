@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:video_player/video_player.dart';
 import '../../../models/social/story_highlight.dart';
@@ -8,12 +7,14 @@ import '../../../utils/translation_helper.dart';
 import '../../../providers/riverpod/story_provider.dart';
 
 class StoryViewerScreen extends ConsumerStatefulWidget {
-  final StoryHighlight highlight;
+  final List<StoryHighlight> highlights;
+  final int initialHighlightIndex;
   final bool isOwnStory;
 
   const StoryViewerScreen({
     super.key,
-    required this.highlight,
+    required this.highlights,
+    this.initialHighlightIndex = 0,
     this.isOwnStory = false,
   });
 
@@ -26,9 +27,12 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   late PageController _pageController;
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
+  late AnimationController _slideController;
+  late Animation<Offset> _slideAnimation;
   
   Timer? _storyTimer;
   VideoPlayerController? _videoController;
+  int _currentHighlightIndex = 0;
   int _currentStoryIndex = 0;
   List<StoryContent> _stories = [];
   bool _isLoading = true;
@@ -40,6 +44,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   @override
   void initState() {
     super.initState();
+    _currentHighlightIndex = widget.initialHighlightIndex;
     _pageController = PageController();
     _progressController = AnimationController(
       duration: _storyDuration,
@@ -49,9 +54,22 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       begin: 0.0,
       end: 1.0,
     ).animate(_progressController);
+    
+    // Don't add a general listener as it can cause infinite rebuilds
+    
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeInOut,
+    ));
 
-    // Hide system UI for immersive experience
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
+    // Don't change system UI to prevent screen shake
     _loadStories();
   }
 
@@ -59,20 +77,20 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   void dispose() {
     _storyTimer?.cancel();
     _progressController.dispose();
+    _slideController.dispose();
     _videoController?.dispose();
     _pageController.dispose();
     
-    // Restore system UI
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, 
-        overlays: SystemUiOverlay.values);
+    // No system UI changes needed
     super.dispose();
   }
 
   void _loadStories() {
-    debugPrint('Loading stories for highlight: ${widget.highlight.id}');
-    debugPrint('Story content IDs: ${widget.highlight.storyContentIds}');
+    final currentHighlight = widget.highlights[_currentHighlightIndex];
+    debugPrint('Loading stories for highlight: ${currentHighlight.id}');
+    debugPrint('Story content IDs: ${currentHighlight.storyContentIds}');
     
-    if (widget.highlight.storyContentIds.isEmpty) {
+    if (currentHighlight.storyContentIds.isEmpty) {
       debugPrint('No story content IDs found in highlight');
       if (mounted) {
         setState(() {
@@ -83,7 +101,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       return;
     }
     
-    ref.read(storyContentProvider(widget.highlight.storyContentIds).future).then((stories) {
+    ref.read(storyContentProvider(currentHighlight.storyContentIds).future).then((stories) {
       debugPrint('Loaded ${stories.length} stories from provider');
       for (final story in stories) {
         debugPrint('Story: ${story.id}, type: ${story.contentType}, mediaUrl: ${story.mediaUrl}');
@@ -154,26 +172,94 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   void _nextStory() {
     if (_currentStoryIndex < _stories.length - 1) {
       _recordCurrentStoryView();
+      
+      // Slide animation from right to left
+      _slideAnimation = Tween<Offset>(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _slideController,
+        curve: Curves.easeInOut,
+      ));
+      
       setState(() {
         _currentStoryIndex++;
       });
+      
+      _slideController.reset();
+      _slideController.forward();
       _startStory();
     } else {
-      _recordCurrentStoryView();
-      _exitViewer();
+      _nextHighlight();
     }
   }
 
   void _previousStory() {
     if (_currentStoryIndex > 0) {
       _recordCurrentStoryView();
+      
+      // Slide animation from left to right
+      _slideAnimation = Tween<Offset>(
+        begin: const Offset(-1.0, 0.0),
+        end: Offset.zero,
+      ).animate(CurvedAnimation(
+        parent: _slideController,
+        curve: Curves.easeInOut,
+      ));
+      
       setState(() {
         _currentStoryIndex--;
       });
+      
+      _slideController.reset();
+      _slideController.forward();
       _startStory();
+    } else {
+      _previousHighlight();
+    }
+  }
+
+  void _previousHighlight() {
+    if (_currentHighlightIndex > 0) {
+      _recordCurrentStoryView();
+      
+      setState(() {
+        _currentHighlightIndex--;
+        _currentStoryIndex = 0; // Reset to first story of the highlight
+        _isLoading = true;
+      });
+      
+      _stopCurrentStory();
+      _loadStories(); // Load stories for the new highlight
     } else {
       _exitViewer();
     }
+  }
+
+  void _nextHighlight() {
+    if (_currentHighlightIndex < widget.highlights.length - 1) {
+      _recordCurrentStoryView();
+      
+      setState(() {
+        _currentHighlightIndex++;
+        _currentStoryIndex = 0; // Reset to first story of the highlight
+        _isLoading = true;
+      });
+      
+      _stopCurrentStory();
+      _loadStories(); // Load stories for the new highlight
+    } else {
+      _exitViewer();
+    }
+  }
+
+  void _stopCurrentStory() {
+    _progressController.stop();
+    _progressController.reset();
+    _storyTimer?.cancel();
+    _videoController?.pause();
+    _videoController?.dispose();
+    _videoController = null;
   }
 
   void _pauseStory() {
@@ -192,8 +278,10 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     _progressController.forward();
     _videoController?.play();
     
+    // Use the current progress controller's duration, not the default
+    final currentDuration = _progressController.duration ?? _storyDuration;
     final remainingTime = Duration(
-      milliseconds: ((_storyDuration.inMilliseconds) * (1.0 - _progressController.value)).round(),
+      milliseconds: ((currentDuration.inMilliseconds) * (1.0 - _progressController.value)).round(),
     );
     
     _storyTimer?.cancel();
@@ -220,6 +308,141 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     Navigator.of(context).pop();
   }
 
+  void _jumpToStory(int targetIndex) {
+    if (targetIndex < 0 || targetIndex >= _stories.length || targetIndex == _currentStoryIndex) {
+      return;
+    }
+
+    _recordCurrentStoryView();
+    
+    // Determine slide direction based on target
+    final isForward = targetIndex > _currentStoryIndex;
+    _slideAnimation = Tween<Offset>(
+      begin: isForward ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeInOut,
+    ));
+    
+    setState(() {
+      _currentStoryIndex = targetIndex;
+    });
+    
+    _slideController.reset();
+    _slideController.forward();
+    _startStory();
+  }
+
+  void _showStoryPreview(int index) {
+    if (index < 0 || index >= _stories.length) return;
+    
+    final story = _stories[index];
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+            _jumpToStory(index);
+          },
+          child: Container(
+            width: 200,
+            height: 300,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildStoryPreviewContent(story),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryPreviewContent(StoryContent story) {
+    switch (story.contentType) {
+      case StoryContentType.image:
+      case StoryContentType.textWithImage:
+        if (story.mediaUrl != null) {
+          return Image.network(
+            story.mediaUrl!,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey[800],
+              child: Icon(Icons.error, color: Colors.white),
+            ),
+          );
+        }
+        return _buildTextPreview(story);
+      case StoryContentType.video:
+        return Stack(
+          children: [
+            if (story.mediaUrl != null)
+              Image.network(
+                story.mediaUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey[800],
+                  child: Icon(Icons.error, color: Colors.white),
+                ),
+              ),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.play_arrow, color: Colors.white, size: 24),
+              ),
+            ),
+          ],
+        );
+    }
+  }
+
+  Widget _buildTextPreview(StoryContent story) {
+    final category = widget.highlights[_currentHighlightIndex].category;
+    final colors = category.colorGradient;
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: colors.map((c) => Color(c)).toList(),
+        ),
+      ),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Text(
+            story.text ?? (widget.highlights[_currentHighlightIndex].customTitle?.isNotEmpty == true 
+                ? widget.highlights[_currentHighlightIndex].customTitle!
+                : tr(context, widget.highlights[_currentHighlightIndex].category.translationKey)),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -230,44 +453,96 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
       return _buildEmptyScreen();
     }
 
-    final currentStory = _stories[_currentStoryIndex];
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: GestureDetector(
-        onTapDown: (details) {
-          final screenWidth = MediaQuery.of(context).size.width;
-          final tapPosition = details.globalPosition.dx;
-          
-          if (tapPosition < screenWidth * 0.3) {
-            // Left side tap - previous story
-            _previousStory();
-          } else if (tapPosition > screenWidth * 0.7) {
-            // Right side tap - next story
-            _nextStory();
-          } else {
-            // Center tap - pause/resume
-            if (_isPaused) {
-              _resumeStory();
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _recordCurrentStoryView();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final tapPosition = details.globalPosition.dx;
+            
+            if (tapPosition < screenWidth * 0.3) {
+              // Left side tap - previous story
+              _previousStory();
+            } else if (tapPosition > screenWidth * 0.7) {
+              // Right side tap - next story
+              _nextStory();
             } else {
+              // Center tap - pause/resume
+              if (_isPaused) {
+                _resumeStory();
+              } else {
+                _pauseStory();
+              }
+            }
+          },
+          onPanStart: (details) {
+            // Pause story during pan
+            if (!_isPaused) {
               _pauseStory();
             }
-          }
-        },
-        child: Stack(
-          children: [
-            // Story Content
-            _buildStoryContent(currentStory),
+          },
+          onPanUpdate: (details) {
+            // Visual feedback during swipe (optional)
+          },
+          onPanEnd: (details) {
+            final velocity = details.velocity.pixelsPerSecond.dx;
             
-            // Progress Indicators
-            _buildProgressIndicators(),
+            // Resume if no significant swipe
+            if (velocity.abs() < 500) {
+              if (_isPaused) {
+                _resumeStory();
+              }
+              return;
+            }
             
-            // Story Header
-            _buildStoryHeader(),
-            
-            // Pause Overlay
-            if (_isPaused) _buildPauseOverlay(),
-          ],
+            // Handle horizontal swipes for highlight navigation (fast swipes)
+            if (velocity.abs() > 800) {
+              if (velocity > 0) {
+                // Fast swipe right - previous highlight
+                _previousHighlight();
+              } else {
+                // Fast swipe left - next highlight
+                _nextHighlight();
+              }
+            } else {
+              // Medium swipes for story navigation
+              if (velocity > 0) {
+                // Swipe right - previous story
+                _previousStory();
+              } else {
+                // Swipe left - next story
+                _nextStory();
+              }
+            }
+          },
+          child: Stack(
+            children: [
+              // Story Content with slide animation
+              AnimatedBuilder(
+                animation: _slideAnimation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: _slideAnimation.value,
+                    child: _buildStoryContent(_stories[_currentStoryIndex]),
+                  );
+                },
+              ),
+              
+              // Progress Indicators
+              _buildProgressIndicators(),
+              
+              // Pause Overlay
+              if (_isPaused) _buildPauseOverlay(),
+            ],
+          ),
         ),
       ),
     );
@@ -383,7 +658,7 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   Widget _buildTextOnlyContent(StoryContent story) {
-    final category = widget.highlight.category;
+    final category = widget.highlights[_currentHighlightIndex].category;
     final colors = category.colorGradient;
 
     return Container(
@@ -398,7 +673,9 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
         child: Padding(
           padding: const EdgeInsets.all(40),
           child: Text(
-            story.text ?? widget.highlight.displayTitle,
+            story.text ?? (widget.highlights[_currentHighlightIndex].customTitle?.isNotEmpty == true 
+                ? widget.highlights[_currentHighlightIndex].customTitle!
+                : tr(context, widget.highlights[_currentHighlightIndex].category.translationKey)),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 32,
@@ -439,89 +716,123 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
   }
 
   Widget _buildProgressIndicators() {
+    // Cache the current highlight to avoid rebuilds
+    if (widget.highlights.isEmpty || _currentHighlightIndex >= widget.highlights.length) {
+      return const SizedBox.shrink();
+    }
+    
+    final currentHighlight = widget.highlights[_currentHighlightIndex];
+    
     return Positioned(
       top: MediaQuery.of(context).padding.top + 10,
       left: 8,
       right: 8,
-      child: Row(
-        children: List.generate(_stories.length, (index) {
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with highlight category and navigation dots
+          Row(
+            children: [
+              // Back button
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                iconSize: 24,
+              ),
+              // Category title
+              Expanded(
+                child: Text(
+                  currentHighlight.displayTitle,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  key: ValueKey('${currentHighlight.id}_$_currentHighlightIndex'), // Add key to prevent unnecessary rebuilds
+                ),
+              ),
+              // Highlight counter
+              if (widget.highlights.length > 1) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${_currentHighlightIndex + 1}/${widget.highlights.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Story progress indicators
+          Row(
+            children: List.generate(_stories.length, (index) {
+          final isActive = index == _currentStoryIndex;
+          final isCompleted = index < _currentStoryIndex;
+          
           return Expanded(
-            child: Container(
-              height: 2,
-              margin: const EdgeInsets.symmetric(horizontal: 1),
-              child: LinearProgressIndicator(
-                value: index < _currentStoryIndex
-                    ? 1.0
-                    : index == _currentStoryIndex
-                        ? _progressAnimation.value
-                        : 0.0,
-                backgroundColor: Colors.white.withValues(alpha: 0.3),
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            child: GestureDetector(
+              onTap: () => _jumpToStory(index),
+              onLongPress: () => _showStoryPreview(index),
+              child: Container(
+                height: 12, // Larger touch target
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                child: Container(
+                  height: 4,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: isActive ? [
+                      BoxShadow(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        spreadRadius: 1,
+                      ),
+                    ] : null,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(2),
+                    child: AnimatedBuilder(
+                      animation: _progressAnimation,
+                      builder: (context, child) {
+                        return LinearProgressIndicator(
+                          value: isCompleted
+                              ? 1.0
+                              : isActive
+                                  ? _progressAnimation.value
+                                  : 0.0,
+                          backgroundColor: Colors.white.withValues(alpha: 0.3),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            isActive 
+                              ? Colors.white 
+                              : Colors.white.withValues(alpha: 0.8)
+                          ),
+                          minHeight: 4,
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ),
             ),
           );
         }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildStoryHeader() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 20,
-      left: 16,
-      right: 16,
-      child: Row(
-        children: [
-          // Profile info
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              _getCategoryIcon(widget.highlight.category),
-              color: Color(widget.highlight.category.colorGradient.first),
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.highlight.displayTitle,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '${_currentStoryIndex + 1} of ${_stories.length}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Close button
-          IconButton(
-            onPressed: _exitViewer,
-            icon: const Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 24,
-            ),
           ),
         ],
       ),
     );
   }
+
 
   Widget _buildPauseOverlay() {
     return Positioned.fill(
@@ -588,38 +899,4 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     );
   }
 
-  IconData _getCategoryIcon(StoryHighlightCategory category) {
-    switch (category) {
-      case StoryHighlightCategory.workouts:
-        return Icons.fitness_center;
-      case StoryHighlightCategory.progress:
-        return Icons.trending_up;
-      case StoryHighlightCategory.challenges:
-        return Icons.emoji_events;
-      case StoryHighlightCategory.recovery:
-        return Icons.spa;
-      case StoryHighlightCategory.meals:
-        return Icons.restaurant;
-      case StoryHighlightCategory.cooking:
-        return Icons.kitchen;
-      case StoryHighlightCategory.hydration:
-        return Icons.local_drink;
-      case StoryHighlightCategory.ecoActions:
-        return Icons.eco;
-      case StoryHighlightCategory.nature:
-        return Icons.nature;
-      case StoryHighlightCategory.greenLiving:
-        return Icons.park;
-      case StoryHighlightCategory.dailyLife:
-        return Icons.today;
-      case StoryHighlightCategory.travel:
-        return Icons.flight;
-      case StoryHighlightCategory.community:
-        return Icons.people;
-      case StoryHighlightCategory.motivation:
-        return Icons.psychology;
-      case StoryHighlightCategory.custom:
-        return Icons.star;
-    }
-  }
 }

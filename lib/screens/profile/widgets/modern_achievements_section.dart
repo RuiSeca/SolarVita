@@ -101,6 +101,8 @@ class ModernAchievementsSection extends ConsumerWidget {
           context,
           ref,
           highlight,
+          highlightsToShow,
+          index - 1, // Subtract 1 because first item is add button
         );
       },
     );
@@ -151,6 +153,8 @@ class ModernAchievementsSection extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     StoryHighlight highlight,
+    List<StoryHighlight> highlights,
+    int highlightIndex,
   ) {
     final category = highlight.category;
     final colors = category.colorGradient;
@@ -159,7 +163,7 @@ class ModernAchievementsSection extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(right: 16),
       child: GestureDetector(
-        onTap: () => _openStoryViewer(context, ref, highlight),
+        onTap: () => _openStoryViewer(context, ref, highlights, highlightIndex),
         onLongPress: () => _showHighlightOptions(context, ref, highlight),
         child: Column(
           children: [
@@ -227,7 +231,9 @@ class ModernAchievementsSection extends ConsumerWidget {
             SizedBox(
               width: 80,
               child: Text(
-                highlight.displayTitle,
+                highlight.customTitle?.isNotEmpty == true 
+                    ? highlight.customTitle!
+                    : tr(context, highlight.category.translationKey),
                 style: TextStyle(
                   color: AppTheme.textColor(context),
                   fontSize: 12,
@@ -355,11 +361,12 @@ class ModernAchievementsSection extends ConsumerWidget {
     }
   }
 
-  void _openStoryViewer(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+  void _openStoryViewer(BuildContext context, WidgetRef ref, List<StoryHighlight> highlights, int initialIndex) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => StoryViewerScreen(
-          highlight: highlight,
+          highlights: highlights,
+          initialHighlightIndex: initialIndex,
           isOwnStory: true,
         ),
         fullscreenDialog: true,

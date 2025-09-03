@@ -594,4 +594,120 @@ class StoryService {
               .toList();
         });
   }
+
+  // Get hidden story highlights
+  Stream<List<StoryHighlight>> getHiddenStoryHighlights(String userId) {
+    try {
+      return _firestore
+          .collection(storyHighlightsCollection)
+          .where('userId', isEqualTo: userId)
+          .where('isVisible', isEqualTo: false)
+          .orderBy('lastUpdated', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map((doc) => StoryHighlight.fromFirestore(doc))
+                .toList();
+          })
+          .handleError((error) {
+            debugPrint('Error getting hidden story highlights: $error');
+            throw error;
+          });
+    } catch (e) {
+      debugPrint('Error in getHiddenStoryHighlights: $e');
+      return Stream.error(e);
+    }
+  }
+
+  // Get temporary stories (not permanent and not expired)
+  Stream<List<StoryContent>> getTemporaryStories(String userId) {
+    try {
+      final now = Timestamp.now();
+      
+      return _firestore
+          .collection(storyContentCollection)
+          .where('userId', isEqualTo: userId)
+          .where('isPermanent', isEqualTo: false)
+          .where('isActive', isEqualTo: true)
+          .where('expiresAt', isGreaterThan: now)
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map((doc) => StoryContent.fromFirestore(doc))
+                .toList();
+          })
+          .handleError((error) {
+            debugPrint('Error getting temporary stories: $error');
+            throw error;
+          });
+    } catch (e) {
+      debugPrint('Error in getTemporaryStories: $e');
+      return Stream.error(e);
+    }
+  }
+
+  // Update story highlight visibility
+  Future<void> updateStoryHighlightVisibility(String highlightId, bool isVisible) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    try {
+      final highlightRef = _firestore
+          .collection(storyHighlightsCollection)
+          .doc(highlightId);
+
+      final doc = await highlightRef.get();
+      if (!doc.exists) {
+        throw Exception('Highlight not found');
+      }
+
+      final highlight = StoryHighlight.fromFirestore(doc);
+      if (highlight.userId != userId) {
+        throw Exception('Unauthorized to modify this highlight');
+      }
+
+      await highlightRef.update({
+        'isVisible': isVisible,
+        'lastUpdated': Timestamp.now(),
+      });
+
+      debugPrint('Updated highlight visibility: $highlightId -> $isVisible');
+    } catch (e) {
+      throw Exception('Failed to update highlight visibility: $e');
+    }
+  }
+
+  // Make story permanent
+  Future<void> makeStoryPermanent(String storyId, String visibility) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    try {
+      final storyRef = _firestore
+          .collection(storyContentCollection)
+          .doc(storyId);
+
+      final doc = await storyRef.get();
+      if (!doc.exists) {
+        throw Exception('Story not found');
+      }
+
+      final story = StoryContent.fromFirestore(doc);
+      if (story.userId != userId) {
+        throw Exception('Unauthorized to modify this story');
+      }
+
+      // Update the story to be permanent
+      await storyRef.update({
+        'isPermanent': true,
+        'visibility': visibility,
+        'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(days: 365 * 10))), // 10 years from now
+      });
+
+      debugPrint('Made story permanent: $storyId with visibility: $visibility');
+    } catch (e) {
+      throw Exception('Failed to make story permanent: $e');
+    }
+  }
 }

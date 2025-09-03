@@ -35,6 +35,8 @@ class StoryContent {
   final DateTime expiresAt; // Stories expire after 24 hours
   final Map<String, dynamic> metadata; // Additional data
   final bool isActive; // Whether story is still active (not expired)
+  final bool isPermanent; // Whether story is permanent (doesn't expire)
+  final String visibility; // 'public', 'private', 'friends' for permanent stories
 
   const StoryContent({
     required this.id,
@@ -47,6 +49,8 @@ class StoryContent {
     required this.expiresAt,
     this.metadata = const {},
     required this.isActive,
+    this.isPermanent = false,
+    this.visibility = 'public',
   });
 
   factory StoryContent.fromFirestore(DocumentSnapshot doc) {
@@ -62,6 +66,8 @@ class StoryContent {
       expiresAt: (data['expiresAt'] as Timestamp).toDate(),
       metadata: Map<String, dynamic>.from(data['metadata'] ?? {}),
       isActive: data['isActive'] ?? false,
+      isPermanent: data['isPermanent'] ?? false,
+      visibility: data['visibility'] ?? 'public',
     );
   }
 
@@ -76,6 +82,8 @@ class StoryContent {
       'expiresAt': Timestamp.fromDate(expiresAt),
       'metadata': metadata,
       'isActive': isActive,
+      'isPermanent': isPermanent,
+      'visibility': visibility,
     };
   }
 
@@ -85,6 +93,8 @@ class StoryContent {
     String? text,
     bool? isActive,
     Map<String, dynamic>? metadata,
+    bool? isPermanent,
+    String? visibility,
   }) {
     return StoryContent(
       id: id,
@@ -97,6 +107,8 @@ class StoryContent {
       expiresAt: expiresAt,
       metadata: metadata ?? this.metadata,
       isActive: isActive ?? this.isActive,
+      isPermanent: isPermanent ?? this.isPermanent,
+      visibility: visibility ?? this.visibility,
     );
   }
 
@@ -205,40 +217,43 @@ class StoryHighlight {
 
 // Story highlight category extensions
 extension StoryHighlightCategoryExtension on StoryHighlightCategory {
-  String get title {
+  String get translationKey {
     switch (this) {
       case StoryHighlightCategory.workouts:
-        return 'Workouts';
+        return 'category_workouts';
       case StoryHighlightCategory.progress:
-        return 'Progress';
+        return 'category_progress';
       case StoryHighlightCategory.challenges:
-        return 'Challenges';
+        return 'category_challenges';
       case StoryHighlightCategory.recovery:
-        return 'Recovery';
+        return 'category_recovery';
       case StoryHighlightCategory.meals:
-        return 'Meals';
+        return 'category_meals';
       case StoryHighlightCategory.cooking:
-        return 'Cooking';
+        return 'category_cooking';
       case StoryHighlightCategory.hydration:
-        return 'Hydration';
+        return 'category_hydration';
       case StoryHighlightCategory.ecoActions:
-        return 'Eco Actions';
+        return 'category_eco_actions';
       case StoryHighlightCategory.nature:
-        return 'Nature';
+        return 'category_nature';
       case StoryHighlightCategory.greenLiving:
-        return 'Green Living';
+        return 'category_green_living';
       case StoryHighlightCategory.dailyLife:
-        return 'Daily Life';
+        return 'category_daily_life';
       case StoryHighlightCategory.travel:
-        return 'Travel';
+        return 'category_travel';
       case StoryHighlightCategory.community:
-        return 'Community';
+        return 'category_community';
       case StoryHighlightCategory.motivation:
-        return 'Motivation';
+        return 'category_motivation';
       case StoryHighlightCategory.custom:
-        return 'Custom';
+        return 'category_custom';
     }
   }
+
+  // For backward compatibility - now returns translation key
+  String get title => translationKey;
 
   String get iconName {
     switch (this) {

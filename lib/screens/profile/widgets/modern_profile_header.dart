@@ -12,6 +12,7 @@ import '../../../models/user/user_profile.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../supporter/supporters_list_screen.dart';
+import 'highlights_settings_screen.dart';
 
 /// Modern profile header widget with user information and stats
 class ModernProfileHeader extends ConsumerWidget {
@@ -1126,6 +1127,17 @@ class _ProfileMenuBottomSheetState extends ConsumerState<ProfileMenuBottomSheet>
                   showArrow: true,
                 ),
                 
+                const SizedBox(height: 16),
+                
+                _buildMenuOption(
+                  context,
+                  Icons.collections_outlined,
+                  tr(context, 'highlights_settings'),
+                  tr(context, 'manage_hidden_permanent_highlights'),
+                  () => _showHighlightsSettings(context),
+                  showArrow: true,
+                ),
+                
                 const SizedBox(height: 20),
               ],
             ),
@@ -1173,6 +1185,7 @@ class _ProfileMenuBottomSheetState extends ConsumerState<ProfileMenuBottomSheet>
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     title,
@@ -1186,6 +1199,8 @@ class _ProfileMenuBottomSheetState extends ConsumerState<ProfileMenuBottomSheet>
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.grey.withValues(alpha: 0.7),
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -1236,6 +1251,16 @@ class _ProfileMenuBottomSheetState extends ConsumerState<ProfileMenuBottomSheet>
       builder: (context) => UserAboutBottomSheet(
         userProfile: widget.userProfile,
         displayName: widget.displayName,
+      ),
+    );
+  }
+
+  void _showHighlightsSettings(BuildContext context) {
+    Navigator.pop(context); // Close current bottom sheet
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const HighlightsSettingsScreen(),
       ),
     );
   }

@@ -44,6 +44,7 @@ class AppLocalizations {
     'currency_purchase',
     'customization',
     'pulse',
+    'story_highlights',
   ];
 
   AppLocalizations(this.locale);

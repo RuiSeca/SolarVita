@@ -107,7 +107,7 @@ class StoryHighlightsWidget extends ConsumerWidget {
 
           final highlightIndex = isOwnProfile ? index - 1 : index;
           final highlight = highlightsToShow[highlightIndex];
-          return _buildHighlightCircle(context, ref, highlight);
+          return _buildHighlightCircle(context, ref, highlight, highlightsToShow, highlightIndex);
         },
       ),
     );
@@ -155,14 +155,14 @@ class StoryHighlightsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildHighlightCircle(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+  Widget _buildHighlightCircle(BuildContext context, WidgetRef ref, StoryHighlight highlight, List<StoryHighlight> highlights, int highlightIndex) {
     final category = highlight.category;
     final colors = category.colorGradient;
 
     return Container(
       margin: const EdgeInsets.only(right: 16),
       child: GestureDetector(
-        onTap: () => _openStoryViewer(context, ref, highlight),
+        onTap: () => _openStoryViewer(context, ref, highlights, highlightIndex),
         onLongPress: isOwnProfile 
             ? () => _showHighlightOptions(context, ref, highlight)
             : null,
@@ -209,7 +209,9 @@ class StoryHighlightsWidget extends ConsumerWidget {
             SizedBox(
               width: 80,
               child: Text(
-                highlight.displayTitle,
+                highlight.customTitle?.isNotEmpty == true 
+                    ? highlight.customTitle!
+                    : tr(context, highlight.category.translationKey),
                 style: TextStyle(
                   fontSize: 12,
                   color: AppTheme.textColor(context).withValues(alpha: 0.8),
@@ -437,7 +439,7 @@ class StoryHighlightsWidget extends ConsumerWidget {
     );
   }
 
-  void _openStoryViewer(BuildContext context, WidgetRef ref, StoryHighlight highlight) {
+  void _openStoryViewer(BuildContext context, WidgetRef ref, List<StoryHighlight> highlights, int initialIndex) {
     final canViewStories = ref.read(canViewStoriesProvider(userId));
     canViewStories.when(
       loading: () {}, // Show loading or do nothing
@@ -447,7 +449,8 @@ class StoryHighlightsWidget extends ConsumerWidget {
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => StoryViewerScreen(
-                highlight: highlight,
+                highlights: highlights,
+                initialHighlightIndex: initialIndex,
                 isOwnStory: isOwnProfile,
               ),
               fullscreenDialog: true,

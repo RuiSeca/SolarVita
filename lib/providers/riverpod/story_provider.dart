@@ -246,4 +246,34 @@ class StoryActions {
       debugPrint('Failed to cleanup expired stories: $e');
     }
   }
+
+  // Update story highlight visibility
+  Future<void> updateStoryHighlightVisibility(String highlightId, bool isVisible) async {
+    try {
+      await _storyService.updateStoryHighlightVisibility(highlightId, isVisible);
+    } catch (e) {
+      throw Exception('Failed to update highlight visibility: $e');
+    }
+  }
+
+  // Make story permanent
+  Future<void> makeStoryPermanent(String storyId, String visibility) async {
+    try {
+      await _storyService.makeStoryPermanent(storyId, visibility);
+    } catch (e) {
+      throw Exception('Failed to make story permanent: $e');
+    }
+  }
 }
+
+// Hidden story highlights provider
+final hiddenStoryHighlightsProvider = StreamProvider.family<List<StoryHighlight>, String>((ref, userId) {
+  final storyService = ref.watch(storyServiceProvider);
+  return storyService.getHiddenStoryHighlights(userId);
+});
+
+// Temporary stories provider (stories that aren't permanent and haven't expired)
+final temporaryStoriesProvider = StreamProvider.family<List<StoryContent>, String>((ref, userId) {
+  final storyService = ref.watch(storyServiceProvider);
+  return storyService.getTemporaryStories(userId);
+});

@@ -205,7 +205,7 @@ class _StoryCreationScreenState extends ConsumerState<StoryCreationScreen>
           onTap: () {
             setState(() {
               _selectedCategory = category;
-              _titleController.text = category.title;
+              _titleController.text = tr(context, category.translationKey);
             });
           },
           child: Container(
@@ -237,7 +237,7 @@ class _StoryCreationScreenState extends ConsumerState<StoryCreationScreen>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  category.title,
+                  tr(context, category.translationKey),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
