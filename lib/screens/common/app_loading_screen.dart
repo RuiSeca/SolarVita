@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../widgets/splash/compact_video_logo.dart';
 
 class AppLoadingScreen extends StatelessWidget {
   final String? message;
@@ -17,8 +18,7 @@ class AppLoadingScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/images/logo.png',
+            const CompactVideoLogo(
               width: 120,
               height: 120,
             ),

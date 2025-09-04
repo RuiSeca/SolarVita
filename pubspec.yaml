@@ -91,6 +91,7 @@ flutter:
     - assets/images/
     - assets/lotties/
     - assets/rive/
+    - assets/videos/
     - assets/config/
     - assets/apple_pay_payment_profile.json
     - assets/google_pay_payment_profile.json

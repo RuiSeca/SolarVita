@@ -28,6 +28,7 @@ import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/profile/profile_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
 import 'widgets/common/bottom_nav_bar.dart';
+import 'widgets/splash/video_splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
 
@@ -37,6 +38,8 @@ import 'providers/riverpod/language_provider.dart';
 import 'providers/riverpod/user_profile_provider.dart';
 import 'providers/riverpod/auth_provider.dart' as auth;
 import 'providers/riverpod/scroll_controller_provider.dart';
+import 'providers/riverpod/splash_provider.dart';
+import 'providers/riverpod/initialization_provider.dart';
 import 'models/user/user_profile.dart';
 
 // Global flag to track Firebase initialization
@@ -61,6 +64,9 @@ void _setupNotificationNavigation(
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Show video splash immediately while everything else loads in background
+  runApp(ProviderScope(child: const SolarVitaApp()));
 
   // Initialize logging first
   Logger.root.level = Level.ALL;
@@ -182,8 +188,6 @@ void main() async {
   }
 
   // Google Maps service removed - no longer needed
-
-  runApp(ProviderScope(child: const SolarVitaApp()));
 }
 
 class SolarVitaApp extends ConsumerWidget {
@@ -191,7 +195,30 @@ class SolarVitaApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Watch the theme and language providers
+    // Watch the initialization state
+    final initState = ref.watch(initializationNotifierProvider);
+    final showSplash = ref.watch(splashNotifierProvider);
+    
+    // Always show video splash immediately, regardless of initialization status
+    if (showSplash || initState.status == InitializationStatus.initializing) {
+      return MaterialApp(
+        title: 'SolarVita',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: VideoSplashScreen(
+          onVideoEnd: () {
+            // Only allow transition if initialization is complete
+            if (initState.status == InitializationStatus.completed) {
+              ref.read(splashNotifierProvider.notifier).completeSplash();
+            }
+          },
+          duration: const Duration(seconds: 4), // Extended to ensure smooth init
+        ),
+      );
+    }
+
+    // Only show the full app once splash is complete
     final themeMode = ref.watch(themeNotifierProvider);
     final localeAsync = ref.watch(languageNotifierProvider);
     final supportedLanguages = ref.watch(supportedLanguagesProvider);

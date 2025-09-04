@@ -3,6 +3,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import '../login/login_screen.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../widgets/common/oriented_image.dart';
+import '../../widgets/splash/compact_video_logo.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -42,6 +43,13 @@ class WelcomeScreenState extends State<WelcomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            const SizedBox(height: 20),
+            // Video Logo Branding
+            const CompactVideoLogo(
+              width: 150,
+              height: 150,
+            ),
+            const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text.rich(
