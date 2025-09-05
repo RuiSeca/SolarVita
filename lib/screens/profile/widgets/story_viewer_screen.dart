@@ -308,6 +308,299 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
     Navigator.of(context).pop();
   }
 
+  void _showStoryMenu() {
+    if (_stories.isEmpty || _currentStoryIndex >= _stories.length) return;
+    
+    final currentStory = _stories[_currentStoryIndex];
+    
+    // Pause the story while showing menu
+    _pauseStory();
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(top: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // Show permanent status
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: currentStory.isPermanent 
+                    ? Colors.green.withValues(alpha: 0.2)
+                    : Colors.orange.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: currentStory.isPermanent ? Colors.green : Colors.orange,
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    currentStory.isPermanent ? Icons.bookmark : Icons.schedule,
+                    color: currentStory.isPermanent ? Colors.green : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      currentStory.isPermanent 
+                          ? tr(context, 'story_is_permanent')
+                          : tr(context, 'story_expires_24h'),
+                      style: TextStyle(
+                        color: currentStory.isPermanent ? Colors.green : Colors.orange,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            if (!currentStory.isPermanent) ...[
+              ListTile(
+                leading: const Icon(Icons.bookmark_add, color: Colors.white),
+                title: Text(
+                  tr(context, 'make_story_permanent'),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                subtitle: Text(
+                  tr(context, 'story_permanent_subtitle'),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showMakePermanentDialog(currentStory);
+                },
+              ),
+            ],
+            
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: Text(
+                tr(context, 'delete_story'),
+                style: const TextStyle(color: Colors.red),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteStoryDialog(currentStory);
+              },
+            ),
+            
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    ).then((_) {
+      // Resume story when menu closes
+      if (!_isPaused) {
+        _resumeStory();
+      }
+    });
+  }
+
+  void _showMakePermanentDialog(StoryContent story) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black87,
+        title: Text(
+          tr(context, 'make_story_permanent'),
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr(context, 'make_permanent_explanation'),
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              tr(context, 'choose_visibility'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            
+            // Visibility options
+            _buildVisibilityOption('public', Icons.public, tr(context, 'public_visibility')),
+            _buildVisibilityOption('friends', Icons.people, tr(context, 'friends_visibility')),
+            _buildVisibilityOption('private', Icons.lock, tr(context, 'private_visibility')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resumeStory();
+            },
+            child: Text(tr(context, 'cancel')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisibilityOption(String visibility, IconData icon, String label) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.white),
+      title: Text(label, style: const TextStyle(color: Colors.white)),
+      onTap: () {
+        Navigator.pop(context);
+        _makePermanent(visibility);
+      },
+      visualDensity: VisualDensity.compact,
+    );
+  }
+
+  void _makePermanent(String visibility) async {
+    if (_stories.isEmpty || _currentStoryIndex >= _stories.length) return;
+    
+    final currentStory = _stories[_currentStoryIndex];
+    
+    try {
+      await ref.read(storyActionsProvider).makeStoryPermanent(
+        currentStory.id,
+        visibility,
+      );
+      
+      // Update local story state
+      setState(() {
+        _stories[_currentStoryIndex] = currentStory.copyWith(
+          isPermanent: true,
+          visibility: visibility,
+        );
+      });
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'story_made_permanent')),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      _resumeStory();
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'error_making_permanent')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      _resumeStory();
+    }
+  }
+
+  void _showDeleteStoryDialog(StoryContent story) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.black87,
+        title: Text(
+          tr(context, 'delete_story'),
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          tr(context, 'delete_story_confirmation'),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.9)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resumeStory();
+            },
+            child: Text(tr(context, 'cancel')),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteStory(story);
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(tr(context, 'delete')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteStory(StoryContent story) async {
+    try {
+      await ref.read(storyActionsProvider).deleteStoryContent(story.id);
+      
+      // Remove story from local list
+      setState(() {
+        _stories.removeAt(_currentStoryIndex);
+        
+        // Adjust current story index if needed
+        if (_currentStoryIndex >= _stories.length && _stories.isNotEmpty) {
+          _currentStoryIndex = _stories.length - 1;
+        }
+      });
+      
+      // If no more stories, exit viewer
+      if (_stories.isEmpty) {
+        _exitViewer();
+        return;
+      }
+      
+      // Start the current story
+      _startStory();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'story_deleted')),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'error_deleting_story')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      _resumeStory();
+    }
+  }
+
   void _jumpToStory(int targetIndex) {
     if (targetIndex < 0 || targetIndex >= _stories.length || targetIndex == _currentStoryIndex) {
       return;
@@ -770,6 +1063,14 @@ class _StoryViewerScreenState extends ConsumerState<StoryViewerScreen>
                   ),
                 ),
                 const SizedBox(width: 8),
+              ],
+              // Story menu button (only show for own stories)
+              if (widget.isOwnStory && _stories.isNotEmpty) ...[
+                IconButton(
+                  onPressed: () => _showStoryMenu(),
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  iconSize: 24,
+                ),
               ],
             ],
           ),

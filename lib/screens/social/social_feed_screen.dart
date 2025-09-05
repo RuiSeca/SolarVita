@@ -11,9 +11,16 @@ import '../../utils/translation_helper.dart';
 import '../../widgets/social/social_post_card.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../providers/riverpod/firebase_social_provider.dart';
+import '../../providers/riverpod/chat_provider.dart';
+import '../../providers/riverpod/story_provider.dart';
+import '../../providers/riverpod/auth_provider.dart';
 import '../../services/database/social_service.dart';
+import '../../models/social/story_highlight.dart';
 import 'create_post_screen.dart';
 import 'post_templates_screen.dart';
+import '../chat/conversations_screen.dart';
+import '../profile/widgets/story_viewer_screen.dart';
+import '../profile/widgets/story_creation_screen.dart';
 
 class SocialFeedScreen extends ConsumerStatefulWidget {
   const SocialFeedScreen({super.key});
@@ -154,8 +161,26 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: AppTheme.surfaceColor(context),
+      backgroundColor: AppTheme.surfaceColor(context).withValues(alpha: 0.85),
       elevation: 0,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppTheme.surfaceColor(context).withValues(alpha: 0.9),
+              AppTheme.surfaceColor(context).withValues(alpha: 0.8),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+              width: 0.5,
+            ),
+          ),
+        ),
+      ),
       leading: IconButton(
         icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
         onPressed: () => Navigator.pop(context),
@@ -210,13 +235,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       ),
       actions: [
         _buildFilterButton(),
-        IconButton(
-          icon: Icon(Icons.refresh, color: AppTheme.textColor(context)),
-          onPressed: () {
-            HapticFeedback.lightImpact();
-            ref.invalidate(socialPostsFeedProvider);
-          },
-        ),
+        _buildMessagesButton(),
       ],
     );
   }
@@ -289,6 +308,78 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     );
   }
 
+  Widget _buildMessagesButton() {
+    return Consumer(
+      builder: (context, ref, child) {
+        final totalUnreadAsync = ref.watch(totalUnreadCountProvider);
+        return totalUnreadAsync.when(
+          data: (unreadCount) => Stack(
+            children: [
+              IconButton(
+                icon: Icon(Icons.message, color: AppTheme.textColor(context)),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ConversationsScreen(),
+                    ),
+                  );
+                },
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          loading: () => IconButton(
+            icon: Icon(Icons.message, color: AppTheme.textColor(context)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConversationsScreen(),
+                ),
+              );
+            },
+          ),
+          error: (_, __) => IconButton(
+            icon: Icon(Icons.message, color: AppTheme.textColor(context)),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ConversationsScreen(),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildFeedContent() {
     return Consumer(
       builder: (context, ref, child) {
@@ -310,14 +401,12 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   }
 
   Widget _buildPostsList(List<SocialPost> posts) {
-    if (posts.isEmpty) {
-      return _buildEmptyState();
-    }
-
     // Load supported user IDs for tagging
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadSupportedUserIds(posts);
-    });
+    if (posts.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSupportedUserIds(posts);
+      });
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -330,15 +419,31 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
           top: 8,
           bottom: _isBottomBarVisible ? 120 : 8, // Space for bottom bar
         ),
-        itemCount: posts.length,
+        itemCount: posts.length + 1, // +1 for highlights section
         itemBuilder: (context, index) {
-          final post = posts[index];
-          return SocialPostCard(
-            post: post,
-            onReaction: (postId, reaction) =>
-                _handleReaction(postId, reaction),
-            showSupporterTag: _shouldShowSupporterTag(post),
-          );
+          // First item is the story highlights
+          if (index == 0) {
+            return _buildStoryHighlightsSection();
+          }
+          
+          // Rest are posts (index - 1 because highlights takes the first slot)
+          final postIndex = index - 1;
+          if (postIndex < posts.length) {
+            final post = posts[postIndex];
+            return SocialPostCard(
+              post: post,
+              onReaction: (postId, reaction) =>
+                  _handleReaction(postId, reaction),
+              showSupporterTag: _shouldShowSupporterTag(post),
+            );
+          }
+          
+          // Empty state if no posts but we still want to show highlights
+          if (posts.isEmpty && index == 1) {
+            return _buildEmptyState();
+          }
+          
+          return const SizedBox.shrink();
         },
       ),
     );
@@ -727,6 +832,335 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     // Only show supporter tag in public filter for users we're supporting
     return _selectedFilter == 'public' &&
         _supportedUserIds.contains(post.userId);
+  }
+
+  Widget _buildStoryHighlightsSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Consumer(
+        builder: (context, ref, child) {
+          final currentUser = ref.watch(currentUserProvider);
+          final userId = currentUser?.uid ?? '';
+
+          if (userId.isEmpty) {
+            return const SizedBox.shrink();
+          }
+
+          // Get user's own highlights
+          final userHighlights = ref.watch(userStoryHighlightsProvider(userId));
+          // Get supporters' highlights (can be implemented later)
+          
+          return SizedBox(
+            height: 110,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                // Add New Story button
+                _buildAddNewStoryButton(ref, userId),
+                const SizedBox(width: 12),
+                
+                // User's own highlights
+                userHighlights.when(
+                  loading: () => _buildLoadingHighlights(),
+                  error: (error, stack) => const SizedBox.shrink(),
+                  data: (highlights) => Row(
+                    children: highlights.take(10).map((highlight) => 
+                      Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: _buildHighlightCircle(highlight, highlights, true),
+                      ),
+                    ).toList(),
+                  ),
+                ),
+                
+                const SizedBox(width: 8),
+                
+                // Supporters/Friends highlights - placeholder for now
+                _buildSupportersHighlights(ref),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAddNewStoryButton(WidgetRef ref, String userId) {
+    return GestureDetector(
+      onTap: () => _showCreateHighlightDialog(context, ref),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.5),
+                width: 2,
+                style: BorderStyle.solid,
+              ),
+              color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+            ),
+            child: Icon(
+              Icons.add,
+              color: Theme.of(context).primaryColor,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr(context, 'new'),
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).brightness == Brightness.dark 
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : Colors.black.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightCircle(StoryHighlight highlight, List<StoryHighlight> allHighlights, bool isOwn) {
+    final category = highlight.category;
+    final colors = category.colorGradient;
+
+    return GestureDetector(
+      onTap: () => _openStoryViewer(context, allHighlights, allHighlights.indexOf(highlight), isOwn),
+      onLongPress: isOwn ? () => _showHighlightOptions(context, highlight) : null,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: colors.map((c) => Color(c)).toList(),
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(colors.first).withValues(alpha: 0.3),
+                  spreadRadius: 0,
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Container(
+              margin: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.surfaceColor(context),
+              ),
+              child: ClipOval(
+                child: Consumer(
+                  builder: (context, ref, child) {
+                    final currentUser = ref.watch(currentUserProvider);
+                    final userPhotoUrl = currentUser?.photoURL;
+                    
+                    if (userPhotoUrl != null && userPhotoUrl.isNotEmpty) {
+                      return Image.network(
+                        userPhotoUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => _buildUserInitials(currentUser),
+                      );
+                    } else {
+                      return _buildUserInitials(currentUser);
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 90,
+            child: Consumer(
+              builder: (context, ref, child) {
+                final currentUser = ref.watch(currentUserProvider);
+                final userName = currentUser?.displayName ?? currentUser?.email?.split('@').first ?? 'You';
+                
+                return Text(
+                  userName,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).brightness == Brightness.dark 
+                        ? Colors.white.withValues(alpha: 0.9)
+                        : Colors.black.withValues(alpha: 0.8),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildUserInitials(dynamic currentUser) {
+    final userName = currentUser?.displayName ?? currentUser?.email?.split('@').first ?? 'U';
+    final initials = userName.length > 0 ? userName[0].toUpperCase() : 'U';
+    
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Theme.of(context).primaryColor.withValues(alpha: 0.7),
+            Theme.of(context).primaryColor.withValues(alpha: 0.5),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildLoadingHighlights() {
+    return Row(
+      children: List.generate(3, (index) => 
+        Container(
+          margin: const EdgeInsets.only(right: 12),
+          child: Column(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey.withValues(alpha: 0.3),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                width: 70,
+                height: 10,
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSupportersHighlights(WidgetRef ref) {
+    // Placeholder for supporters' highlights
+    // This could load highlights from supported users
+    return const SizedBox.shrink();
+  }
+
+  void _openStoryViewer(BuildContext context, List<StoryHighlight> highlights, int initialIndex, bool isOwn) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => StoryViewerScreen(
+          highlights: highlights,
+          initialHighlightIndex: initialIndex,
+          isOwnStory: isOwn,
+        ),
+      ),
+    );
+  }
+
+  void _showCreateHighlightDialog(BuildContext context, WidgetRef ref) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const StoryCreationScreen(),
+      ),
+    );
+  }
+
+  void _showHighlightOptions(BuildContext context, StoryHighlight highlight) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surfaceColor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            ListTile(
+              leading: Icon(Icons.edit, color: Theme.of(context).primaryColor),
+              title: Text(tr(context, 'edit_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+                // Navigate to edit highlight screen
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.add_photo_alternate, color: Theme.of(context).primaryColor),
+              title: Text(tr(context, 'add_story')),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => StoryCreationScreen(existingHighlight: highlight),
+                  ),
+                );
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.visibility_off, color: Colors.orange),
+              title: Text(tr(context, 'hide_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+            
+            ListTile(
+              leading: Icon(Icons.delete, color: Colors.red),
+              title: Text(tr(context, 'delete_highlight')),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _loadSupportedUserIds(List<SocialPost> posts) async {

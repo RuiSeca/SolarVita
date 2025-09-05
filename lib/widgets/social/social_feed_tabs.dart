@@ -2,20 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/database/social_service.dart';
-import '../../models/social/social_activity.dart';
 import '../../models/community/community_challenge.dart';
 import '../../models/social/social_post.dart' as social;
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
-import '../../screens/chat/conversations_screen.dart';
 import '../../screens/social/create_post_screen.dart';
 import '../../screens/social/social_feed_screen.dart';
-import '../../providers/riverpod/chat_provider.dart';
 import 'social_post_card.dart';
 import '../common/lottie_loading_widget.dart';
 import '../../screens/tribes/tribes_screen.dart';
 
-enum SocialFeedTab { allPosts, tribes, supporters, challenges }
+enum SocialFeedTab { allPosts, tribes, challenges }
 
 class SocialFeedTabs extends ConsumerStatefulWidget {
   const SocialFeedTabs({super.key});
@@ -32,7 +29,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_onTabChanged);
   }
 
@@ -54,39 +51,125 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Tab Bar
+        // Tab Bar - Enhanced Design
         Container(
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: AppTheme.textFieldBackground(context),
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                AppTheme.textFieldBackground(context),
+                AppTheme.textFieldBackground(context).withValues(alpha: 0.8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: theme.dividerColor.withValues(alpha: 0.2),
+              color: theme.primaryColor.withValues(alpha: 0.1),
               width: 1,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: theme.shadowColor.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: TabBar(
             controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.center,
             indicator: BoxDecoration(
-              color: theme.primaryColor,
-              borderRadius: BorderRadius.circular(10),
+              gradient: LinearGradient(
+                colors: [
+                  theme.primaryColor,
+                  theme.primaryColor.withValues(alpha: 0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.primaryColor.withValues(alpha: 0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             indicatorSize: TabBarIndicatorSize.tab,
             dividerColor: Colors.transparent,
             labelColor: Colors.white,
-            unselectedLabelColor: theme.textTheme.bodyMedium?.color,
+            unselectedLabelColor: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
             labelStyle: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),
             unselectedLabelStyle: const TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w500,
             ),
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
             tabs: [
-              Tab(text: tr(context, 'all_posts')),
-              Tab(text: tr(context, 'tribes')),
-              Tab(text: tr(context, 'supporters')),
-              Tab(text: tr(context, 'challenges')),
+              Tab(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.feed, size: 14),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          tr(context, 'all_posts'),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Tab(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.groups, size: 14),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          tr(context, 'tribes'),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Tab(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.emoji_events, size: 14),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          tr(context, 'challenges'),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -98,10 +181,10 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
           height: 400,
           child: TabBarView(
             controller: _tabController,
+            physics: const BouncingScrollPhysics(),
             children: [
               _buildAllPostsTab(),
               _buildTribesTab(),
-              _buildSupportersTab(),
               _buildChallengesTab(),
             ],
           ),
@@ -226,193 +309,6 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     );
   }
 
-  Widget _buildSupportersTab() {
-    return Column(
-      children: [
-        // Messages button only (header removed)
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              const Spacer(),
-              Consumer(
-                builder: (context, ref, child) {
-                  final totalUnreadAsync = ref.watch(totalUnreadCountProvider);
-                  return totalUnreadAsync.when(
-                    data: (unreadCount) => Stack(
-                      children: [
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const ConversationsScreen(),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            backgroundColor: Theme.of(
-                              context,
-                            ).primaryColor.withValues(alpha: 0.1),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          icon: Icon(
-                            Icons.message,
-                            size: 16,
-                            color: Theme.of(context).primaryColor,
-                          ),
-                          label: Text(
-                            tr(context, 'messages'),
-                            style: TextStyle(
-                              color: Theme.of(context).primaryColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              child: Text(
-                                unreadCount > 99
-                                    ? '99+'
-                                    : unreadCount.toString(),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    loading: () => TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ConversationsScreen(),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.message,
-                        size: 16,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      label: Text(
-                        tr(context, 'messages'),
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    error: (_, __) => TextButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ConversationsScreen(),
-                          ),
-                        );
-                      },
-                      style: TextButton.styleFrom(
-                        backgroundColor: Theme.of(
-                          context,
-                        ).primaryColor.withValues(alpha: 0.1),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      icon: Icon(
-                        Icons.message,
-                        size: 16,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                      label: Text(
-                        tr(context, 'messages'),
-                        style: TextStyle(
-                          color: Theme.of(context).primaryColor,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-
-        // Activity Feed Section
-        Expanded(
-          child: StreamBuilder<List<SocialActivity>>(
-            stream: _socialService.getSupportersActivityFeed(limit: 15),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-
-              final activities = snapshot.data ?? [];
-
-              if (activities.isEmpty) {
-                return _buildEmptyState(
-                  icon: '👥',
-                  title: tr(context, 'no_supporter_activities'),
-                  subtitle: tr(context, 'connect_see_activities'),
-                );
-              }
-
-              return _buildExpandedFeed(activities, showSupporterBadge: true);
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildChallengesTab() {
     return StreamBuilder<List<CommunityChallenge>>(
@@ -441,22 +337,6 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     );
   }
 
-  Widget _buildExpandedFeed(
-    List<SocialActivity> activities, {
-    bool showSupporterBadge = false,
-  }) {
-    return ListView.builder(
-      itemCount: activities.length,
-      itemBuilder: (context, index) {
-        final activity = activities[index];
-        return _buildExpandedActivityCard(
-          activity,
-          showSupporterBadge: showSupporterBadge,
-        );
-      },
-    );
-  }
-
   Widget _buildExpandedChallenges(List<CommunityChallenge> challenges) {
     return ListView.builder(
       itemCount: challenges.length,
@@ -464,132 +344,6 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
         final challenge = challenges[index];
         return _buildExpandedChallengeCard(challenge);
       },
-    );
-  }
-
-  Widget _buildExpandedActivityCard(
-    SocialActivity activity, {
-    bool showSupporterBadge = false,
-  }) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 20,
-                  backgroundImage: activity.userPhotoURL != null
-                      ? NetworkImage(activity.userPhotoURL!)
-                      : null,
-                  backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
-                  child: activity.userPhotoURL == null
-                      ? Text(
-                          activity.userName.isNotEmpty
-                              ? activity.userName[0].toUpperCase()
-                              : 'U',
-                          style: TextStyle(
-                            color: theme.primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            activity.userName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                          if (showSupporterBadge) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '👥 ${tr(context, 'supporter')}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                      Text(
-                        activity.getTimeAgo(),
-                        style: TextStyle(
-                          color: theme.textTheme.bodySmall?.color,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Text(
-                  activity.getActivityIcon(),
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Text(
-              activity.title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-            ),
-            if (activity.description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                activity.description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(
-                  Icons.favorite_border,
-                  size: 20,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-                const SizedBox(width: 4),
-                Text('${activity.likes.length}'),
-                const SizedBox(width: 16),
-                Icon(
-                  Icons.comment_outlined,
-                  size: 20,
-                  color: theme.textTheme.bodySmall?.color,
-                ),
-                const SizedBox(width: 4),
-                Text('${activity.commentsCount}'),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 

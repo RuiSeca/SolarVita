@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -294,13 +295,19 @@ class StoryService {
           for (final doc in snapshot.docs) {
             try {
               final content = StoryContent.fromFirestore(doc);
-              debugPrint('Story content ${doc.id}: active=${content.isActive}, expired=${content.isExpired}');
+              debugPrint('Story content ${doc.id}: active=${content.isActive}, expired=${content.isExpired}, permanent=${content.isPermanent}');
               
-              if (content.isActive && !content.isExpired) {
+              // Show story if it's active AND (permanent OR not expired)
+              if (content.isActive && (content.isPermanent || !content.isExpired)) {
                 validContent.add(content);
                 debugPrint('Added valid story content: ${doc.id}');
               } else {
-                debugPrint('Skipped story content ${doc.id}: active=${content.isActive}, expired=${content.isExpired}');
+                debugPrint('Skipped story content ${doc.id}: active=${content.isActive}, expired=${content.isExpired}, permanent=${content.isPermanent}');
+                
+                // Auto-deactivate expired non-permanent stories
+                if (content.isActive && !content.isPermanent && content.isExpired) {
+                  _deactivateExpiredStory(doc.id);
+                }
               }
             } catch (e) {
               debugPrint('Error parsing story content ${doc.id}: $e');
@@ -310,6 +317,19 @@ class StoryService {
           debugPrint('Returning ${validContent.length} valid story content items');
           return validContent;
         });
+  }
+
+  // Helper method to deactivate expired stories
+  Future<void> _deactivateExpiredStory(String storyId) async {
+    try {
+      await _firestore
+          .collection(storyContentCollection)
+          .doc(storyId)
+          .update({'isActive': false});
+      debugPrint('Deactivated expired story: $storyId');
+    } catch (e) {
+      debugPrint('Failed to deactivate expired story $storyId: $e');
+    }
   }
 
   // Get active stories for a user (not expired, not in highlights)
@@ -510,21 +530,36 @@ class StoryService {
   Future<void> cleanupExpiredStories() async {
     try {
       final now = Timestamp.now();
+      
+      // Only deactivate stories that are NOT permanent and have expired
       final expiredSnapshot = await _firestore
           .collection(storyContentCollection)
           .where('expiresAt', isLessThan: now)
           .where('isActive', isEqualTo: true)
+          .where('isPermanent', isEqualTo: false) // Only non-permanent stories
           .get();
 
       final batch = _firestore.batch();
       for (final doc in expiredSnapshot.docs) {
         batch.update(doc.reference, {'isActive': false});
+        debugPrint('Deactivated expired non-permanent story: ${doc.id}');
       }
 
-      await batch.commit();
+      if (expiredSnapshot.docs.isNotEmpty) {
+        await batch.commit();
+        debugPrint('Cleaned up ${expiredSnapshot.docs.length} expired stories');
+      }
     } catch (e) {
       debugPrint('Failed to cleanup expired stories: $e');
     }
+  }
+
+  // Schedule automatic cleanup of expired stories
+  void scheduleExpiredStoriesCleanup() {
+    // Run cleanup every hour
+    Timer.periodic(const Duration(hours: 1), (timer) {
+      cleanupExpiredStories();
+    });
   }
 
   // Get available highlight categories (excluding user's existing ones)

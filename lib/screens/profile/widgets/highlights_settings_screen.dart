@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../models/social/story_highlight.dart';
@@ -19,10 +20,6 @@ class _HighlightsSettingsScreenState extends ConsumerState<HighlightsSettingsScr
   
   // Hidden highlights restoration
   final Set<String> _selectedHiddenHighlights = <String>{};
-  
-  // Permanent stories selection
-  final Set<String> _selectedStories = <String>{};
-  String _selectedVisibility = 'public'; // 'public', 'private', 'friends'
 
   @override
   void initState() {
@@ -82,19 +79,394 @@ class _HighlightsSettingsScreenState extends ConsumerState<HighlightsSettingsScr
             fontSize: 16,
           ),
           tabs: [
+            Tab(text: tr(context, 'all_highlights_stories')),
             Tab(text: tr(context, 'hidden_highlights')),
-            Tab(text: tr(context, 'permanent_stories')),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
+          _buildAllHighlightsTab(currentUser.uid),
           _buildHiddenHighlightsTab(currentUser.uid),
-          _buildPermanentStoriesTab(currentUser.uid),
         ],
       ),
     );
+  }
+
+  Widget _buildAllHighlightsTab(String userId) {
+    if (userId.isEmpty) {
+      return const Center(child: Text('Invalid user'));
+    }
+    
+    final allHighlights = ref.watch(userStoryHighlightsProvider(userId));
+    
+    return allHighlights.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) {
+        debugPrint('Error loading highlights: $error');
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.grey.withValues(alpha: 0.5),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                tr(context, 'failed_to_load_highlights'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+      data: (highlights) {
+        if (highlights.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.photo_library_outlined,
+                  size: 64,
+                  color: Colors.grey.withValues(alpha: 0.5),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  tr(context, 'no_story_highlights_own'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr(context, 'manage_story_permanence'),
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tr(context, 'toggle_story_permanent_status'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        tr(context, 'checked_permanent'),
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(Icons.schedule, color: Colors.orange, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        tr(context, 'unchecked_expires_24h'),
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: highlights.length,
+                itemBuilder: (context, index) {
+                  final highlight = highlights[index];
+                  return _buildHighlightExpansionTile(highlight);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildHighlightExpansionTile(StoryHighlight highlight) {
+    final storyContents = ref.watch(storyContentProvider(highlight.storyContentIds));
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          childrenPadding: const EdgeInsets.only(bottom: 12),
+          leading: Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: highlight.category.colorGradient.map((c) => Color(c)).toList(),
+              ),
+            ),
+            child: highlight.coverImageUrl.isNotEmpty
+                ? ClipOval(
+                    child: Image.network(
+                      highlight.coverImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Icon(
+                          _getCategoryIcon(highlight.category),
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Icon(
+                      _getCategoryIcon(highlight.category),
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+          ),
+          title: Text(
+            highlight.customTitle?.isNotEmpty == true 
+                ? highlight.customTitle!
+                : tr(context, highlight.category.translationKey),
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+            ),
+          ),
+          subtitle: storyContents.when(
+            loading: () => Text(
+              tr(context, 'loading_stories'),
+              style: TextStyle(
+                color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            error: (error, stack) => Text(
+              tr(context, 'error_loading_stories'),
+              style: TextStyle(
+                color: Colors.red.withValues(alpha: 0.7),
+                fontSize: 12,
+              ),
+            ),
+            data: (stories) {
+              final permanentCount = stories.where((s) => s.isPermanent).length;
+              final temporaryCount = stories.length - permanentCount;
+              
+              return Text(
+                '${stories.length} ${tr(context, 'stories')} • '
+                '$permanentCount ${tr(context, 'permanent')} • '
+                '$temporaryCount ${tr(context, 'temporary')}',
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
+              );
+            },
+          ),
+          children: [
+            storyContents.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+              error: (error, stack) => Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                  tr(context, 'error_loading_stories'),
+                  style: TextStyle(color: Colors.red),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              data: (stories) {
+                if (stories.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      tr(context, 'no_stories_in_highlight'),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+                
+                return Column(
+                  children: stories.map((story) => _buildStoryTile(story)).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStoryTile(StoryContent story) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: story.isPermanent 
+            ? Colors.green.withValues(alpha: 0.05)
+            : Colors.orange.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: story.isPermanent 
+              ? Colors.green.withValues(alpha: 0.2)
+              : Colors.orange.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        leading: _buildStoryThumbnail(story),
+        title: Text(
+          story.text?.isNotEmpty == true 
+              ? story.text!.length > 30 
+                  ? '${story.text!.substring(0, 30)}...'
+                  : story.text!
+              : tr(context, _getContentTypeLabel(story.contentType)),
+          style: TextStyle(
+            color: AppTheme.textColor(context),
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+        subtitle: Text(
+          story.isPermanent 
+              ? '${tr(context, 'permanent')} • ${_formatDate(story.createdAt)}'
+              : '${tr(context, 'expires')} ${_formatTimeRemaining(story.createdAt)}',
+          style: TextStyle(
+            color: story.isPermanent ? Colors.green : Colors.orange,
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        trailing: Checkbox(
+          value: story.isPermanent,
+          onChanged: (value) => _toggleStoryPermanence(story, value ?? false),
+          activeColor: Colors.green,
+          checkColor: Colors.white,
+        ),
+        dense: true,
+      ),
+    );
+  }
+
+  void _toggleStoryPermanence(StoryContent story, bool makePermanent) async {
+    try {
+      final storyActions = ref.read(storyActionsProvider);
+      
+      if (makePermanent) {
+        await storyActions.makeStoryPermanent(story.id, 'public');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(tr(context, 'story_made_permanent')),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Make temporary by updating the expiration date
+        await _makeStoryTemporary(story.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(tr(context, 'story_made_temporary')),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'error_updating_story')),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _makeStoryTemporary(String storyId) async {
+    // Update story to be temporary with 24-hour expiration
+    final firestore = FirebaseFirestore.instance;
+    
+    await firestore
+        .collection('story_content')
+        .doc(storyId)
+        .update({
+      'isPermanent': false,
+      'expiresAt': Timestamp.fromDate(DateTime.now().add(const Duration(hours: 24))),
+    });
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else {
+      return '${difference.inMinutes}m ago';
+    }
   }
 
   Widget _buildHiddenHighlightsTab(String userId) {
@@ -307,316 +679,6 @@ class _HighlightsSettingsScreenState extends ConsumerState<HighlightsSettingsScr
     );
   }
 
-  Widget _buildPermanentStoriesTab(String userId) {
-    if (userId.isEmpty) {
-      return const Center(child: Text('Invalid user'));
-    }
-    final temporaryStories = ref.watch(temporaryStoriesProvider(userId));
-    
-    return temporaryStories.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stack) {
-        debugPrint('Error loading temporary stories: $error');
-        debugPrint('Stack trace: $stack');
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.grey.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                tr(context, 'failed_to_load_stories'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: TextStyle(
-                  color: Colors.red.withValues(alpha: 0.7),
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        );
-      },
-      data: (stories) {
-        if (stories.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.timer_outlined,
-                  size: 64,
-                  color: Colors.grey.withValues(alpha: 0.5),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  tr(context, 'no_temporary_stories'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tr(context, 'make_stories_permanent'),
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr(context, 'select_stories_permanent'),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context).withValues(alpha: 0.8),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    tr(context, 'permanent_stories_info'),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                      fontSize: 12,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Visibility Selection
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tr(context, 'permanent_story_visibility'),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildVisibilityOption('public', Icons.public, tr(context, 'public_permanent_stories')),
-                  _buildVisibilityOption('friends', Icons.people, tr(context, 'friends_permanent_stories')),
-                  _buildVisibilityOption('private', Icons.lock, tr(context, 'private_permanent_stories')),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: stories.length,
-                itemBuilder: (context, index) {
-                  final story = stories[index];
-                  final isSelected = _selectedStories.contains(story.id);
-                  
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardColor(context),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected 
-                            ? AppColors.primary 
-                            : Colors.grey.withValues(alpha: 0.2),
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: ListTile(
-                      leading: _buildStoryThumbnail(story),
-                      title: Text(
-                        story.text?.isNotEmpty == true 
-                            ? story.text!.length > 30 
-                                ? '${story.text!.substring(0, 30)}...'
-                                : story.text!
-                            : tr(context, _getContentTypeLabel(story.contentType)),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      subtitle: Text(
-                        _formatTimeRemaining(story.createdAt),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                        ),
-                      ),
-                      trailing: Checkbox(
-                        value: isSelected,
-                        onChanged: (value) {
-                          setState(() {
-                            if (value == true) {
-                              _selectedStories.add(story.id);
-                            } else {
-                              _selectedStories.remove(story.id);
-                            }
-                          });
-                        },
-                        activeColor: AppColors.primary,
-                      ),
-                      onTap: () {
-                        setState(() {
-                          if (isSelected) {
-                            _selectedStories.remove(story.id);
-                          } else {
-                            _selectedStories.add(story.id);
-                          }
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-            if (_selectedStories.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                child: ElevatedButton(
-                  onPressed: _makeStoriesPermanent,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    '${tr(context, 'make_permanent')} (${_selectedStories.length})',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildVisibilityOption(String value, IconData icon, String label) {
-    final isSelected = _selectedVisibility == value;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            _selectedVisibility = value;
-          });
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected 
-                ? AppColors.primary.withValues(alpha: 0.1) 
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected 
-                  ? AppColors.primary 
-                  : Colors.grey.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedVisibility = value;
-                  });
-                },
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isSelected ? AppColors.primary : Colors.grey,
-                      width: 2,
-                    ),
-                  ),
-                  child: isSelected 
-                      ? Center(
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        )
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                icon,
-                color: isSelected ? AppColors.primary : AppTheme.textColor(context).withValues(alpha: 0.7),
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    color: isSelected ? AppColors.primary : AppTheme.textColor(context),
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStoryThumbnail(StoryContent story) {
     switch (story.contentType) {
       case StoryContentType.image:
@@ -765,42 +827,6 @@ class _HighlightsSettingsScreenState extends ConsumerState<HighlightsSettingsScr
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(tr(context, 'highlights_restored')),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr(context, 'error_occurred')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _makeStoriesPermanent() async {
-    if (_selectedStories.isEmpty) return;
-    
-    try {
-      final storyActions = ref.read(storyActionsProvider);
-      
-      for (final storyId in _selectedStories) {
-        await storyActions.makeStoryPermanent(storyId, _selectedVisibility);
-      }
-      
-      if (mounted) {
-        setState(() {
-          _selectedStories.clear();
-        });
-      }
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(tr(context, 'stories_made_permanent')),
             backgroundColor: Colors.green,
           ),
         );

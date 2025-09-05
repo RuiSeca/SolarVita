@@ -17,6 +17,7 @@ import 'services/user/strike_calculation_service.dart';
 import 'services/avatars/avatar_config_loader.dart';
 import 'services/firebase/firebase_initialization_service.dart';
 import 'services/translation/firebase_translation_service.dart';
+import 'services/database/story_service.dart';
 
 // Import your existing screens
 import 'screens/welcome/welcome_screen.dart';
@@ -187,6 +188,17 @@ void main() async {
     debugPrint('.env file not found, using system environment variables.');
   }
 
+  // Initialize story service cleanup if Firebase is available
+  if (isFirebaseAvailable) {
+    try {
+      final storyService = StoryService();
+      storyService.scheduleExpiredStoriesCleanup();
+      debugPrint('Story service cleanup scheduled successfully');
+    } catch (e, st) {
+      debugPrint('Story service cleanup initialization failed: $e\n$st');
+    }
+  }
+
   // Google Maps service removed - no longer needed
 }
 
@@ -247,13 +259,25 @@ class SolarVitaApp extends ConsumerWidget {
           home: _buildHomeScreen(ref, authState, userProfileAsync),
         );
       },
-      loading: () => const MaterialApp(
-        home: Scaffold(
-          body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
+      loading: () => MaterialApp(
+        title: 'SolarVita',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: const Scaffold(
+          backgroundColor: Colors.black, // Match splash screen
+          body: SizedBox.shrink(), // Invisible loading
         ),
       ),
       error: (error, stack) => MaterialApp(
-        home: Scaffold(body: Center(child: Text('Error loading app: $error'))),
+        title: 'SolarVita', 
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        home: const Scaffold(
+          backgroundColor: Colors.black, // Match splash screen
+          body: SizedBox.shrink(), // Invisible error state
+        ),
       ),
     );
   }
