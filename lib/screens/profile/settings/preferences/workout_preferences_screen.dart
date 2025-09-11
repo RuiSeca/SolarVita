@@ -19,6 +19,10 @@ class _WorkoutPreferencesScreenState
     extends ConsumerState<WorkoutPreferencesScreen> {
   bool _isLoading = false;
 
+  // Expansion states
+  bool _workoutTypesExpanded = false;
+  bool _fitnessGoalsExpanded = false;
+
   // Current values - will be populated from UserProfile
   List<String> _selectedWorkoutTypes = [];
   int _workoutFrequency = 3;
@@ -169,24 +173,25 @@ class _WorkoutPreferencesScreenState
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: _isLoading
             ? const Center(child: LottieLoadingWidget())
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildWorkoutTypesSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildFrequencyAndDurationSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildFitnessLevelSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildFitnessGoalsSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildAvailableDaysSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildPreferredTimeSection(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   _buildSaveButton(),
                   const SizedBox(height: 32),
                 ],
@@ -204,32 +209,53 @@ class _WorkoutPreferencesScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: iconColor ?? AppColors.primary, size: 24),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon, 
+                    color: iconColor ?? AppColors.primary, 
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.textColor(context).withAlpha(26),
-            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.isDarkMode(context) 
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.08),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(children: children),
         ),
@@ -240,19 +266,46 @@ class _WorkoutPreferencesScreenState
   Widget _buildWorkoutTypesSection() {
     return _buildSection(
       title: tr(context, 'workout_types'),
-      icon: Icons.fitness_center,
+      icon: Icons.fitness_center_rounded,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
+        // Preview section when collapsed
+        if (!_workoutTypesExpanded) _buildPreviewTile(
+          icon: Icons.fitness_center_rounded,
+          iconColor: AppColors.primary,
+          title: tr(context, 'workout_options'),
+          subtitle: tr(context, 'tap_to_view_workout_types'),
+          previewItems: _workoutTypeOptions.take(4).map((item) {
+            final translationKey = item.toLowerCase().replaceAll(' ', '_').replaceAll('/', '_');
+            return tr(context, translationKey);
+          }).toList(),
+          selectedCount: _selectedWorkoutTypes.length,
+          onTap: () => setState(() => _workoutTypesExpanded = true),
+        ),
+        
+        // Full selection section when expanded
+        if (_workoutTypesExpanded) Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr(context, 'select_preferred_workout_types'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
-                  fontSize: 14,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    tr(context, 'select_preferred_workout_types'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _workoutTypesExpanded = false),
+                    child: Text(
+                      tr(context, 'collapse'),
+                      style: TextStyle(color: AppColors.primary, fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -266,11 +319,19 @@ class _WorkoutPreferencesScreenState
                     label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? AppColors.primary : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context),
-                      fontSize: 12,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -294,10 +355,10 @@ class _WorkoutPreferencesScreenState
   Widget _buildFrequencyAndDurationSection() {
     return _buildSection(
       title: tr(context, 'frequency_duration'),
-      icon: Icons.schedule,
+      icon: Icons.schedule_rounded,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -309,17 +370,27 @@ class _WorkoutPreferencesScreenState
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Slider(
-                value: _workoutFrequency.toDouble(),
-                min: 1,
-                max: 7,
-                divisions: 6,
-                label: tr(context, 'times_label').replaceAll('{count}', '$_workoutFrequency'),
-                onChanged: (value) {
-                  setState(() {
-                    _workoutFrequency = value.round();
-                  });
-                },
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
+                  thumbColor: AppColors.primary,
+                  overlayColor: AppColors.primary.withValues(alpha: 0.1),
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                ),
+                child: Slider(
+                  value: _workoutFrequency.toDouble(),
+                  min: 1,
+                  max: 7,
+                  divisions: 6,
+                  label: tr(context, 'times_label').replaceAll('{count}', '$_workoutFrequency'),
+                  onChanged: (value) {
+                    setState(() {
+                      _workoutFrequency = value.round();
+                    });
+                  },
+                ),
               ),
               const SizedBox(height: 20),
               Text(
@@ -330,17 +401,27 @@ class _WorkoutPreferencesScreenState
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Slider(
-                value: _sessionDuration.toDouble(),
-                min: 15,
-                max: 120,
-                divisions: 21,
-                label: tr(context, 'min_label').replaceAll('{count}', '$_sessionDuration'),
-                onChanged: (value) {
-                  setState(() {
-                    _sessionDuration = value.round();
-                  });
-                },
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
+                  thumbColor: AppColors.primary,
+                  overlayColor: AppColors.primary.withValues(alpha: 0.1),
+                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+                ),
+                child: Slider(
+                  value: _sessionDuration.toDouble(),
+                  min: 15,
+                  max: 120,
+                  divisions: 21,
+                  label: tr(context, 'min_label').replaceAll('{count}', '$_sessionDuration'),
+                  onChanged: (value) {
+                    setState(() {
+                      _sessionDuration = value.round();
+                    });
+                  },
+                ),
               ),
             ],
           ),
@@ -352,10 +433,10 @@ class _WorkoutPreferencesScreenState
   Widget _buildFitnessLevelSection() {
     return _buildSection(
       title: tr(context, 'fitness_level'),
-      icon: Icons.trending_up,
+      icon: Icons.trending_up_rounded,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -392,20 +473,47 @@ class _WorkoutPreferencesScreenState
   Widget _buildFitnessGoalsSection() {
     return _buildSection(
       title: tr(context, 'fitness_goals'),
-      icon: Icons.emoji_events,
+      icon: Icons.emoji_events_rounded,
       iconColor: AppColors.gold,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
+        // Preview section when collapsed
+        if (!_fitnessGoalsExpanded) _buildPreviewTile(
+          icon: Icons.emoji_events_rounded,
+          iconColor: AppColors.gold,
+          title: tr(context, 'goal_options'),
+          subtitle: tr(context, 'tap_to_view_fitness_goals'),
+          previewItems: _goalOptions.take(4).map((item) {
+            final translationKey = item.toLowerCase().replaceAll(' ', '_');
+            return tr(context, translationKey);
+          }).toList(),
+          selectedCount: _selectedGoals.length,
+          onTap: () => setState(() => _fitnessGoalsExpanded = true),
+        ),
+        
+        // Full selection section when expanded
+        if (_fitnessGoalsExpanded) Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr(context, 'select_fitness_goals'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
-                  fontSize: 14,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    tr(context, 'select_fitness_goals'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _fitnessGoalsExpanded = false),
+                    child: Text(
+                      tr(context, 'collapse'),
+                      style: TextStyle(color: AppColors.gold, fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -419,11 +527,19 @@ class _WorkoutPreferencesScreenState
                     label: Text(tr(context, translationKey)),
                     selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? AppColors.primary : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context),
-                      fontSize: 12,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -447,17 +563,17 @@ class _WorkoutPreferencesScreenState
   Widget _buildAvailableDaysSection() {
     return _buildSection(
       title: tr(context, 'available_days'),
-      icon: Icons.calendar_today,
+      icon: Icons.calendar_today_rounded,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 tr(context, 'select_available_days'),
                 style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
+                  color: AppTheme.textColor(context).withValues(alpha: 179),
                   fontSize: 14,
                 ),
               ),
@@ -490,10 +606,10 @@ class _WorkoutPreferencesScreenState
   Widget _buildPreferredTimeSection() {
     return _buildSection(
       title: tr(context, 'preferred_time'),
-      icon: Icons.access_time,
+      icon: Icons.access_time_rounded,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -528,30 +644,164 @@ class _WorkoutPreferencesScreenState
   }
 
   Widget _buildSaveButton() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton(
-          onPressed: _isLoading ? null : _savePreferences,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            spreadRadius: 0,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-          child: _isLoading
-              ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: LottieLoadingWidget(width: 20, height: 20),
-                )
-              : Text(
-                  tr(context, 'save_preferences'),
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _savePreferences,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: LottieLoadingWidget(width: 20, height: 20),
+              )
+            : Text(
+                tr(context, 'save_preferences'),
+                style: const TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.w600,
                 ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required List<String> previewItems,
+    required int selectedCount,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              color: AppTheme.textColor(context),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (selectedCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: iconColor.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$selectedCount',
+                                style: TextStyle(
+                                  color: iconColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.expand_more_rounded,
+                  color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                  size: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: previewItems.map((item) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: iconColor.withValues(alpha: 0.2),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    color: iconColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )).toList(),
+            ),
+            if (previewItems.length < _workoutTypeOptions.length || previewItems.length < _goalOptions.length)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  tr(context, 'and_more_options_available'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

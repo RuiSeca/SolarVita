@@ -18,6 +18,7 @@ import '../../models/health/health_data.dart';
 import '../../models/user/user_progress.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
 import '../../services/database/notification_service.dart';
+import '../../widgets/health/daily_exercise_summary_card.dart';
 
 class HealthScreen extends ConsumerStatefulWidget {
   const HealthScreen({super.key});
@@ -596,41 +597,48 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
-        child: SingleChildScrollView(
-          controller: scrollController,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tr(context, 'fitness_profile'),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            final notifier = ref.read(healthDataNotifierProvider.notifier);
+            await notifier.syncHealthData();
+          },
+          child: SingleChildScrollView(
+            controller: scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          tr(context, 'fitness_profile'),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                    _buildSyncButton(healthDataAsync, permissionsStatus),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildHealthDataStatus(
-                  healthDataAsync,
-                  permissionsStatus,
-                  lastSyncAsync,
-                ),
-                const SizedBox(height: 20),
-                _buildUserOverviewCard(context, permissionsStatus),
-                const SizedBox(height: 20),
-                _buildMealsSection(context),
-                const SizedBox(height: 24),
-                _buildStatsGrid(context, healthDataAsync),
-              ],
+                      _buildConnectionStatus(permissionsStatus),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildHealthDataStatus(
+                    healthDataAsync,
+                    permissionsStatus,
+                    lastSyncAsync,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildUserOverviewCard(context, permissionsStatus),
+                  const SizedBox(height: 20),
+                  _buildMealsSection(context),
+                  const SizedBox(height: 24),
+                  _buildStatsGrid(context, healthDataAsync),
+                ],
+              ),
             ),
           ),
         ),
@@ -752,15 +760,14 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     );
   }
 
-  Widget _buildSyncButton(
-    AsyncValue<HealthData> healthDataAsync,
+  Widget _buildConnectionStatus(
     AsyncValue<HealthPermissionStatus> permissionsStatus,
   ) {
     return permissionsStatus.when(
       data: (permissions) {
         if (!permissions.isGranted) {
-          return IconButton(
-            onPressed: () {
+          return GestureDetector(
+            onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -773,50 +780,88 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 ),
               );
             },
-            icon: Icon(
-              Icons.settings,
-              color: AppTheme.textColor(context).withValues(alpha: 0.7),
-              size: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.withAlpha(51),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange.withAlpha(102), width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.settings, color: Colors.orange, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    tr(context, 'setup'),
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            tooltip: tr(context, 'setup_health_data'),
           );
         }
 
-        return IconButton(
-          onPressed: healthDataAsync.isLoading
-              ? null
-              : () async {
-                  final notifier = ref.read(
-                    healthDataNotifierProvider.notifier,
-                  );
-                  await notifier.syncHealthData();
-                },
-          icon: healthDataAsync.isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppTheme.textColor(context).withValues(alpha: 0.7),
-                    ),
-                  ),
-                )
-              : Icon(
-                  Icons.refresh,
-                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
-                  size: 24,
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.green.withAlpha(51),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.green.withAlpha(102), width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                tr(context, 'connected'),
+                style: TextStyle(
+                  color: Colors.green,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
-          tooltip: tr(context, 'sync_health_data'),
+              ),
+            ],
+          ),
         );
       },
-      loading: () => const SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator(strokeWidth: 2),
+      loading: () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.blue.withAlpha(51),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.blue.withAlpha(102), width: 1),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              tr(context, 'connecting'),
+              style: TextStyle(
+                color: Colors.blue,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
-      error: (error, _) => IconButton(
-        onPressed: () {
+      error: (error, _) => GestureDetector(
+        onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -829,8 +874,29 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
             ),
           );
         },
-        icon: Icon(Icons.error, color: Colors.red, size: 24),
-        tooltip: tr(context, 'fix_health_data_setup'),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.red.withAlpha(51),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.red.withAlpha(102), width: 1),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error, color: Colors.red, size: 16),
+              const SizedBox(width: 4),
+              Text(
+                tr(context, 'error'),
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1158,6 +1224,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                 'heart',
                 isHealthData: healthData.isDataAvailable,
               ),
+              const SizedBox(height: 12),
+              const DailyExerciseSummaryCard(),
             ],
           ),
         );
@@ -1166,7 +1234,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           children: [
-            for (int i = 0; i < 6; i++) ...[
+            for (int i = 0; i < 7; i++) ...[
               Container(
                 height: 76,
                 decoration: BoxDecoration(
@@ -1243,6 +1311,8 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
               'heart',
               isHealthData: false,
             ),
+            const SizedBox(height: 12),
+            const DailyExerciseSummaryCard(),
           ],
         ),
       ),

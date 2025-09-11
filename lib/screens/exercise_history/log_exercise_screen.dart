@@ -13,6 +13,7 @@ import '../../providers/routine_providers.dart';
 import '../search/workout_detail/models/workout_item.dart';
 import '../search/search_screen.dart';
 import 'exercise_history_screen.dart';
+import '../../widgets/achievements/personal_record_celebration.dart';
 
 class LogExerciseScreen extends ConsumerStatefulWidget {
   final String? exerciseId; // Optional - if coming from a specific exercise
@@ -412,6 +413,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
 
     if (mounted) {
       if (success) {
+        // Check for new personal records after successful save
+        await _checkAndCelebrateNewRecords();
+        
         // Force immediate state updates before navigation
         if (widget.routineId != null) {
           // Clear cache first to ensure fresh data
@@ -449,6 +453,38 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _checkAndCelebrateNewRecords() async {
+    try {
+      // Get recent records for this exercise (last 5 seconds to catch new ones)
+      final recentTime = DateTime.now().subtract(const Duration(seconds: 5));
+      final allRecords = await _trackingService.getPersonalRecordsForExercise(_exerciseId);
+      
+      // Find records created in the last few seconds
+      final newRecords = allRecords.where((record) => 
+        record.date.isAfter(recentTime)
+      ).toList();
+      
+      // Show celebration for each new record
+      for (final record in newRecords) {
+        if (mounted) {
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => PersonalRecordCelebration(
+              newRecord: record,
+              onComplete: () {
+                // Optional: Track celebration shown
+              },
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Silently handle errors - don't interrupt the user flow
+      // In production, this would be logged to a proper logging service
     }
   }
 

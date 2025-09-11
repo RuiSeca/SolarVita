@@ -9,6 +9,11 @@ import '../../utils/translation_helper.dart';
 import 'exercise_detail_history_screen.dart';
 import 'log_exercise_screen.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
+import '../../widgets/charts/exercise_progress_chart.dart';
+import '../../widgets/charts/exercise_type_pie_chart.dart';
+import '../../widgets/charts/weekly_volume_chart.dart';
+import '../../widgets/charts/workout_intensity_heatmap.dart';
+import '../../widgets/achievements/personal_record_celebration.dart';
 
 class ExerciseHistoryScreen extends StatefulWidget {
   final String? exerciseId;
@@ -413,37 +418,95 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                   tr(context, 'no_data_for_charts'),
                   style: const TextStyle(fontSize: 18, color: Colors.grey),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  tr(context, 'tap_plus_to_log'),
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
               ],
             ),
           );
         }
 
-        // We'll have placeholders here that will be replaced with real charts
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
+        return SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr(context, 'progress_over_time'),
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor(context),
+              // Workout Intensity Heatmap (only show for all exercises view)
+              if (widget.exerciseId == null) ...[
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  child: const WorkoutIntensityHeatmap(),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Center(
-                  child: Text(
-                    tr(context, 'charts_will_be_implemented'),
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: AppTheme.textColor(context).withAlpha(179),
-                    ),
+              ],
+              
+              // Weekly Volume Chart
+              Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.1),
                   ),
                 ),
+                child: WeeklyVolumeChart(logs: logs),
               ),
+              
+              // Progress Chart (for specific exercise) or Exercise Type Distribution (for all exercises)
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.1),
+                  ),
+                ),
+                child: widget.exerciseId != null
+                    ? ExerciseProgressChart(
+                        logs: logs,
+                        chartType: 'weight',
+                        lineColor: AppColors.primary,
+                      )
+                    : ExerciseTypePieChart(logs: logs),
+              ),
+              
+              // Additional Progress Charts for specific exercise
+              if (widget.exerciseId != null) ...[
+                // Volume Progress Chart
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: ExerciseProgressChart(
+                    logs: logs,
+                    chartType: 'volume',
+                    lineColor: Colors.green,
+                  ),
+                ),
+                
+                // Reps Progress Chart
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor(context),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.1),
+                    ),
+                  ),
+                  child: ExerciseProgressChart(
+                    logs: logs,
+                    chartType: 'reps',
+                    lineColor: Colors.orange,
+                  ),
+                ),
+              ],
             ],
           ),
         );
@@ -507,9 +570,19 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
           groupedRecords[record.exerciseId]!.add(record);
         }
 
-        return ListView.builder(
-          itemCount: groupedRecords.length,
-          itemBuilder: (context, index) {
+        return Column(
+          children: [
+            // Achievement badges section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: AchievementBadgesWidget(records: records),
+            ),
+            
+            // Records list
+            Expanded(
+              child: ListView.builder(
+                itemCount: groupedRecords.length,
+                itemBuilder: (context, index) {
             final exerciseId = groupedRecords.keys.toList()[index];
             final recordsForExercise = groupedRecords[exerciseId]!;
             final exerciseName = recordsForExercise.first.exerciseName;
@@ -539,7 +612,10 @@ class _ExerciseHistoryScreenState extends State<ExerciseHistoryScreen>
                 );
               }).toList(),
             );
-          },
+                },
+              ),
+            ),
+          ],
         );
       },
     );

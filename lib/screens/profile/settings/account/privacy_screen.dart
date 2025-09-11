@@ -185,23 +185,25 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAIHealthPrivacySection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildSocialPrivacySection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildDataPrivacySection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildSecuritySection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildDataManagementSection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildLegalSection(),
-            const SizedBox(height: 32),
+            const SizedBox(height: 20),
             _buildDangerZone(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -232,7 +234,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
               _savePrivacySetting('ai_medical_terminology_discussions', false);
             }
           },
-          icon: Icons.health_and_safety,
+          icon: Icons.health_and_safety_rounded,
+          isFirst: true,
         ),
         _buildSwitchTile(
           context,
@@ -243,7 +246,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _aiConversationStorage = value);
             _savePrivacySetting('ai_conversation_storage', value);
           },
-          icon: Icons.chat_bubble_outline,
+          icon: Icons.chat_bubble_outline_rounded,
         ),
         _buildConditionalSwitchTile(
           context,
@@ -255,7 +258,9 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _aiHealthInsights = value);
             _savePrivacySetting('ai_health_insights', value);
           },
-          icon: Icons.insights,
+          icon: Icons.insights_rounded,
+          isFirst: false,
+          isLast: false,
         ),
         _buildConditionalSwitchTile(
           context,
@@ -267,7 +272,9 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _aiMedicalTerminologyDiscussions = value);
             _savePrivacySetting('ai_medical_terminology_discussions', value);
           },
-          icon: Icons.medical_services,
+          icon: Icons.medical_services_rounded,
+          isFirst: false,
+          isLast: false,
         ),
         _buildSwitchTile(
           context,
@@ -278,28 +285,29 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _aiThirdPartyDataSharing = value);
             _savePrivacySetting('ai_third_party_data_sharing', value);
           },
-          icon: Icons.share,
+          icon: Icons.share_rounded,
         ),
         _buildActionTile(
           context,
           title: 'AI Security Metrics',
           subtitle: 'View security protection statistics and attack prevention data',
-          icon: Icons.security,
+          icon: Icons.security_rounded,
           onTap: _showAISecurityMetrics,
         ),
         _buildActionTile(
           context,
           title: 'Export AI Conversation Data',
           subtitle: 'Download your AI health assistant conversation data (GDPR Article 15 - Right to Access)',
-          icon: Icons.download,
+          icon: Icons.download_rounded,
           onTap: _exportAIConversationData,
         ),
         _buildActionTile(
           context,
           title: 'Delete AI Health Data',
           subtitle: 'Permanently delete all AI health assistant conversations and health insights (GDPR Article 17 - Right to Erasure)',
-          icon: Icons.delete_outline,
+          icon: Icons.delete_outline_rounded,
           onTap: _deleteAIHealthData,
+          isLast: true,
         ),
       ],
     );
@@ -321,7 +329,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _showProfileInSearch = value);
             _updateSocialPrivacySetting(showProfileInSearch: value);
           },
-          icon: Icons.search,
+          icon: Icons.search_rounded,
+          isFirst: true,
         ),
         _buildSwitchTile(
           context,
@@ -332,7 +341,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _allowFriendRequests = value);
             _updateSocialPrivacySetting(allowFriendRequests: value);
           },
-          icon: Icons.person_add,
+          icon: Icons.person_add_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -343,7 +352,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _showWorkoutStats = value);
             _updateSocialPrivacySetting(showWorkoutStats: value);
           },
-          icon: Icons.fitness_center,
+          icon: Icons.fitness_center_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -354,7 +363,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _showNutritionStats = value);
             _updateSocialPrivacySetting(showNutritionStats: value);
           },
-          icon: Icons.restaurant,
+          icon: Icons.restaurant_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -365,7 +374,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _showEcoScore = value);
             _updateSocialPrivacySetting(showEcoScore: value);
           },
-          icon: Icons.eco,
+          icon: Icons.eco_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -376,7 +385,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _showAchievements = value);
             _updateSocialPrivacySetting(showAchievements: value);
           },
-          icon: Icons.emoji_events,
+          icon: Icons.emoji_events_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -387,7 +396,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _allowChallengeInvites = value);
             _updateSocialPrivacySetting(allowChallengeInvites: value);
           },
-          icon: Icons.groups,
+          icon: Icons.groups_rounded,
+          isLast: true,
         ),
       ],
     );
@@ -398,7 +408,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(26),
+          color: AppColors.primary.withValues(alpha: 26),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(Icons.visibility, color: AppColors.primary, size: 20),
@@ -413,7 +423,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       subtitle: Text(
         tr(context, 'who_can_see_activities'),
         style: TextStyle(
-          color: AppTheme.textColor(context).withAlpha(179),
+          color: AppTheme.textColor(context).withValues(alpha: 179),
           fontSize: 14,
         ),
       ),
@@ -487,7 +497,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _dataCollection = value);
             _savePrivacySetting('data_collection', value);
           },
-          icon: Icons.data_usage,
+          icon: Icons.data_usage_rounded,
+          isFirst: true,
         ),
         _buildSwitchTile(
           context,
@@ -498,7 +509,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _analyticsTracking = value);
             _savePrivacySetting('analytics_tracking', value);
           },
-          icon: Icons.analytics,
+          icon: Icons.analytics_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -509,7 +520,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _crashReporting = value);
             _savePrivacySetting('crash_reporting', value);
           },
-          icon: Icons.bug_report,
+          icon: Icons.bug_report_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -520,7 +531,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _locationTracking = value);
             _savePrivacySetting('location_tracking', value);
           },
-          icon: Icons.location_on,
+          icon: Icons.location_on_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -531,7 +542,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _marketingEmails = value);
             _savePrivacySetting('marketing_emails', value);
           },
-          icon: Icons.email,
+          icon: Icons.email_rounded,
+          isLast: true,
         ),
       ],
     );
@@ -552,7 +564,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _biometricAuth = value);
             _savePrivacySetting('biometric_auth', value);
           },
-          icon: Icons.fingerprint,
+          icon: Icons.fingerprint_rounded,
+          isFirst: true,
         ),
         _buildSwitchTile(
           context,
@@ -563,7 +576,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _appLock = value);
             _savePrivacySetting('app_lock', value);
           },
-          icon: Icons.lock,
+          icon: Icons.lock_rounded,
         ),
         _buildSwitchTile(
           context,
@@ -574,7 +587,8 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             setState(() => _hideAppInRecents = value);
             _savePrivacySetting('hide_app_in_recents', value);
           },
-          icon: Icons.visibility_off,
+          icon: Icons.visibility_off_rounded,
+          isLast: true,
         ),
       ],
     );
@@ -591,15 +605,17 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           context,
           title: tr(context, 'download_my_data'),
           subtitle: tr(context, 'export_copy_personal_data'),
-          icon: Icons.download,
+          icon: Icons.download_rounded,
           onTap: _showDownloadDataDialog,
+          isFirst: true,
         ),
         _buildActionTile(
           context,
           title: tr(context, 'clear_app_data'),
           subtitle: tr(context, 'remove_cached_temporary_data'),
-          icon: Icons.cleaning_services,
+          icon: Icons.cleaning_services_rounded,
           onTap: _showClearDataDialog,
+          isLast: true,
         ),
       ],
     );
@@ -610,7 +626,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(26),
+          color: AppColors.primary.withValues(alpha: 26),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(Icons.schedule, color: AppColors.primary, size: 20),
@@ -625,7 +641,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
       subtitle: Text(
         tr(context, 'how_long_keep_data'),
         style: TextStyle(
-          color: AppTheme.textColor(context).withAlpha(179),
+          color: AppTheme.textColor(context).withValues(alpha: 179),
           fontSize: 14,
         ),
       ),
@@ -662,29 +678,31 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           context,
           title: tr(context, 'privacy_policy'),
           subtitle: tr(context, 'read_privacy_policy'),
-          icon: Icons.policy,
+          icon: Icons.policy_rounded,
           onTap: () => _openUrl('https://solarvita.com/privacy'),
+          isFirst: true,
         ),
         _buildActionTile(
           context,
           title: tr(context, 'terms_service'),
           subtitle: tr(context, 'read_terms_service'),
-          icon: Icons.description,
+          icon: Icons.description_rounded,
           onTap: () => _openUrl('https://solarvita.com/terms'),
         ),
         _buildActionTile(
           context,
           title: tr(context, 'gdpr_rights'),
           subtitle: tr(context, 'learn_about_rights'),
-          icon: Icons.gavel,
+          icon: Icons.gavel_rounded,
           onTap: () => _showGDPRRightsDialog(),
         ),
         _buildActionTile(
           context,
           title: tr(context, 'contact_privacy_team'),
           subtitle: tr(context, 'questions_about_privacy'),
-          icon: Icons.support_agent,
+          icon: Icons.support_agent_rounded,
           onTap: () => _openUrl('mailto:privacy@solarvita.com'),
+          isLast: true,
         ),
       ],
     );
@@ -692,50 +710,77 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
 
   Widget _buildDangerZone() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.red.withAlpha(13),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withAlpha(51)),
+        color: Colors.red.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.2), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withValues(alpha: 0.1),
+            spreadRadius: 0,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.warning, color: Colors.red, size: 20),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.warning_rounded, color: Colors.red, size: 20),
+              ),
+              const SizedBox(width: 12),
               Text(
                 tr(context, 'danger_zone'),
                 style: TextStyle(
                   color: Colors.red,
                   fontSize: 16,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
             tr(context, 'danger_zone_description'),
             style: TextStyle(
-              color: AppTheme.textColor(context).withAlpha(179),
+              color: AppTheme.textColor(context).withValues(alpha: 0.7),
               fontSize: 14,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
+          const SizedBox(height: 20),
+          Container(
             width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: OutlinedButton.icon(
               onPressed: _showDeleteAccountDialog,
-              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              icon: const Icon(Icons.delete_forever_rounded, color: Colors.red, size: 20),
               label: Text(
                 tr(context, 'delete_account'),
-                style: const TextStyle(color: Colors.red),
+                style: const TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Colors.red),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                side: BorderSide(color: Colors.red.withValues(alpha: 0.3), width: 1.5),
+                backgroundColor: Colors.red.withValues(alpha: 0.04),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -753,27 +798,43 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: TextStyle(
-            color: AppTheme.textColor(context),
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            title,
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.1,
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: TextStyle(
-            color: AppTheme.textColor(context).withAlpha(179),
-            fontSize: 14,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Text(
+            subtitle,
+            style: TextStyle(
+              color: AppTheme.textColor(context).withValues(alpha: 0.7),
+              fontSize: 13,
+              height: 1.3,
+            ),
           ),
         ),
-        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.isDarkMode(context) 
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.08),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(children: children),
         ),
@@ -789,33 +850,68 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     required bool enabled,
     required ValueChanged<bool> onChanged,
     required IconData icon,
+    bool isFirst = false,
+    bool isLast = false,
   }) {
-    return SwitchListTile(
-      secondary: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: enabled ? AppColors.primary.withAlpha(26) : Colors.grey.withAlpha(26),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: enabled ? AppColors.primary : Colors.grey, size: 20),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        border: !isLast ? Border(
+          bottom: BorderSide(
+            color: AppTheme.textColor(context).withValues(alpha: 0.08),
+            width: 0.5,
+          ),
+        ) : null,
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: enabled ? AppTheme.textColor(context) : AppTheme.textColor(context).withAlpha(128),
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: enabled ? AppColors.primary.withValues(alpha: 0.12) : Colors.grey.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon, 
+              color: enabled ? AppColors.primary : Colors.grey, 
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: enabled ? AppTheme.textColor(context) : AppTheme.textColor(context).withValues(alpha: 0.5),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: enabled ? AppTheme.textColor(context).withValues(alpha: 0.6) : AppTheme.textColor(context).withValues(alpha: 0.4),
+                    fontSize: 14,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: value,
+            onChanged: enabled ? onChanged : null,
+            activeThumbColor: AppColors.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: enabled ? AppTheme.textColor(context).withAlpha(179) : AppTheme.textColor(context).withAlpha(100),
-          fontSize: 14,
-        ),
-      ),
-      value: value,
-      onChanged: enabled ? onChanged : null,
-      activeThumbColor: AppColors.primary,
     );
   }
 
@@ -826,33 +922,68 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
     required IconData icon,
+    bool isFirst = false,
+    bool isLast = false,
   }) {
-    return SwitchListTile(
-      secondary: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(26),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        border: !isLast ? Border(
+          bottom: BorderSide(
+            color: AppTheme.textColor(context).withValues(alpha: 0.08),
+            width: 0.5,
+          ),
+        ) : null,
       ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: AppTheme.textColor(context),
-          fontWeight: FontWeight.w500,
-        ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon, 
+              color: AppColors.primary, 
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                    fontSize: 14,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: AppTheme.textColor(context).withAlpha(179),
-          fontSize: 14,
-        ),
-      ),
-      value: value,
-      onChanged: onChanged,
-      activeThumbColor: AppColors.primary,
     );
   }
 
@@ -862,35 +993,77 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
     required String subtitle,
     required IconData icon,
     required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
   }) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withAlpha(26),
-          borderRadius: BorderRadius.circular(8),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.vertical(
+          top: isFirst ? const Radius.circular(16) : Radius.zero,
+          bottom: isLast ? const Radius.circular(16) : Radius.zero,
         ),
-        child: Icon(icon, color: AppColors.primary, size: 20),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: AppTheme.textColor(context),
-          fontWeight: FontWeight.w500,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            border: !isLast ? Border(
+              bottom: BorderSide(
+                color: AppTheme.textColor(context).withValues(alpha: 0.08),
+                width: 0.5,
+              ),
+            ) : null,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon, 
+                  color: AppColors.primary, 
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                        letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                        fontSize: 14,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppTheme.textColor(context).withValues(alpha: 0.4),
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: AppTheme.textColor(context).withAlpha(179),
-          fontSize: 14,
-        ),
-      ),
-      trailing: Icon(
-        Icons.chevron_right,
-        color: AppTheme.textColor(context).withAlpha(153),
-      ),
-      onTap: onTap,
     );
   }
 
@@ -1052,7 +1225,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           Text(
             description,
             style: TextStyle(
-              color: AppTheme.textColor(context).withAlpha(179),
+              color: AppTheme.textColor(context).withValues(alpha: 179),
               fontSize: 12,
             ),
           ),
@@ -1229,7 +1402,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
                 Text(
                   '📊 Real security metrics will be available after AI conversations.',
                   style: TextStyle(
-                    color: AppTheme.textColor(context).withAlpha(179),
+                    color: AppTheme.textColor(context).withValues(alpha: 179),
                     fontSize: 12,
                     fontStyle: FontStyle.italic,
                   ),
@@ -1324,7 +1497,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             Text(
               'Testing prompt injection detection, medical content filtering, and response validation.',
               style: TextStyle(
-                color: AppTheme.textColor(context).withAlpha(179),
+                color: AppTheme.textColor(context).withValues(alpha: 179),
                 fontSize: 12,
               ),
               textAlign: TextAlign.center,
@@ -1360,7 +1533,7 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
               Text(
                 '🎓 This security test validates the implementation from your AI Security Master\'s thesis research.',
                 style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
+                  color: AppTheme.textColor(context).withValues(alpha: 179),
                   fontSize: 11,
                   fontStyle: FontStyle.italic,
                 ),

@@ -18,6 +18,8 @@ import '../../../services/chat/data_sync_service.dart';
 import '../../../providers/riverpod/interactive_coach_provider.dart';
 import '../../../providers/riverpod/unified_meal_provider.dart';
 import '../../../widgets/interactive_quantum_coach.dart';
+import '../../../widgets/health/calorie_balance_chart.dart';
+import '../../../widgets/health/exercise_meal_insights.dart';
 import 'meal_detail_screen.dart';
 import 'meal_edit_screen.dart';
 import 'meal_search_screen.dart';
@@ -201,15 +203,21 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                _buildWeekDaySelector(context),
-                _buildCarousel(context),
-                _buildNutritionSummary(context),
-                Expanded(child: _buildMealsList(context)),
-              ],
+            SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+                  _buildWeekDaySelector(context),
+                  _buildCarousel(context),
+                  _buildNutritionSummary(context),
+                  _buildCalorieBalanceSection(context),
+                  _buildExerciseMealInsights(context),
+                  _buildMealsList(context),
+                  // Add some bottom padding so content isn't hidden by the coach
+                  const SizedBox(height: 120),
+                ],
+              ),
             ),
             // Interactive Quantum Coach positioned on top of meal cards
             PositionedInteractiveCoach(
@@ -1367,11 +1375,13 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   }
 
   Widget _buildMealsList(BuildContext context) {
-    return ListView.builder(
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: _mealTimes.length,
-      itemBuilder: (context, index) =>
-          _buildMealCard(context, _mealTimes[index]),
+      child: Column(
+        children: _mealTimes.map((mealTime) => 
+          _buildMealCard(context, mealTime)
+        ).toList(),
+      ),
     );
   }
 
@@ -1808,6 +1818,22 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCalorieBalanceSection(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: CalorieBalanceChart(
+        todaysMeals: _selectedDayIndex == (DateTime.now().weekday - 1) ? _mealData : null,
+        showWeeklyView: false,
+      ),
+    );
+  }
+
+  Widget _buildExerciseMealInsights(BuildContext context) {
+    return ExerciseMealInsights(
+      todaysMeals: _selectedDayIndex == (DateTime.now().weekday - 1) ? _mealData : null,
     );
   }
 

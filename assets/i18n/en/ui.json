@@ -9,5 +9,19 @@
     "select_date_range": "Select Date Range",
     "switch_light_dark_mode": "Switch Light/Dark Mode",
     "try_different_category": "Try a different category",
-    "get_help_contact_support": "Get help & contact support"
+    "get_help_contact_support": "Get help & contact support",
+    "mon": "Mon",
+    "tue": "Tue", 
+    "wed": "Wed",
+    "thu": "Thu",
+    "fri": "Fri",
+    "sat": "Sat",
+    "sun": "Sun",
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday", 
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
 }

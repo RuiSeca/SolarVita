@@ -39,6 +39,10 @@ class _DietaryPreferencesScreenState
   TimeOfDay _dinnerTime = const TimeOfDay(hour: 19, minute: 0);
   TimeOfDay _snackTime = const TimeOfDay(hour: 15, minute: 30);
 
+  // Expansion states
+  bool _allergiesExpanded = false;
+  bool _restrictionsExpanded = false;
+
   // Options
   final List<String> _dietTypeOptions = [
     'omnivore',
@@ -199,24 +203,25 @@ class _DietaryPreferencesScreenState
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: _isLoading
             ? const Center(child: LottieLoadingWidget())
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildDietTypeSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildAllergiesSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildRestrictionsSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildSustainabilitySection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildNutritionGoalsSection(),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   _buildMealPlanningSection(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
                   _buildSaveButton(),
                   const SizedBox(height: 32),
                 ],
@@ -234,36 +239,53 @@ class _DietaryPreferencesScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            if (icon != null) ...[
-              Icon(
-                icon,
-                color: iconColor ?? Theme.of(context).primaryColor,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-            ],
-            Expanded(
-              child: Text(
-                title,
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 16),
+          child: Row(
+            children: [
+              if (icon != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: (iconColor ?? AppColors.primary).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor ?? AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.1,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
             color: AppTheme.cardColor(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.textColor(context).withAlpha(26),
-            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.isDarkMode(context) 
+                  ? Colors.black.withValues(alpha: 0.2)
+                  : Colors.grey.withValues(alpha: 0.08),
+                spreadRadius: 0,
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(children: children),
         ),
@@ -274,10 +296,10 @@ class _DietaryPreferencesScreenState
   Widget _buildDietTypeSection() {
     return _buildSection(
       title: tr(context, 'diet_type'),
-      icon: Icons.restaurant,
+      icon: Icons.restaurant_rounded,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -313,20 +335,44 @@ class _DietaryPreferencesScreenState
   Widget _buildAllergiesSection() {
     return _buildSection(
       title: tr(context, 'allergies'),
-      icon: Icons.warning,
+      icon: Icons.warning_rounded,
       iconColor: Colors.red,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
+        // Preview section when collapsed
+        if (!_allergiesExpanded) _buildPreviewTile(
+          icon: Icons.warning_rounded,
+          iconColor: Colors.red,
+          title: tr(context, 'common_allergies'),
+          subtitle: tr(context, 'tap_to_view_allergies'),
+          previewItems: _commonAllergies.take(4).map((item) => tr(context, item.toLowerCase())).toList(),
+          selectedCount: _allergies.length,
+          onTap: () => setState(() => _allergiesExpanded = true),
+        ),
+        
+        // Full selection section when expanded
+        if (_allergiesExpanded) Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr(context, 'select_allergies'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
-                  fontSize: 14,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    tr(context, 'select_allergies'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _allergiesExpanded = false),
+                    child: Text(
+                      tr(context, 'collapse'),
+                      style: TextStyle(color: Colors.red, fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -339,11 +385,19 @@ class _DietaryPreferencesScreenState
                     label: Text(tr(context, allergy.toLowerCase())),
                     selectedColor: Colors.red,
                     backgroundColor: AppTheme.cardColor(context),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? Colors.red : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context),
-                      fontSize: 12,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -367,20 +421,44 @@ class _DietaryPreferencesScreenState
   Widget _buildRestrictionsSection() {
     return _buildSection(
       title: tr(context, 'dietary_restrictions'),
-      icon: Icons.block,
+      icon: Icons.block_rounded,
       iconColor: Colors.orange,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
+        // Preview section when collapsed
+        if (!_restrictionsExpanded) _buildPreviewTile(
+          icon: Icons.block_rounded,
+          iconColor: Colors.orange,
+          title: tr(context, 'common_restrictions'),
+          subtitle: tr(context, 'tap_to_view_restrictions'),
+          previewItems: _commonRestrictions.take(4).map((item) => tr(context, item.toLowerCase().replaceAll(' ', '_'))).toList(),
+          selectedCount: _restrictions.length,
+          onTap: () => setState(() => _restrictionsExpanded = true),
+        ),
+        
+        // Full selection section when expanded
+        if (_restrictionsExpanded) Padding(
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr(context, 'select_dietary_restrictions'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context).withAlpha(179),
-                  fontSize: 14,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    tr(context, 'select_dietary_restrictions'),
+                    style: TextStyle(
+                      color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                      fontSize: 14,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => setState(() => _restrictionsExpanded = false),
+                    child: Text(
+                      tr(context, 'collapse'),
+                      style: TextStyle(color: Colors.orange, fontSize: 12),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               Wrap(
@@ -391,13 +469,21 @@ class _DietaryPreferencesScreenState
                   return FilterChip(
                     selected: isSelected,
                     label: Text(tr(context, restriction.toLowerCase().replaceAll(' ', '_'))),
-                    selectedColor: Theme.of(context).primaryColor,
+                    selectedColor: AppColors.primary,
                     backgroundColor: AppTheme.cardColor(context),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(
+                        color: isSelected ? AppColors.primary : Colors.transparent,
+                        width: 1.5,
+                      ),
+                    ),
                     labelStyle: TextStyle(
                       color: isSelected
                           ? Colors.white
                           : AppTheme.textColor(context),
-                      fontSize: 12,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                     onSelected: (selected) {
                       setState(() {
@@ -421,53 +507,45 @@ class _DietaryPreferencesScreenState
   Widget _buildSustainabilitySection() {
     return _buildSection(
       title: tr(context, 'sustainability_preferences_section'),
-      icon: Icons.eco,
+      icon: Icons.eco_rounded,
       iconColor: Colors.green,
       children: [
-        SwitchListTile(
-          title: Text(
-            tr(context, 'prefer_organic'),
-            style: TextStyle(color: AppTheme.textColor(context)),
-          ),
-          value: _preferOrganic,
-          onChanged: (value) => setState(() => _preferOrganic = value),
-          activeThumbColor: Theme.of(context).primaryColor,
+        _buildModernSwitchTile(
+          tr(context, 'prefer_organic'),
+          tr(context, 'prefer_organic_foods'),
+          _preferOrganic,
+          (value) => setState(() => _preferOrganic = value),
+          Icons.eco_rounded,
+          isFirst: true,
         ),
-        SwitchListTile(
-          title: Text(
-            tr(context, 'prefer_local'),
-            style: TextStyle(color: AppTheme.textColor(context)),
-          ),
-          value: _preferLocal,
-          onChanged: (value) => setState(() => _preferLocal = value),
-          activeThumbColor: Theme.of(context).primaryColor,
+        _buildModernSwitchTile(
+          tr(context, 'prefer_local'),
+          tr(context, 'support_local_producers'),
+          _preferLocal,
+          (value) => setState(() => _preferLocal = value),
+          Icons.location_on_rounded,
         ),
-        SwitchListTile(
-          title: Text(
-            tr(context, 'prefer_seasonal'),
-            style: TextStyle(color: AppTheme.textColor(context)),
-          ),
-          value: _preferSeasonal,
-          onChanged: (value) => setState(() => _preferSeasonal = value),
-          activeThumbColor: Theme.of(context).primaryColor,
+        _buildModernSwitchTile(
+          tr(context, 'prefer_seasonal'),
+          tr(context, 'choose_seasonal_produce'),
+          _preferSeasonal,
+          (value) => setState(() => _preferSeasonal = value),
+          Icons.wb_sunny_rounded,
         ),
-        SwitchListTile(
-          title: Text(
-            tr(context, 'reduce_meat_consumption'),
-            style: TextStyle(color: AppTheme.textColor(context)),
-          ),
-          value: _reduceMeatConsumption,
-          onChanged: (value) => setState(() => _reduceMeatConsumption = value),
-          activeThumbColor: Theme.of(context).primaryColor,
+        _buildModernSwitchTile(
+          tr(context, 'reduce_meat_consumption'),
+          tr(context, 'lower_environmental_impact'),
+          _reduceMeatConsumption,
+          (value) => setState(() => _reduceMeatConsumption = value),
+          Icons.grass_rounded,
         ),
-        SwitchListTile(
-          title: Text(
-            tr(context, 'sustainable_seafood'),
-            style: TextStyle(color: AppTheme.textColor(context)),
-          ),
-          value: _sustainableSeafood,
-          onChanged: (value) => setState(() => _sustainableSeafood = value),
-          activeThumbColor: Theme.of(context).primaryColor,
+        _buildModernSwitchTile(
+          tr(context, 'sustainable_seafood'),
+          tr(context, 'choose_responsibly_sourced_seafood'),
+          _sustainableSeafood,
+          (value) => setState(() => _sustainableSeafood = value),
+          Icons.waves_rounded,
+          isLast: true,
         ),
       ],
     );
@@ -476,11 +554,11 @@ class _DietaryPreferencesScreenState
   Widget _buildNutritionGoalsSection() {
     return _buildSection(
       title: tr(context, 'nutrition_goals'),
-      icon: Icons.pie_chart,
+      icon: Icons.pie_chart_rounded,
       iconColor: Colors.blue,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -529,11 +607,11 @@ class _DietaryPreferencesScreenState
   Widget _buildMealPlanningSection() {
     return _buildSection(
       title: tr(context, 'meal_planning'),
-      icon: Icons.schedule,
+      icon: Icons.schedule_rounded,
       iconColor: Colors.purple,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -546,24 +624,21 @@ class _DietaryPreferencesScreenState
                 tr(context, 'meals_label').replaceAll('{count}', '$_mealsPerDay'),
               ),
               const SizedBox(height: 16),
-              SwitchListTile(
-                title: Text(
-                  tr(context, 'enable_snacks'),
-                  style: TextStyle(color: AppTheme.textColor(context)),
-                ),
-                value: _enableSnacks,
-                onChanged: (value) => setState(() => _enableSnacks = value),
-                activeThumbColor: Theme.of(context).primaryColor,
+              _buildModernSwitchTile(
+                tr(context, 'enable_snacks'),
+                tr(context, 'include_healthy_snacks'),
+                _enableSnacks,
+                (value) => setState(() => _enableSnacks = value),
+                Icons.cookie_rounded,
+                isFirst: true,
               ),
-              SwitchListTile(
-                title: Text(
-                  tr(context, 'intermittent_fasting'),
-                  style: TextStyle(color: AppTheme.textColor(context)),
-                ),
-                value: _intermittentFasting,
-                onChanged: (value) =>
-                    setState(() => _intermittentFasting = value),
-                activeThumbColor: Theme.of(context).primaryColor,
+              _buildModernSwitchTile(
+                tr(context, 'intermittent_fasting'),
+                tr(context, 'time_restricted_eating'),
+                _intermittentFasting,
+                (value) => setState(() => _intermittentFasting = value),
+                Icons.timer_rounded,
+                isLast: true,
               ),
             ],
           ),
@@ -597,42 +672,135 @@ class _DietaryPreferencesScreenState
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withAlpha(26),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
                 displayValue,
                 style: TextStyle(
-                  color: Theme.of(context).primaryColor,
-                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
                 ),
               ),
             ),
           ],
         ),
-        Slider(
-          value: value,
-          min: min,
-          max: max,
-          onChanged: onChanged,
-          activeColor: Theme.of(context).primaryColor,
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(
+            activeTrackColor: AppColors.primary,
+            inactiveTrackColor: AppColors.primary.withValues(alpha: 0.3),
+            thumbColor: AppColors.primary,
+            overlayColor: AppColors.primary.withValues(alpha: 0.1),
+            thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+            overlayShape: const RoundSliderOverlayShape(overlayRadius: 20),
+          ),
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            onChanged: onChanged,
+          ),
         ),
       ],
     );
   }
 
+  Widget _buildModernSwitchTile(
+    String title,
+    String subtitle,
+    bool value,
+    ValueChanged<bool> onChanged,
+    IconData icon, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        border: !isLast ? Border(
+          bottom: BorderSide(
+            color: AppTheme.textColor(context).withValues(alpha: 0.08),
+            width: 0.5,
+          ),
+        ) : null,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon, 
+              color: AppColors.primary, 
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 16,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                    fontSize: 14,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeThumbColor: AppColors.primary,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSaveButton() {
-    return SizedBox(
+    return Container(
       width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            spreadRadius: 0,
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ElevatedButton(
         onPressed: _isLoading ? null : _savePreferences,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 18),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
+          elevation: 0,
         ),
         child: _isLoading
             ? const SizedBox(
@@ -642,8 +810,133 @@ class _DietaryPreferencesScreenState
               )
             : Text(
                 tr(context, 'save_preferences'),
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16, 
+                  fontWeight: FontWeight.w600,
+                ),
               ),
+      ),
+    );
+  }
+
+  Widget _buildPreviewTile({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required List<String> previewItems,
+    required int selectedCount,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: iconColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            title,
+                            style: TextStyle(
+                              color: AppTheme.textColor(context),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          if (selectedCount > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: iconColor.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '$selectedCount',
+                                style: TextStyle(
+                                  color: iconColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.expand_more_rounded,
+                  color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                  size: 20,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: previewItems.map((item) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: iconColor.withValues(alpha: 0.2),
+                    width: 0.5,
+                  ),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    color: iconColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )).toList(),
+            ),
+            if (previewItems.length < _commonAllergies.length || previewItems.length < _commonRestrictions.length)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  tr(context, 'and_more_options_available'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.5),
+                    fontSize: 12,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

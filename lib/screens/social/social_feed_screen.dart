@@ -14,6 +14,7 @@ import '../../providers/riverpod/firebase_social_provider.dart';
 import '../../providers/riverpod/chat_provider.dart';
 import '../../providers/riverpod/story_provider.dart';
 import '../../providers/riverpod/auth_provider.dart';
+import '../../providers/riverpod/feed_layout_provider.dart';
 import '../../services/database/social_service.dart';
 import '../../models/social/story_highlight.dart';
 import 'create_post_screen.dart';
@@ -35,15 +36,18 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   final SocialService _socialService = SocialService();
   String _selectedFilter = 'all'; // all, supporters, public
   bool _isBottomBarVisible = true;
+  bool _isAppBarVisible = true;
   bool _isScrolling = false;
   Timer? _scrollTimer;
   List<PostPillar>? _selectedPillars;
   Set<String> _supportedUserIds = {};
 
-  // Animation controller for smooth bottom bar transitions
+  // Animation controllers for smooth transitions
   late AnimationController _bottomBarController;
+  late AnimationController _appBarController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _fadeAnimation;
+  late Animation<Offset> _appBarSlideAnimation;
 
   @override
   bool get wantKeepAlive => true; // Keep state when switching tabs
@@ -52,10 +56,15 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   void initState() {
     super.initState();
 
-    // Initialize animation controller
+    // Initialize animation controllers
     _bottomBarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
+    );
+
+    _appBarController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
 
     _slideAnimation = Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
@@ -70,8 +79,17 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       CurvedAnimation(parent: _bottomBarController, curve: Curves.easeInOut),
     );
 
-    // Start with bottom bar visible
+    _appBarSlideAnimation = Tween<Offset>(begin: const Offset(0, -1), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _appBarController,
+            curve: Curves.easeInOutCubic,
+          ),
+        );
+
+    // Start with both bars visible
     _bottomBarController.forward();
+    _appBarController.forward();
 
     _scrollController.addListener(_onScroll);
     _setupScrollListener();
@@ -80,6 +98,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   @override
   void dispose() {
     _bottomBarController.dispose();
+    _appBarController.dispose();
     _scrollController.dispose();
     _scrollTimer?.cancel();
     super.dispose();
@@ -87,6 +106,10 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
   void _setupScrollListener() {
     _scrollController.addListener(() {
+      final scrollOffset = _scrollController.offset;
+      final hideHeaderThreshold = 100.0; // Header disappears after scrolling 100px
+      
+      // Handle bottom bar visibility (immediate on scroll direction)
       if (_scrollController.position.userScrollDirection ==
           ScrollDirection.reverse) {
         if (_isBottomBarVisible) {
@@ -98,6 +121,17 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
           _updateBottomBarVisibility(true);
         }
       }
+      
+      // Handle app bar visibility (threshold-based)
+      if (scrollOffset > hideHeaderThreshold) {
+        if (_isAppBarVisible) {
+          _updateAppBarVisibility(false);
+        }
+      } else {
+        if (!_isAppBarVisible) {
+          _updateAppBarVisibility(true);
+        }
+      }
     });
   }
 
@@ -107,6 +141,15 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       _bottomBarController.forward();
     } else {
       _bottomBarController.reverse();
+    }
+  }
+
+  void _updateAppBarVisibility(bool visible) {
+    setState(() => _isAppBarVisible = visible);
+    if (visible) {
+      _appBarController.forward();
+    } else {
+      _appBarController.reverse();
     }
   }
 
@@ -148,10 +191,23 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
 
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
-      appBar: _buildAppBar(),
       body: Stack(
         children: [
+          // Full-screen main content
           _buildFeedContent(),
+          // Animated app bar with fade - positioned as overlay
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SlideTransition(
+              position: _appBarSlideAnimation,
+              child: FadeTransition(
+                opacity: _appBarController,
+                child: _buildAppBar(),
+              ),
+            ),
+          ),
           _buildGlassyBottomBar(),
           if (_isScrolling && !_isBottomBarVisible) _buildScrollToTopButton(),
         ],
@@ -159,86 +215,83 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: AppTheme.surfaceColor(context).withValues(alpha: 0.85),
-      elevation: 0,
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppTheme.surfaceColor(context).withValues(alpha: 0.9),
-              AppTheme.surfaceColor(context).withValues(alpha: 0.8),
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-          border: Border(
-            bottom: BorderSide(
-              color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
-              width: 0.5,
-            ),
+  Widget _buildAppBar() {
+    return Container(
+      height: kToolbarHeight + MediaQuery.of(context).padding.top,
+      padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+            width: 0.5,
           ),
         ),
       ),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(
-            tr(context, 'social_feed'),
-            style: TextStyle(
-              color: AppTheme.textColor(context),
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+          IconButton(
+            icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
+            onPressed: () => Navigator.pop(context),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  tr(context, 'social_feed'),
+                  style: TextStyle(
+                    color: AppTheme.textColor(context),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final postsAsync = ref.watch(
+                      socialPostsFeedProvider(
+                        visibility: _filterVisibility,
+                        pillars: _selectedPillars,
+                        limit: 50,
+                      ),
+                    );
+
+                    return postsAsync.when(
+                      data: (posts) => Text(
+                        '${posts.length} posts',
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                      loading: () => Text(
+                        tr(context, 'loading'),
+                        style: TextStyle(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                      error: (_, __) => Text(
+                        tr(context, 'error_loading'),
+                        style: TextStyle(
+                          color: Colors.red.withValues(alpha: 0.6),
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
-          Consumer(
-            builder: (context, ref, child) {
-              final postsAsync = ref.watch(
-                socialPostsFeedProvider(
-                  visibility: _filterVisibility,
-                  pillars: _selectedPillars,
-                  limit: 50,
-                ),
-              );
-
-              return postsAsync.when(
-                data: (posts) => Text(
-                  '${posts.length} posts',
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withAlpha(153),
-                    fontSize: 12,
-                  ),
-                ),
-                loading: () => Text(
-                  tr(context, 'loading'),
-                  style: TextStyle(
-                    color: AppTheme.textColor(context).withAlpha(153),
-                    fontSize: 12,
-                  ),
-                ),
-                error: (_, __) => Text(
-                  tr(context, 'error_loading'),
-                  style: TextStyle(
-                    color: Colors.red.withAlpha(153),
-                    fontSize: 12,
-                  ),
-                ),
-              );
-            },
-          ),
+          _buildFilterButton(),
+          _buildMessagesButton(),
         ],
       ),
-      actions: [
-        _buildFilterButton(),
-        _buildMessagesButton(),
-      ],
     );
   }
+
 
   Widget _buildFilterButton() {
     return PopupMenuButton<String>(
@@ -408,45 +461,150 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
       });
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        HapticFeedback.lightImpact();
-        ref.invalidate(socialPostsFeedProvider);
+    return Consumer(
+      builder: (context, ref, child) {
+        final feedPreferences = ref.watch(feedLayoutProvider);
+        
+        return RefreshIndicator(
+          onRefresh: () async {
+            HapticFeedback.lightImpact();
+            ref.invalidate(socialPostsFeedProvider);
+          },
+          child: _buildLayoutBasedOnPreferences(posts, feedPreferences),
+        );
       },
-      child: ListView.builder(
-        controller: _scrollController,
-        padding: EdgeInsets.only(
-          top: 8,
-          bottom: _isBottomBarVisible ? 120 : 8, // Space for bottom bar
-        ),
-        itemCount: posts.length + 1, // +1 for highlights section
-        itemBuilder: (context, index) {
-          // First item is the story highlights
-          if (index == 0) {
-            return _buildStoryHighlightsSection();
-          }
-          
-          // Rest are posts (index - 1 because highlights takes the first slot)
-          final postIndex = index - 1;
-          if (postIndex < posts.length) {
-            final post = posts[postIndex];
-            return SocialPostCard(
+    );
+  }
+
+  Widget _buildLayoutBasedOnPreferences(List<SocialPost> posts, FeedLayoutPreferences preferences) {
+    switch (preferences.layoutStyle) {
+      case FeedLayoutStyle.grid2:
+        return _buildGridLayout(posts, preferences, 2);
+      case FeedLayoutStyle.grid3:
+        return _buildGridLayout(posts, preferences, 3);
+      case FeedLayoutStyle.list:
+        return _buildListLayout(posts, preferences);
+    }
+  }
+
+  Widget _buildListLayout(List<SocialPost> posts, FeedLayoutPreferences preferences) {
+    final verticalPadding = _getVerticalPadding(preferences.postDensity);
+    
+    return ListView.builder(
+      controller: _scrollController,
+      padding: EdgeInsets.only(
+        top: kToolbarHeight + MediaQuery.of(context).padding.top + 3, // Ultra slim 3px gap for subtle retro effect
+        bottom: _isBottomBarVisible ? 120 : 8, // Space for bottom bar
+      ),
+      itemCount: posts.length + 1, // +1 for highlights section
+      itemBuilder: (context, index) {
+        // First item is the story highlights
+        if (index == 0) {
+          return _buildStoryHighlightsSection();
+        }
+        
+        // Rest are posts (index - 1 because highlights takes the first slot)
+        final postIndex = index - 1;
+        if (postIndex < posts.length) {
+          final post = posts[postIndex];
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: verticalPadding),
+            child: SocialPostCard(
               post: post,
               onReaction: (postId, reaction) =>
                   _handleReaction(postId, reaction),
               showSupporterTag: _shouldShowSupporterTag(post),
-            );
-          }
-          
-          // Empty state if no posts but we still want to show highlights
-          if (posts.isEmpty && index == 1) {
-            return _buildEmptyState();
-          }
-          
-          return const SizedBox.shrink();
-        },
-      ),
+              preferences: preferences, // Pass preferences to post card
+            ),
+          );
+        }
+        
+        // Empty state if no posts but we still want to show highlights
+        if (posts.isEmpty && index == 1) {
+          return _buildEmptyState();
+        }
+        
+        return const SizedBox.shrink();
+      },
     );
+  }
+
+  Widget _buildGridLayout(List<SocialPost> posts, FeedLayoutPreferences preferences, int crossAxisCount) {
+    final padding = _getGridPadding(preferences.postDensity);
+    
+    return CustomScrollView(
+      controller: _scrollController,
+      slivers: [
+        // Top padding
+        SliverPadding(
+          padding: EdgeInsets.only(
+            top: kToolbarHeight + MediaQuery.of(context).padding.top + 3,
+          ),
+        ),
+        // Story highlights section
+        SliverToBoxAdapter(
+          child: _buildStoryHighlightsSection(),
+        ),
+        // Grid of posts
+        if (posts.isNotEmpty)
+          SliverPadding(
+            padding: EdgeInsets.all(padding),
+            sliver: SliverGrid(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                childAspectRatio: 0.8, // Adjust aspect ratio for posts
+                crossAxisSpacing: padding,
+                mainAxisSpacing: padding,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  if (index < posts.length) {
+                    final post = posts[index];
+                    return SocialPostCard(
+                      post: post,
+                      onReaction: (postId, reaction) =>
+                          _handleReaction(postId, reaction),
+                      showSupporterTag: _shouldShowSupporterTag(post),
+                      preferences: preferences,
+                      isGridView: true,
+                    );
+                  }
+                  return null;
+                },
+                childCount: posts.length,
+              ),
+            ),
+          )
+        else
+          SliverToBoxAdapter(child: _buildEmptyState()),
+        // Bottom padding
+        SliverPadding(
+          padding: EdgeInsets.only(bottom: _isBottomBarVisible ? 120 : 8),
+        ),
+      ],
+    );
+  }
+
+  double _getVerticalPadding(PostDensity density) {
+    switch (density) {
+      case PostDensity.compact:
+        return 2.0;
+      case PostDensity.comfortable:
+        return 8.0;
+      case PostDensity.normal:
+        return 4.0;
+    }
+  }
+
+  double _getGridPadding(PostDensity density) {
+    switch (density) {
+      case PostDensity.compact:
+        return 4.0;
+      case PostDensity.comfortable:
+        return 12.0;
+      case PostDensity.normal:
+        return 8.0;
+    }
   }
 
   Widget _buildEmptyState() {
@@ -837,6 +995,7 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
   Widget _buildStoryHighlightsSection() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
+      color: AppTheme.cardColor(context),
       child: Consumer(
         builder: (context, ref, child) {
           final currentUser = ref.watch(currentUserProvider);
@@ -850,8 +1009,9 @@ class _SocialFeedScreenState extends ConsumerState<SocialFeedScreen>
           final userHighlights = ref.watch(userStoryHighlightsProvider(userId));
           // Get supporters' highlights (can be implemented later)
           
-          return SizedBox(
+          return Container(
             height: 110,
+            color: AppTheme.cardColor(context),
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),

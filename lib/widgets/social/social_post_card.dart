@@ -18,6 +18,7 @@ import 'mention_rich_text.dart';
 import 'report_content_dialog.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import '../../providers/riverpod/firebase_social_provider.dart';
+import '../../providers/riverpod/feed_layout_provider.dart';
 import '../../screens/profile/supporter/supporter_profile_screen.dart';
 import '../../models/user/supporter.dart';
 
@@ -28,6 +29,8 @@ class SocialPostCard extends ConsumerStatefulWidget {
   final Function(String postId)? onShare;
   final Function(String postId)? onMoreOptions;
   final bool showSupporterTag;
+  final FeedLayoutPreferences? preferences;
+  final bool isGridView;
 
   const SocialPostCard({
     super.key,
@@ -37,6 +40,8 @@ class SocialPostCard extends ConsumerStatefulWidget {
     this.onShare,
     this.onMoreOptions,
     this.showSupporterTag = false,
+    this.preferences,
+    this.isGridView = false,
   });
 
   @override
@@ -94,41 +99,63 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.zero,
-      decoration: BoxDecoration(
-        color: AppTheme.cardColor(context),
-        borderRadius: BorderRadius.zero, // Edge-to-edge design
-        border: Border(
-          bottom: BorderSide(
-            color: AppTheme.textColor(context).withAlpha(26),
-            width: 1,
+    return Consumer(
+      builder: (context, ref, child) {
+        final feedPrefs = ref.watch(feedLayoutProvider);
+        final preferences = widget.preferences ?? feedPrefs;
+        
+        return Container(
+          margin: EdgeInsets.zero,
+          decoration: BoxDecoration(
+            color: AppTheme.cardColor(context),
+            borderRadius: widget.isGridView ? BorderRadius.circular(12) : BorderRadius.zero,
+            border: widget.isGridView 
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: AppTheme.textColor(context).withAlpha(26),
+                      width: 1,
+                    ),
+                  ),
+            boxShadow: widget.isGridView
+                ? [
+                    BoxShadow(
+                      color: AppTheme.textColor(context).withAlpha(26),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildPostHeader(),
-          if (widget.post.content.isNotEmpty) _buildPostContent(),
-          if (widget.post.hasMedia) _buildMediaSection(),
-          _buildPostActions(),
-          _buildPostStats(),
-        ],
-      ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (preferences.showProfilePictures) _buildPostHeader(preferences),
+              if (widget.post.content.isNotEmpty) _buildPostContent(preferences),
+              if (widget.post.hasMedia) _buildMediaSection(preferences),
+              if (!widget.isGridView) _buildPostActions(preferences),
+              if (!widget.isGridView && preferences.showEngagementCounts) _buildPostStats(preferences),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildPostHeader() {
+  Widget _buildPostHeader(FeedLayoutPreferences preferences) {
+    final headerPadding = widget.isGridView ? 8.0 : 16.0;
+    final avatarSize = widget.isGridView ? 16.0 : 22.0;
+    final fontSize = widget.isGridView ? 14.0 : 16.0;
+    
     return Padding(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(headerPadding),
       child: Row(
         children: [
           // User Avatar - Tappable
           GestureDetector(
             onTap: () => _navigateToUserProfile(),
             child: CircleAvatar(
-              radius: 22,
+              radius: avatarSize,
               backgroundImage: widget.post.userAvatarUrl != null
                   ? CachedNetworkImageProvider(widget.post.userAvatarUrl!)
                   : null,
@@ -137,7 +164,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                   ? Icon(
                       Icons.person,
                       color: AppTheme.textColor(context).withAlpha(128),
-                      size: 24,
+                      size: avatarSize,
                     )
                   : null,
             ),
@@ -152,12 +179,15 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        widget.post.userName,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textColor(context),
+                      Flexible(
+                        child: Text(
+                          widget.post.userName,
+                          style: TextStyle(
+                            fontSize: fontSize,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textColor(context),
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (widget.post.autoGenerated) ...[
@@ -204,17 +234,17 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Row(
+                  if (!widget.isGridView) const SizedBox(height: 2),
+                  if (!widget.isGridView) Row(
                     children: [
-                      Text(
+                      if (preferences.showTimestamps) Text(
                         _formatTimestamp(widget.post.timestamp),
                         style: TextStyle(
                           fontSize: 12,
                           color: AppTheme.textColor(context).withAlpha(153),
                         ),
                       ),
-                      if (widget.post.pillars.isNotEmpty) ...[
+                      if (widget.post.pillars.isNotEmpty && !widget.isGridView) ...[
                         const SizedBox(width: 8),
                         Text(
                           '•',
@@ -226,8 +256,8 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
                         _buildPillarTags(),
                       ],
                       // Privacy indicator
-                      const SizedBox(width: 8),
-                      Icon(
+                      if (!widget.isGridView) const SizedBox(width: 8),
+                      if (!widget.isGridView) Icon(
                         _getVisibilityIcon(widget.post.visibility),
                         size: 14,
                         color: AppTheme.textColor(context).withAlpha(128),
@@ -239,7 +269,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
             ),
           ),
           // More options button
-          IconButton(
+          if (!widget.isGridView) IconButton(
             onPressed: () => _showMoreOptions(),
             icon: Icon(
               Icons.more_horiz,
@@ -277,22 +307,36 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  Widget _buildPostContent() {
+  Widget _buildPostContent(FeedLayoutPreferences preferences) {
     // Parse mentions from the post content
     final mentions = MentionUtils.parseMentions(widget.post.content);
+    final contentPadding = widget.isGridView ? 8.0 : 16.0;
+    final fontSize = widget.isGridView ? 14.0 : 16.0;
+    final maxLines = widget.isGridView ? 3 : null;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: MentionRichText(
-        text: widget.post.content,
-        mentions: mentions,
+      padding: EdgeInsets.symmetric(horizontal: contentPadding),
+      child: widget.isGridView
+          ? Text(
+              widget.post.content,
+              style: TextStyle(
+                fontSize: fontSize,
+                height: 1.4,
+                color: AppTheme.textColor(context),
+              ),
+              maxLines: maxLines,
+              overflow: TextOverflow.ellipsis,
+            )
+          : MentionRichText(
+              text: widget.post.content,
+              mentions: mentions,
         baseStyle: TextStyle(
-          fontSize: 16,
+          fontSize: fontSize,
           height: 1.4,
           color: AppTheme.textColor(context),
         ),
         mentionStyle: TextStyle(
-          fontSize: 16,
+          fontSize: fontSize,
           height: 1.4,
           color: Theme.of(context).primaryColor,
           fontWeight: FontWeight.w600,
@@ -314,7 +358,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  Widget _buildMediaSection() {
+  Widget _buildMediaSection(FeedLayoutPreferences preferences) {
     final allMedia = [
       ...widget.post.mediaUrls.map(
         (url) => MediaItem(url: url, isVideo: false),
@@ -324,10 +368,12 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
 
     if (allMedia.isEmpty) return const SizedBox.shrink();
 
+    final mediaHeight = widget.isGridView ? 200.0 : 400.0;
+
     return Container(
       margin: EdgeInsets.zero,
       width: double.infinity,
-      height: 400, // Instagram-style fixed height
+      height: mediaHeight,
       child: Stack(
         children: [
           PageView.builder(
@@ -340,47 +386,65 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
             itemCount: allMedia.length,
             itemBuilder: (context, index) {
               final media = allMedia[index];
-              return _buildMediaItem(media, index);
+              return _buildMediaItem(media, index, preferences);
             },
           ),
           // Media indicators
-          if (allMedia.length > 1) _buildMediaIndicators(allMedia.length),
+          if (allMedia.length > 1 && !widget.isGridView) _buildMediaIndicators(allMedia.length),
           // Media counter
-          if (allMedia.length > 1) _buildMediaCounter(allMedia.length),
+          if (allMedia.length > 1 && !widget.isGridView) _buildMediaCounter(allMedia.length),
         ],
       ),
     );
   }
 
-  Widget _buildMediaItem(MediaItem media, int index) {
+  Widget _buildMediaItem(MediaItem media, int index, FeedLayoutPreferences preferences) {
+    final mediaHeight = widget.isGridView ? 200.0 : 400.0;
+    
     if (media.isVideo) {
       // Use enhanced video player for videos
       return EnhancedVideoPlayer(
         videoUrl: media.url,
         width: double.infinity,
-        height: 400,
-        autoPlay: false,
-        showControls: true,
-        showDuration: true,
+        height: mediaHeight,
+        autoPlay: preferences.autoPlayVideos,
+        showControls: !widget.isGridView,
+        showDuration: !widget.isGridView,
         onVideoTap: () {
-          // Handle video tap - could open full screen player
-          _showFullScreenVideo(media.url);
+          if (!widget.isGridView) {
+            _showFullScreenVideo(media.url);
+          }
         },
       );
     }
 
-    return CachedNetworkImage(
-      imageUrl: media.url,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      placeholder: (context, url) => Container(
-        color: AppTheme.cardColor(context),
-        child: const Center(child: LottieLoadingWidget(width: 60, height: 60)),
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[300],
-        child: const Center(
-          child: Icon(Icons.error, size: 48, color: Colors.grey),
+    return GestureDetector(
+      onTap: preferences.autoExpandImages && !widget.isGridView
+          ? () => _showFullScreenImage(media.url)
+          : null,
+      child: CachedNetworkImage(
+        imageUrl: media.url,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: mediaHeight,
+        placeholder: (context, url) => Container(
+          color: AppTheme.cardColor(context),
+          child: Center(
+            child: LottieLoadingWidget(
+              width: widget.isGridView ? 30 : 60,
+              height: widget.isGridView ? 30 : 60,
+            ),
+          ),
+        ),
+        errorWidget: (context, url, error) => Container(
+          color: Colors.grey[300],
+          child: Center(
+            child: Icon(
+              Icons.error,
+              size: widget.isGridView ? 24 : 48,
+              color: Colors.grey,
+            ),
+          ),
         ),
       ),
     );
@@ -432,7 +496,7 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  Widget _buildPostActions() {
+  Widget _buildPostActions(FeedLayoutPreferences preferences) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Consumer(
@@ -541,7 +605,11 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
     );
   }
 
-  Widget _buildPostStats() {
+  Widget _buildPostStats(FeedLayoutPreferences preferences) {
+    if (!preferences.showEngagementCounts) {
+      return const SizedBox.shrink();
+    }
+    
     if (widget.post.totalReactions == 0 && widget.post.commentCount == 0) {
       return const SizedBox.shrink();
     }
@@ -842,6 +910,35 @@ class _SocialPostCardState extends ConsumerState<SocialPostCard> {
       context,
       MaterialPageRoute(
         builder: (context) => FullScreenVideoPlayer(videoUrl: videoUrl),
+      ),
+    );
+  }
+
+  void _showFullScreenImage(String imageUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.contain,
+                placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+                errorWidget: (context, url, error) => const Center(
+                  child: Icon(Icons.error, color: Colors.white, size: 48),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
