@@ -518,12 +518,15 @@ class _RoutineDetailScreenState extends ConsumerState<RoutineDetailScreen> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        tr(context, day.dayName.toLowerCase()),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          tr(context, day.dayName.toLowerCase()),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       if (isToday) ...[

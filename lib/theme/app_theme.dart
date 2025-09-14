@@ -43,7 +43,7 @@ class AppTheme {
   }
 
   static Color surfaceColor(BuildContext context) {
-    return isDarkMode(context) ? Colors.black : Colors.white;
+    return isDarkMode(context) ? const Color(0xFF121212) : Colors.white;
   }
 
   static Color messageBubbleAI(BuildContext context) {
@@ -66,12 +66,16 @@ class AppTheme {
         : AppColors.navigationBackgroundLight;
   }
 
+  static Color backgroundColor(BuildContext context) {
+    return isDarkMode(context) ? const Color(0xFF121212) : Colors.white;
+  }
+
   static Color get primaryColor => AppColors.primary;
 
   static ThemeData get darkTheme {
     return ThemeData.dark().copyWith(
       primaryColor: AppColors.primary,
-      scaffoldBackgroundColor: Colors.black,
+      scaffoldBackgroundColor: const Color(0xFF121212),
       colorScheme: ColorScheme.dark(
         primary: AppColors.primary,
         surface: AppColors.grey,

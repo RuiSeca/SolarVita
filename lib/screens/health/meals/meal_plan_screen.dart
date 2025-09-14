@@ -211,9 +211,9 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                   _buildWeekDaySelector(context),
                   _buildCarousel(context),
                   _buildNutritionSummary(context),
+                  _buildMealsList(context),
                   _buildCalorieBalanceSection(context),
                   _buildExerciseMealInsights(context),
-                  _buildMealsList(context),
                   // Add some bottom padding so content isn't hidden by the coach
                   const SizedBox(height: 120),
                 ],

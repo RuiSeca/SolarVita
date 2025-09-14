@@ -9,6 +9,7 @@ import '../../../models/user/personal_record.dart';
 import '../../exercise_history/log_exercise_screen.dart'; // Import log screen
 import '../../exercise_history/exercise_history_screen.dart';
 import 'models/workout_step.dart';
+import 'single_exercise_workout_screen.dart';
 import 'package:logging/logging.dart';
 import 'package:intl/intl.dart';
 
@@ -206,9 +207,7 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               // Start Workout Button
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    // Handle workout start
-                  },
+                  onPressed: () => _startSingleExerciseWorkout(),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(tr(context, 'start_now')),
                   style: ElevatedButton.styleFrom(
@@ -864,6 +863,26 @@ class _WorkoutDetailScreenState extends State<WorkoutDetailScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  void _startSingleExerciseWorkout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SingleExerciseWorkoutScreen(
+          exerciseTitle: widget.categoryTitle,
+          imagePath: widget.imagePath,
+          duration: widget.duration,
+          difficulty: widget.difficulty,
+          steps: widget.steps,
+          description: widget.description,
+          rating: widget.rating,
+          caloriesBurn: widget.caloriesBurn,
+          routineId: widget.routineId,
+          dayName: widget.dayName,
+        ),
       ),
     );
   }

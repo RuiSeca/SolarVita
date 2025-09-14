@@ -7,8 +7,13 @@ import '../../providers/routine_providers.dart';
 
 class RoutineCreationScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine? template;
+  final String? preselectedCategory;
 
-  const RoutineCreationScreen({super.key, this.template});
+  const RoutineCreationScreen({
+    super.key, 
+    this.template,
+    this.preselectedCategory,
+  });
 
   @override
   ConsumerState<RoutineCreationScreen> createState() =>
@@ -39,6 +44,8 @@ class _RoutineCreationScreenState extends ConsumerState<RoutineCreationScreen> {
       _nameController.text = widget.template!.name;
       _descriptionController.text = widget.template!.description ?? '';
       _selectedCategory = widget.template!.category;
+    } else if (widget.preselectedCategory != null) {
+      _selectedCategory = widget.preselectedCategory;
     }
   }
 

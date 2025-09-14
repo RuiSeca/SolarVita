@@ -126,7 +126,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12),
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppTheme.cardColor(context),
+            color: isSelected ? AppTheme.primaryColor : AppTheme.cardColor(context),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
@@ -216,7 +216,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
               const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: AppTheme.primaryColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: IconButton(
@@ -271,7 +271,7 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
           ElevatedButton(
             onPressed: _sendEmail,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
+              backgroundColor: AppTheme.primaryColor,
               minimumSize: const Size(double.infinity, 50),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -370,10 +370,10 @@ class _HelpSupportScreenState extends State<HelpSupportScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: AppTheme.primaryColor.withAlpha(51),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primary),
+              child: Icon(icon, color: AppTheme.primaryColor),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -470,7 +470,7 @@ class _FAQItemState extends State<_FAQItem> {
           ),
           trailing: Icon(
             _isExpanded ? Icons.remove : Icons.add,
-            color: AppColors.primary,
+            color: AppTheme.primaryColor,
           ),
           onExpansionChanged: (value) => setState(() => _isExpanded = value),
           children: [
@@ -514,12 +514,12 @@ class _ChatMessage extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: AppTheme.primaryColor.withAlpha(51),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 Icons.support_agent,
-                color: AppColors.primary,
+                color: AppTheme.primaryColor,
                 size: 20,
               ),
             ),
@@ -529,7 +529,7 @@ class _ChatMessage extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isBot ? AppTheme.cardColor(context) : AppColors.primary,
+                color: isBot ? AppTheme.cardColor(context) : AppTheme.primaryColor,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(
@@ -547,12 +547,12 @@ class _ChatMessage extends StatelessWidget {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.2),
+                color: AppTheme.primaryColor.withAlpha(51),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 Icons.person,
-                color: AppColors.primary,
+                color: AppTheme.primaryColor,
                 size: 20,
               ),
             ),

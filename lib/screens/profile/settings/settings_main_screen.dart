@@ -12,6 +12,11 @@ import 'preferences/sustainability_goals_screen.dart';
 import 'app/language_screen.dart';
 import 'app/help_support_screen.dart';
 import 'feed/feed_layout_screen.dart';
+import 'data_storage/data_sync_screen.dart';
+import 'data_storage/storage_usage_screen.dart';
+import 'data_storage/cache_management_screen.dart';
+import 'app/about_app_screen.dart';
+import 'app/contact_us_screen.dart';
 import '../../../utils/translation_helper.dart';
 
 class SettingsMainScreen extends ConsumerWidget {
@@ -240,25 +245,28 @@ class SettingsMainScreen extends ConsumerWidget {
         'icon': Icons.sync_rounded,
         'title': tr(context, 'data_sync'),
         'subtitle': tr(context, 'manage_data_synchronization'),
-        'onTap': () {
-          // TODO: Navigate to data sync screen
-        },
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DataSyncScreen()),
+        ),
       },
       {
         'icon': Icons.storage_rounded,
         'title': tr(context, 'storage_usage'),
         'subtitle': tr(context, 'view_app_storage_usage'),
-        'onTap': () {
-          // TODO: Navigate to storage usage screen
-        },
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const StorageUsageScreen()),
+        ),
       },
       {
         'icon': Icons.cleaning_services_rounded,
         'title': tr(context, 'cache_management'),
         'subtitle': tr(context, 'manage_app_cache'),
-        'onTap': () {
-          // TODO: Navigate to cache management screen
-        },
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CacheManagementScreen()),
+        ),
       },
     ];
 
@@ -287,9 +295,10 @@ class SettingsMainScreen extends ConsumerWidget {
         'icon': Icons.info_rounded,
         'title': tr(context, 'about_app'),
         'subtitle': tr(context, 'learn_about_solar_vita'),
-        'onTap': () {
-          // TODO: Navigate to about app screen
-        },
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AboutAppScreen()),
+        ),
       },
       {
         'icon': Icons.help_rounded,
@@ -304,25 +313,10 @@ class SettingsMainScreen extends ConsumerWidget {
         'icon': Icons.contact_support_rounded,
         'title': tr(context, 'contact_us'),
         'subtitle': tr(context, 'get_in_touch_with_us'),
-        'onTap': () {
-          // TODO: Navigate to contact us screen
-        },
-      },
-      {
-        'icon': Icons.description_rounded,
-        'title': tr(context, 'terms_conditions'),
-        'subtitle': tr(context, 'view_terms_conditions'),
-        'onTap': () {
-          // TODO: Navigate to terms & conditions screen
-        },
-      },
-      {
-        'icon': Icons.shield_rounded,
-        'title': tr(context, 'privacy_policy'),
-        'subtitle': tr(context, 'view_privacy_policy'),
-        'onTap': () {
-          // TODO: Navigate to privacy policy screen
-        },
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ContactUsScreen()),
+        ),
       },
     ];
 
@@ -819,4 +813,5 @@ class SettingsMainScreen extends ConsumerWidget {
       ),
     );
   }
+
 }

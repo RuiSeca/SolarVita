@@ -231,31 +231,36 @@ class _WorkoutIntensityHeatmapState extends State<WorkoutIntensityHeatmap> {
     const squareSpacing = 2.0;
     const daysInWeek = 7;
     
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Day labels (Mon, Wed, Fri)
-          Padding(
-            padding: const EdgeInsets.only(left: 20), // Offset for month labels
-            child: Row(
-              children: List.generate(widget.weeksToShow, (weekIndex) {
-                return SizedBox(
-                  width: squareSize + squareSpacing,
-                  child: weekIndex % 4 == 0 // Show every 4th week
-                    ? Text(
-                        _getMonthLabel(dates[weekIndex * 7]),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
-                          fontSize: 9,
-                        ),
-                      )
-                    : null,
-                );
-              }),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Month labels
+        Row(
+          children: [
+            const SizedBox(width: 20), // Offset for day labels
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: List.generate(widget.weeksToShow, (weekIndex) {
+                    return SizedBox(
+                      width: squareSize + squareSpacing,
+                      child: weekIndex % 4 == 0 // Show every 4th week
+                        ? Text(
+                            _getMonthLabel(dates[weekIndex * 7]),
+                            style: TextStyle(
+                              color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                              fontSize: 9,
+                            ),
+                          )
+                        : null,
+                    );
+                  }),
+                ),
+              ),
             ),
-          ),
+          ],
+        ),
           const SizedBox(height: 4),
           
           // Main heatmap grid
@@ -281,11 +286,14 @@ class _WorkoutIntensityHeatmapState extends State<WorkoutIntensityHeatmap> {
               ),
               const SizedBox(width: 4),
               
-              // Heatmap squares
-              Column(
-                children: List.generate(daysInWeek, (dayOfWeek) {
-                  return Row(
-                    children: List.generate(widget.weeksToShow, (week) {
+              // Heatmap squares with constrained width
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Column(
+                    children: List.generate(daysInWeek, (dayOfWeek) {
+                      return Row(
+                        children: List.generate(widget.weeksToShow, (week) {
                       final dateIndex = week * daysInWeek + dayOfWeek;
                       if (dateIndex >= dates.length) {
                         return SizedBox(
@@ -315,13 +323,14 @@ class _WorkoutIntensityHeatmapState extends State<WorkoutIntensityHeatmap> {
                       );
                     }),
                   );
-                }),
+                    }),
+                  ),
+                ),
               ),
             ],
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildStatsSummary() {

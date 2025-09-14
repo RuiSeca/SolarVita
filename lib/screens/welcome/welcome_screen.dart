@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import '../login/login_screen.dart';
+import '../onboarding/onboarding_experience.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../../widgets/splash/compact_video_logo.dart';
@@ -39,6 +40,16 @@ class WelcomeScreenState extends State<WelcomeScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingExperience()),
+        ),
+        icon: const Icon(Icons.auto_awesome),
+        label: const Text('Get Started'),
+        backgroundColor: const Color(0xFF10B981),
+        foregroundColor: Colors.white,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,

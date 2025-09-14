@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../models/user/user_profile.dart';
 import '../../services/database/user_profile_service.dart';
 import '../../services/auth/auth_service.dart';
@@ -59,40 +61,76 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       await silentRefreshSupporterCount();
     });
 
-    // Listen to auth state changes
-    final authState = ref.watch(authStateChangesProvider);
+    // Listen to auth state changes and await the result
+    final authState = await ref.watch(authStateChangesProvider.future);
 
-    return authState.when(
-      data: (user) async {
-        if (user != null) {
-          // Clear cache for new user sessions
-          ref.read(userProfileServiceProvider).clearCache();
-          return await _loadUserProfile();
-        } else {
-          // Clear cache when user logs out
-          ref.read(userProfileServiceProvider).clearCache();
-          return null;
-        }
-      },
-      loading: () => null,
-      error: (error, stackTrace) {
-        return null;
-      },
-    );
+    if (authState != null) {
+      // Clear cache for new user sessions
+      ref.read(userProfileServiceProvider).clearCache();
+      return await _loadUserProfile();
+    } else {
+      // Clear cache when user logs out
+      ref.read(userProfileServiceProvider).clearCache();
+      return null;
+    }
   }
 
   Future<UserProfile?> _loadUserProfile({bool forceRefresh = false}) async {
     try {
+      debugPrint('🔄 Loading user profile...');
       final userProfileService = ref.read(userProfileServiceProvider);
+
+      // Add timeout to prevent hanging
       final newProfile = await userProfileService.getOrCreateUserProfile(
         forceRefresh: forceRefresh,
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('⏰ User profile loading timed out - creating default profile');
+          throw TimeoutException('Profile loading timed out', const Duration(seconds: 10));
+        },
       );
 
+      debugPrint('✅ User profile loaded successfully');
+
       // Sync public profile data for new/existing profiles to ensure chat data is current
-      await _syncPublicProfileData(newProfile);
+      try {
+        await _syncPublicProfileData(newProfile);
+      } catch (e) {
+        debugPrint('⚠️ Failed to sync public profile data: $e');
+        // Continue anyway - this isn't critical
+      }
 
       return newProfile;
     } catch (e) {
+      debugPrint('❌ Failed to load user profile: $e');
+
+      // For timeout or other errors, try to create a minimal default profile
+      if (e is TimeoutException) {
+        try {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            debugPrint('🔧 Creating fallback minimal profile...');
+            final fallbackProfile = UserProfile(
+              uid: user.uid,
+              email: user.email ?? '',
+              displayName: user.displayName ?? 'User',
+              photoURL: user.photoURL,
+              isOnboardingComplete: false,
+              createdAt: DateTime.now(),
+              lastUpdated: DateTime.now(),
+              workoutPreferences: WorkoutPreferences(),
+              sustainabilityPreferences: SustainabilityPreferences(),
+              diaryPreferences: DiaryPreferences(),
+              dietaryPreferences: DietaryPreferences(),
+            );
+            return fallbackProfile;
+          }
+        } catch (fallbackError) {
+          debugPrint('❌ Fallback profile creation failed: $fallbackError');
+        }
+      }
+
       throw Exception('Failed to load user profile: $e');
     }
   }
@@ -277,6 +315,19 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     } catch (e) {
       rethrow;
     }
+  }
+
+  Future<void> completeOnboarding() async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    // Create updated profile with onboarding marked as complete
+    final updatedProfile = currentProfile.copyWith(
+      isOnboardingComplete: true,
+      lastUpdated: DateTime.now(),
+    );
+
+    await updateUserProfile(updatedProfile);
   }
 }
 

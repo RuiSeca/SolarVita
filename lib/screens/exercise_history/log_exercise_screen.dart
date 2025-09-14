@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/exercise/exercise_log.dart';
 import '../../models/user/personal_record.dart';
+import '../../models/templates/workout_template.dart';
 import '../../services/exercises/exercise_tracking_service.dart';
 import '../../services/exercises/exercise_routine_sync_service.dart';
 import '../../theme/app_theme.dart';
@@ -21,6 +22,7 @@ class LogExerciseScreen extends ConsumerStatefulWidget {
   final ExerciseLog? existingLog; // Optional - if editing an existing log
   final String? routineId; // For routine linking
   final String? dayName; // For routine linking
+  final WorkoutTemplate? workoutTemplate; // For template-based workouts
 
   const LogExerciseScreen({
     super.key,
@@ -29,6 +31,7 @@ class LogExerciseScreen extends ConsumerStatefulWidget {
     this.existingLog,
     this.routineId,
     this.dayName,
+    this.workoutTemplate,
   });
 
   @override
@@ -72,6 +75,9 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
       _selectedTime = TimeOfDay.fromDateTime(widget.existingLog!.date);
       _sets = List.from(widget.existingLog!.sets);
       _notesController = TextEditingController(text: widget.existingLog!.notes);
+    } else if (widget.workoutTemplate != null) {
+      // Starting from a workout template
+      _initializeFromTemplate();
     } else {
       // Creating a new log
       _exerciseId = widget.exerciseId ?? '';
@@ -90,6 +96,43 @@ class _LogExerciseScreenState extends ConsumerState<LogExerciseScreen> {
     // Load auto-fill data if we have an exercise ID
     if (_exerciseId.isNotEmpty) {
       _loadAutoFillData();
+    }
+  }
+
+  void _initializeFromTemplate() {
+    final template = widget.workoutTemplate!;
+    
+    // Use the first exercise from the template as the starting point
+    if (template.exercises.isNotEmpty) {
+      final firstExercise = template.exercises.first;
+      
+      _exerciseId = firstExercise.id;
+      _exerciseNameController = TextEditingController(text: firstExercise.name);
+      _selectedDate = DateTime.now();
+      _selectedTime = TimeOfDay.now();
+      
+      // Convert template sets to exercise sets
+      _sets = firstExercise.sets.map((templateSet) {
+        return ExerciseSet(
+          setNumber: templateSet.setNumber,
+          weight: templateSet.targetWeight ?? 0.0,
+          reps: templateSet.targetReps ?? templateSet.minReps ?? 0,
+          distance: templateSet.targetDistance,
+          duration: templateSet.targetDuration != null 
+            ? Duration(seconds: templateSet.targetDuration!)
+            : null,
+        );
+      }).toList();
+      
+      _notesController = TextEditingController(text: firstExercise.notes ?? '');
+    } else {
+      // Fallback if template has no exercises
+      _exerciseId = '';
+      _exerciseNameController = TextEditingController(text: template.name);
+      _selectedDate = DateTime.now();
+      _selectedTime = TimeOfDay.now();
+      _sets = [ExerciseSet(setNumber: 1, weight: 0, reps: 0)];
+      _notesController = TextEditingController();
     }
   }
 

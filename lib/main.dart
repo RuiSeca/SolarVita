@@ -20,8 +20,10 @@ import 'services/translation/firebase_translation_service.dart';
 import 'services/database/story_service.dart';
 
 // Import your existing screens
-import 'screens/welcome/welcome_screen.dart';
+import 'screens/login/login_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
+import 'screens/onboarding/onboarding_experience.dart';
+import 'screens/onboarding/services/onboarding_audio_service.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/search/search_screen.dart';
 import 'screens/health/health_screen.dart';
@@ -78,10 +80,15 @@ void main() async {
   try {
     // Initialize Firebase using our comprehensive initialization service
     await FirebaseInitializationService.initialize();
-    
-    // Sign in user anonymously for avatar system access
-    final user = await FirebaseInitializationService.signInAnonymously();
-    debugPrint('Firebase user initialized: ${user?.uid}');
+
+    // Try to sign in user anonymously for avatar system access (optional)
+    try {
+      final user = await FirebaseInitializationService.signInAnonymously();
+      debugPrint('Firebase user initialized: ${user?.uid}');
+    } catch (e) {
+      debugPrint('Anonymous sign-in failed (continuing without it): $e');
+      // Continue without anonymous auth - regular auth will work fine
+    }
 
     // Register background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -202,17 +209,52 @@ void main() async {
   // Google Maps service removed - no longer needed
 }
 
-class SolarVitaApp extends ConsumerWidget {
+class SolarVitaApp extends ConsumerStatefulWidget {
   const SolarVitaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SolarVitaApp> createState() => _SolarVitaAppState();
+}
+
+class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+      // Stop audio when app is backgrounded or closed
+      try {
+        final audioService = OnboardingAudioService();
+        audioService.fadeOutAmbient();
+        debugPrint('🎵 App backgrounded/closed - audio stopped');
+      } catch (e) {
+        debugPrint('🔇 Error stopping audio on app lifecycle change: $e');
+      }
+    }
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
     // Watch the initialization state
     final initState = ref.watch(initializationNotifierProvider);
     final showSplash = ref.watch(splashNotifierProvider);
     
     // Always show video splash immediately, regardless of initialization status
     if (showSplash || initState.status == InitializationStatus.initializing) {
+      debugPrint('🎬 Showing splash screen - showSplash: $showSplash, initStatus: ${initState.status}');
       return MaterialApp(
         title: 'SolarVita',
         debugShowCheckedModeBanner: false,
@@ -220,9 +262,13 @@ class SolarVitaApp extends ConsumerWidget {
         darkTheme: AppTheme.darkTheme,
         home: VideoSplashScreen(
           onVideoEnd: () {
+            debugPrint('🎬 Video ended - initStatus: ${initState.status}');
             // Only allow transition if initialization is complete
             if (initState.status == InitializationStatus.completed) {
+              debugPrint('🎬 Completing splash screen');
               ref.read(splashNotifierProvider.notifier).completeSplash();
+            } else {
+              debugPrint('🎬 Waiting for initialization to complete...');
             }
           },
           duration: const Duration(seconds: 4), // Extended to ensure smooth init
@@ -230,12 +276,16 @@ class SolarVitaApp extends ConsumerWidget {
       );
     }
 
+    debugPrint('🎬 Splash complete, building main app');
+
     // Only show the full app once splash is complete
     final themeMode = ref.watch(themeNotifierProvider);
     final localeAsync = ref.watch(languageNotifierProvider);
     final supportedLanguages = ref.watch(supportedLanguagesProvider);
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
     final authState = ref.watch(auth.authStateChangesProvider);
+
+    debugPrint('🏠 Provider states - auth: ${authState.toString()}, profile: ${userProfileAsync.toString()}');
 
     return localeAsync.when(
       data: (locale) {
@@ -270,7 +320,7 @@ class SolarVitaApp extends ConsumerWidget {
         ),
       ),
       error: (error, stack) => MaterialApp(
-        title: 'SolarVita', 
+        title: 'SolarVita',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
@@ -287,52 +337,86 @@ class SolarVitaApp extends ConsumerWidget {
     AsyncValue<User?> authState,
     AsyncValue<UserProfile?> userProfileAsync,
   ) {
+    debugPrint('🏠 Building home screen...');
     return authState.when(
       data: (user) {
+        debugPrint('🏠 Auth data: user = ${user?.email ?? 'null'}');
         if (user == null) {
-          return const WelcomeScreen();
+          debugPrint('🏠 → Showing LoginScreen (no user)');
+          return const LoginScreen();
         }
 
+        debugPrint('🏠 UserProfile async state: ${userProfileAsync.toString()}');
         return userProfileAsync.when(
           data: (userProfile) {
+            debugPrint('🏠 Profile data: ${userProfile?.email ?? 'null'}, onboardingComplete: ${userProfile?.isOnboardingComplete}');
             if (userProfile == null) {
+              debugPrint('🏠 → Showing loading (null profile)');
               return const Scaffold(
                 body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
               );
             }
 
             if (!userProfile.isOnboardingComplete) {
-              return const OnboardingScreen();
+              debugPrint('🏠 → Showing OnboardingExperience (incomplete onboarding)');
+              return const OnboardingExperience();
             }
 
+            debugPrint('🏠 → Showing MainNavigationScreen (onboarding complete)');
             return const MainNavigationScreen();
           },
-          loading: () => const Scaffold(
-            body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
-          ),
-          error: (error, stack) => Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('Error loading profile: $error'),
-                  ElevatedButton(
-                    onPressed: () {
-                      ref.invalidate(userProfileNotifierProvider);
-                    },
-                    child: const Text('Retry'),
-                  ),
-                ],
+          loading: () {
+            debugPrint('🏠 → Showing loading (profile loading)');
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const LottieLoadingWidget(width: 80, height: 80),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () {
+                        debugPrint('🏠 Manual refresh requested');
+                        ref.invalidate(userProfileNotifierProvider);
+                      },
+                      child: const Text('Retry Loading Profile'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
+          error: (error, stack) {
+            debugPrint('🏠 → Showing error screen: $error');
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Error loading profile: $error'),
+                    ElevatedButton(
+                      onPressed: () {
+                        ref.invalidate(userProfileNotifierProvider);
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
         );
       },
-      loading: () => const Scaffold(
-        body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
-      ),
-      error: (error, stack) =>
-          Scaffold(body: Center(child: Text('Authentication error: $error'))),
+      loading: () {
+        debugPrint('🏠 → Showing loading (auth loading)');
+        return const Scaffold(
+          body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
+        );
+      },
+      error: (error, stack) {
+        debugPrint('🏠 → Showing auth error: $error');
+        return Scaffold(body: Center(child: Text('Authentication error: $error')));
+      },
     );
   }
 }

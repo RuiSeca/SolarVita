@@ -46,10 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
     }
 
-    if (success && mounted) {
-      // Close login screen and let the main app routing handle navigation
-      Navigator.of(context).pop();
-    } else {
+    if (!success && mounted) {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,10 +63,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authNotifier = ref.read(authNotifierProvider.notifier);
     final success = await authNotifier.signInWithGoogle();
 
-    if (success && mounted) {
-      // Close login screen and let the main app routing handle navigation
-      Navigator.of(context).pop();
-    } else {
+    if (!success && mounted) {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -86,10 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authNotifier = ref.read(authNotifierProvider.notifier);
     final success = await authNotifier.signInWithApple();
 
-    if (success && mounted) {
-      // Close login screen and let the main app routing handle navigation
-      Navigator.of(context).pop();
-    } else {
+    if (!success && mounted) {
       final errorMessage = ref.read(authNotifierProvider).errorMessage;
       if (errorMessage != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

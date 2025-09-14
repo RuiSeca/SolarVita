@@ -13,6 +13,7 @@ import '../../services/exercises/exercise_tracking_service.dart';
 import '../../providers/riverpod/interactive_coach_provider.dart';
 import '../../widgets/interactive_quantum_coach.dart';
 import 'exercise_selection_screen.dart';
+import 'routine_workout_screen.dart';
 
 class DayWorkoutScreen extends ConsumerStatefulWidget {
   final WorkoutRoutine routine;
@@ -157,11 +158,16 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                 ),
               ],
             ),
-      floatingActionButton: !_currentDay.isRestDay
-          ? FloatingActionButton(
-              onPressed: () => _addExercise(),
+      floatingActionButton: !_currentDay.isRestDay && _currentDay.exercises.isNotEmpty
+          ? FloatingActionButton.extended(
+              onPressed: () => _startDayWorkout(),
               backgroundColor: AppTheme.primaryColor,
-              child: const Icon(Icons.add, color: Colors.white),
+              icon: const Icon(Icons.play_arrow, color: Colors.white),
+              label: Text(
+                tr(context, 'start_workout'),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              heroTag: "start_workout",
             )
           : null,
     );
@@ -818,6 +824,9 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
                         ],
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    // Template-style guidance
+                    _buildExerciseGuidance(exercise),
                   ],
                 ),
               ),
@@ -1591,6 +1600,173 @@ class _DayWorkoutScreenState extends ConsumerState<DayWorkoutScreen> {
           textAlign: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  Widget _buildExerciseGuidance(WorkoutItem exercise) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.primaryColor.withAlpha(13),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppTheme.primaryColor.withAlpha(26),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Exercise description/instructions
+          if (exercise.description.isNotEmpty) ...[
+            Text(
+              exercise.description,
+              style: TextStyle(
+                color: AppTheme.textColor(context).withAlpha(204),
+                fontSize: 13,
+                height: 1.3,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+          ],
+          
+          // Guidance row with sets/reps, rest time, equipment
+          Row(
+            children: [
+              // Recommended sets/reps
+              Expanded(
+                flex: 2,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.repeat,
+                      color: AppTheme.primaryColor,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getRecommendedSetsReps(exercise),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Rest time
+              Expanded(
+                flex: 1,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.timer_outlined,
+                      color: Colors.orange,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _getRestTime(exercise),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withAlpha(179),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Equipment
+              if (exercise.equipment.isNotEmpty)
+                Expanded(
+                  flex: 1,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _getEquipmentIcon(exercise.equipment.first),
+                        color: Colors.blue,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          exercise.equipment.first,
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withAlpha(179),
+                            fontSize: 12,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getRecommendedSetsReps(WorkoutItem exercise) {
+    // Generate template-style set/rep recommendations based on exercise type
+    final difficulty = exercise.difficulty.toLowerCase();
+    final title = exercise.title.toLowerCase();
+    
+    if (title.contains('cardio') || title.contains('run') || title.contains('bike')) {
+      return '20-30 min';
+    } else if (title.contains('plank') || title.contains('hold')) {
+      return '3 x 30-60s';
+    } else if (difficulty == 'beginner') {
+      return '2-3 x 8-12';
+    } else if (difficulty == 'intermediate') {
+      return '3-4 x 8-12';
+    } else if (difficulty == 'advanced') {
+      return '4-5 x 6-10';
+    }
+    return '3 x 8-12'; // Default
+  }
+
+  String _getRestTime(WorkoutItem exercise) {
+    final title = exercise.title.toLowerCase();
+    final difficulty = exercise.difficulty.toLowerCase();
+    
+    if (title.contains('cardio') || title.contains('hiit')) {
+      return '30s';
+    } else if (title.contains('deadlift') || title.contains('squat') || title.contains('bench')) {
+      return '3-5 min'; // Compound movements need more rest
+    } else if (difficulty == 'advanced') {
+      return '2-3 min';
+    }
+    return '90s'; // Default for most exercises
+  }
+
+  IconData _getEquipmentIcon(String equipment) {
+    final eq = equipment.toLowerCase();
+    if (eq.contains('dumbbell')) return Icons.fitness_center;
+    if (eq.contains('barbell')) return Icons.fitness_center;
+    if (eq.contains('machine')) return Icons.precision_manufacturing;
+    if (eq.contains('body weight') || eq.contains('bodyweight')) return Icons.accessibility_new;
+    if (eq.contains('resistance') || eq.contains('band')) return Icons.linear_scale;
+    if (eq.contains('kettlebell')) return Icons.fitness_center;
+    if (eq.contains('cable')) return Icons.cable;
+    return Icons.fitness_center; // Default
+  }
+
+  void _startDayWorkout() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RoutineWorkoutScreen(
+          routine: _currentRoutine,
+          dayWorkout: _currentDay,
+          weeklyProgress: _weeklyProgress,
+        ),
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import '../../providers/routine_providers.dart';
 import '../../widgets/common/lottie_loading_widget.dart';
 import 'routine_detail_screen.dart';
 import 'routine_creation_screen.dart';
+import 'routine_category_selection_screen.dart';
 
 class RoutineMainScreen extends ConsumerStatefulWidget {
   const RoutineMainScreen({super.key});
@@ -505,7 +506,7 @@ class _RoutineMainScreenState extends ConsumerState<RoutineMainScreen> {
     if (mounted) {
       final result = await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const RoutineCreationScreen()),
+        MaterialPageRoute(builder: (context) => const RoutineCategorySelectionScreen()),
       );
 
       if (result == true) {
