@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/glowing_text_field.dart';
 import '../components/glowing_button.dart';
 import '../components/floating_glowing_icon.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
 import 'activity_level_screen.dart';
+import '../../../services/database/user_profile_service.dart';
 
 class IdentitySetupScreen extends StatefulWidget {
   final UserProfile userProfile;
@@ -25,6 +25,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _heightController = TextEditingController();
   final TextEditingController _weightController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
@@ -39,6 +40,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
 
   bool get _isFormValid =>
       _nameController.text.isNotEmpty &&
+      _usernameController.text.isNotEmpty &&
       _heightController.text.isNotEmpty &&
       _weightController.text.isNotEmpty &&
       _ageController.text.isNotEmpty &&
@@ -52,14 +54,43 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
     _audioService.playChime(ChimeType.selection);
   }
 
-  void _continue() {
+  void _continue() async {
     _audioService.playChime(ChimeType.progression);
 
+    // Validate username availability
+    final username = _usernameController.text.trim();
+    if (username.isNotEmpty) {
+      try {
+        final userProfileService = UserProfileService();
+        final isAvailable = await userProfileService.isUsernameAvailable(username);
+
+        if (!isAvailable && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Username is already taken. Please choose another one.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint('Error checking username availability: $e');
+        // Continue anyway - check during final save
+      }
+    }
+
+    // Create updated profile with the user's name and username
+    final updatedProfile = widget.userProfile.copyWith(
+      name: _nameController.text.trim(),
+      username: username,
+    );
+
     // Navigate to activity level screen instead of completing
-    Navigator.of(context).pushReplacement(
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            ActivityLevelScreen(userProfile: widget.userProfile),
+            ActivityLevelScreen(userProfile: updatedProfile),
         transitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
@@ -81,6 +112,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
         },
       ),
     );
+    }
   }
 
   @override
@@ -96,20 +128,14 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
             ),
           ),
           
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 5, totalSteps: 10),
-          ),
           
           SafeArea(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   const Text(
                     "Complete Your Profile",
@@ -140,6 +166,12 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                     label: "Display Name",
                     hint: "What should we call you?",
                     controller: _nameController,
+                  ),
+
+                  GlowingTextField(
+                    label: "Username",
+                    hint: "Choose a unique username",
+                    controller: _usernameController,
                   ),
 
                   // Physical Stats Row
@@ -185,20 +217,16 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                   ),
                   const SizedBox(height: 16),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: _genderOptions.map((option) {
                       final isSelected = _selectedGender == option.value;
-                      return Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: FloatingGlowingIcon(
-                            icon: option.icon,
-                            label: option.label,
-                            description: "",
-                            isSelected: isSelected,
-                            color: const Color(0xFF10B981),
-                            onTap: () => _onGenderSelected(option.value),
-                          ),
-                        ),
+                      return FloatingGlowingIcon(
+                        icon: option.icon,
+                        label: option.label,
+                        description: "",
+                        isSelected: isSelected,
+                        color: const Color(0xFF10B981),
+                        onTap: () => _onGenderSelected(option.value),
                       );
                     }).toList(),
                   ),
@@ -226,6 +254,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _heightController.dispose();
     _weightController.dispose();
     _ageController.dispose();

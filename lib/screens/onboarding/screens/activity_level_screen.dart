@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
@@ -139,20 +138,13 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
             ),
           ),
 
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 6, totalSteps: 10),
-          ),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   // Title
                   AnimatedBuilder(
@@ -162,9 +154,11 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "What's Your Activity Level?",
-                            style: TextStyle(
+                          child: Text(
+                            widget.userProfile.name.isNotEmpty
+                              ? "Nice to meet you, ${widget.userProfile.name}!"
+                              : "What's Your Activity Level?",
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -187,9 +181,11 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Help us tailor your fitness experience",
-                            style: TextStyle(
+                          child: Text(
+                            widget.userProfile.name.isNotEmpty
+                              ? "What's your current activity level?"
+                              : "Help us tailor your fitness experience",
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,

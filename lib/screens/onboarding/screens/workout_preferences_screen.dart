@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
@@ -158,20 +157,13 @@ class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen>
             ),
           ),
 
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 7, totalSteps: 10),
-          ),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   // Title
                   AnimatedBuilder(
@@ -225,7 +217,7 @@ class _WorkoutPreferencesScreenState extends State<WorkoutPreferencesScreen>
                   // Workout Type Grid
                   Expanded(
                     child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.2,

@@ -86,6 +86,7 @@ class IntentOption {
 
 class UserProfile {
   final String name;
+  final String? username;
   final String? preferredName;
   final String? pronouns;
   final String email;
@@ -98,9 +99,24 @@ class UserProfile {
   final Set<EcoHabit> currentEcoHabits;
   final Set<DietaryPreference> dietaryPreferences;
   final TimeOfDay? preferredWorkoutTime;
+  final String? preferredWorkoutTimeString;
+
+  // New dietary fields
+  final String? dietType;
+  final List<String> restrictions;
+  final List<String> allergies;
+  final String? breakfastTime;
+  final String? lunchTime;
+  final String? dinnerTime;
+  final String? snackTime;
+  final int? dailyCalorieGoal;
+  final int? proteinPercentage;
+  final int? carbsPercentage;
+  final int? fatPercentage;
 
   UserProfile({
     required this.name,
+    this.username,
     this.preferredName,
     this.pronouns,
     required this.email,
@@ -113,10 +129,23 @@ class UserProfile {
     this.currentEcoHabits = const {},
     this.dietaryPreferences = const {},
     this.preferredWorkoutTime,
+    this.preferredWorkoutTimeString,
+    this.dietType,
+    this.restrictions = const [],
+    this.allergies = const [],
+    this.breakfastTime,
+    this.lunchTime,
+    this.dinnerTime,
+    this.snackTime,
+    this.dailyCalorieGoal,
+    this.proteinPercentage,
+    this.carbsPercentage,
+    this.fatPercentage,
   });
 
   UserProfile copyWith({
     String? name,
+    String? username,
     String? preferredName,
     String? pronouns,
     String? email,
@@ -129,9 +158,22 @@ class UserProfile {
     Set<EcoHabit>? currentEcoHabits,
     Set<DietaryPreference>? dietaryPreferences,
     TimeOfDay? preferredWorkoutTime,
+    String? preferredWorkoutTimeString,
+    String? dietType,
+    List<String>? restrictions,
+    List<String>? allergies,
+    String? breakfastTime,
+    String? lunchTime,
+    String? dinnerTime,
+    String? snackTime,
+    int? dailyCalorieGoal,
+    int? proteinPercentage,
+    int? carbsPercentage,
+    int? fatPercentage,
   }) {
     return UserProfile(
       name: name ?? this.name,
+      username: username ?? this.username,
       preferredName: preferredName ?? this.preferredName,
       pronouns: pronouns ?? this.pronouns,
       email: email ?? this.email,
@@ -144,6 +186,18 @@ class UserProfile {
       currentEcoHabits: currentEcoHabits ?? this.currentEcoHabits,
       dietaryPreferences: dietaryPreferences ?? this.dietaryPreferences,
       preferredWorkoutTime: preferredWorkoutTime ?? this.preferredWorkoutTime,
+      preferredWorkoutTimeString: preferredWorkoutTimeString ?? this.preferredWorkoutTimeString,
+      dietType: dietType ?? this.dietType,
+      restrictions: restrictions ?? this.restrictions,
+      allergies: allergies ?? this.allergies,
+      breakfastTime: breakfastTime ?? this.breakfastTime,
+      lunchTime: lunchTime ?? this.lunchTime,
+      dinnerTime: dinnerTime ?? this.dinnerTime,
+      snackTime: snackTime ?? this.snackTime,
+      dailyCalorieGoal: dailyCalorieGoal ?? this.dailyCalorieGoal,
+      proteinPercentage: proteinPercentage ?? this.proteinPercentage,
+      carbsPercentage: carbsPercentage ?? this.carbsPercentage,
+      fatPercentage: fatPercentage ?? this.fatPercentage,
     );
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
@@ -9,10 +8,12 @@ import 'onboarding_completion_screen.dart';
 
 class WorkoutScheduleScreen extends StatefulWidget {
   final UserProfile userProfile;
+  final Map<String, dynamic>? additionalData;
 
   const WorkoutScheduleScreen({
     super.key,
     required this.userProfile,
+    this.additionalData,
   });
 
   @override
@@ -123,10 +124,24 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
   void _continue() {
     _audioService.playChime(ChimeType.commitment);
 
+    // Create updated profile with selected workout days
+    final updatedProfile = widget.userProfile.copyWith(
+      // availableWorkoutDays: _selectedDays.toList(), // Will add this field to model
+    );
+
+    // Combine additional data with selected workout days
+    final finalAdditionalData = {
+      ...(widget.additionalData ?? {}),
+      'selectedWorkoutDays': _selectedDays.toList(),
+    };
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            OnboardingCompletionScreen(userProfile: widget.userProfile),
+            OnboardingCompletionScreen(
+              userProfile: updatedProfile,
+              additionalData: finalAdditionalData,
+            ),
         transitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
@@ -163,20 +178,13 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
             ),
           ),
 
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 10, totalSteps: 10),
-          ),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   // Title
                   AnimatedBuilder(

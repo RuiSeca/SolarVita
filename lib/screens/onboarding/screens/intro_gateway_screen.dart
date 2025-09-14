@@ -112,7 +112,7 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
             ),
           ),
           content: const Text(
-            'Are you sure you want to return to the login screen? Your onboarding progress will be lost.',
+            'Are you sure you want to return to the welcome screen? Your onboarding progress will be lost.',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 16,
@@ -130,17 +130,9 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
               ),
             ),
             TextButton(
-              onPressed: () async {
-                final navigator = Navigator.of(context);
-                // Stop and dispose audio when exiting
-                await _audioService.fadeOutAmbient();
-                await _audioService.dispose();
-                if (mounted) {
-                  navigator.pop(true);
-                }
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               child: const Text(
-                'Exit to Login',
+                'Exit to Welcome',
                 style: TextStyle(
                   color: Colors.white60,
                   fontWeight: FontWeight.w600,
@@ -162,11 +154,12 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
           final navigator = Navigator.of(context);
           final bool shouldExit = await _onWillPop();
           if (shouldExit && mounted) {
-            // User chose to exit - navigate to login
-            navigator.pushNamedAndRemoveUntil(
-              '/login',
-              (route) => false,
-            );
+            // User chose to exit - dispose audio and go back to welcome screen
+            await _audioService.fadeOutAmbient();
+            await _audioService.dispose();
+            if (mounted) {
+              navigator.pop();
+            }
           }
         }
       },

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/audio_reactive_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
 import '../models/onboarding_models.dart';
@@ -176,13 +175,6 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
             ),
           ),
           
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 4, totalSteps: 7),
-          ),
           
           // Content
           SafeArea(

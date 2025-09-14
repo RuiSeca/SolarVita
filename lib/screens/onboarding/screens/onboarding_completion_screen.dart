@@ -6,13 +6,16 @@ import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
+import 'outro_screen.dart';
 
 class OnboardingCompletionScreen extends ConsumerStatefulWidget {
   final UserProfile userProfile;
+  final Map<String, dynamic>? additionalData;
 
   const OnboardingCompletionScreen({
     super.key,
     required this.userProfile,
+    this.additionalData,
   });
 
   @override
@@ -112,20 +115,40 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
     _audioService.playChime(ChimeType.commitment);
     HapticFeedback.heavyImpact();
 
-    // Mark onboarding as completed in the user profile
-    final userProfileNotifier = ref.read(userProfileNotifierProvider.notifier);
-    await userProfileNotifier.completeOnboarding();
-
-    // Stop and dispose audio before leaving onboarding
-    await _audioService.fadeOutAmbient();
-    await _audioService.dispose();
-
-    // Navigate to main app - remove all onboarding routes
-    if (mounted) {
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-        (route) => false,
+    try {
+      // Create comprehensive profile with all additional data
+      final additionalData = widget.additionalData ?? {};
+      final comprehensiveProfile = widget.userProfile.copyWith(
+        // Add any final fields from additional data if needed
       );
+
+      // Transfer all onboarding data to main UserProfile and complete onboarding
+      final userProfileNotifier = ref.read(userProfileNotifierProvider.notifier);
+      await userProfileNotifier.completeOnboardingWithData(comprehensiveProfile, additionalData);
+
+      // Stop and dispose audio before leaving onboarding
+      await _audioService.fadeOutAmbient();
+      await _audioService.dispose();
+
+      // Navigate to outro screen for beautiful transition
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const OutroScreen(),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error completing onboarding: $e');
+      // For onboarding completion, we'll still navigate even if there's an error
+      // The user can fix profile issues later in settings
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const OutroScreen(),
+          ),
+        );
+      }
     }
   }
 

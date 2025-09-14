@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
-import 'workout_timing_screen.dart';
+import 'diet_type_screen.dart';
 
 class FitnessGoalsScreen extends StatefulWidget {
   final UserProfile userProfile;
@@ -127,7 +126,7 @@ class _FitnessGoalsScreenState extends State<FitnessGoalsScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            WorkoutTimingScreen(userProfile: widget.userProfile),
+            DietTypeScreen(userProfile: widget.userProfile),
         transitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
@@ -164,20 +163,13 @@ class _FitnessGoalsScreenState extends State<FitnessGoalsScreen>
             ),
           ),
 
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 8, totalSteps: 10),
-          ),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   // Title
                   AnimatedBuilder(
@@ -231,7 +223,7 @@ class _FitnessGoalsScreenState extends State<FitnessGoalsScreen>
                   // Goals Grid
                   Expanded(
                     child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.1,

@@ -329,6 +329,103 @@ class UserProfileNotifier extends _$UserProfileNotifier {
 
     await updateUserProfile(updatedProfile);
   }
+
+  Future<void> completeOnboardingWithData(dynamic onboardingUserProfile, [Map<String, dynamic>? additionalData]) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    // Get food preferences from additional data
+    final foodPrefs = additionalData?['foodPreferences'] as Map<String, dynamic>? ?? {};
+
+    // Create comprehensive dietary preferences from onboarding data
+    final dietaryPreferences = DietaryPreferences(
+      dietType: onboardingUserProfile.dietType ?? 'omnivore',
+      restrictions: onboardingUserProfile.restrictions ?? [],
+      allergies: onboardingUserProfile.allergies ?? [],
+      breakfastTime: onboardingUserProfile.breakfastTime ?? '08:00',
+      lunchTime: onboardingUserProfile.lunchTime ?? '12:30',
+      dinnerTime: onboardingUserProfile.dinnerTime ?? '19:00',
+      snackTime: onboardingUserProfile.snackTime ?? '15:30',
+      enableSnacks: onboardingUserProfile.snackTime != null,
+      dailyCalorieGoal: onboardingUserProfile.dailyCalorieGoal ?? 2000,
+      proteinPercentage: onboardingUserProfile.proteinPercentage ?? 20,
+      carbsPercentage: onboardingUserProfile.carbsPercentage ?? 50,
+      fatPercentage: onboardingUserProfile.fatPercentage ?? 30,
+      mealsPerDay: onboardingUserProfile.snackTime != null ? 4 : 3,
+      // Use food preferences from the additional data
+      preferOrganic: foodPrefs['preferOrganic'] ?? true,
+      preferLocal: foodPrefs['preferLocal'] ?? true,
+      preferSeasonal: foodPrefs['preferSeasonal'] ?? true,
+      sustainableSeafood: foodPrefs['sustainableSeafood'] ?? true,
+      reduceMeatConsumption: foodPrefs['reduceMeatConsumption'] ??
+                            (onboardingUserProfile.dietType == 'vegetarian' || onboardingUserProfile.dietType == 'vegan'),
+      intermittentFasting: foodPrefs['intermittentFasting'] ?? false,
+    );
+
+    // Get selected workout days from additional data
+    final selectedWorkoutDays = additionalData?['selectedWorkoutDays'] as List<dynamic>? ?? [];
+    final workoutDaysMap = {
+      'monday': selectedWorkoutDays.contains('monday'),
+      'tuesday': selectedWorkoutDays.contains('tuesday'),
+      'wednesday': selectedWorkoutDays.contains('wednesday'),
+      'thursday': selectedWorkoutDays.contains('thursday'),
+      'friday': selectedWorkoutDays.contains('friday'),
+      'saturday': selectedWorkoutDays.contains('saturday'),
+      'sunday': selectedWorkoutDays.contains('sunday'),
+    };
+
+    // Create comprehensive workout preferences from onboarding data
+    final workoutPreferences = WorkoutPreferences(
+      fitnessLevel: onboardingUserProfile.fitnessLevel?.toString().split('.').last ?? 'beginner',
+      preferredWorkoutTypes: [], // Will be set from workout preferences screen
+      fitnessGoals: [], // Will be set from fitness goals screen
+      preferredTime: onboardingUserProfile.preferredWorkoutTimeString ?? additionalData?['preferredWorkoutTime'] ?? 'morning',
+      sessionDurationMinutes: 30, // Default
+      workoutFrequencyPerWeek: selectedWorkoutDays.isNotEmpty ? selectedWorkoutDays.length : 3, // Use selected days count
+      availableDays: workoutDaysMap,
+    );
+
+    // Create sustainability preferences with defaults
+    final sustainabilityPreferences = SustainabilityPreferences(
+      carbonFootprintTarget: 'moderate',
+      preferredTransportMode: 'walking',
+      receiveEcoTips: true,
+      ecoTipFrequency: 3,
+      trackEnergyUsage: true,
+      trackTransportation: true,
+      trackWasteReduction: true,
+      trackWaterUsage: true,
+      sustainabilityGoals: [],
+      ecoFriendlyActivities: [],
+      interestedCategories: [],
+    );
+
+    // Create diary preferences with defaults
+    final diaryPreferences = DiaryPreferences(
+      defaultTemplate: 'daily_summary',
+      enableDailyReminders: true,
+      reminderTime: '20:00',
+      enableGoalTracking: true,
+      enableMoodTracking: true,
+      enableProgressPhotos: false,
+      privateByDefault: true,
+      trackingCategories: ['workout', 'nutrition', 'mood', 'sustainability'],
+    );
+
+    // Transfer all onboarding data to main UserProfile
+    final updatedProfile = currentProfile.copyWith(
+      displayName: onboardingUserProfile.name ?? currentProfile.displayName,
+      username: onboardingUserProfile.username ?? currentProfile.username,
+      workoutPreferences: workoutPreferences,
+      sustainabilityPreferences: sustainabilityPreferences,
+      diaryPreferences: diaryPreferences,
+      dietaryPreferences: dietaryPreferences,
+      isOnboardingComplete: true,
+      lastUpdated: DateTime.now(),
+    );
+
+    await updateUserProfile(updatedProfile);
+  }
 }
 
 // Combined profile data provider - simple function-based approach

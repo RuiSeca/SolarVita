@@ -73,7 +73,7 @@ class _GlowingTextFieldState extends State<GlowingTextField>
         return Transform.translate(
           offset: Offset(0, -2 * _glowAnimation.value), // Slight lift effect
           child: Container(
-            margin: const EdgeInsets.symmetric(vertical: 12),
+            margin: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
               boxShadow: [
@@ -141,8 +141,8 @@ class _GlowingTextFieldState extends State<GlowingTextField>
                         fontSize: 16,
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 18,
+                        horizontal: 24,
+                        vertical: 20,
                       ),
                     ),
                   ),

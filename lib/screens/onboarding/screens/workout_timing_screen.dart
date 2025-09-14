@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../components/animated_waves.dart';
-import '../components/progress_constellation.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
@@ -10,10 +9,12 @@ import 'workout_schedule_screen.dart';
 
 class WorkoutTimingScreen extends StatefulWidget {
   final UserProfile userProfile;
+  final Map<String, dynamic>? additionalData;
 
   const WorkoutTimingScreen({
     super.key,
     required this.userProfile,
+    this.additionalData,
   });
 
   @override
@@ -120,10 +121,24 @@ class _WorkoutTimingScreenState extends State<WorkoutTimingScreen>
   void _continue() {
     _audioService.playChime(ChimeType.progression);
 
+    // Create updated profile with workout timing
+    final updatedProfile = widget.userProfile.copyWith(
+      preferredWorkoutTimeString: _selectedTime,
+    );
+
+    // Combine additional data with workout timing
+    final combinedAdditionalData = {
+      ...(widget.additionalData ?? {}),
+      'preferredWorkoutTime': _selectedTime,
+    };
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            WorkoutScheduleScreen(userProfile: widget.userProfile),
+            WorkoutScheduleScreen(
+              userProfile: updatedProfile,
+              additionalData: combinedAdditionalData,
+            ),
         transitionDuration: const Duration(milliseconds: 800),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           return FadeTransition(
@@ -160,20 +175,13 @@ class _WorkoutTimingScreenState extends State<WorkoutTimingScreen>
             ),
           ),
 
-          // Progress Constellation
-          const Positioned(
-            top: 60,
-            left: 0,
-            right: 0,
-            child: ProgressConstellation(currentStep: 9, totalSteps: 10),
-          ),
 
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 60),
 
                   // Title
                   AnimatedBuilder(
@@ -227,7 +235,7 @@ class _WorkoutTimingScreenState extends State<WorkoutTimingScreen>
                   // Time Options Grid
                   Expanded(
                     child: GridView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics: const BouncingScrollPhysics(),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.0,

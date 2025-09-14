@@ -21,7 +21,6 @@ import 'services/database/story_service.dart';
 
 // Import your existing screens
 import 'screens/login/login_screen.dart';
-import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/onboarding/onboarding_experience.dart';
 import 'screens/onboarding/services/onboarding_audio_service.dart';
 import 'screens/dashboard/dashboard_screen.dart';
@@ -367,23 +366,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
           },
           loading: () {
             debugPrint('🏠 → Showing loading (profile loading)');
-            return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const LottieLoadingWidget(width: 80, height: 80),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        debugPrint('🏠 Manual refresh requested');
-                        ref.invalidate(userProfileNotifierProvider);
-                      },
-                      child: const Text('Retry Loading Profile'),
-                    ),
-                  ],
-                ),
-              ),
+            return const Scaffold(
+              body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
             );
           },
           error: (error, stack) {

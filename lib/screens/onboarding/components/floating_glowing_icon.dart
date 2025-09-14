@@ -128,8 +128,8 @@ class _FloatingGlowingIconState extends State<FloatingGlowingIcon>
           return Transform.scale(
             scale: currentScale,
             child: Container(
-              width: 120,
-              height: 120,
+              width: 90,
+              height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 boxShadow: [
@@ -161,7 +161,7 @@ class _FloatingGlowingIconState extends State<FloatingGlowingIcon>
                         // Icon at ~60% of circle area
                         Icon(
                           widget.icon,
-                          size: 36, // ~60% of 120px circle
+                          size: 28, // ~60% of 90px circle
                           color: Colors.white,
                         ),
                         const SizedBox(height: 8),
