@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../../utils/translation_helper.dart';
 
 class OutroScreen extends StatefulWidget {
   const OutroScreen({super.key});
@@ -108,9 +109,9 @@ class _OutroScreenState extends State<OutroScreen> {
                               width: 1,
                             ),
                           ),
-                          child: const Text(
-                            'Skip',
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'skip_button'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w300,

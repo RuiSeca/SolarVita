@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
+import '../../utils/translation_helper.dart';
 
 class VideoSplashScreen extends StatefulWidget {
   final VoidCallback? onVideoEnd;
@@ -141,9 +142,9 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
                   color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(
+                child: Text(
+                  tr(context, 'skip_button'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,

@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'meal_timing_screen.dart';
 
-class DietTypeScreen extends StatefulWidget {
+class DietTypeScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const DietTypeScreen({
@@ -16,10 +19,10 @@ class DietTypeScreen extends StatefulWidget {
   });
 
   @override
-  State<DietTypeScreen> createState() => _DietTypeScreenState();
+  ConsumerState<DietTypeScreen> createState() => _DietTypeScreenState();
 }
 
-class _DietTypeScreenState extends State<DietTypeScreen>
+class _DietTypeScreenState extends OnboardingBaseScreenState<DietTypeScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -32,67 +35,67 @@ class _DietTypeScreenState extends State<DietTypeScreen>
   final Set<String> _selectedRestrictions = {};
   final Set<String> _selectedAllergies = {};
 
-  final List<DietTypeOption> _dietOptions = [
+  List<DietTypeOption> get _dietOptions => [
     DietTypeOption(
       value: 'omnivore',
       icon: Icons.restaurant,
-      label: 'Omnivore',
-      description: 'I eat everything',
+      label: tr(context, 'diet_omnivore_label'),
+      description: tr(context, 'diet_omnivore_description'),
       color: Color(0xFF10B981),
     ),
     DietTypeOption(
       value: 'vegetarian',
       icon: Icons.eco,
-      label: 'Vegetarian',
-      description: 'No meat or fish',
+      label: tr(context, 'diet_vegetarian_label'),
+      description: tr(context, 'diet_vegetarian_description'),
       color: Color(0xFF8B5CF6),
     ),
     DietTypeOption(
       value: 'vegan',
       icon: Icons.spa,
-      label: 'Vegan',
-      description: 'Plant-based only',
+      label: tr(context, 'diet_vegan_label'),
+      description: tr(context, 'diet_vegan_description'),
       color: Color(0xFF06B6D4),
     ),
     DietTypeOption(
       value: 'pescatarian',
       icon: Icons.set_meal,
-      label: 'Pescatarian',
-      description: 'Fish but no meat',
+      label: tr(context, 'diet_pescatarian_label'),
+      description: tr(context, 'diet_pescatarian_description'),
       color: Color(0xFF3B82F6),
     ),
     DietTypeOption(
       value: 'keto',
       icon: Icons.local_fire_department,
-      label: 'Keto',
-      description: 'Low carb, high fat',
+      label: tr(context, 'diet_keto_label'),
+      description: tr(context, 'diet_keto_description'),
       color: Color(0xFFEF4444),
     ),
     DietTypeOption(
       value: 'paleo',
       icon: Icons.nature,
-      label: 'Paleo',
-      description: 'Whole foods only',
+      label: tr(context, 'diet_paleo_label'),
+      description: tr(context, 'diet_paleo_description'),
       color: Color(0xFFF59E0B),
     ),
   ];
 
-  final List<RestrictionOption> _restrictionOptions = [
-    RestrictionOption('gluten_free', 'Gluten-Free', Icons.grain),
-    RestrictionOption('dairy_free', 'Dairy-Free', Icons.no_drinks),
-    RestrictionOption('sugar_free', 'Sugar-Free', Icons.block),
-    RestrictionOption('low_sodium', 'Low Sodium', Icons.opacity),
-    RestrictionOption('halal', 'Halal', Icons.verified),
-    RestrictionOption('kosher', 'Kosher', Icons.star),
+  List<RestrictionOption> get _restrictionOptions => [
+    RestrictionOption('gluten_free', tr(context, 'restriction_gluten_free_label'), Icons.grain),
+    RestrictionOption('dairy_free', tr(context, 'restriction_dairy_free_label'), Icons.no_drinks),
+    RestrictionOption('sugar_free', tr(context, 'restriction_sugar_free_label'), Icons.block),
+    RestrictionOption('low_sodium', tr(context, 'restriction_low_sodium_label'), Icons.opacity),
+    RestrictionOption('halal', tr(context, 'restriction_halal_label'), Icons.verified),
+    RestrictionOption('kosher', tr(context, 'restriction_kosher_label'), Icons.star),
   ];
 
-  final List<AllergyOption> _allergyOptions = [
-    AllergyOption('nuts', 'Nuts', Icons.eco_rounded),
-    AllergyOption('shellfish', 'Shellfish', Icons.set_meal),
-    AllergyOption('eggs', 'Eggs', Icons.egg),
-    AllergyOption('soy', 'Soy', Icons.grass),
-    AllergyOption('fish', 'Fish', Icons.phishing),
-    AllergyOption('sesame', 'Sesame', Icons.circle),
+  List<AllergyOption> get _allergyOptions => [
+    AllergyOption('nuts', tr(context, 'allergy_nuts_label'), Icons.eco_rounded),
+    AllergyOption('shellfish', tr(context, 'allergy_shellfish_label'), Icons.set_meal),
+    AllergyOption('eggs', tr(context, 'allergy_eggs_label'), Icons.egg),
+    AllergyOption('soy', tr(context, 'allergy_soy_label'), Icons.grass),
+    AllergyOption('fish', tr(context, 'allergy_fish_label'), Icons.phishing),
+    AllergyOption('sesame', tr(context, 'allergy_sesame_label'), Icons.circle),
   ];
 
   @override
@@ -199,7 +202,7 @@ class _DietTypeScreenState extends State<DietTypeScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -228,9 +231,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "What's Your Diet Style?",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'diet_type_title'),
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -253,9 +256,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Choose your dietary approach",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'diet_type_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -298,9 +301,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                   const SizedBox(height: 50),
 
                   // Dietary Restrictions Section
-                  const Text(
-                    "Dietary Restrictions",
-                    style: TextStyle(
+                  Text(
+                    tr(context, 'dietary_restrictions_title'),
+                    style: const TextStyle(
                       fontSize: 20,
                       color: Colors.white,
                       fontWeight: FontWeight.w400,
@@ -308,9 +311,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Select any that apply (optional)",
-                    style: TextStyle(
+                  Text(
+                    tr(context, 'dietary_restrictions_subtitle'),
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.white60,
                       fontWeight: FontWeight.w300,
@@ -338,9 +341,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                   const SizedBox(height: 40),
 
                   // Allergies Section
-                  const Text(
-                    "Food Allergies",
-                    style: TextStyle(
+                  Text(
+                    tr(context, 'food_allergies_title'),
+                    style: const TextStyle(
                       fontSize: 20,
                       color: Colors.white,
                       fontWeight: FontWeight.w400,
@@ -348,9 +351,9 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Help us keep you safe (optional)",
-                    style: TextStyle(
+                  Text(
+                    tr(context, 'food_allergies_subtitle'),
+                    style: const TextStyle(
                       fontSize: 14,
                       color: Colors.white60,
                       fontWeight: FontWeight.w300,
@@ -382,7 +385,7 @@ class _DietTypeScreenState extends State<DietTypeScreen>
                     opacity: _selectedDietType.isNotEmpty ? 1.0 : 0.3,
                     duration: const Duration(milliseconds: 300),
                     child: GlowingButton(
-                      text: "Continue",
+                      text: tr(context, 'continue_button'),
                       onPressed: _selectedDietType.isNotEmpty ? _continue : null,
                       glowIntensity: _selectedDietType.isNotEmpty ? 1.0 : 0.3,
                       width: double.infinity,

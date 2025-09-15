@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_text_field.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'food_preferences_screen.dart';
 
-class NutritionGoalsScreen extends StatefulWidget {
+class NutritionGoalsScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const NutritionGoalsScreen({
@@ -16,10 +19,10 @@ class NutritionGoalsScreen extends StatefulWidget {
   });
 
   @override
-  State<NutritionGoalsScreen> createState() => _NutritionGoalsScreenState();
+  ConsumerState<NutritionGoalsScreen> createState() => _NutritionGoalsScreenState();
 }
 
-class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
+class _NutritionGoalsScreenState extends OnboardingBaseScreenState<NutritionGoalsScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -138,7 +141,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -167,9 +170,9 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "Nutrition Goals",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'nutrition_goals_title'),
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -192,9 +195,9 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Set your daily targets",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'nutrition_goals_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -210,8 +213,8 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
 
                   // Daily Calorie Goal
                   GlowingTextField(
-                    label: "Daily Calorie Goal",
-                    hint: "2000",
+                    label: tr(context, 'daily_calorie_goal_label'),
+                    hint: tr(context, 'daily_calorie_goal_hint'),
                     controller: _calorieController,
                     keyboardType: TextInputType.number,
                   ),
@@ -219,9 +222,9 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
                   const SizedBox(height: 40),
 
                   // Macro Distribution
-                  const Text(
-                    "Macro Distribution",
-                    style: TextStyle(
+                  Text(
+                    tr(context, 'macro_distribution_label'),
+                    style: const TextStyle(
                       fontSize: 20,
                       color: Colors.white,
                       fontWeight: FontWeight.w400,
@@ -233,7 +236,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
 
                   // Protein Slider
                   _buildMacroSlider(
-                    "Protein",
+                    tr(context, 'protein_label'),
                     _proteinPercentage,
                     const Color(0xFF3B82F6),
                     Icons.fitness_center,
@@ -242,7 +245,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
 
                   // Carbs Slider
                   _buildMacroSlider(
-                    "Carbs",
+                    tr(context, 'carbs_label'),
                     _carbsPercentage,
                     const Color(0xFF10B981),
                     Icons.eco,
@@ -251,7 +254,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
 
                   // Fat Slider
                   _buildMacroSlider(
-                    "Fat",
+                    tr(context, 'fat_label'),
                     _fatPercentage,
                     const Color(0xFFF59E0B),
                     Icons.opacity,
@@ -262,7 +265,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
 
                   // Continue Button
                   GlowingButton(
-                    text: "Continue",
+                    text: tr(context, 'continue_button'),
                     onPressed: _continue,
                     glowIntensity: 1.0,
                     width: double.infinity,
@@ -290,13 +293,18 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
       padding: const EdgeInsets.only(bottom: 30),
       child: Container(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: const Color(0x14FFFFFF),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: const Color(0x1AFFFFFF),
-            width: 1,
+        decoration: const BoxDecoration(
+          color: Color(0x14FFFFFF),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20), // Slick top corner cut
+            topRight: Radius.circular(4),  // Sharp top right
+            bottomLeft: Radius.circular(14),
+            bottomRight: Radius.circular(14),
           ),
+          border: Border.fromBorderSide(BorderSide(
+            color: Color(0x1AFFFFFF),
+            width: 1,
+          )),
         ),
         child: Column(
           children: [
@@ -342,7 +350,7 @@ class _NutritionGoalsScreenState extends State<NutritionGoalsScreen>
                 trackHeight: 4,
               ),
               child: Slider(
-                value: value.toDouble(),
+                value: value.toDouble().clamp(10.0, 60.0),
                 min: 10,
                 max: 60,
                 divisions: 50,

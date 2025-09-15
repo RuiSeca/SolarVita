@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
+import '../../../utils/translation_helper.dart';
 import 'intro_gateway_screen.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -72,10 +72,8 @@ class _SplashScreenState extends State<SplashScreen>
           _createCeremonialTransition(const IntroGatewayScreen()),
         );
       } else {
-        // Returning user - go to login
-        Navigator.of(context).pushReplacement(
-          _createCeremonialTransition(const LoginScreen()),
-        );
+        // Returning user - go to main app (which will handle login)
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
       }
     }
   }
@@ -184,7 +182,7 @@ class _SplashScreenState extends State<SplashScreen>
                   Opacity(
                     opacity: _glowAnimation.value,
                     child: Text(
-                      'Your sustainable fitness companion',
+                      tr(context, 'app_tagline'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w400,

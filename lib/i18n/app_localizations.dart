@@ -45,6 +45,7 @@ class AppLocalizations {
     'customization',
     'pulse',
     'story_highlights',
+    'onboarding',
   ];
 
   AppLocalizations(this.locale);

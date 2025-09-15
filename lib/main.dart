@@ -305,6 +305,22 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          localeResolutionCallback: (systemLocale, supportedLocales) {
+            // If system locale is supported, use it
+            if (systemLocale != null) {
+              final languageCode = systemLocale.languageCode;
+              for (final supportedLocale in supportedLocales) {
+                if (supportedLocale.languageCode == languageCode) {
+                  debugPrint('🌍 Locale resolution: Using $languageCode (system locale match)');
+                  return supportedLocale;
+                }
+              }
+            }
+
+            // Fallback to English
+            debugPrint('🌍 Locale resolution: Falling back to English');
+            return const Locale('en');
+          },
           home: _buildHomeScreen(ref, authState, userProfileAsync),
         );
       },

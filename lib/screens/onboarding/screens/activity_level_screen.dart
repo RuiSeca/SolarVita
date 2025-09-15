@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'workout_preferences_screen.dart';
 
-class ActivityLevelScreen extends StatefulWidget {
+class ActivityLevelScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const ActivityLevelScreen({
@@ -16,10 +19,10 @@ class ActivityLevelScreen extends StatefulWidget {
   });
 
   @override
-  State<ActivityLevelScreen> createState() => _ActivityLevelScreenState();
+  ConsumerState<ActivityLevelScreen> createState() => _ActivityLevelScreenState();
 }
 
-class _ActivityLevelScreenState extends State<ActivityLevelScreen>
+class _ActivityLevelScreenState extends OnboardingBaseScreenState<ActivityLevelScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -29,27 +32,27 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
 
   String _selectedActivityLevel = '';
 
-  final List<ActivityOption> _activityOptions = const [
+  List<ActivityOption> get _activityOptions => [
     ActivityOption(
       value: 'beginner',
       icon: Icons.directions_walk,
-      label: 'Beginner',
-      description: 'Just starting out\n1-2 times per week',
-      color: Color(0xFF3B82F6),
+      label: tr(context, 'activity_beginner_label'),
+      description: tr(context, 'activity_beginner_description'),
+      color: const Color(0xFF3B82F6),
     ),
     ActivityOption(
       value: 'intermediate',
       icon: Icons.directions_run,
-      label: 'Intermediate',
-      description: 'Some experience\n3-4 times per week',
-      color: Color(0xFF10B981),
+      label: tr(context, 'activity_intermediate_label'),
+      description: tr(context, 'activity_intermediate_description'),
+      color: const Color(0xFF10B981),
     ),
     ActivityOption(
       value: 'advanced',
       icon: Icons.fitness_center,
-      label: 'Advanced',
-      description: 'Very experienced\n5+ times per week',
-      color: Color(0xFFF59E0B),
+      label: tr(context, 'activity_advanced_label'),
+      description: tr(context, 'activity_advanced_description'),
+      color: const Color(0xFFF59E0B),
     ),
   ];
 
@@ -126,7 +129,7 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -156,8 +159,8 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                           opacity: _headingAnimation.value,
                           child: Text(
                             widget.userProfile.name.isNotEmpty
-                              ? "Nice to meet you, ${widget.userProfile.name}!"
-                              : "What's Your Activity Level?",
+                              ? trWithParams(context, 'activity_greeting_with_name', {'name': widget.userProfile.name})
+                              : tr(context, 'activity_level_title'),
                             style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
@@ -183,8 +186,8 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                           opacity: _subheadingAnimation.value,
                           child: Text(
                             widget.userProfile.name.isNotEmpty
-                              ? "What's your current activity level?"
-                              : "Help us tailor your fitness experience",
+                              ? tr(context, 'activity_level_subtitle_with_name')
+                              : tr(context, 'activity_level_subtitle'),
                             style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
@@ -200,27 +203,28 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                   const SizedBox(height: 80),
 
                   // Activity Level Options
-                  Expanded(
-                    child: Column(
-                      children: _activityOptions.map((option) {
-                        final isSelected = _selectedActivityLevel == option.value;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 100,
-                            child: FloatingGlowingIcon(
-                              icon: option.icon,
-                              label: option.label,
-                              description: option.description,
-                              isSelected: isSelected,
-                              color: option.color,
-                              onTap: () => _onActivityLevelSelected(option.value),
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 1,
+                      childAspectRatio: 3.5,
+                      mainAxisSpacing: 16,
                     ),
+                    itemCount: _activityOptions.length,
+                    itemBuilder: (context, index) {
+                      final option = _activityOptions[index];
+                      final isSelected = _selectedActivityLevel == option.value;
+
+                      return FloatingGlowingIcon(
+                        icon: option.icon,
+                        label: option.label,
+                        description: option.description,
+                        isSelected: isSelected,
+                        color: option.color,
+                        onTap: () => _onActivityLevelSelected(option.value),
+                      );
+                    },
                   ),
 
                   // Continue Button
@@ -228,7 +232,7 @@ class _ActivityLevelScreenState extends State<ActivityLevelScreen>
                     opacity: _selectedActivityLevel.isNotEmpty ? 1.0 : 0.3,
                     duration: const Duration(milliseconds: 300),
                     child: GlowingButton(
-                      text: "Continue",
+                      text: tr(context, 'continue_button'),
                       onPressed: _selectedActivityLevel.isNotEmpty ? _continue : null,
                       glowIntensity: _selectedActivityLevel.isNotEmpty ? 1.0 : 0.3,
                       width: double.infinity,

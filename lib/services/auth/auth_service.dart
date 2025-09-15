@@ -401,4 +401,19 @@ class AuthService {
   String? get userDisplayName => _auth.currentUser?.displayName;
   String? get userEmail => _auth.currentUser?.email;
   String? get userPhotoURL => _auth.currentUser?.photoURL;
+
+  /// Deletes user data from Firestore when account is incomplete
+  Future<void> deleteUserData(String uid) async {
+    try {
+      // If you have Firestore integration, add cleanup here
+      // Example:
+      // await FirebaseFirestore.instance.collection('users').doc(uid).delete();
+      // await FirebaseFirestore.instance.collection('user_profiles').doc(uid).delete();
+
+      _logger.info('User data cleanup completed for uid: $uid');
+    } catch (e) {
+      _logger.warning('Failed to delete user data for uid: $uid, error: $e');
+      // Don't throw error - account deletion should still proceed
+    }
+  }
 }

@@ -3,6 +3,7 @@ import '../components/audio_reactive_waves.dart';
 import '../components/progress_constellation.dart';
 import '../services/onboarding_audio_service.dart';
 import '../components/animated_waves.dart';
+import '../../../utils/translation_helper.dart';
 import 'intro_call_to_action_screen.dart';
 import 'intro_gateway_screen.dart';
 
@@ -154,7 +155,7 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
               right: 0,
               child: ProgressConstellation(
                 currentStep: 2,
-                totalSteps: 7,
+                totalSteps: 3,
               ),
             ),
             
@@ -207,8 +208,8 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
                           offset: Offset(0, 50 * (1 - _headingAnimation.value)),
                           child: Opacity(
                             opacity: _headingAnimation.value,
-                            child: const Text(
-                              'Connect with the World Around You',
+                            child: Text(
+                              tr(context, 'intro_connect_title'),
                               style: TextStyle(
                                 fontSize: 38,
                                 fontWeight: FontWeight.w200,
@@ -233,8 +234,8 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
                           offset: Offset(0, 30 * (1 - _subheadingAnimation.value)),
                           child: Opacity(
                             opacity: _subheadingAnimation.value,
-                            child: const Text(
-                              'Experience serenity through form and color.',
+                            child: Text(
+                              tr(context, 'intro_connection_subtitle'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w300,
@@ -276,8 +277,8 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
                                 size: 16,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Back',
+                              Text(
+                                tr(context, 'back_button'),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
@@ -291,8 +292,8 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
                           padding: const EdgeInsets.only(right: 40),
                           child: Row(
                             children: [
-                              const Text(
-                                'Continue',
+                              Text(
+                                tr(context, 'continue_button'),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,

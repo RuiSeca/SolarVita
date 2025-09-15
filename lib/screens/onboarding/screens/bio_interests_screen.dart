@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_text_field.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'workout_timing_screen.dart';
 
-class BioInterestsScreen extends StatefulWidget {
+class BioInterestsScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
   final Map<String, bool>? foodPreferences;
 
@@ -18,10 +21,10 @@ class BioInterestsScreen extends StatefulWidget {
   });
 
   @override
-  State<BioInterestsScreen> createState() => _BioInterestsScreenState();
+  ConsumerState<BioInterestsScreen> createState() => _BioInterestsScreenState();
 }
 
-class _BioInterestsScreenState extends State<BioInterestsScreen>
+class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -32,23 +35,23 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
   final TextEditingController _bioController = TextEditingController();
   final Set<String> _selectedInterests = {};
 
-  final List<InterestOption> _interestOptions = [
-    InterestOption('fitness', 'Fitness', Icons.fitness_center, Color(0xFF3B82F6)),
-    InterestOption('nutrition', 'Nutrition', Icons.restaurant, Color(0xFF10B981)),
-    InterestOption('sustainability', 'Sustainability', Icons.eco, Color(0xFF8B5CF6)),
-    InterestOption('mindfulness', 'Mindfulness', Icons.self_improvement, Color(0xFF06B6D4)),
-    InterestOption('outdoor_activities', 'Outdoor Activities', Icons.terrain, Color(0xFFF59E0B)),
-    InterestOption('cooking', 'Cooking', Icons.kitchen, Color(0xFFEC4899)),
-    InterestOption('technology', 'Technology', Icons.computer, Color(0xFF6366F1)),
-    InterestOption('travel', 'Travel', Icons.flight, Color(0xFFEF4444)),
-    InterestOption('music', 'Music', Icons.music_note, Color(0xFF14B8A6)),
-    InterestOption('reading', 'Reading', Icons.book, Color(0xFFA855F7)),
-    InterestOption('photography', 'Photography', Icons.camera_alt, Color(0xFFE11D48)),
-    InterestOption('art', 'Art', Icons.palette, Color(0xFFDC2626)),
-    InterestOption('gaming', 'Gaming', Icons.sports_esports, Color(0xFF7C3AED)),
-    InterestOption('movies', 'Movies', Icons.movie, Color(0xFF059669)),
-    InterestOption('sports', 'Sports', Icons.sports_soccer, Color(0xFFEA580C)),
-    InterestOption('meditation', 'Meditation', Icons.spa, Color(0xFF0891B2)),
+  List<InterestOption> get _interestOptions => [
+    InterestOption('fitness', tr(context, 'interest_fitness_label'), Icons.fitness_center, Color(0xFF3B82F6)),
+    InterestOption('nutrition', tr(context, 'interest_nutrition_label'), Icons.restaurant, Color(0xFF10B981)),
+    InterestOption('sustainability', tr(context, 'interest_sustainability_label'), Icons.eco, Color(0xFF8B5CF6)),
+    InterestOption('mindfulness', tr(context, 'interest_mindfulness_label'), Icons.self_improvement, Color(0xFF06B6D4)),
+    InterestOption('outdoor_activities', tr(context, 'interest_outdoor_activities_label'), Icons.terrain, Color(0xFFF59E0B)),
+    InterestOption('cooking', tr(context, 'interest_cooking_label'), Icons.kitchen, Color(0xFFEC4899)),
+    InterestOption('technology', tr(context, 'interest_technology_label'), Icons.computer, Color(0xFF6366F1)),
+    InterestOption('travel', tr(context, 'interest_travel_label'), Icons.flight, Color(0xFFEF4444)),
+    InterestOption('music', tr(context, 'interest_music_label'), Icons.music_note, Color(0xFF14B8A6)),
+    InterestOption('reading', tr(context, 'interest_reading_label'), Icons.book, Color(0xFFA855F7)),
+    InterestOption('photography', tr(context, 'interest_photography_label'), Icons.camera_alt, Color(0xFFE11D48)),
+    InterestOption('art', tr(context, 'interest_art_label'), Icons.palette, Color(0xFFDC2626)),
+    InterestOption('gaming', tr(context, 'interest_gaming_label'), Icons.sports_esports, Color(0xFF7C3AED)),
+    InterestOption('movies', tr(context, 'interest_movies_label'), Icons.movie, Color(0xFF059669)),
+    InterestOption('sports', tr(context, 'interest_sports_label'), Icons.sports_soccer, Color(0xFFEA580C)),
+    InterestOption('meditation', tr(context, 'interest_meditation_label'), Icons.spa, Color(0xFF0891B2)),
   ];
 
   @override
@@ -146,7 +149,7 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -175,9 +178,9 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "Tell Us About Yourself",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'bio_interests_title'),
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -200,9 +203,9 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Help others connect with you",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'bio_interests_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -217,11 +220,11 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                   const SizedBox(height: 60),
 
                   // Bio Section
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Bio (Optional)",
-                      style: TextStyle(
+                      tr(context, 'bio_section_title'),
+                      style: const TextStyle(
                         fontSize: 18,
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -229,11 +232,11 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Write a short description about yourself",
-                      style: TextStyle(
+                      tr(context, 'bio_section_description'),
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white60,
                         fontWeight: FontWeight.w300,
@@ -243,8 +246,8 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                   const SizedBox(height: 16),
 
                   GlowingTextField(
-                    label: "About me",
-                    hint: "I'm passionate about health, sustainability, and living my best life! 🌱",
+                    label: tr(context, 'bio_field_label'),
+                    hint: tr(context, 'bio_field_hint'),
                     controller: _bioController,
                     maxLines: 3,
                   ),
@@ -254,9 +257,9 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                   // Interests Section
                   Row(
                     children: [
-                      const Text(
-                        "Interests",
-                        style: TextStyle(
+                      Text(
+                        tr(context, 'interests_section_title'),
+                        style: const TextStyle(
                           fontSize: 18,
                           color: Colors.white,
                           fontWeight: FontWeight.w500,
@@ -281,11 +284,11 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Align(
+                  Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      "Select up to 8 things you're interested in",
-                      style: TextStyle(
+                      tr(context, 'interests_section_description'),
+                      style: const TextStyle(
                         fontSize: 14,
                         color: Colors.white60,
                         fontWeight: FontWeight.w300,
@@ -360,7 +363,7 @@ class _BioInterestsScreenState extends State<BioInterestsScreen>
 
                   // Continue Button
                   GlowingButton(
-                    text: "Continue",
+                    text: tr(context, 'continue_button'),
                     onPressed: _continue,
                     glowIntensity: 1.0,
                     width: double.infinity,

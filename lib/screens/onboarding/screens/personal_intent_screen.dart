@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/audio_reactive_waves.dart';
 import '../components/floating_glowing_icon.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../models/onboarding_models.dart';
 import '../services/onboarding_audio_service.dart';
 import '../components/animated_waves.dart';
+import '../../../utils/translation_helper.dart';
 import 'identity_setup_screen.dart';
 
-class PersonalIntentScreen extends StatefulWidget {
+class PersonalIntentScreen extends OnboardingBaseScreen {
   const PersonalIntentScreen({super.key});
 
   @override
-  State<PersonalIntentScreen> createState() => _PersonalIntentScreenState();
+  ConsumerState<PersonalIntentScreen> createState() => _PersonalIntentScreenState();
 }
 
-class _PersonalIntentScreenState extends State<PersonalIntentScreen>
+class _PersonalIntentScreenState extends OnboardingBaseScreenState<PersonalIntentScreen>
     with TickerProviderStateMixin {
   late AnimationController _waveController;
   late AnimationController _textController;
@@ -25,47 +28,47 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
   
   final OnboardingAudioService _audioService = OnboardingAudioService();
   
-  final List<IntentOption> intentOptions = [
+  List<IntentOption> get intentOptions => [
     IntentOption(
       type: IntentType.eco,
       icon: Icons.eco,
-      label: "Eco-Living",
-      description: "Sustainable practices",
+      label: tr(context, 'intent_eco_label'),
+      description: tr(context, 'intent_eco_description'),
       wavePersonality: WavePersonality.eco,
     ),
     IntentOption(
       type: IntentType.fitness,
       icon: Icons.fitness_center,
-      label: "Fitness",
-      description: "Physical wellness",
+      label: tr(context, 'intent_fitness_label'),
+      description: tr(context, 'intent_fitness_description'),
       wavePersonality: WavePersonality.fitness,
     ),
     IntentOption(
       type: IntentType.nutrition,
       icon: Icons.restaurant,
-      label: "Nutrition",
-      description: "Mindful eating",
+      label: tr(context, 'intent_nutrition_label'),
+      description: tr(context, 'intent_nutrition_description'),
       wavePersonality: WavePersonality.wellness,
     ),
     IntentOption(
       type: IntentType.community,
       icon: Icons.people,
-      label: "Community",
-      description: "Connect & share",
+      label: tr(context, 'intent_community_label'),
+      description: tr(context, 'intent_community_description'),
       wavePersonality: WavePersonality.community,
     ),
     IntentOption(
       type: IntentType.mindfulness,
       icon: Icons.self_improvement,
-      label: "Mindfulness",
-      description: "Mental wellness",
+      label: tr(context, 'intent_mindfulness_label'),
+      description: tr(context, 'intent_mindfulness_description'),
       wavePersonality: WavePersonality.mindfulness,
     ),
     IntentOption(
       type: IntentType.adventure,
       icon: Icons.terrain,
-      label: "Adventure",
-      description: "Outdoor exploration",
+      label: tr(context, 'intent_adventure_label'),
+      description: tr(context, 'intent_adventure_description'),
       wavePersonality: WavePersonality.adventure,
     ),
   ];
@@ -162,7 +165,7 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -178,11 +181,12 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
           
           // Content
           SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 60),
                   
                   // Title
                   AnimatedBuilder(
@@ -192,8 +196,8 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
                         offset: Offset(0, 30 * (1 - _textController.value)),
                         child: Opacity(
                           opacity: _textController.value,
-                          child: const Text(
-                            "What Brings You Here?",
+                          child: Text(
+                            tr(context, 'personal_intent_title'),
                             style: TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
@@ -217,8 +221,8 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
                         offset: Offset(0, 20 * (1 - _textController.value)),
                         child: Opacity(
                           opacity: _textController.value,
-                          child: const Text(
-                            "Select the paths that resonate with your journey",
+                          child: Text(
+                            tr(context, 'personal_intent_subtitle'),
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.white,
@@ -231,40 +235,42 @@ class _PersonalIntentScreenState extends State<PersonalIntentScreen>
                     },
                   ),
                   
-                  const SizedBox(height: 60),
-                  
+                  const SizedBox(height: 40),
+
                   // Intent Options Grid
-                  Expanded(
-                    child: GridView.builder(
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        childAspectRatio: 1.1,
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                      ),
-                      itemCount: intentOptions.length,
-                      itemBuilder: (context, index) {
-                        final option = intentOptions[index];
-                        final isSelected = selectedIntents.contains(option.type);
-                        
-                        return FloatingGlowingIcon(
-                          icon: option.icon,
-                          label: option.label,
-                          description: option.description,
-                          isSelected: isSelected,
-                          color: option.color,
-                          onTap: () => _onIntentTapped(option.type),
-                        );
-                      },
+                  GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.1,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
                     ),
+                    itemCount: intentOptions.length,
+                    itemBuilder: (context, index) {
+                      final option = intentOptions[index];
+                      final isSelected = selectedIntents.contains(option.type);
+
+                      return FloatingGlowingIcon(
+                        icon: option.icon,
+                        label: option.label,
+                        description: option.description,
+                        isSelected: isSelected,
+                        color: option.color,
+                        onTap: () => _onIntentTapped(option.type),
+                      );
+                    },
                   ),
-                  
+
+                  const SizedBox(height: 60),
+
                   // Continue Button
                   AnimatedOpacity(
                     opacity: selectedIntents.isNotEmpty ? 1.0 : 0.3,
                     duration: const Duration(milliseconds: 300),
                     child: GlowingButton(
-                      text: "Continue Your Journey",
+                      text: tr(context, 'continue_journey_button'),
                       onPressed: selectedIntents.isNotEmpty ? _continue : null,
                       glowIntensity: selectedIntents.length / intentOptions.length,
                       width: double.infinity,

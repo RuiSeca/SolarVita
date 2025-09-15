@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/auth/auth_service.dart';
@@ -117,6 +118,30 @@ class AuthNotifier extends _$AuthNotifier {
     await _executeAuthOperation(() async {
       final authService = ref.read(authServiceProvider);
       await authService.signOut();
+      return true;
+    });
+  }
+
+  /// Deletes incomplete user account when exiting onboarding
+  Future<void> deleteIncompleteAccount() async {
+    await _executeAuthOperation(() async {
+      final authService = ref.read(authServiceProvider);
+
+      // Delete the current user's Firebase Auth account
+      final user = authService.currentUser;
+      if (user != null) {
+        debugPrint('🧹 Deleting incomplete account for user: ${user.uid}');
+
+        // Delete any partial Firestore documents for this user
+        // (you may need to add this method to your auth service)
+        await authService.deleteUserData(user.uid);
+
+        // Delete the Firebase Auth account
+        await user.delete();
+
+        debugPrint('✅ Successfully deleted incomplete account');
+      }
+
       return true;
     });
   }

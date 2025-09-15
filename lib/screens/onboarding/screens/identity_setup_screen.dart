@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_text_field.dart';
 import '../components/glowing_button.dart';
 import '../components/floating_glowing_icon.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'activity_level_screen.dart';
 import '../../../services/database/user_profile_service.dart';
 
-class IdentitySetupScreen extends StatefulWidget {
+class IdentitySetupScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const IdentitySetupScreen({
@@ -18,10 +21,10 @@ class IdentitySetupScreen extends StatefulWidget {
   });
 
   @override
-  State<IdentitySetupScreen> createState() => _IdentitySetupScreenState();
+  ConsumerState<IdentitySetupScreen> createState() => _IdentitySetupScreenState();
 }
 
-class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
+class _IdentitySetupScreenState extends OnboardingBaseScreenState<IdentitySetupScreen> {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
   final TextEditingController _nameController = TextEditingController();
@@ -32,10 +35,10 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
 
   String _selectedGender = '';
 
-  final List<GenderOption> _genderOptions = [
-    GenderOption(value: 'male', icon: Icons.man, label: 'Male'),
-    GenderOption(value: 'female', icon: Icons.woman, label: 'Female'),
-    GenderOption(value: 'prefer_not_to_say', icon: Icons.person, label: 'Prefer not to say'),
+  List<GenderOption> get _genderOptions => [
+    GenderOption(value: 'male', icon: Icons.man, label: tr(context, 'gender_male')),
+    GenderOption(value: 'female', icon: Icons.woman, label: tr(context, 'gender_female')),
+    GenderOption(value: 'prefer_not_to_say', icon: Icons.person, label: tr(context, 'gender_prefer_not_to_say')),
   ];
 
   bool get _isFormValid =>
@@ -66,8 +69,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
 
         if (!isAvailable && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Username is already taken. Please choose another one.'),
+            SnackBar(
+              content: Text(tr(context, 'username_taken_error')),
               backgroundColor: Colors.red,
             ),
           );
@@ -116,7 +119,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -137,8 +140,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                 children: [
                   const SizedBox(height: 60),
 
-                  const Text(
-                    "Complete Your Profile",
+                  Text(
+                    tr(context, 'identity_setup_title'),
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w300,
@@ -149,8 +152,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
 
                   const SizedBox(height: 16),
 
-                  const Text(
-                    "Help us personalize your fitness journey",
+                  Text(
+                    tr(context, 'identity_setup_subtitle'),
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.white70,
@@ -163,14 +166,14 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
 
                   // Personal Information
                   GlowingTextField(
-                    label: "Display Name",
-                    hint: "What should we call you?",
+                    label: tr(context, 'display_name_label'),
+                    hint: tr(context, 'display_name_hint'),
                     controller: _nameController,
                   ),
 
                   GlowingTextField(
-                    label: "Username",
-                    hint: "Choose a unique username",
+                    label: tr(context, 'username_label'),
+                    hint: tr(context, 'username_hint'),
                     controller: _usernameController,
                   ),
 
@@ -179,8 +182,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                     children: [
                       Expanded(
                         child: GlowingTextField(
-                          label: "Height (cm)",
-                          hint: "175",
+                          label: tr(context, 'height_label'),
+                          hint: tr(context, 'height_hint'),
                           controller: _heightController,
                           keyboardType: TextInputType.number,
                         ),
@@ -188,8 +191,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                       const SizedBox(width: 16),
                       Expanded(
                         child: GlowingTextField(
-                          label: "Weight (kg)",
-                          hint: "70",
+                          label: tr(context, 'weight_label'),
+                          hint: tr(context, 'weight_hint'),
                           controller: _weightController,
                           keyboardType: TextInputType.number,
                         ),
@@ -198,8 +201,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                   ),
 
                   GlowingTextField(
-                    label: "Age",
-                    hint: "25",
+                    label: tr(context, 'age_label'),
+                    hint: tr(context, 'age_hint'),
                     controller: _ageController,
                     keyboardType: TextInputType.number,
                   ),
@@ -207,8 +210,8 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                   const SizedBox(height: 40),
 
                   // Gender Selection
-                  const Text(
-                    "Gender",
+                  Text(
+                    tr(context, 'gender_label'),
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.white,
@@ -234,7 +237,7 @@ class _IdentitySetupScreenState extends State<IdentitySetupScreen> {
                   const SizedBox(height: 60),
                   
                   GlowingButton(
-                    text: "Continue",
+                    text: tr(context, 'continue_button'),
                     onPressed: _isFormValid ? _continue : null,
                     glowIntensity: _isFormValid ? 1.0 : 0.3,
                     width: double.infinity,

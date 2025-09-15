@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'bio_interests_screen.dart';
 
-class FoodPreferencesScreen extends StatefulWidget {
+class FoodPreferencesScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const FoodPreferencesScreen({
@@ -15,10 +18,10 @@ class FoodPreferencesScreen extends StatefulWidget {
   });
 
   @override
-  State<FoodPreferencesScreen> createState() => _FoodPreferencesScreenState();
+  ConsumerState<FoodPreferencesScreen> createState() => _FoodPreferencesScreenState();
 }
 
-class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
+class _FoodPreferencesScreenState extends OnboardingBaseScreenState<FoodPreferencesScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -34,48 +37,48 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
   bool _reduceMeatConsumption = false;
   bool _intermittentFasting = false;
 
-  final List<FoodPreferenceOption> _foodOptions = [
+  List<FoodPreferenceOption> get _foodOptions => [
     FoodPreferenceOption(
       key: 'organic',
       icon: Icons.eco,
-      title: 'Organic Foods',
-      description: 'Prefer organic ingredients',
-      color: Color(0xFF10B981),
+      title: tr(context, 'food_organic'),
+      description: tr(context, 'food_organic_desc'),
+      color: const Color(0xFF10B981),
     ),
     FoodPreferenceOption(
       key: 'local',
       icon: Icons.location_on,
-      title: 'Local Produce',
-      description: 'Support local farmers',
-      color: Color(0xFF3B82F6),
+      title: tr(context, 'food_local'),
+      description: tr(context, 'food_local_desc'),
+      color: const Color(0xFF3B82F6),
     ),
     FoodPreferenceOption(
       key: 'seasonal',
       icon: Icons.calendar_today,
-      title: 'Seasonal Foods',
-      description: 'Eat with the seasons',
-      color: Color(0xFF8B5CF6),
+      title: tr(context, 'food_seasonal'),
+      description: tr(context, 'food_seasonal_desc'),
+      color: const Color(0xFF8B5CF6),
     ),
     FoodPreferenceOption(
       key: 'sustainable_seafood',
       icon: Icons.waves,
-      title: 'Sustainable Seafood',
-      description: 'Ocean-friendly choices',
-      color: Color(0xFF06B6D4),
+      title: tr(context, 'food_sustainable_seafood'),
+      description: tr(context, 'food_sustainable_seafood_desc'),
+      color: const Color(0xFF06B6D4),
     ),
     FoodPreferenceOption(
       key: 'reduce_meat',
       icon: Icons.nature_people,
-      title: 'Reduce Meat',
-      description: 'Lower environmental impact',
-      color: Color(0xFFEC4899),
+      title: tr(context, 'food_reduce_meat'),
+      description: tr(context, 'food_reduce_meat_desc'),
+      color: const Color(0xFFEC4899),
     ),
     FoodPreferenceOption(
       key: 'intermittent_fasting',
       icon: Icons.schedule,
-      title: 'Intermittent Fasting',
-      description: 'Time-restricted eating',
-      color: Color(0xFFF59E0B),
+      title: tr(context, 'food_intermittent_fasting'),
+      description: tr(context, 'food_intermittent_fasting_desc'),
+      color: const Color(0xFFF59E0B),
     ),
   ];
 
@@ -216,7 +219,7 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -245,9 +248,9 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "Food Values & Preferences",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'food_preferences_title'),
+                            style: const TextStyle(
                               fontSize: 30,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -270,9 +273,9 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "What matters to you when choosing food?",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'food_preferences_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -287,67 +290,29 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
                   const SizedBox(height: 60),
 
                   // Food Preferences Grid
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 16,
-                    children: _foodOptions.map((option) {
+                  GridView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    shrinkWrap: true,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 1.1,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                    ),
+                    itemCount: _foodOptions.length,
+                    itemBuilder: (context, index) {
+                      final option = _foodOptions[index];
                       final isSelected = _getPreferenceValue(option.key);
 
-                      return SizedBox(
-                        width: (MediaQuery.of(context).size.width - 80) / 2,
-                        height: 140,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _togglePreference(option.key),
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? option.color.withValues(alpha: 0.2)
-                                    : const Color(0x1AFFFFFF),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isSelected ? option.color : const Color(0x33FFFFFF),
-                                  width: isSelected ? 2 : 1,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    option.icon,
-                                    size: 32,
-                                    color: isSelected ? option.color : Colors.white70,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Text(
-                                    option.title,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white : Colors.white70,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    option.description,
-                                    style: TextStyle(
-                                      color: isSelected ? Colors.white70 : Colors.white54,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w300,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
+                      return _buildFoodPreferenceCard(
+                        option.icon,
+                        option.title,
+                        option.description,
+                        isSelected,
+                        option.color,
+                        () => _togglePreference(option.key),
                       );
-                    }).toList(),
+                    },
                   ),
 
                   const SizedBox(height: 40),
@@ -375,8 +340,8 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                "💡 Helpful Tips",
-                                style: TextStyle(
+                                tr(context, 'food_preferences_tips_title'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
@@ -387,8 +352,8 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          "These preferences help us recommend meals that align with your values. You can always change them later in settings.",
-                          style: TextStyle(
+                          tr(context, 'food_preferences_tips_description'),
+                          style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 14,
                             fontWeight: FontWeight.w300,
@@ -403,7 +368,7 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
 
                   // Continue Button
                   GlowingButton(
-                    text: "Continue",
+                    text: tr(context, 'continue_button'),
                     onPressed: _continue,
                     glowIntensity: 1.0,
                     width: double.infinity,
@@ -416,6 +381,74 @@ class _FoodPreferencesScreenState extends State<FoodPreferencesScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFoodPreferenceCard(
+    IconData icon,
+    String title,
+    String description,
+    bool isSelected,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? color.withValues(alpha: 0.2) : const Color(0x1AFFFFFF),
+          border: Border.all(
+            color: isSelected ? color : const Color(0x33FFFFFF),
+            width: 1.5,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: color.withValues(alpha: 0.3),
+              blurRadius: 12,
+              spreadRadius: 0,
+            ),
+          ] : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 28,
+              color: isSelected ? color : Colors.white70,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (isSelected && description.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                description,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w300,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

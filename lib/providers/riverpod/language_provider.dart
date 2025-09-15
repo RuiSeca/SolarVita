@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,9 +36,40 @@ class LanguageNotifier extends _$LanguageNotifier {
   Future<Locale> _loadLanguage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final languageCode = prefs.getString(_languageKey) ?? 'en';
-      return Locale(languageCode);
+      final savedLanguageCode = prefs.getString(_languageKey);
+
+      // If user has manually selected a language, use it
+      if (savedLanguageCode != null) {
+        return Locale(savedLanguageCode);
+      }
+
+      // Otherwise, auto-detect from system locale
+      return _detectSystemLanguage();
     } catch (e) {
+      return const Locale('en');
+    }
+  }
+
+  Locale _detectSystemLanguage() {
+    try {
+      // Get system locale
+      final systemLocale = Platform.localeName; // e.g., "en_US", "pt_BR", "fr_FR"
+      final languageCode = systemLocale.split('_')[0]; // Extract just the language part
+
+      // Check if we support this language
+      final supportedCodes = [
+        'en', 'es', 'fr', 'de', 'it', 'pt', 'ru', 'ja', 'zh', 'hi', 'ko'
+      ];
+
+      if (supportedCodes.contains(languageCode)) {
+        debugPrint('🌍 Auto-detected system language: $languageCode (from $systemLocale)');
+        return Locale(languageCode);
+      } else {
+        debugPrint('🌍 System language $languageCode not supported, falling back to English');
+        return const Locale('en');
+      }
+    } catch (e) {
+      debugPrint('🌍 Error detecting system language: $e, falling back to English');
       return const Locale('en');
     }
   }
@@ -49,8 +81,23 @@ class LanguageNotifier extends _$LanguageNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_languageKey, code);
+      debugPrint('🌍 Language manually set to: $code');
     } catch (e) {
       // Revert on error
+      state = AsyncValue.error(e, StackTrace.current);
+    }
+  }
+
+  Future<void> resetToSystemLanguage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_languageKey);
+
+      // Reload language (will auto-detect system)
+      final systemLocale = _detectSystemLanguage();
+      state = AsyncValue.data(systemLocale);
+      debugPrint('🌍 Language reset to system language: ${systemLocale.languageCode}');
+    } catch (e) {
       state = AsyncValue.error(e, StackTrace.current);
     }
   }

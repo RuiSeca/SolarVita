@@ -119,10 +119,6 @@ flutter:
 
     # Dashboard and Auth Images
     - assets/images/google_logo.jpg
-    - assets/images/facebook_logo.jpg
-    - assets/images/welcome_illustration.webp
-    - assets/images/dashboard/hiit.webp
-    - assets/images/dashboard/abs.webp
 
     # ==========
     # Search Section
@@ -148,9 +144,6 @@ flutter:
     - assets/images/solar_ai/
 
     # Intro Section
-    - assets/images/fitness1.webp
-    - assets/images/fitness2.webp
-    - assets/images/fitness3.webp
 
     # Audio files for onboarding
     - assets/audio/

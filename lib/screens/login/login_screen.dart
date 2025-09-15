@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../providers/riverpod/auth_provider.dart';
-import '../../widgets/common/lottie_loading_widget.dart';
+import '../onboarding/components/animated_waves.dart';
+import '../onboarding/components/glowing_text_field.dart';
+import '../onboarding/components/glowing_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -13,16 +15,49 @@ class LoginScreen extends ConsumerStatefulWidget {
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
+  late AnimationController _textController;
+  late Animation<double> _headingAnimation;
+  late Animation<double> _subheadingAnimation;
+
   bool _isSignUp = false;
-  bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _textController = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
+    _headingAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _textController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _subheadingAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _textController,
+        curve: const Interval(0.4, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _textController.forward();
+    });
+  }
 
   @override
   void dispose() {
+    _textController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -130,302 +165,299 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          tr(context, _isSignUp ? 'sign_up' : 'sign_in'),
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
       body: Consumer(
         builder: (context, ref, child) {
           final authState = ref.watch(authNotifierProvider);
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Country Selector (keep existing)
-                    Text(
-                      tr(context, 'select_country'),
-                      style: theme.textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: theme.dividerColor),
-                        borderRadius: BorderRadius.circular(12),
-                        color: theme.cardColor,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            tr(context, 'united_kingdom'),
-                            style: theme.textTheme.bodyLarge,
-                          ),
-                          Icon(Icons.arrow_drop_down,
-                              color: theme.iconTheme.color),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Social Login Buttons
-                    OutlinedButton.icon(
-                      onPressed:
-                          authState.isLoading ? null : _handleGoogleSignIn,
-                      icon: const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: Image(
-                            image: AssetImage('assets/images/google_logo.jpg')),
-                      ),
-                      label: Text(
-                        tr(context, 'continue_google'),
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Apple Sign-In (iOS only)
-                    if (Platform.isIOS)
-                      OutlinedButton.icon(
-                        onPressed:
-                            authState.isLoading ? null : _handleAppleSignIn,
-                        icon: const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: Icon(
-                            Icons.apple,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                        ),
-                        label: Text(
-                          tr(context, 'continue_apple'),
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                          backgroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    if (Platform.isIOS) const SizedBox(height: 16),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(child: Divider(color: theme.dividerColor)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            tr(context, 'or'),
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                        Expanded(child: Divider(color: theme.dividerColor)),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Email Input
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: InputDecoration(
-                        labelText: tr(context, 'email_address'),
-                        labelStyle: theme.textTheme.bodyMedium,
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: theme.dividerColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: theme.primaryColor),
-                        ),
-                        filled: true,
-                        fillColor: theme.cardColor,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return tr(context, 'email_required');
-                        }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(value)) {
-                          return tr(context, 'invalid_email');
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Password Input
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: theme.textTheme.bodyLarge,
-                      decoration: InputDecoration(
-                        labelText: tr(context, 'password'),
-                        labelStyle: theme.textTheme.bodyMedium,
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: theme.dividerColor),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: theme.primaryColor),
-                        ),
-                        filled: true,
-                        fillColor: theme.cardColor,
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return tr(context, 'password_required');
-                        }
-                        if (_isSignUp && value.length < 6) {
-                          return tr(context, 'password_too_short');
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Forgot Password Link (only show when signing in)
-                    if (!_isSignUp)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: authState.isLoading
-                              ? null
-                              : _handleForgotPassword,
-                          child: Text(
-                            tr(context, 'forgot_password'),
-                            style: TextStyle(color: theme.primaryColor),
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 24),
-
-                    // Continue Button
-                    ElevatedButton(
-                      onPressed:
-                          authState.isLoading ? null : _handleEmailAuth,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.primaryColor,
-                        padding: const EdgeInsets.all(16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: authState.isLoading
-                          ? const LottieLoadingWidget(
-                              width: 20,
-                              height: 20,
-                            )
-                          : Text(
-                              tr(
-                                  context,
-                                  _isSignUp
-                                      ? 'create_account'
-                                      : 'continue_email'),
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: theme.colorScheme.onPrimary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Toggle between Sign In/Sign Up
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          _isSignUp
-                              ? tr(context, 'already_have_account')
-                              : tr(context, 'dont_have_account'),
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                        TextButton(
-                          onPressed: authState.isLoading
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _isSignUp = !_isSignUp;
-                                  });
-                                },
-                          child: Text(
-                            _isSignUp
-                                ? tr(context, 'sign_in')
-                                : tr(context, 'sign_up'),
-                            style: TextStyle(
-                              color: theme.primaryColor,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Terms Text
-                    Text(
-                      tr(context, 'terms_conditions'),
-                      textAlign: TextAlign.center,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
+          return Stack(
+            children: [
+              // Beautiful animated waves background
+              Positioned.fill(
+                child: AnimatedWaves(
+                  intensity: 0.6,
+                  personality: WavePersonality.eco,
                 ),
               ),
-            ),
+
+              SafeArea(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 60),
+
+                        // Animated title
+                        AnimatedBuilder(
+                          animation: _textController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 30 * (1 - _headingAnimation.value)),
+                              child: Opacity(
+                                opacity: _headingAnimation.value,
+                                child: Text(
+                                  _isSignUp
+                                      ? tr(context, 'sign_up')
+                                      : tr(context, 'sign_in'),
+                                  style: const TextStyle(
+                                    fontSize: 42,
+                                    fontWeight: FontWeight.w200,
+                                    color: Colors.white,
+                                    letterSpacing: 1.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Animated subtitle
+                        AnimatedBuilder(
+                          animation: _textController,
+                          builder: (context, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
+                              child: Opacity(
+                                opacity: _subheadingAnimation.value,
+                                child: Text(
+                                  _isSignUp
+                                      ? tr(context, 'create_your_account')
+                                      : tr(context, 'welcome_back'),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w300,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 60),
+
+                        // Social Login Buttons with glowing style
+                        Container(
+                          width: double.infinity,
+                          height: 56,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          child: OutlinedButton.icon(
+                            onPressed: authState.isLoading ? null : _handleGoogleSignIn,
+                            icon: const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: Image(
+                                image: AssetImage('assets/images/google_logo.jpg'),
+                              ),
+                            ),
+                            label: Text(
+                              tr(context, 'continue_google'),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Apple Sign-In (iOS only)
+                        if (Platform.isIOS)
+                          Container(
+                            width: double.infinity,
+                            height: 56,
+                            margin: const EdgeInsets.only(bottom: 16),
+                            child: OutlinedButton.icon(
+                              onPressed: authState.isLoading ? null : _handleAppleSignIn,
+                              icon: const Icon(
+                                Icons.apple,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                              label: Text(
+                                tr(context, 'continue_apple'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: Colors.black,
+                                side: BorderSide.none,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        // Divider with glowing style
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.white.withValues(alpha: 0.3),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  tr(context, 'or'),
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: Container(
+                                  height: 1,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.transparent,
+                                        Colors.white.withValues(alpha: 0.3),
+                                        Colors.transparent,
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Email Input with glowing style
+                        GlowingTextField(
+                          label: tr(context, 'email_address'),
+                          hint: tr(context, 'email_address'),
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Password Input with glowing style
+                        GlowingTextField(
+                          label: tr(context, 'password'),
+                          hint: tr(context, 'password'),
+                          controller: _passwordController,
+                          obscureText: true,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Forgot Password Link (only show when signing in)
+                        if (!_isSignUp)
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: authState.isLoading ? null : _handleForgotPassword,
+                              child: Text(
+                                tr(context, 'forgot_password'),
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                        const SizedBox(height: 32),
+
+                        // Continue Button with glowing style
+                        GlowingButton(
+                          text: authState.isLoading
+                              ? "Loading..."
+                              : tr(context, _isSignUp ? 'create_account' : 'continue_email'),
+                          onPressed: authState.isLoading ? null : _handleEmailAuth,
+                          glowIntensity: 1.0,
+                          width: double.infinity,
+                          height: 56,
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Toggle between Sign In/Sign Up
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isSignUp
+                                  ? tr(context, 'already_have_account')
+                                  : tr(context, 'dont_have_account'),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: authState.isLoading
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _isSignUp = !_isSignUp;
+                                      });
+                                    },
+                              child: Text(
+                                _isSignUp
+                                    ? tr(context, 'sign_in')
+                                    : tr(context, 'sign_up'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 40),
+
+                        // Terms Text
+                        Text(
+                          tr(context, 'terms_conditions'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 12,
+                            height: 1.5,
+                          ),
+                        ),
+
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),

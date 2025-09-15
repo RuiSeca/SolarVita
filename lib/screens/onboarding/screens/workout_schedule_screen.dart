@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'onboarding_completion_screen.dart';
 
-class WorkoutScheduleScreen extends StatefulWidget {
+class WorkoutScheduleScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
   final Map<String, dynamic>? additionalData;
 
@@ -17,10 +20,10 @@ class WorkoutScheduleScreen extends StatefulWidget {
   });
 
   @override
-  State<WorkoutScheduleScreen> createState() => _WorkoutScheduleScreenState();
+  ConsumerState<WorkoutScheduleScreen> createState() => _WorkoutScheduleScreenState();
 }
 
-class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
+class _WorkoutScheduleScreenState extends OnboardingBaseScreenState<WorkoutScheduleScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -30,48 +33,48 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
 
   Set<String> _selectedDays = {}; // ignore: prefer_final_fields
 
-  final List<DayOption> _dayOptions = [
+  List<DayOption> get _dayOptions => [
     DayOption(
       value: 'monday',
-      label: 'Monday',
-      abbreviation: 'MON',
-      color: Color(0xFFEF4444),
+      label: tr(context, 'day_monday'),
+      abbreviation: tr(context, 'day_monday_abbr'),
+      color: const Color(0xFFEF4444),
     ),
     DayOption(
       value: 'tuesday',
-      label: 'Tuesday',
-      abbreviation: 'TUE',
-      color: Color(0xFFF97316),
+      label: tr(context, 'day_tuesday'),
+      abbreviation: tr(context, 'day_tuesday_abbr'),
+      color: const Color(0xFFF97316),
     ),
     DayOption(
       value: 'wednesday',
-      label: 'Wednesday',
-      abbreviation: 'WED',
-      color: Color(0xFFF59E0B),
+      label: tr(context, 'day_wednesday'),
+      abbreviation: tr(context, 'day_wednesday_abbr'),
+      color: const Color(0xFFF59E0B),
     ),
     DayOption(
       value: 'thursday',
-      label: 'Thursday',
-      abbreviation: 'THU',
-      color: Color(0xFF10B981),
+      label: tr(context, 'day_thursday'),
+      abbreviation: tr(context, 'day_thursday_abbr'),
+      color: const Color(0xFF10B981),
     ),
     DayOption(
       value: 'friday',
-      label: 'Friday',
-      abbreviation: 'FRI',
-      color: Color(0xFF06B6D4),
+      label: tr(context, 'day_friday'),
+      abbreviation: tr(context, 'day_friday_abbr'),
+      color: const Color(0xFF06B6D4),
     ),
     DayOption(
       value: 'saturday',
-      label: 'Saturday',
-      abbreviation: 'SAT',
-      color: Color(0xFF8B5CF6),
+      label: tr(context, 'day_saturday'),
+      abbreviation: tr(context, 'day_saturday_abbr'),
+      color: const Color(0xFF8B5CF6),
     ),
     DayOption(
       value: 'sunday',
-      label: 'Sunday',
-      abbreviation: 'SUN',
-      color: Color(0xFFEC4899),
+      label: tr(context, 'day_sunday'),
+      abbreviation: tr(context, 'day_sunday_abbr'),
+      color: const Color(0xFFEC4899),
     ),
   ];
 
@@ -166,7 +169,7 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -194,9 +197,9 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "Which Days Can You Workout?",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'workout_schedule_title'),
+                            style: const TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -219,9 +222,9 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Select all days you're available",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'workout_schedule_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -236,75 +239,63 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
                   const SizedBox(height: 80),
 
                   // Days Selection
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // First row - Mon to Wed
-                        Row(
-                          children: _dayOptions.take(3).map((option) {
-                            final isSelected = _selectedDays.contains(option.value);
-                            return Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: SizedBox(
-                                  height: 100,
-                                  child: _buildDayCard(option, isSelected),
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 12,
+                    alignment: WrapAlignment.center,
+                    children: _dayOptions.map((option) {
+                      final isSelected = _selectedDays.contains(option.value);
+                      return GestureDetector(
+                        onTap: () => _onDayToggled(option.value),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isSelected
+                                ? option.color.withValues(alpha: 0.3)
+                                : Colors.white.withValues(alpha: 0.05),
+                            border: Border.all(
+                              color: isSelected ? option.color : Colors.white.withValues(alpha: 0.2),
+                              width: isSelected ? 2 : 1,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: option.color.withValues(alpha: 0.3),
+                                      blurRadius: 15,
+                                      spreadRadius: 2,
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                option.abbreviation,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected ? option.color : Colors.white,
                                 ),
                               ),
-                            );
-                          }).toList(),
+                            ],
+                          ),
                         ),
-
-                        const SizedBox(height: 16),
-
-                        // Second row - Thu to Fri
-                        Row(
-                          children: [
-                            const Expanded(child: SizedBox()),
-                            ..._dayOptions.skip(3).take(2).map((option) {
-                              final isSelected = _selectedDays.contains(option.value);
-                              return Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                  child: SizedBox(
-                                    height: 100,
-                                    child: _buildDayCard(option, isSelected),
-                                  ),
-                                ),
-                              );
-                            }),
-                            const Expanded(child: SizedBox()),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Third row - Weekend
-                        Row(
-                          children: _dayOptions.skip(5).map((option) {
-                            final isSelected = _selectedDays.contains(option.value);
-                            return Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                child: SizedBox(
-                                  height: 100,
-                                  child: _buildDayCard(option, isSelected),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
+                      );
+                    }).toList(),
                   ),
+
+                  const SizedBox(height: 60),
 
                   // Continue Button
                   AnimatedOpacity(
                     opacity: _selectedDays.isNotEmpty ? 1.0 : 0.3,
                     duration: const Duration(milliseconds: 300),
                     child: GlowingButton(
-                      text: "Complete Setup",
+                      text: tr(context, 'complete_setup_button'),
                       onPressed: _selectedDays.isNotEmpty ? _continue : null,
                       glowIntensity: _selectedDays.length / _dayOptions.length,
                       width: double.infinity,
@@ -322,57 +313,6 @@ class _WorkoutScheduleScreenState extends State<WorkoutScheduleScreen>
     );
   }
 
-  Widget _buildDayCard(DayOption option, bool isSelected) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _onDayToggled(option.value),
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isSelected
-                ? option.color.withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected ? option.color : Colors.white.withValues(alpha: 0.2),
-              width: isSelected ? 2 : 1,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: option.color.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      spreadRadius: 2,
-                    )
-                  ]
-                : null,
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                option.abbreviation,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? option.color : Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                option.label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isSelected ? option.color : Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // Day option model

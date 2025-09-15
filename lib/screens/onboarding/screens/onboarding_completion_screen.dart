@@ -6,6 +6,7 @@ import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
+import '../../../utils/translation_helper.dart';
 import 'outro_screen.dart';
 
 class OnboardingCompletionScreen extends ConsumerStatefulWidget {
@@ -226,9 +227,9 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
                         offset: Offset(0, 30 * (1 - _titleAnimation.value)),
                         child: Opacity(
                           opacity: _titleAnimation.value,
-                          child: const Text(
-                            "Welcome to Your\nFitness Journey!",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'completion_title'),
+                            style: const TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -252,9 +253,9 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
                         offset: Offset(0, 20 * (1 - _subtitleAnimation.value)),
                         child: Opacity(
                           opacity: _subtitleAnimation.value,
-                          child: const Text(
-                            "Your personalized fitness experience is ready.\nLet's start building healthy habits together!",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'completion_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -276,7 +277,7 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
                       return Transform.scale(
                         scale: _buttonAnimation.value,
                         child: GlowingButton(
-                          text: "Start Your Journey",
+                          text: tr(context, 'start_journey_button'),
                           onPressed: _completeOnboarding,
                           glowIntensity: 1.0,
                           width: double.infinity,
@@ -294,9 +295,9 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
                     builder: (context, child) {
                       return Opacity(
                         opacity: _subtitleAnimation.value * 0.7,
-                        child: const Text(
-                          "Every journey begins with a single step",
-                          style: TextStyle(
+                        child: Text(
+                          tr(context, 'completion_encouragement'),
+                          style: const TextStyle(
                             fontSize: 14,
                             color: Colors.white60,
                             fontStyle: FontStyle.italic,

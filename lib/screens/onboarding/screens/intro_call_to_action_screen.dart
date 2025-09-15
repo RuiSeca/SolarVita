@@ -4,6 +4,7 @@ import '../components/progress_constellation.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
 import '../components/animated_waves.dart';
+import '../../../utils/translation_helper.dart';
 import 'personal_intent_screen.dart';
 import 'intro_connection_screen.dart';
 
@@ -140,7 +141,7 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
               right: 0,
               child: ProgressConstellation(
                 currentStep: 3,
-                totalSteps: 7,
+                totalSteps: 3,
               ),
             ),
             
@@ -159,8 +160,8 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
                           offset: Offset(0, 50 * (1 - _headingAnimation.value)),
                           child: Opacity(
                             opacity: _headingAnimation.value,
-                            child: const Text(
-                              'Begin Your Journey',
+                            child: Text(
+                              tr(context, 'intro_begin_title'),
                               style: TextStyle(
                                 fontSize: 48,
                                 fontWeight: FontWeight.w200,
@@ -184,7 +185,7 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
                         return Transform.scale(
                           scale: _buttonAnimation.value,
                           child: GlowingButton(
-                            text: 'Get Started',
+                            text: tr(context, 'get_started_button'),
                             onPressed: _navigateToNext,
                             glowIntensity: 1.0,
                             width: 200,
@@ -217,8 +218,8 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
                             size: 16,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
-                            'Back',
+                          Text(
+                            tr(context, 'back_button'),
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,

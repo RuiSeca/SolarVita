@@ -3,6 +3,8 @@ import '../components/audio_reactive_waves.dart';
 import '../components/progress_constellation.dart';
 import '../services/onboarding_audio_service.dart';
 import '../components/animated_waves.dart';
+import '../../../utils/translation_helper.dart';
+import '../../login/login_screen.dart';
 import 'intro_connection_screen.dart';
 
 class IntroGatewayScreen extends StatefulWidget {
@@ -103,16 +105,16 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
               width: 1,
             ),
           ),
-          title: const Text(
-            'Exit Onboarding Experience?',
+          title: Text(
+            tr(context, 'exit_onboarding_title'),
             style: TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.w600,
             ),
           ),
-          content: const Text(
-            'Are you sure you want to return to the welcome screen? Your onboarding progress will be lost.',
+          content: Text(
+            tr(context, 'exit_onboarding_message'),
             style: TextStyle(
               color: Colors.white70,
               fontSize: 16,
@@ -121,8 +123,8 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              child: const Text(
-                'Continue Experience',
+              child: Text(
+                tr(context, 'continue_experience_button'),
                 style: TextStyle(
                   color: Color(0xFF10B981),
                   fontWeight: FontWeight.w600,
@@ -131,8 +133,8 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
             ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(true),
-              child: const Text(
-                'Exit to Welcome',
+              child: Text(
+                tr(context, 'exit_to_login_button'),
                 style: TextStyle(
                   color: Colors.white60,
                   fontWeight: FontWeight.w600,
@@ -154,11 +156,13 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
           final navigator = Navigator.of(context);
           final bool shouldExit = await _onWillPop();
           if (shouldExit && mounted) {
-            // User chose to exit - dispose audio and go back to welcome screen
+            // User chose to exit - dispose audio and go to login screen
             await _audioService.fadeOutAmbient();
             await _audioService.dispose();
             if (mounted) {
-              navigator.pop();
+              navigator.pushReplacement(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+              );
             }
           }
         }
@@ -190,7 +194,7 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
               right: 0,
               child: ProgressConstellation(
                 currentStep: 1,
-                totalSteps: 7,
+                totalSteps: 3,
               ),
             ),
             
@@ -209,8 +213,8 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
                           offset: Offset(0, 50 * (1 - _headingAnimation.value)),
                           child: Opacity(
                             opacity: _headingAnimation.value,
-                            child: const Text(
-                              'Discover a New Way',
+                            child: Text(
+                              tr(context, 'intro_discover_title'),
                               style: TextStyle(
                                 fontSize: 42,
                                 fontWeight: FontWeight.w200,
@@ -235,8 +239,8 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
                           offset: Offset(0, 30 * (1 - _subheadingAnimation.value)),
                           child: Opacity(
                             opacity: _subheadingAnimation.value,
-                            child: const Text(
-                              'A journey of light and form awaits.',
+                            child: Text(
+                              tr(context, 'intro_gateway_subtitle'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w300,
@@ -274,8 +278,8 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
                           size: 16,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'Swipe to continue',
+                        Text(
+                          tr(context, 'swipe_to_continue'),
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 14,

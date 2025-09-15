@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_button.dart';
+import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
+import '../../../utils/translation_helper.dart';
 import 'nutrition_goals_screen.dart';
 
-class MealTimingScreen extends StatefulWidget {
+class MealTimingScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
 
   const MealTimingScreen({
@@ -15,10 +18,10 @@ class MealTimingScreen extends StatefulWidget {
   });
 
   @override
-  State<MealTimingScreen> createState() => _MealTimingScreenState();
+  ConsumerState<MealTimingScreen> createState() => _MealTimingScreenState();
 }
 
-class _MealTimingScreenState extends State<MealTimingScreen>
+class _MealTimingScreenState extends OnboardingBaseScreenState<MealTimingScreen>
     with SingleTickerProviderStateMixin {
   final OnboardingAudioService _audioService = OnboardingAudioService();
 
@@ -144,7 +147,7 @@ class _MealTimingScreenState extends State<MealTimingScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
@@ -173,9 +176,9 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                         offset: Offset(0, 30 * (1 - _headingAnimation.value)),
                         child: Opacity(
                           opacity: _headingAnimation.value,
-                          child: const Text(
-                            "When Do You Eat?",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'meal_timing_title'),
+                            style: const TextStyle(
                               fontSize: 32,
                               fontWeight: FontWeight.w300,
                               color: Colors.white,
@@ -198,9 +201,9 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                         offset: Offset(0, 20 * (1 - _subheadingAnimation.value)),
                         child: Opacity(
                           opacity: _subheadingAnimation.value,
-                          child: const Text(
-                            "Set your preferred meal times",
-                            style: TextStyle(
+                          child: Text(
+                            tr(context, 'meal_timing_subtitle'),
+                            style: const TextStyle(
                               fontSize: 16,
                               color: Colors.white70,
                               fontWeight: FontWeight.w300,
@@ -216,19 +219,19 @@ class _MealTimingScreenState extends State<MealTimingScreen>
 
                   // Meal Timing Fields
                   _buildTimeField(
-                    "Breakfast",
+                    tr(context, 'meal_breakfast_label'),
                     Icons.wb_sunny_outlined,
                     _breakfastController,
                   ),
 
                   _buildTimeField(
-                    "Lunch",
+                    tr(context, 'meal_lunch_label'),
                     Icons.wb_cloudy,
                     _lunchController,
                   ),
 
                   _buildTimeField(
-                    "Dinner",
+                    tr(context, 'meal_dinner_label'),
                     Icons.wb_twilight,
                     _dinnerController,
                   ),
@@ -238,13 +241,18 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                   // Snacks toggle
                   Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0x14FFFFFF),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: const Color(0x1AFFFFFF),
-                        width: 1,
+                    decoration: const BoxDecoration(
+                      color: Color(0x14FFFFFF),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(20), // Slick top corner cut
+                        topRight: Radius.circular(4),  // Sharp top right
+                        bottomLeft: Radius.circular(14),
+                        bottomRight: Radius.circular(14),
                       ),
+                      border: Border.fromBorderSide(BorderSide(
+                        color: Color(0x1AFFFFFF),
+                        width: 1,
+                      )),
                     ),
                     child: Row(
                       children: [
@@ -259,7 +267,7 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                "Enable Snacks",
+                                tr(context, 'enable_snacks_label'),
                                 style: TextStyle(
                                   color: _enableSnacks ? Colors.white : Colors.white70,
                                   fontSize: 16,
@@ -268,7 +276,7 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                "Include snack time in your daily plan",
+                                tr(context, 'enable_snacks_description'),
                                 style: TextStyle(
                                   color: _enableSnacks ? Colors.white70 : Colors.white54,
                                   fontSize: 14,
@@ -300,7 +308,7 @@ class _MealTimingScreenState extends State<MealTimingScreen>
                   if (_enableSnacks) ...[
                     const SizedBox(height: 20),
                     _buildTimeField(
-                      "Snack Time",
+                      tr(context, 'meal_snack_label'),
                       Icons.cookie_outlined,
                       _snackController,
                     ),
@@ -310,7 +318,7 @@ class _MealTimingScreenState extends State<MealTimingScreen>
 
                   // Continue Button
                   GlowingButton(
-                    text: "Continue",
+                    text: tr(context, 'continue_button'),
                     onPressed: _continue,
                     glowIntensity: 1.0,
                     width: double.infinity,
@@ -334,13 +342,18 @@ class _MealTimingScreenState extends State<MealTimingScreen>
         onTap: () => _selectTime(controller),
         child: Container(
           padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: const Color(0x14FFFFFF),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: const Color(0x1AFFFFFF),
-              width: 1,
+          decoration: const BoxDecoration(
+            color: Color(0x14FFFFFF),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20), // Slick top corner cut
+              topRight: Radius.circular(4),  // Sharp top right
+              bottomLeft: Radius.circular(14),
+              bottomRight: Radius.circular(14),
             ),
+            border: Border.fromBorderSide(BorderSide(
+              color: Color(0x1AFFFFFF),
+              width: 1,
+            )),
           ),
           child: Row(
             children: [
