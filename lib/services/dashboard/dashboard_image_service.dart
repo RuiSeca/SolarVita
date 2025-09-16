@@ -1,8 +1,9 @@
 import 'dart:math';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter/foundation.dart';
 import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
 import '../../models/user/user_profile.dart';
+import '../../utils/translation_helper.dart';
 
 class DashboardImageService {
   static const String _lastRotationKey = 'last_image_rotation';
@@ -407,43 +408,43 @@ class DashboardImageService {
   }
 
   /// Get dynamic section titles based on user intents
-  static String getMainSectionTitle(Set<IntentType> intents) {
-    if (intents.isEmpty) return 'Explore Popular Workouts';
+  static String getMainSectionTitle(BuildContext context, Set<IntentType> intents) {
+    if (intents.isEmpty) return tr(context, 'explore_popular_workouts');
 
     if (intents.contains(IntentType.eco) && intents.length == 1) {
-      return 'Explore Eco-Fitness';
+      return tr(context, 'explore_eco_fitness');
     } else if (intents.contains(IntentType.nutrition) && intents.length == 1) {
-      return 'Explore Healthy Nutrition';
+      return tr(context, 'explore_healthy_nutrition');
     } else if (intents.contains(IntentType.mindfulness) && intents.length == 1) {
-      return 'Explore Mindful Practices';
+      return tr(context, 'explore_mindful_practices');
     } else if (intents.contains(IntentType.adventure) && intents.length == 1) {
-      return 'Explore Adventures';
+      return tr(context, 'explore_adventures');
     } else if (intents.contains(IntentType.community) && intents.length == 1) {
-      return 'Explore Community Activities';
+      return tr(context, 'explore_community_activities');
     } else if (intents.contains(IntentType.eco) || intents.contains(IntentType.fitness)) {
-      return 'Explore Your Activities';
+      return tr(context, 'explore_your_activities');
     } else {
-      return 'Explore Popular Workouts';
+      return tr(context, 'explore_popular_workouts');
     }
   }
 
-  static String getQuickSectionTitle(Set<IntentType> intents) {
-    if (intents.isEmpty) return 'Quick Exercise Routines';
+  static String getQuickSectionTitle(BuildContext context, Set<IntentType> intents) {
+    if (intents.isEmpty) return tr(context, 'quick_exercise_routines');
 
     if (intents.contains(IntentType.eco) && intents.length == 1) {
-      return 'Quick Eco Workouts';
+      return tr(context, 'quick_eco_workouts');
     } else if (intents.contains(IntentType.nutrition) && intents.length == 1) {
-      return 'Quick Nutrition Ideas';
+      return tr(context, 'quick_nutrition_ideas');
     } else if (intents.contains(IntentType.mindfulness) && intents.length == 1) {
-      return 'Quick Wellness Moments';
+      return tr(context, 'quick_wellness_moments');
     } else if (intents.contains(IntentType.adventure) && intents.length == 1) {
-      return 'Quick Adventure Activities';
+      return tr(context, 'quick_adventure_activities');
     } else if (intents.contains(IntentType.community) && intents.length == 1) {
-      return 'Quick Group Activities';
+      return tr(context, 'quick_group_activities');
     } else if (intents.contains(IntentType.eco) || intents.contains(IntentType.fitness)) {
-      return 'Quick Personalized Routines';
+      return tr(context, 'quick_personalized_routines');
     } else {
-      return 'Quick Exercise Routines';
+      return tr(context, 'quick_exercise_routines');
     }
   }
 

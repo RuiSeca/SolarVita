@@ -54,10 +54,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
 
       if (userProfile != null) {
         final images = await DashboardImageService.getPersonalizedImages(userProfile);
-        final mainTitle = DashboardImageService.getMainSectionTitle(userProfile.selectedIntents);
-        final quickTitle = DashboardImageService.getQuickSectionTitle(userProfile.selectedIntents);
 
         if (mounted) {
+          final mainTitle = DashboardImageService.getMainSectionTitle(context, userProfile.selectedIntents);
+          final quickTitle = DashboardImageService.getQuickSectionTitle(context, userProfile.selectedIntents);
+
           setState(() {
             _personalizedImages = images;
             _mainSectionTitle = mainTitle;
@@ -109,12 +110,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
 
         // Force refresh images (clears cache and generates new set)
         final images = await DashboardImageService.forceRefreshImages(userProfile);
-        final mainTitle = DashboardImageService.getMainSectionTitle(userProfile.selectedIntents);
-        final quickTitle = DashboardImageService.getQuickSectionTitle(userProfile.selectedIntents);
 
         debugPrint('🎯 Dashboard loaded new images after force refresh: $images');
 
         if (mounted) {
+          final mainTitle = DashboardImageService.getMainSectionTitle(context, userProfile.selectedIntents);
+          final quickTitle = DashboardImageService.getQuickSectionTitle(context, userProfile.selectedIntents);
+
           setState(() {
             _personalizedImages = images;
             _mainSectionTitle = mainTitle;
@@ -165,9 +167,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
         // Check if any personalization-affecting fields changed
         final intentsChanged = prevProfile?.selectedIntents != nextProfile?.selectedIntents;
         final genderChanged = prevProfile?.gender != nextProfile?.gender;
+        final genderFromAdditionalDataChanged = prevProfile?.additionalData['gender'] != nextProfile?.additionalData['gender'];
         final ageChanged = prevProfile?.age != nextProfile?.age;
 
-        if (intentsChanged || genderChanged || ageChanged) {
+        if (intentsChanged || genderChanged || genderFromAdditionalDataChanged || ageChanged) {
           debugPrint('🔄 Dashboard detected profile changes, force refreshing images');
           if (intentsChanged) {
             debugPrint('Previous intents: ${prevProfile?.selectedIntents}');
@@ -176,6 +179,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
           if (genderChanged) {
             debugPrint('Previous gender: ${prevProfile?.gender}');
             debugPrint('New gender: ${nextProfile?.gender}');
+          }
+          if (genderFromAdditionalDataChanged) {
+            debugPrint('Previous gender (additionalData): ${prevProfile?.additionalData['gender']}');
+            debugPrint('New gender (additionalData): ${nextProfile?.additionalData['gender']}');
           }
           if (ageChanged) {
             debugPrint('Previous age: ${prevProfile?.age}');

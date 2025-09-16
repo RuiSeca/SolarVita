@@ -268,5 +268,7 @@
   "save_changes": "Salvar Alterações",
   "personal_intents_updated": "Intenções pessoais atualizadas com sucesso",
   "dashboard_will_update": "Painel será atualizado",
-  "error_updating_preferences": "Erro ao atualizar preferências: {error}"
+  "error_updating_preferences": "Erro ao atualizar preferências: {error}",
+  "intent_selected_singular": "intenção selecionada",
+  "intent_selected_plural": "intenções selecionadas"
 }

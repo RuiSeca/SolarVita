@@ -268,5 +268,7 @@
   "save_changes": "Save Changes",
   "personal_intents_updated": "Personal intents updated successfully",
   "dashboard_will_update": "Dashboard will refresh",
-  "error_updating_preferences": "Error updating preferences: {error}"
+  "error_updating_preferences": "更新偏好设置时出错: {error}",
+  "intent_selected_singular": "个意图已选择",
+  "intent_selected_plural": "个意图已选择"
 }

@@ -224,7 +224,7 @@ class _PersonalIntentPreferencesScreenState
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            '${_selectedIntents.length} ${_selectedIntents.length == 1 ? 'intent' : 'intents'} selected',
+                            '${_selectedIntents.length} ${_selectedIntents.length == 1 ? tr(context, 'intent_selected_singular') : tr(context, 'intent_selected_plural')}',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 12,

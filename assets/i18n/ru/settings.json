@@ -268,5 +268,7 @@
   "save_changes": "Save Changes",
   "personal_intents_updated": "Personal intents updated successfully",
   "dashboard_will_update": "Dashboard will refresh",
-  "error_updating_preferences": "Error updating preferences: {error}"
+  "error_updating_preferences": "Ошибка обновления настроек: {error}",
+  "intent_selected_singular": "намерение выбрано",
+  "intent_selected_plural": "намерений выбрано"
 }
