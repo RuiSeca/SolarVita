@@ -13,6 +13,8 @@ import '../social/create_post_screen.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
 import '../../widgets/pulse_background.dart';
 import '../../services/health_alerts/pulse_color_manager.dart';
+import '../../services/dashboard/dashboard_image_service.dart';
+import '../../screens/onboarding/models/onboarding_models.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -22,10 +24,16 @@ class DashboardScreen extends ConsumerStatefulWidget {
 }
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerProviderStateMixin {
+  List<String> _personalizedImages = [];
+  String _mainSectionTitle = 'Explore Popular Workouts';
+  String _quickSectionTitle = 'Quick Exercise Routines';
+  bool _isLoadingImages = true;
+
   @override
   void initState() {
     super.initState();
     _initializeHealthSystem();
+    _loadPersonalizedContent();
   }
 
   Future<void> _initializeHealthSystem() async {
@@ -40,11 +48,150 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
     }
   }
 
+  Future<void> _loadPersonalizedContent() async {
+    try {
+      final userProfile = ref.read(userProfileNotifierProvider).value;
+
+      if (userProfile != null) {
+        final images = await DashboardImageService.getPersonalizedImages(userProfile);
+        final mainTitle = DashboardImageService.getMainSectionTitle(userProfile.selectedIntents);
+        final quickTitle = DashboardImageService.getQuickSectionTitle(userProfile.selectedIntents);
+
+        if (mounted) {
+          setState(() {
+            _personalizedImages = images;
+            _mainSectionTitle = mainTitle;
+            _quickSectionTitle = quickTitle;
+            _isLoadingImages = false;
+          });
+        }
+      } else {
+        // Fallback for when user profile is not available yet
+        if (mounted) {
+          setState(() {
+            _personalizedImages = [
+              'assets/images/dashboard/hiit.webp',
+              'assets/images/dashboard/abs.webp',
+              'assets/images/dashboard/Fitness/Mixed/jump.webp',
+            ];
+            _isLoadingImages = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading personalized content: $e');
+      if (mounted) {
+        setState(() {
+          _personalizedImages = [
+            'assets/images/dashboard/hiit.webp',
+            'assets/images/dashboard/abs.webp',
+            'assets/images/dashboard/Fitness/Mixed/jump.webp',
+          ];
+          _isLoadingImages = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadPersonalizedContentForceRefresh() async {
+    try {
+      final userProfile = ref.read(userProfileNotifierProvider).value;
+
+      if (userProfile != null) {
+        debugPrint('🔄 Force refreshing dashboard images for user: ${userProfile.uid}');
+
+        // Set loading state
+        if (mounted) {
+          setState(() {
+            _isLoadingImages = true;
+          });
+        }
+
+        // Force refresh images (clears cache and generates new set)
+        final images = await DashboardImageService.forceRefreshImages(userProfile);
+        final mainTitle = DashboardImageService.getMainSectionTitle(userProfile.selectedIntents);
+        final quickTitle = DashboardImageService.getQuickSectionTitle(userProfile.selectedIntents);
+
+        debugPrint('🎯 Dashboard loaded new images after force refresh: $images');
+
+        if (mounted) {
+          setState(() {
+            _personalizedImages = images;
+            _mainSectionTitle = mainTitle;
+            _quickSectionTitle = quickTitle;
+            _isLoadingImages = false;
+          });
+        }
+      } else {
+        debugPrint('⚠️ No user profile available for force refresh, using fallback');
+        // Fallback for when user profile is not available yet
+        if (mounted) {
+          setState(() {
+            _personalizedImages = [
+              'assets/images/dashboard/hiit.webp',
+              'assets/images/dashboard/abs.webp',
+              'assets/images/dashboard/Fitness/Mixed/jump.webp',
+            ];
+            _isLoadingImages = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error force refreshing personalized content: $e');
+      if (mounted) {
+        setState(() {
+          _personalizedImages = [
+            'assets/images/dashboard/hiit.webp',
+            'assets/images/dashboard/abs.webp',
+            'assets/images/dashboard/Fitness/Mixed/jump.webp',
+          ];
+          _isLoadingImages = false;
+        });
+      }
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
+    // Listen for user profile changes to reload personalized content
+    ref.listen(userProfileNotifierProvider, (previous, next) {
+      if (mounted && next.hasValue) {
+        final prevProfile = previous?.value;
+        final nextProfile = next.value;
+
+        // Check if any personalization-affecting fields changed
+        final intentsChanged = prevProfile?.selectedIntents != nextProfile?.selectedIntents;
+        final genderChanged = prevProfile?.gender != nextProfile?.gender;
+        final ageChanged = prevProfile?.age != nextProfile?.age;
+
+        if (intentsChanged || genderChanged || ageChanged) {
+          debugPrint('🔄 Dashboard detected profile changes, force refreshing images');
+          if (intentsChanged) {
+            debugPrint('Previous intents: ${prevProfile?.selectedIntents}');
+            debugPrint('New intents: ${nextProfile?.selectedIntents}');
+          }
+          if (genderChanged) {
+            debugPrint('Previous gender: ${prevProfile?.gender}');
+            debugPrint('New gender: ${nextProfile?.gender}');
+          }
+          if (ageChanged) {
+            debugPrint('Previous age: ${prevProfile?.age}');
+            debugPrint('New age: ${nextProfile?.age}');
+          }
+
+          // Immediately show loading state while refreshing
+          setState(() {
+            _isLoadingImages = true;
+          });
+
+          _loadPersonalizedContentForceRefresh();
+        }
+      }
+    });
+
     // Get scroll controller directly in build method
     final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('dashboard');
 
@@ -155,98 +302,124 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
 
                 const SizedBox(height: 40),
 
-                // Popular Workouts Section
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tr(context, 'explore_popular_workouts'),
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textColor(context),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.arrow_back_ios,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ],
-                    ),
-                  ],
+                // Dynamic Main Section
+                Text(
+                  _mainSectionTitle,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textColor(context),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
 
                 const SizedBox(height: 16),
-                _buildWorkoutCard(
-                  title: tr(context, 'beginners_hiit'),
-                  author: tr(context, 'active_user'),
-                  isPremium: true,
-                  color: Colors.green,
-                  imagePath: 'assets/images/dashboard/hiit.webp',
-                ),
+                if (_isLoadingImages)
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: theme.cardColor.withAlpha(128),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(color: theme.primaryColor),
+                    ),
+                  )
+                else if (_personalizedImages.isNotEmpty)
+                  Builder(
+                    builder: (context) {
+                      final userProfile = ref.read(userProfileNotifierProvider).value;
+                      final intents = userProfile?.selectedIntents ?? <IntentType>{};
+                      final titleKey = DashboardImageService.getActivityTitle(_personalizedImages.first, intents);
+                      final authorKey = DashboardImageService.getActivityLabel(_personalizedImages.first, intents);
+
+                      return _buildWorkoutCard(
+                        title: tr(context, titleKey),
+                        author: tr(context, authorKey),
+                        isPremium: true,
+                        color: Colors.green,
+                        imagePath: _personalizedImages.first,
+                      );
+                    },
+                  ),
                 const SizedBox(height: 24),
 
-                // Quick Exercise Section
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        tr(context, 'quick_exercise_routines'),
-                        style: theme.textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textColor(context),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.arrow_back_ios,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ],
-                    ),
-                  ],
+                // Dynamic Quick Section
+                Text(
+                  _quickSectionTitle,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textColor(context),
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildExerciseCard(
-                        title: tr(context, 'efficient_abs'),
-                        author: tr(context, 'regular_trainer'),
-                        imagePath: 'assets/images/dashboard/abs.webp',
+                if (_isLoadingImages)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: theme.cardColor.withAlpha(128),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: CircularProgressIndicator(color: theme.primaryColor),
+                          ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildExerciseCard(
-                        title: tr(context, 'strength_training'),
-                        author: tr(context, 'fitness_coach'),
-                        imagePath:
-                            'assets/images/search/strength_training/strength.webp',
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Container(
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: theme.cardColor.withAlpha(128),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Center(
+                            child: CircularProgressIndicator(color: theme.primaryColor),
+                          ),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  )
+                else if (_personalizedImages.length >= 2)
+                  Builder(
+                    builder: (context) {
+                      final userProfile = ref.read(userProfileNotifierProvider).value;
+                      final intents = userProfile?.selectedIntents ?? <IntentType>{};
+
+                      final secondImagePath = _personalizedImages[1];
+                      final thirdImagePath = _personalizedImages.length > 2
+                          ? _personalizedImages[2]
+                          : _personalizedImages[1];
+
+                      final secondTitleKey = DashboardImageService.getActivityTitle(secondImagePath, intents);
+                      final secondAuthorKey = DashboardImageService.getActivityLabel(secondImagePath, intents);
+                      final thirdTitleKey = DashboardImageService.getActivityTitle(thirdImagePath, intents);
+                      final thirdAuthorKey = DashboardImageService.getActivityLabel(thirdImagePath, intents);
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _buildExerciseCard(
+                              title: tr(context, secondTitleKey),
+                              author: tr(context, secondAuthorKey),
+                              imagePath: secondImagePath,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildExerciseCard(
+                              title: tr(context, thirdTitleKey),
+                              author: tr(context, thirdAuthorKey),
+                              imagePath: thirdImagePath,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 const SizedBox(height: 24),
 
                 // Categories
@@ -482,7 +655,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                   mainAxisSize: MainAxisSize.min, // Added to minimize height
                   children: [
                     Text(
-                      tr(context, title),
+                      title,
                       style: const TextStyle(
                         fontSize: 14, // Reduced font size
                         fontWeight: FontWeight.bold,
@@ -493,7 +666,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      tr(context, author),
+                      author,
                       style: const TextStyle(
                         fontSize: 12, // Reduced font size
                         color: Colors.white70,

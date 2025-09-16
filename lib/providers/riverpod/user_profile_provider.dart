@@ -13,6 +13,7 @@ import 'user_progress_provider.dart';
 import 'health_data_provider.dart';
 import '../../models/user/user_progress.dart';
 import '../../models/health/health_data.dart';
+import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
 
 part 'user_profile_provider.g.dart';
 
@@ -266,6 +267,28 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     } catch (e) {
       state = AsyncValue.error(
         'Failed to update dietary preferences: $e',
+        StackTrace.current,
+      );
+    }
+  }
+
+  Future<void> updatePersonalIntents(Set<IntentType> intents) async {
+    final currentProfile = state.value;
+    if (currentProfile == null) return;
+
+    state = const AsyncLoading();
+
+    try {
+      final userProfileService = ref.read(userProfileServiceProvider);
+      final updatedProfile = await userProfileService.updatePersonalIntents(
+        currentProfile.uid,
+        intents,
+      );
+
+      state = AsyncValue.data(updatedProfile);
+    } catch (e) {
+      state = AsyncValue.error(
+        'Failed to update personal intents: $e',
         StackTrace.current,
       );
     }

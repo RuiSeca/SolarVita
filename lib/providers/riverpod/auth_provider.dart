@@ -146,6 +146,40 @@ class AuthNotifier extends _$AuthNotifier {
     });
   }
 
+  /// Deletes complete user account and all associated data
+  Future<void> deleteAccount() async {
+    await _executeAuthOperation(() async {
+      final authService = ref.read(authServiceProvider);
+
+      // Get the current user
+      final user = authService.currentUser;
+      if (user != null) {
+        debugPrint('🧹 Deleting account for user: ${user.uid}');
+
+        try {
+          // IMPORTANT: Clean up Firestore data FIRST while user is still authenticated
+          await authService.deleteUserData(user.uid);
+          debugPrint('✅ Firestore data cleanup completed');
+
+          // THEN delete the Firebase Auth account
+          await user.delete();
+          debugPrint('✅ Firebase Auth account deleted');
+
+        } catch (e) {
+          debugPrint('❌ Error during account deletion: $e');
+
+          // If Firestore cleanup fails but auth deletion succeeds,
+          // we might have orphaned data, but that's better than a broken state
+          rethrow;
+        }
+      } else {
+        debugPrint('⚠️ No user found to delete');
+      }
+
+      return true;
+    });
+  }
+
   // Send email verification
   Future<bool> sendEmailVerification() async {
     return _executeAuthOperation(() async {

@@ -260,5 +260,13 @@
   "scroll_to_form": "下にスクロールしてお問い合わせフォームに記入",
   "call_us_at": "お電話でのお問い合わせ：",
   "close": "閉じる",
-  "message_sent_successfully": "メッセージが正常に送信されました！間もなくご返信いたします。"
+  "message_sent_successfully": "メッセージが正常に送信されました！間もなくご返信いたします。",
+  "personal_intents": "Personal Intents",
+  "customize_your_experience": "Customize Your Experience",
+  "personal_intents_description": "Select your interests to personalize your fitness journey. Your dashboard will be tailored to match your selected preferences.",
+  "select_your_intents": "Select Your Intents",
+  "save_changes": "Save Changes",
+  "personal_intents_updated": "Personal intents updated successfully",
+  "dashboard_will_update": "Dashboard will refresh",
+  "error_updating_preferences": "Error updating preferences: {error}"
 }

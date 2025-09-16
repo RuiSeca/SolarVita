@@ -9,6 +9,7 @@ import 'account/privacy_screen.dart';
 import 'preferences/workout_preferences_screen.dart';
 import 'preferences/dietary_preferences_screen.dart';
 import 'preferences/sustainability_goals_screen.dart';
+import 'preferences/personal_intent_preferences_screen.dart';
 import 'app/language_screen.dart';
 import 'app/help_support_screen.dart';
 import 'feed/feed_layout_screen.dart';
@@ -153,6 +154,17 @@ class SettingsMainScreen extends ConsumerWidget {
 
   Widget _buildFeedContentSettings(BuildContext context) {
     final feedItems = [
+      {
+        'icon': Icons.psychology_rounded,
+        'title': tr(context, 'personal_intents'),
+        'subtitle': tr(context, 'customize_dashboard_experience'),
+        'onTap': () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PersonalIntentPreferencesScreen(),
+          ),
+        ),
+      },
       {
         'icon': Icons.feed_rounded,
         'title': tr(context, 'feed'),

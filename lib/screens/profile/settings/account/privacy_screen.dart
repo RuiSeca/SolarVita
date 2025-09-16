@@ -1325,29 +1325,38 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
             children: [
               const LottieLoadingWidget(),
               const SizedBox(width: 16),
-              Text(
-                tr(context, 'deleting_account'),
-                style: TextStyle(color: AppTheme.textColor(context)),
+              Expanded(
+                child: Text(
+                  tr(context, 'deleting_account'),
+                  style: TextStyle(color: AppTheme.textColor(context)),
+                ),
               ),
             ],
           ),
         ),
       );
 
-      // Here you would implement account deletion
-      // For now, we'll just sign out
-      await authProvider.signOut();
+      // Properly delete the account with all Firestore data cleanup
+      await authProvider.deleteAccount();
 
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
         Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(tr(context, 'account_deleted_successfully')),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(tr(context, 'error_deleting_account')),
+            content: Text(tr(context, 'error_deleting_account').replaceAll('{error}', '$e')),
             backgroundColor: Colors.red,
           ),
         );

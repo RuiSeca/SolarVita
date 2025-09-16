@@ -23,6 +23,57 @@ class StrikeCalculationService {
   final DailyStatsService _dailyStatsService = DailyStatsService();
   Timer? _midnightTimer;
 
+  // Current user ID for user-specific cache keys
+  String? _currentUserId;
+
+  // Helper method to get user-specific cache keys
+  String _getUserSpecificKey(String baseKey) {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) {
+      return baseKey; // Fallback to non-user-specific key if no user
+    }
+    return '${baseKey}_$userId';
+  }
+
+  // Clear cache when user changes
+  Future<void> clearCacheForUser(String? userId) async {
+    if (userId == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Clear user-specific keys for the previous user
+      await prefs.remove('${_userProgressKey}_$userId');
+      await prefs.remove('${_lastCheckDateKey}_$userId');
+      await prefs.remove('${_yesterdayGoalsKey}_$userId');
+
+      log.info('🧹 Cleared cached data for user: $userId');
+    } catch (e) {
+      log.warning('⚠️ Failed to clear cache for user $userId: $e');
+    }
+  }
+
+  // Reset service for new user
+  Future<void> resetForNewUser() async {
+    // Cancel any existing timers
+    _midnightTimer?.cancel();
+    _midnightTimer = null;
+
+    // Reset current user ID
+    final newUserId = _auth.currentUser?.uid;
+    if (_currentUserId != null && _currentUserId != newUserId) {
+      // Clear cache for previous user
+      await clearCacheForUser(_currentUserId);
+    }
+
+    _currentUserId = newUserId;
+
+    // Re-initialize for new user
+    await initialize();
+
+    log.info('🔄 Strike calculation service reset for new user: $newUserId');
+  }
+
   StrikeCalculationService(this._notificationsPlugin);
 
   // Initialize the service and set up midnight reset
@@ -41,7 +92,7 @@ class StrikeCalculationService {
   // Check if we missed any days and reset strikes if needed
   Future<void> _checkForMissedDays() async {
     final prefs = await SharedPreferences.getInstance();
-    final lastCheckDateStr = prefs.getString(_lastCheckDateKey);
+    final lastCheckDateStr = prefs.getString(_getUserSpecificKey(_lastCheckDateKey));
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
 
@@ -56,7 +107,7 @@ class StrikeCalculationService {
         
         // Before resetting, check if yesterday's goals were completed
         // Only reset if user truly missed days without completing any goals
-        final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
+        final yesterdayGoalsJson = prefs.getString(_getUserSpecificKey(_yesterdayGoalsKey));
         bool shouldReset = true;
         
         if (yesterdayGoalsJson != null) {
@@ -84,7 +135,7 @@ class StrikeCalculationService {
     }
 
     // Update last check date
-    await prefs.setString(_lastCheckDateKey, todayDateOnly.toIso8601String());
+    await prefs.setString(_getUserSpecificKey(_lastCheckDateKey), todayDateOnly.toIso8601String());
   }
 
   // Schedule midnight reset timer
@@ -137,8 +188,8 @@ class StrikeCalculationService {
     
     // 2. Fallback to local saved yesterday goals
     if (yesterdayGoals.isEmpty) {
-      final yesterdayGoalsJson = prefs.getString(_yesterdayGoalsKey);
-      log.info('🔍 LOCAL FALLBACK - Checking local yesterday goals key: $_yesterdayGoalsKey');
+      final yesterdayGoalsJson = prefs.getString(_getUserSpecificKey(_yesterdayGoalsKey));
+      log.info('🔍 LOCAL FALLBACK - Checking local yesterday goals key: ${_getUserSpecificKey(_yesterdayGoalsKey)}');
       if (yesterdayGoalsJson != null) {
         try {
           yesterdayGoals = Map<String, bool>.from(json.decode(yesterdayGoalsJson));
@@ -180,7 +231,7 @@ class StrikeCalculationService {
     // Save today's goals as yesterday's goals for tomorrow's check
     try {
       await prefs.setString(
-        _yesterdayGoalsKey,
+        _getUserSpecificKey(_yesterdayGoalsKey),
         json.encode(progress.todayGoalsCompleted),
       );
       log.info('💾 Saved today\'s goals for tomorrow\'s check: ${progress.todayGoalsCompleted}');
@@ -195,7 +246,7 @@ class StrikeCalculationService {
     // Update last check date after successful midnight reset
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
-    await prefs.setString(_lastCheckDateKey, todayDateOnly.toIso8601String());
+    await prefs.setString(_getUserSpecificKey(_lastCheckDateKey), todayDateOnly.toIso8601String());
   }
 
   // Calculate strikes based on current health data
@@ -298,7 +349,7 @@ class StrikeCalculationService {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
-          _yesterdayGoalsKey,
+          _getUserSpecificKey(_yesterdayGoalsKey),
           json.encode(updatedProgress.todayGoalsCompleted),
         );
         
@@ -413,7 +464,7 @@ class StrikeCalculationService {
   // Get user progress from storage with Firestore backup/verification
   Future<UserProgress> getUserProgress() async {
     final prefs = await SharedPreferences.getInstance();
-    final progressJson = prefs.getString(_userProgressKey);
+    final progressJson = prefs.getString(_getUserSpecificKey(_userProgressKey));
 
     UserProgress localProgress;
     if (progressJson != null) {
@@ -442,7 +493,7 @@ class StrikeCalculationService {
           localProgress = firestoreProgress;
           
           // Update local storage with Firestore data
-          await prefs.setString(_userProgressKey, json.encode(firestoreProgress.toJson()));
+          await prefs.setString(_getUserSpecificKey(_userProgressKey), json.encode(firestoreProgress.toJson()));
         } else {
           log.info('✅ Local data is current: ${localProgress.totalStrikes} total strikes, ${localProgress.currentStrikes} current strikes');
         }
@@ -629,7 +680,7 @@ class StrikeCalculationService {
   Future<void> _saveUserProgress(UserProgress progress) async {
     final prefs = await SharedPreferences.getInstance();
     final progressJson = json.encode(progress.toJson());
-    await prefs.setString(_userProgressKey, progressJson);
+    await prefs.setString(_getUserSpecificKey(_userProgressKey), progressJson);
 
     // Sync to Firebase for supporters to see
     await DataSyncService().syncUserProgress(progress);
@@ -669,7 +720,7 @@ class StrikeCalculationService {
     try {
       // Save progress first
       final progressJson = json.encode(progress.toJson());
-      await prefs.setString(_userProgressKey, progressJson);
+      await prefs.setString(_getUserSpecificKey(_userProgressKey), progressJson);
 
       // Save health data if provided
       if (healthDataKey != null && healthDataValue != null) {
@@ -677,7 +728,7 @@ class StrikeCalculationService {
       }
 
       // Verify both saves succeeded
-      final savedProgress = prefs.getString(_userProgressKey);
+      final savedProgress = prefs.getString(_getUserSpecificKey(_userProgressKey));
       if (savedProgress == null) {
         throw Exception('Progress save failed');
       }
@@ -697,7 +748,7 @@ class StrikeCalculationService {
       try {
         // Restore original progress
         final originalJson = json.encode(originalProgress.toJson());
-        await prefs.setString(_userProgressKey, originalJson);
+        await prefs.setString(_getUserSpecificKey(_userProgressKey), originalJson);
 
         // Restore original health data if it existed
         if (healthDataKey != null && originalHealthData != null) {

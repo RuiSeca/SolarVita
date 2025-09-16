@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:crypto/crypto.dart';
@@ -402,13 +403,61 @@ class AuthService {
   String? get userEmail => _auth.currentUser?.email;
   String? get userPhotoURL => _auth.currentUser?.photoURL;
 
-  /// Deletes user data from Firestore when account is incomplete
+  /// Deletes user data from Firestore when account is incomplete or deleted
   Future<void> deleteUserData(String uid) async {
     try {
-      // If you have Firestore integration, add cleanup here
-      // Example:
-      // await FirebaseFirestore.instance.collection('users').doc(uid).delete();
-      // await FirebaseFirestore.instance.collection('user_profiles').doc(uid).delete();
+      final firestore = FirebaseFirestore.instance;
+
+      _logger.info('Starting user data cleanup for uid: $uid');
+
+      // Delete supporter requests (both sent and received)
+      final supporterRequestsQuery1 = await firestore
+          .collection('supporterRequests')
+          .where('requesterId', isEqualTo: uid)
+          .get();
+
+      final supporterRequestsQuery2 = await firestore
+          .collection('supporterRequests')
+          .where('receiverId', isEqualTo: uid)
+          .get();
+
+      // Delete all supporter requests
+      final batch = firestore.batch();
+      for (final doc in [...supporterRequestsQuery1.docs, ...supporterRequestsQuery2.docs]) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete user profile data
+      batch.delete(firestore.collection('users').doc(uid));
+      batch.delete(firestore.collection('user_profiles').doc(uid));
+
+      // Delete any activities by this user
+      final activitiesQuery = await firestore
+          .collection('activities')
+          .where('userId', isEqualTo: uid)
+          .get();
+
+      for (final doc in activitiesQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      // Delete any chat messages
+      final chatMessagesQuery1 = await firestore
+          .collection('chatMessages')
+          .where('senderId', isEqualTo: uid)
+          .get();
+
+      final chatMessagesQuery2 = await firestore
+          .collection('chatMessages')
+          .where('receiverId', isEqualTo: uid)
+          .get();
+
+      for (final doc in [...chatMessagesQuery1.docs, ...chatMessagesQuery2.docs]) {
+        batch.delete(doc.reference);
+      }
+
+      // Commit all deletions
+      await batch.commit();
 
       _logger.info('User data cleanup completed for uid: $uid');
     } catch (e) {

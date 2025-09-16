@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../services/user/strike_calculation_service.dart';
 import '../../services/database/notification_service.dart';
 import '../../models/user/user_progress.dart';
 import '../../models/health/health_data.dart';
+import 'auth_provider.dart';
 
 // Strike calculation service provider
 final strikeCalculationServiceProvider = Provider<StrikeCalculationService>((
@@ -18,13 +20,34 @@ final strikeCalculationServiceProvider = Provider<StrikeCalculationService>((
 class UserProgressNotifier extends AsyncNotifier<UserProgress> {
   late StrikeCalculationService _strikeService;
   Timer? _periodicUpdateTimer;
+  String? _lastUserId;
 
   @override
   Future<UserProgress> build() async {
     _strikeService = ref.read(strikeCalculationServiceProvider);
 
+    // Listen to auth state changes and reset service when user changes
+    ref.listen<AsyncValue<User?>>(authStateChangesProvider, (previous, next) {
+      next.whenData((user) async {
+        final currentUserId = user?.uid;
+
+        if (_lastUserId != null && _lastUserId != currentUserId) {
+          // User changed - reset the service
+          await _strikeService.resetForNewUser();
+
+          // Refresh the provider state
+          ref.invalidateSelf();
+        }
+
+        _lastUserId = currentUserId;
+      });
+    });
+
     // Initialize the strike service
     await _strikeService.initialize();
+
+    // Set current user ID
+    _lastUserId = FirebaseAuth.instance.currentUser?.uid;
 
     // Set up periodic updates every 5 minutes
     _setupPeriodicUpdates();

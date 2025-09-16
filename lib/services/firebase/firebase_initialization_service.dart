@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+// import 'package:firebase_app_check/firebase_app_check.dart'; // Disabled due to attestation issues
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -33,8 +33,8 @@ class FirebaseInitializationService {
       );
       log.info('✅ Firebase Core initialized');
 
-      // Initialize Firebase App Check for security
-      await _initializeAppCheck();
+      // Initialize Firebase App Check for security (disabled for now due to attestation issues)
+      // await _initializeAppCheck();
       
       // Configure Firestore settings
       await _configureFirestore();
@@ -53,28 +53,6 @@ class FirebaseInitializationService {
     }
   }
 
-  /// Initialize Firebase App Check for security
-  static Future<void> _initializeAppCheck() async {
-    try {
-      log.info('🔐 Initializing Firebase App Check...');
-      
-      await FirebaseAppCheck.instance.activate(
-        // Use debug provider for development, reCAPTCHA for web
-        webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
-        androidProvider: kDebugMode
-            ? AndroidProvider.debug
-            : AndroidProvider.playIntegrity,
-        appleProvider: kDebugMode
-            ? AppleProvider.debug
-            : AppleProvider.appAttest,
-      );
-      
-      log.info('✅ Firebase App Check initialized');
-    } catch (e) {
-      log.warning('⚠️ Firebase App Check initialization failed: $e');
-      // Don't throw - App Check is not critical for basic functionality
-    }
-  }
 
   /// Configure Firestore settings
   static Future<void> _configureFirestore() async {

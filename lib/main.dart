@@ -18,6 +18,7 @@ import 'services/avatars/avatar_config_loader.dart';
 import 'services/firebase/firebase_initialization_service.dart';
 import 'services/translation/firebase_translation_service.dart';
 import 'services/database/story_service.dart';
+import 'services/user/user_cache_manager.dart';
 
 // Import your existing screens
 import 'screens/login/login_screen.dart';
@@ -75,6 +76,14 @@ void main() async {
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
+
+  // Initialize user cache manager for proper account switching
+  try {
+    UserCacheManager().initialize();
+    debugPrint('User cache manager initialized successfully');
+  } catch (e, st) {
+    debugPrint('User cache manager initialization failed: $e\n$st');
+  }
 
   try {
     // Initialize Firebase using our comprehensive initialization service
@@ -254,23 +263,78 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
     // Always show video splash immediately, regardless of initialization status
     if (showSplash || initState.status == InitializationStatus.initializing) {
       debugPrint('🎬 Showing splash screen - showSplash: $showSplash, initStatus: ${initState.status}');
-      return MaterialApp(
-        title: 'SolarVita',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        home: VideoSplashScreen(
-          onVideoEnd: () {
-            debugPrint('🎬 Video ended - initStatus: ${initState.status}');
-            // Only allow transition if initialization is complete
-            if (initState.status == InitializationStatus.completed) {
-              debugPrint('🎬 Completing splash screen');
-              ref.read(splashNotifierProvider.notifier).completeSplash();
-            } else {
-              debugPrint('🎬 Waiting for initialization to complete...');
-            }
-          },
-          duration: const Duration(seconds: 4), // Extended to ensure smooth init
+
+      // Get locale and supported languages for splash screen localization
+      final localeAsync = ref.watch(languageNotifierProvider);
+      final supportedLanguages = ref.watch(supportedLanguagesProvider);
+
+      return localeAsync.when(
+        data: (locale) {
+          return MaterialApp(
+            title: 'SolarVita',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            locale: locale,
+            supportedLocales: supportedLanguages
+                .map((lang) => Locale(lang.code))
+                .toList(),
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            localeResolutionCallback: (systemLocale, supportedLocales) {
+              // If system locale is supported, use it
+              if (systemLocale != null) {
+                final languageCode = systemLocale.languageCode;
+                for (final supportedLocale in supportedLocales) {
+                  if (supportedLocale.languageCode == languageCode) {
+                    debugPrint('🌍 Splash locale resolution: Using $languageCode (system locale match)');
+                    return supportedLocale;
+                  }
+                }
+              }
+
+              // Fallback to English
+              debugPrint('🌍 Splash locale resolution: Falling back to English');
+              return const Locale('en');
+            },
+            home: VideoSplashScreen(
+              onVideoEnd: () {
+                debugPrint('🎬 Video ended - initStatus: ${initState.status}');
+                // Only allow transition if initialization is complete
+                if (initState.status == InitializationStatus.completed) {
+                  debugPrint('🎬 Completing splash screen');
+                  ref.read(splashNotifierProvider.notifier).completeSplash();
+                } else {
+                  debugPrint('🎬 Waiting for initialization to complete...');
+                }
+              },
+              duration: const Duration(seconds: 4), // Extended to ensure smooth init
+            ),
+          );
+        },
+        loading: () => MaterialApp(
+          title: 'SolarVita',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          home: const Scaffold(
+            backgroundColor: Colors.black, // Match splash screen
+            body: SizedBox.shrink(), // Invisible loading
+          ),
+        ),
+        error: (error, stack) => MaterialApp(
+          title: 'SolarVita',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          home: const Scaffold(
+            backgroundColor: Colors.black, // Match splash screen
+            body: SizedBox.shrink(), // Invisible error state
+          ),
         ),
       );
     }

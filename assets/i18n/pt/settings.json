@@ -260,5 +260,13 @@
   "scroll_to_form": "Role para baixo para preencher o formulário de contato",
   "call_us_at": "Ligue para nós:",
   "close": "Fechar",
-  "message_sent_successfully": "Sua mensagem foi enviada com sucesso! Entraremos em contato em breve."
+  "message_sent_successfully": "Sua mensagem foi enviada com sucesso! Entraremos em contato em breve.",
+  "personal_intents": "Intenções Pessoais",
+  "customize_your_experience": "Personalize Sua Experiência",
+  "personal_intents_description": "Selecione seus interesses para personalizar sua jornada fitness. Seu painel será adaptado para corresponder às suas preferências selecionadas.",
+  "select_your_intents": "Selecione Suas Intenções",
+  "save_changes": "Salvar Alterações",
+  "personal_intents_updated": "Intenções pessoais atualizadas com sucesso",
+  "dashboard_will_update": "Painel será atualizado",
+  "error_updating_preferences": "Erro ao atualizar preferências: {error}"
 }

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
 
 class UserProfile {
   final String uid;
@@ -22,6 +23,9 @@ class UserProfile {
   final int followingCount;
   final int postsCount;
   final List<String> interests;
+  final Set<IntentType> selectedIntents;
+  final String? gender;
+  final int? age;
   final Map<String, dynamic> additionalData;
 
   UserProfile({
@@ -46,6 +50,9 @@ class UserProfile {
     this.followingCount = 0,
     this.postsCount = 0,
     this.interests = const [],
+    this.selectedIntents = const {},
+    this.gender,
+    this.age,
     this.additionalData = const {},
   });
 
@@ -73,6 +80,11 @@ class UserProfile {
       followingCount: data['followingCount'] ?? 0,
       postsCount: data['postsCount'] ?? 0,
       interests: List<String>.from(data['interests'] ?? []),
+      selectedIntents: (data['selectedIntents'] as List<dynamic>?)
+          ?.map((e) => IntentType.values.firstWhere((v) => v.name == e.toString()))
+          .toSet() ?? {},
+      gender: data['gender'],
+      age: data['age'],
       additionalData: Map<String, dynamic>.from(data['additionalData'] ?? {}),
     );
   }
@@ -99,6 +111,9 @@ class UserProfile {
       'followingCount': followingCount,
       'postsCount': postsCount,
       'interests': interests,
+      'selectedIntents': selectedIntents.map((e) => e.name).toList(),
+      'gender': gender,
+      'age': age,
       'additionalData': additionalData,
     };
   }
@@ -126,6 +141,9 @@ class UserProfile {
       'followingCount': followingCount,
       'postsCount': postsCount,
       'interests': interests,
+      'selectedIntents': selectedIntents.map((e) => e.name).toList(),
+      'gender': gender,
+      'age': age,
       'additionalData': additionalData,
     };
   }
@@ -161,6 +179,11 @@ class UserProfile {
       followingCount: map['followingCount'] ?? 0,
       postsCount: map['postsCount'] ?? 0,
       interests: List<String>.from(map['interests'] ?? []),
+      selectedIntents: (map['selectedIntents'] as List<dynamic>?)
+          ?.map((e) => IntentType.values.firstWhere((v) => v.name == e.toString()))
+          .toSet() ?? {},
+      gender: map['gender'],
+      age: map['age'],
       additionalData: Map<String, dynamic>.from(map['additionalData'] ?? {}),
     );
   }
@@ -185,6 +208,9 @@ class UserProfile {
     int? followingCount,
     int? postsCount,
     List<String>? interests,
+    Set<IntentType>? selectedIntents,
+    String? gender,
+    int? age,
     Map<String, dynamic>? additionalData,
   }) {
     return UserProfile(
@@ -209,6 +235,9 @@ class UserProfile {
       followingCount: followingCount ?? this.followingCount,
       postsCount: postsCount ?? this.postsCount,
       interests: interests ?? this.interests,
+      selectedIntents: selectedIntents ?? this.selectedIntents,
+      gender: gender ?? this.gender,
+      age: age ?? this.age,
       additionalData: additionalData ?? this.additionalData,
     );
   }

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:logging/logging.dart';
 import '../../models/store/coin_economy.dart';
 import '../../models/store/avatar_item.dart';
+import '../user/user_cache_manager.dart';
 
 final log = Logger('CoinRepository');
 
@@ -32,7 +33,7 @@ class CoinRepository {
 
     // Fallback to local storage
     final prefs = await SharedPreferences.getInstance();
-    final balanceJson = prefs.getString(_coinBalanceKey);
+    final balanceJson = prefs.getString(UserCacheManager.getUserSpecificKey(_coinBalanceKey));
     
     if (balanceJson != null) {
       try {
@@ -77,7 +78,7 @@ class CoinRepository {
     try {
       final prefs = await SharedPreferences.getInstance();
       final balanceJson = json.encode(balance.toJson());
-      await prefs.setString(_coinBalanceKey, balanceJson);
+      await prefs.setString(UserCacheManager.getUserSpecificKey(_coinBalanceKey), balanceJson);
     } catch (e) {
       log.warning('⚠️ Failed to save coin balance locally: $e');
     }
@@ -225,7 +226,7 @@ class CoinRepository {
       final prefs = await SharedPreferences.getInstance();
       
       // Get existing transactions
-      final historyJson = prefs.getString(_transactionHistoryKey) ?? '[]';
+      final historyJson = prefs.getString(UserCacheManager.getUserSpecificKey(_transactionHistoryKey)) ?? '[]';
       final historyList = json.decode(historyJson) as List<dynamic>;
       
       // Add new transaction
@@ -237,7 +238,7 @@ class CoinRepository {
       }
       
       // Save updated history
-      await prefs.setString(_transactionHistoryKey, json.encode(historyList));
+      await prefs.setString(UserCacheManager.getUserSpecificKey(_transactionHistoryKey), json.encode(historyList));
     } catch (e) {
       log.warning('⚠️ Failed to record transaction locally: $e');
     }
@@ -275,7 +276,7 @@ class CoinRepository {
     // Fallback to local storage
     try {
       final prefs = await SharedPreferences.getInstance();
-      final historyJson = prefs.getString(_transactionHistoryKey) ?? '[]';
+      final historyJson = prefs.getString(UserCacheManager.getUserSpecificKey(_transactionHistoryKey)) ?? '[]';
       final historyList = json.decode(historyJson) as List<dynamic>;
       
       final transactions = historyList
@@ -318,8 +319,8 @@ class CoinRepository {
     try {
       // Clear local storage
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_coinBalanceKey);
-      await prefs.remove(_transactionHistoryKey);
+      await prefs.remove(UserCacheManager.getUserSpecificKey(_coinBalanceKey));
+      await prefs.remove(UserCacheManager.getUserSpecificKey(_transactionHistoryKey));
       
       // Clear Firestore data
       final user = _auth.currentUser;

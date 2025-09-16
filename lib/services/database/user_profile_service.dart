@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../models/user/user_profile.dart';
+import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
 
 class UserProfileService {
   static final UserProfileService _instance = UserProfileService._internal();
@@ -272,6 +273,35 @@ class UserProfileService {
       return updatedProfile;
     } catch (e) {
       throw Exception('Failed to update dietary preferences');
+    }
+  }
+
+  Future<UserProfile> updatePersonalIntents(
+    String uid,
+    Set<IntentType> intents,
+  ) async {
+    try {
+      final profile = await getUserProfile(uid);
+      if (profile == null) {
+        throw Exception('User profile not found');
+      }
+
+      final updatedProfile = profile.copyWith(
+        selectedIntents: intents,
+        lastUpdated: DateTime.now(),
+      );
+
+      await _firestore
+          .collection(_usersCollection)
+          .doc(uid)
+          .update(updatedProfile.toFirestore());
+
+      // Clear cache to ensure fresh data on next read
+      clearCache();
+
+      return updatedProfile;
+    } catch (e) {
+      throw Exception('Failed to update personal intents: $e');
     }
   }
 

@@ -260,5 +260,13 @@
   "scroll_to_form": "Desplázate hacia abajo para llenar el formulario de contacto",
   "call_us_at": "Llámanos al:",
   "close": "Cerrar",
-  "message_sent_successfully": "¡Tu mensaje ha sido enviado exitosamente! Te responderemos pronto."
+  "message_sent_successfully": "¡Tu mensaje ha sido enviado exitosamente! Te responderemos pronto.",
+  "personal_intents": "Intenciones Personales",
+  "customize_your_experience": "Personaliza Tu Experiencia",
+  "personal_intents_description": "Selecciona tus intereses para personalizar tu viaje fitness. Tu panel se adaptará para coincidir con tus preferencias seleccionadas.",
+  "select_your_intents": "Selecciona Tus Intenciones",
+  "save_changes": "Guardar Cambios",
+  "personal_intents_updated": "Intenciones personales actualizadas exitosamente",
+  "dashboard_will_update": "El panel se actualizará",
+  "error_updating_preferences": "Error actualizando preferencias: {error}"
 }

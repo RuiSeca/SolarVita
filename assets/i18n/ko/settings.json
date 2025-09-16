@@ -260,5 +260,13 @@
   "scroll_to_form": "아래로 스크롤하여 문의 양식 작성",
   "call_us_at": "전화 문의:",
   "close": "닫기",
-  "message_sent_successfully": "메시지가 성공적으로 전송되었습니다! 곧 답변을 드리겠습니다."
+  "message_sent_successfully": "메시지가 성공적으로 전송되었습니다! 곧 답변을 드리겠습니다.",
+  "personal_intents": "Personal Intents",
+  "customize_your_experience": "Customize Your Experience",
+  "personal_intents_description": "Select your interests to personalize your fitness journey. Your dashboard will be tailored to match your selected preferences.",
+  "select_your_intents": "Select Your Intents",
+  "save_changes": "Save Changes",
+  "personal_intents_updated": "Personal intents updated successfully",
+  "dashboard_will_update": "Dashboard will refresh",
+  "error_updating_preferences": "Error updating preferences: {error}"
 }

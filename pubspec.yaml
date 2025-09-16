@@ -120,6 +120,78 @@ flutter:
     # Dashboard and Auth Images
     - assets/images/google_logo.jpg
 
+    # Dynamic Dashboard Images (explicit file references)
+    # Eco Images - Male
+    - assets/images/dashboard/Eco/Male/bike.webp
+    - assets/images/dashboard/Eco/Male/bottle-recycle.webp
+    - assets/images/dashboard/Eco/Male/cycling.webp
+    - assets/images/dashboard/Eco/Male/globe-couple.webp
+    - assets/images/dashboard/Eco/Male/hiking-climb-up-mountain.webp
+
+    # Eco Images - Female
+    - assets/images/dashboard/Eco/Female/bike.webp
+    - assets/images/dashboard/Eco/Female/bottle-recycle.webp
+    - assets/images/dashboard/Eco/Female/eldery-fitness-smile.webp
+    - assets/images/dashboard/Eco/Female/female-nature-exercise.webp
+    - assets/images/dashboard/Eco/Female/globe-couple.webp
+
+    # Eco Images - Mixed
+    - assets/images/dashboard/Eco/Mixed/bike.webp
+    - assets/images/dashboard/Eco/Mixed/bottle-recycle.webp
+    - assets/images/dashboard/Eco/Mixed/globe-couple.webp
+
+    # Fitness Images - Male
+    - assets/images/dashboard/Fitness/Male/abs.webp
+    - assets/images/dashboard/Fitness/Male/bro.webp
+    - assets/images/dashboard/Fitness/Male/gym-man.webp
+    - assets/images/dashboard/Fitness/Male/hiit.webp
+    - assets/images/dashboard/Fitness/Male/weigh-lift.webp
+
+    # Fitness Images - Female
+    - assets/images/dashboard/Fitness/Female/abs.webp
+    - assets/images/dashboard/Fitness/Female/determined-smiling-young-woman.webp
+    - assets/images/dashboard/Fitness/Female/legpress.webp
+    - assets/images/dashboard/Fitness/Female/pillates.webp
+    - assets/images/dashboard/Fitness/Female/young-athletic-woman-exercising.webp
+
+    # Fitness Images - Mixed
+    - assets/images/dashboard/Fitness/Mixed/abs.webp
+    - assets/images/dashboard/Fitness/Mixed/determined-smiling-young-woman.webp
+    - assets/images/dashboard/Fitness/Mixed/hiit.webp
+    - assets/images/dashboard/Fitness/Mixed/jump.webp
+    - assets/images/dashboard/Fitness/Mixed/rope.webp
+
+    # Nutrition Images
+    - assets/images/dashboard/Nutrition/mixed/black-girl-smile-pear.webp
+    - assets/images/dashboard/Nutrition/mixed/black-white-sharing.webp
+    - assets/images/dashboard/Nutrition/mixed/burger-healthy.webp
+    - assets/images/dashboard/Nutrition/mixed/mixed-people-healthy.webp
+    - assets/images/dashboard/Nutrition/mixed/mum-daughther-cooking.webp
+    - assets/images/dashboard/Nutrition/mixed/shooping.webp
+
+    # Mindfulness Images
+    - assets/images/dashboard/Mindfullness/mixed/mediation-couple-black.webp
+    - assets/images/dashboard/Mindfullness/mixed/mediation-couple.webp
+    - assets/images/dashboard/Mindfullness/mixed/mediation-inside.webp
+    - assets/images/dashboard/Mindfullness/mixed/mediation-outdoor.webp
+    - assets/images/dashboard/Mindfullness/mixed/mediation-sunset.webp
+    - assets/images/dashboard/Mindfullness/mixed/mediation.webp
+
+    # Community Images
+    - assets/images/dashboard/Community/community-message.webp
+    - assets/images/dashboard/Community/community-play.webp
+    - assets/images/dashboard/Community/eldery-community.webp
+    - assets/images/dashboard/Community/mixed-community.webp
+    - assets/images/dashboard/Community/run-community.webp
+    - assets/images/dashboard/Community/silhouette-of-climbers-who-climb.webp
+
+    # Adventure Images
+    - assets/images/dashboard/Adventure/Mixed/dog-friend.webp
+    - assets/images/dashboard/Adventure/Mixed/mountain-couple.webp
+    - assets/images/dashboard/Adventure/Mixed/mountain-man.webp
+    - assets/images/dashboard/Adventure/Mixed/mountain-women.webp
+    - assets/images/dashboard/Adventure/Mixed/sunsuet-adventure.webp
+
     # ==========
     # Search Section
     - assets/images/search/yoga_sessions/

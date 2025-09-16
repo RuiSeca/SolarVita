@@ -259,5 +259,13 @@
   "scroll_to_form": "Scorri in basso per compilare il modulo di contatto",
   "call_us_at": "Chiamaci al:",
   "close": "Chiudi",
-  "message_sent_successfully": "Il tuo messaggio è stato inviato con successo! Ti risponderemo presto."
+  "message_sent_successfully": "Il tuo messaggio è stato inviato con successo! Ti risponderemo presto.",
+  "personal_intents": "Personal Intents",
+  "customize_your_experience": "Customize Your Experience",
+  "personal_intents_description": "Select your interests to personalize your fitness journey. Your dashboard will be tailored to match your selected preferences.",
+  "select_your_intents": "Select Your Intents",
+  "save_changes": "Save Changes",
+  "personal_intents_updated": "Personal intents updated successfully",
+  "dashboard_will_update": "Dashboard will refresh",
+  "error_updating_preferences": "Error updating preferences: {error}"
 }
