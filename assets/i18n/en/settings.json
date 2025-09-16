@@ -263,6 +263,7 @@
   "message_sent_successfully": "Your message has been sent successfully! We'll get back to you soon.",
   "personal_intents": "Personal Intents",
   "customize_your_experience": "Customize Your Experience",
+  "customize_dashboard_experience": "Customize dashboard experience",
   "personal_intents_description": "Select your interests to personalize your fitness journey. Your dashboard will be tailored to match your selected preferences.",
   "select_your_intents": "Select Your Intents",
   "save_changes": "Save Changes",

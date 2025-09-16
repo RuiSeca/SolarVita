@@ -263,6 +263,7 @@
   "message_sent_successfully": "¡Tu mensaje ha sido enviado exitosamente! Te responderemos pronto.",
   "personal_intents": "Intenciones Personales",
   "customize_your_experience": "Personaliza Tu Experiencia",
+  "customize_dashboard_experience": "Personaliza la experiencia del panel",
   "personal_intents_description": "Selecciona tus intereses para personalizar tu viaje fitness. Tu panel se adaptará para coincidir con tus preferencias seleccionadas.",
   "select_your_intents": "Selecciona Tus Intenciones",
   "save_changes": "Guardar Cambios",

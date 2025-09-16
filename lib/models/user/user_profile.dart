@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
 
 class UserProfile {
@@ -28,6 +29,18 @@ class UserProfile {
   final int? age;
   final Map<String, dynamic> additionalData;
 
+  // Additional onboarding fields
+  final String? preferredName;
+  final String? pronouns;
+  final String? location;
+  final String? profileImagePath;
+  final String? fitnessLevel;
+  final Set<String> currentEcoHabits;
+  final TimeOfDay? preferredWorkoutTime;
+  final String? preferredWorkoutTimeString;
+  final String? height;
+  final String? weight;
+
   UserProfile({
     required this.uid,
     required this.email,
@@ -54,6 +67,18 @@ class UserProfile {
     this.gender,
     this.age,
     this.additionalData = const {},
+
+    // Additional onboarding fields
+    this.preferredName,
+    this.pronouns,
+    this.location,
+    this.profileImagePath,
+    this.fitnessLevel,
+    this.currentEcoHabits = const {},
+    this.preferredWorkoutTime,
+    this.preferredWorkoutTimeString,
+    this.height,
+    this.weight,
   });
 
   factory UserProfile.fromFirestore(DocumentSnapshot doc) {
@@ -86,6 +111,23 @@ class UserProfile {
       gender: data['gender'],
       age: data['age'],
       additionalData: Map<String, dynamic>.from(data['additionalData'] ?? {}),
+
+      // Additional onboarding fields
+      preferredName: data['preferredName'],
+      pronouns: data['pronouns'],
+      location: data['location'],
+      profileImagePath: data['profileImagePath'],
+      fitnessLevel: data['fitnessLevel'],
+      currentEcoHabits: Set<String>.from(data['currentEcoHabits'] ?? []),
+      preferredWorkoutTime: data['preferredWorkoutTime'] != null
+          ? TimeOfDay(
+              hour: data['preferredWorkoutTime']['hour'] ?? 0,
+              minute: data['preferredWorkoutTime']['minute'] ?? 0,
+            )
+          : null,
+      preferredWorkoutTimeString: data['preferredWorkoutTimeString'],
+      height: data['height'],
+      weight: data['weight'],
     );
   }
 
@@ -115,6 +157,23 @@ class UserProfile {
       'gender': gender,
       'age': age,
       'additionalData': additionalData,
+
+      // Additional onboarding fields
+      'preferredName': preferredName,
+      'pronouns': pronouns,
+      'location': location,
+      'profileImagePath': profileImagePath,
+      'fitnessLevel': fitnessLevel,
+      'currentEcoHabits': currentEcoHabits.toList(),
+      'preferredWorkoutTime': preferredWorkoutTime != null
+          ? {
+              'hour': preferredWorkoutTime!.hour,
+              'minute': preferredWorkoutTime!.minute,
+            }
+          : null,
+      'preferredWorkoutTimeString': preferredWorkoutTimeString,
+      'height': height,
+      'weight': weight,
     };
   }
 
@@ -145,6 +204,23 @@ class UserProfile {
       'gender': gender,
       'age': age,
       'additionalData': additionalData,
+
+      // Additional onboarding fields
+      'preferredName': preferredName,
+      'pronouns': pronouns,
+      'location': location,
+      'profileImagePath': profileImagePath,
+      'fitnessLevel': fitnessLevel,
+      'currentEcoHabits': currentEcoHabits.toList(),
+      'preferredWorkoutTime': preferredWorkoutTime != null
+          ? {
+              'hour': preferredWorkoutTime!.hour,
+              'minute': preferredWorkoutTime!.minute,
+            }
+          : null,
+      'preferredWorkoutTimeString': preferredWorkoutTimeString,
+      'height': height,
+      'weight': weight,
     };
   }
 
@@ -185,6 +261,23 @@ class UserProfile {
       gender: map['gender'],
       age: map['age'],
       additionalData: Map<String, dynamic>.from(map['additionalData'] ?? {}),
+
+      // Additional onboarding fields
+      preferredName: map['preferredName'],
+      pronouns: map['pronouns'],
+      location: map['location'],
+      profileImagePath: map['profileImagePath'],
+      fitnessLevel: map['fitnessLevel'],
+      currentEcoHabits: Set<String>.from(map['currentEcoHabits'] ?? []),
+      preferredWorkoutTime: map['preferredWorkoutTime'] != null
+          ? TimeOfDay(
+              hour: map['preferredWorkoutTime']['hour'] ?? 0,
+              minute: map['preferredWorkoutTime']['minute'] ?? 0,
+            )
+          : null,
+      preferredWorkoutTimeString: map['preferredWorkoutTimeString'],
+      height: map['height'],
+      weight: map['weight'],
     );
   }
 
@@ -212,6 +305,18 @@ class UserProfile {
     String? gender,
     int? age,
     Map<String, dynamic>? additionalData,
+
+    // Additional onboarding fields
+    String? preferredName,
+    String? pronouns,
+    String? location,
+    String? profileImagePath,
+    String? fitnessLevel,
+    Set<String>? currentEcoHabits,
+    TimeOfDay? preferredWorkoutTime,
+    String? preferredWorkoutTimeString,
+    String? height,
+    String? weight,
   }) {
     return UserProfile(
       uid: uid,
@@ -239,8 +344,23 @@ class UserProfile {
       gender: gender ?? this.gender,
       age: age ?? this.age,
       additionalData: additionalData ?? this.additionalData,
+
+      // Additional onboarding fields
+      preferredName: preferredName ?? this.preferredName,
+      pronouns: pronouns ?? this.pronouns,
+      location: location ?? this.location,
+      profileImagePath: profileImagePath ?? this.profileImagePath,
+      fitnessLevel: fitnessLevel ?? this.fitnessLevel,
+      currentEcoHabits: currentEcoHabits ?? this.currentEcoHabits,
+      preferredWorkoutTime: preferredWorkoutTime ?? this.preferredWorkoutTime,
+      preferredWorkoutTimeString: preferredWorkoutTimeString ?? this.preferredWorkoutTimeString,
+      height: height ?? this.height,
+      weight: weight ?? this.weight,
     );
   }
+
+  // Getters for compatibility with onboarding UserProfile
+  String get name => displayName;
 }
 
 class WorkoutPreferences {

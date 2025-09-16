@@ -52,11 +52,16 @@ class _OutroScreenState extends State<OutroScreen> {
 
   void _navigateToDashboard() {
     if (mounted) {
-      // Navigate to main app - remove all onboarding routes
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-        (route) => false,
-      );
+      // Add a small delay to ensure onboarding completion has been processed
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (mounted) {
+          // Navigate to main app - remove all onboarding routes
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/',
+            (route) => false,
+          );
+        }
+      });
     }
   }
 

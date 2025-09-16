@@ -445,9 +445,32 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       dietaryPreferences: dietaryPreferences,
       isOnboardingComplete: true,
       lastUpdated: DateTime.now(),
+      selectedIntents: onboardingUserProfile.selectedIntents ?? currentProfile.selectedIntents,
+      age: onboardingUserProfile.age ?? currentProfile.age,
+      gender: additionalData?['gender'] ?? currentProfile.gender,
+
+      // Additional onboarding fields
+      preferredName: onboardingUserProfile.preferredName ?? currentProfile.preferredName,
+      pronouns: onboardingUserProfile.pronouns ?? currentProfile.pronouns,
+      location: onboardingUserProfile.location ?? currentProfile.location,
+      profileImagePath: onboardingUserProfile.profileImagePath ?? currentProfile.profileImagePath,
+      fitnessLevel: onboardingUserProfile.fitnessLevel?.toString().split('.').last ?? currentProfile.fitnessLevel,
+      currentEcoHabits: onboardingUserProfile.currentEcoHabits?.map((e) => e.toString().split('.').last).toSet().cast<String>() ?? currentProfile.currentEcoHabits,
+      preferredWorkoutTime: onboardingUserProfile.preferredWorkoutTime ?? currentProfile.preferredWorkoutTime,
+      preferredWorkoutTimeString: onboardingUserProfile.preferredWorkoutTimeString ?? currentProfile.preferredWorkoutTimeString,
+      height: additionalData?['height']?.toString() ?? currentProfile.height,
+      weight: additionalData?['weight']?.toString() ?? currentProfile.weight,
     );
 
+    debugPrint('🎯 Completing onboarding - setting isOnboardingComplete to true');
+    debugPrint('🎯 Onboarding data: age=${onboardingUserProfile.age}, fitnessLevel=${onboardingUserProfile.fitnessLevel}');
+    debugPrint('🎯 Additional data: gender=${additionalData?['gender']}, height=${additionalData?['height']}, weight=${additionalData?['weight']}');
+    debugPrint('🎯 Updated profile: ${updatedProfile.email}, onboardingComplete: ${updatedProfile.isOnboardingComplete}');
+    debugPrint('🎯 Final profile data: age=${updatedProfile.age}, gender=${updatedProfile.gender}, height=${updatedProfile.height}, weight=${updatedProfile.weight}');
+
     await updateUserProfile(updatedProfile);
+
+    debugPrint('🎯 Onboarding completion saved to Firebase successfully');
   }
 }
 

@@ -4,13 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../components/animated_waves.dart';
 import '../components/glowing_button.dart';
 import '../services/onboarding_audio_service.dart';
-import '../models/onboarding_models.dart';
+import '../models/onboarding_models.dart' as onboarding_models;
+import '../onboarding_controller.dart';
 import '../../../providers/riverpod/user_profile_provider.dart';
 import '../../../utils/translation_helper.dart';
 import 'outro_screen.dart';
 
 class OnboardingCompletionScreen extends ConsumerStatefulWidget {
-  final UserProfile userProfile;
+  final onboarding_models.UserProfile userProfile;
   final Map<String, dynamic>? additionalData;
 
   const OnboardingCompletionScreen({
@@ -119,13 +120,24 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
     try {
       // Create comprehensive profile with all additional data
       final additionalData = widget.additionalData ?? {};
-      final comprehensiveProfile = widget.userProfile.copyWith(
-        // Add any final fields from additional data if needed
-      );
+
+      // Convert onboarding UserProfile to main UserProfile format
+      final onboardingProfile = widget.userProfile;
 
       // Transfer all onboarding data to main UserProfile and complete onboarding
       final userProfileNotifier = ref.read(userProfileNotifierProvider.notifier);
-      await userProfileNotifier.completeOnboardingWithData(comprehensiveProfile, additionalData);
+      await userProfileNotifier.completeOnboardingWithData(onboardingProfile, additionalData);
+
+      // Wait a moment for the state to propagate
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Update OnboardingController state
+      await OnboardingController.setHasAccount(true);
+      await OnboardingController.completeFirstLaunch();
+
+      // Verify onboarding completion
+      final updatedProfile = ref.read(userProfileNotifierProvider).value;
+      debugPrint('🎯 Post-completion check: onboardingComplete = ${updatedProfile?.isOnboardingComplete}');
 
       // Stop and dispose audio before leaving onboarding
       await _audioService.fadeOutAmbient();
