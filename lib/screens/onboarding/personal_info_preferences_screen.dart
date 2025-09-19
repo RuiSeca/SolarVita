@@ -6,7 +6,8 @@ import 'dart:io';
 import '../../widgets/common/lottie_loading_widget.dart';
 import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
-import 'workout_preferences_screen.dart';
+import 'screens/workout_preferences_screen.dart';
+import '../onboarding/models/onboarding_models.dart' as onboarding_models;
 
 class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
   const PersonalInfoPreferencesScreen({super.key});
@@ -155,7 +156,7 @@ class _PersonalInfoPreferencesScreenState
               _buildPhysicalInfoSection(),
               const SizedBox(height: 24),
               _buildFitnessSection(),
-              const SizedBox(height: 32),
+              const SizedBox(height: 48),
               _buildContinueButton(),
             ],
           ),
@@ -563,10 +564,33 @@ class _PersonalInfoPreferencesScreenState
               .read(userProfileNotifierProvider.notifier)
               .setUserProfile(updatedProfile);
 
+          // Create onboarding UserProfile from the updated data
+          final onboardingProfile = onboarding_models.UserProfile(
+            name: updatedProfile.displayName,
+            username: updatedProfile.username,
+            email: updatedProfile.email,
+            password: '', // Not available in main profile
+            age: int.tryParse(updatedAdditionalData['age']?.toString() ?? '25') ?? 25,
+            fitnessLevel: onboarding_models.FitnessLevel.values.firstWhere(
+              (level) => level.toString().split('.').last == (updatedAdditionalData['activityLevel'] ?? 'beginner'),
+              orElse: () => onboarding_models.FitnessLevel.beginner,
+            ),
+            selectedIntents: updatedProfile.selectedIntents.map((intent) {
+              return onboarding_models.IntentType.values.firstWhere(
+                (type) => type.toString().split('.').last == intent.toString().split('.').last,
+                orElse: () => onboarding_models.IntentType.fitness,
+              );
+            }).toSet(),
+            currentEcoHabits: <onboarding_models.EcoHabit>{},
+            dietaryPreferences: <onboarding_models.DietaryPreference>{},
+          );
+
           // Navigate to workout preferences
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (context) => const WorkoutPreferencesScreen(),
+              builder: (context) => WorkoutPreferencesScreen(
+                userProfile: onboardingProfile,
+              ),
             ),
           );
         }

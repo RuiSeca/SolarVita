@@ -7,7 +7,7 @@ import '../components/onboarding_base_screen.dart';
 import '../services/onboarding_audio_service.dart';
 import '../models/onboarding_models.dart';
 import '../../../utils/translation_helper.dart';
-import 'bio_interests_screen.dart';
+import 'sustainability_goals_onboarding_screen.dart';
 
 class FoodPreferencesScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
@@ -184,7 +184,7 @@ class _FoodPreferencesScreenState extends OnboardingBaseScreenState<FoodPreferen
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
-            BioInterestsScreen(
+            SustainabilityGoalsOnboardingScreen(
           userProfile: updatedProfile,
           foodPreferences: {
             'preferOrganic': _preferOrganic,

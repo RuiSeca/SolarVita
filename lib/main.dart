@@ -23,6 +23,7 @@ import 'services/user/user_cache_manager.dart';
 // Import your existing screens
 import 'screens/login/login_screen.dart';
 import 'screens/onboarding/onboarding_experience.dart';
+import 'screens/onboarding/components/onboarding_base_screen.dart';
 import 'screens/onboarding/services/onboarding_audio_service.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/search/search_screen.dart';
@@ -417,6 +418,35 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
     AsyncValue<UserProfile?> userProfileAsync,
   ) {
     debugPrint('🏠 Building home screen...');
+
+    // Check if onboarding was interrupted during app lifecycle
+    return FutureBuilder<bool>(
+      future: OnboardingBaseScreenState.wasOnboardingInterrupted(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: LottieLoadingWidget(width: 80, height: 80)),
+          );
+        }
+
+        final wasInterrupted = snapshot.data ?? false;
+        if (wasInterrupted) {
+          debugPrint('🏠 → Onboarding was interrupted, forcing login');
+          // Clear the flag and force login
+          OnboardingBaseScreenState.clearOnboardingInterrupted();
+          return const LoginScreen();
+        }
+
+        return _buildHomeScreenFromAuth(ref, authState, userProfileAsync);
+      },
+    );
+  }
+
+  Widget _buildHomeScreenFromAuth(
+    WidgetRef ref,
+    AsyncValue<User?> authState,
+    AsyncValue<UserProfile?> userProfileAsync,
+  ) {
     return authState.when(
       data: (user) {
         debugPrint('🏠 Auth data: user = ${user?.email ?? 'null'}');
@@ -438,6 +468,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
 
             if (!userProfile.isOnboardingComplete) {
               debugPrint('🏠 → Showing OnboardingExperience (incomplete onboarding)');
+              // Clear any interrupted flag since we're starting fresh onboarding
+              OnboardingBaseScreenState.clearOnboardingInterrupted();
               return const OnboardingExperience();
             }
 

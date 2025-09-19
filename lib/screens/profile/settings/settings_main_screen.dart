@@ -119,7 +119,7 @@ class SettingsMainScreen extends ConsumerWidget {
 
             return _buildSettingsTile(
               context,
-              icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              icon: isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
               title: tr(context, 'theme'),
               subtitle: tr(context, 'switch_light_dark_mode'),
               onTap: () => themeNotifier.setThemeMode(

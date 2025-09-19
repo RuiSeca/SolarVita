@@ -12,12 +12,14 @@ import 'workout_timing_screen.dart';
 
 class BioInterestsScreen extends OnboardingBaseScreen {
   final UserProfile userProfile;
-  final Map<String, bool>? foodPreferences;
+  final Map<String, dynamic>? foodPreferences;
+  final Map<String, dynamic>? sustainabilityGoals;
 
   const BioInterestsScreen({
     super.key,
     required this.userProfile,
     this.foodPreferences,
+    this.sustainabilityGoals,
   });
 
   @override
@@ -123,6 +125,7 @@ class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScr
             'bio': _bioController.text.trim(),
             'interests': _selectedInterests.toList(),
             'foodPreferences': widget.foodPreferences ?? {},
+            'sustainabilityGoals': widget.sustainabilityGoals ?? {},
           },
         ),
         transitionDuration: const Duration(milliseconds: 800),

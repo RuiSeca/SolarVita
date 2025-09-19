@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../providers/riverpod/auth_provider.dart';
 import '../../login/login_screen.dart';
@@ -135,6 +136,9 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
       // Get the current user (if any)
       final authNotifier = ref.read(authNotifierProvider.notifier);
 
+      // Clear interrupted flag (user is explicitly exiting)
+      await _setOnboardingInterrupted(false);
+
       // Delete the incomplete user account and any partial data
       await authNotifier.deleteIncompleteAccount();
 
@@ -165,6 +169,9 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
       // Get the current user (if any)
       final authNotifier = ref.read(authNotifierProvider.notifier);
 
+      // Mark that onboarding was interrupted (to prevent auto-resume)
+      await _setOnboardingInterrupted(true);
+
       // Delete the incomplete user account and any partial data
       await authNotifier.deleteIncompleteAccount();
 
@@ -172,6 +179,39 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
     } catch (e) {
       debugPrint('❌ Error during silent onboarding cleanup: $e');
       // Continue silently - no user interaction needed
+    }
+  }
+
+  /// Mark onboarding as interrupted to prevent auto-resume
+  Future<void> _setOnboardingInterrupted(bool interrupted) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('onboarding_interrupted', interrupted);
+      debugPrint('🔄 Onboarding interrupted flag set to: $interrupted');
+    } catch (e) {
+      debugPrint('❌ Error setting onboarding interrupted flag: $e');
+    }
+  }
+
+  /// Check if onboarding was interrupted during app lifecycle
+  static Future<bool> wasOnboardingInterrupted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool('onboarding_interrupted') ?? false;
+    } catch (e) {
+      debugPrint('❌ Error checking onboarding interrupted flag: $e');
+      return false;
+    }
+  }
+
+  /// Clear the onboarding interrupted flag (call when starting fresh onboarding)
+  static Future<void> clearOnboardingInterrupted() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('onboarding_interrupted');
+      debugPrint('🧹 Cleared onboarding interrupted flag');
+    } catch (e) {
+      debugPrint('❌ Error clearing onboarding interrupted flag: $e');
     }
   }
 }

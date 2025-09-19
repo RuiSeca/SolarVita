@@ -208,5 +208,43 @@
   "completion_title": "Benvenuto nel Tuo\nPercorso Fitness!",
   "completion_subtitle": "La tua esperienza fitness personalizzata è pronta.\nIniziamo insieme a costruire abitudini salutari!",
   "start_journey_button": "Inizia il Tuo Percorso",
-  "completion_encouragement": "Ogni viaggio inizia con un singolo passo"
+  "completion_encouragement": "Ogni viaggio inizia con un singolo passo",
+
+  "protect_our_planet": "Proteggi il Nostro Pianeta",
+  "choose_sustainability_goals": "Scegli i tuoi obiettivi ambientali e crea un impatto positivo sul nostro mondo",
+  "continue_to_bio": "Continua a Bio e Interessi",
+  "select_at_least_one_goal": "Seleziona almeno un obiettivo di sostenibilità"
+
+  "sustainability_goals": "Sustainability Goals",
+  "select_sustainability_goals": "Select your sustainability goals",
+  "eco_friendly_activities": "Eco-Friendly Activities", 
+  "select_activities_enjoy": "Select activities you enjoy",
+  "preferred_transport_mode": "Preferred Transport Mode",
+
+  "reduce_carbon_footprint": "Reduce Carbon Footprint",
+  "minimize_waste": "Minimize Waste",
+  "use_renewable_energy": "Use Renewable Energy",
+  "support_local_business": "Support Local Business",
+  "eco-friendly_transportation": "Eco-Friendly Transportation",
+  "sustainable_diet": "Sustainable Diet",
+  "water_conservation": "Water Conservation",
+  "plastic-free_living": "Plastic-Free Living",
+  "energy_efficiency": "Energy Efficiency",
+  "green_exercise": "Green Exercise",
+
+  "outdoor_workouts": "Outdoor Workouts",
+  "cycling": "Cycling",
+  "walking_hiking": "Walking/Hiking",
+  "gardening": "Gardening",
+  "beach_cleanup": "Beach Cleanup",
+  "tree_planting": "Tree Planting",
+  "community_gardens": "Community Gardens",
+  "eco-tours": "Eco-Tours",
+  "nature_photography": "Nature Photography",
+  "wildlife_observation": "Wildlife Observation",
+
+  "walking": "Walking",
+  "public_transport": "Public Transport",
+  "carpooling": "Carpooling",
+  "electric_vehicle": "Electric Vehicle",
 }

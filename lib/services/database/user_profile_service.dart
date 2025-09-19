@@ -80,6 +80,17 @@ class UserProfileService {
   }) async {
     try {
       final now = DateTime.now();
+      final user = _auth.currentUser;
+
+      // Check if this is likely an existing user whose profile was lost
+      // If Firebase Auth user was created more than 1 hour ago, assume they completed onboarding
+      bool isLikelyExistingUser = false;
+      if (user?.metadata.creationTime != null) {
+        final accountAge = now.difference(user!.metadata.creationTime!);
+        isLikelyExistingUser = accountAge.inHours >= 1;
+        debugPrint('👤 Account age: ${accountAge.inHours} hours, treating as existing user: $isLikelyExistingUser');
+      }
+
       final userProfile = UserProfile(
         uid: uid,
         email: email,
@@ -87,7 +98,8 @@ class UserProfileService {
         photoURL: photoURL,
         createdAt: now,
         lastUpdated: now,
-        isOnboardingComplete: false, // New users should go through onboarding
+        // If account is older than 1 hour, assume onboarding was completed
+        isOnboardingComplete: isLikelyExistingUser,
         workoutPreferences: WorkoutPreferences(),
         sustainabilityPreferences: SustainabilityPreferences(),
         diaryPreferences: DiaryPreferences(),

@@ -208,5 +208,43 @@
   "completion_title": "당신의\n피트니스 여정에 오신 것을 환영합니다!",
   "completion_subtitle": "맞춤형 피트니스 경험 준비 완료.\n함께 건강한 습관을 만들어 나가요!",
   "start_journey_button": "여정 시작하기",
-  "completion_encouragement": "모든 여정은 한 걸음부터 시작됩니다"
+  "completion_encouragement": "모든 여정은 한 걸음부터 시작됩니다",
+
+  "protect_our_planet": "우리의 지구를 보호하세요",
+  "choose_sustainability_goals": "환경 목표를 선택하고 우리 세상에 긍정적인 영향을 미치세요",
+  "continue_to_bio": "바이오 및 관심사로 계속",
+  "select_at_least_one_goal": "최소 하나의 지속 가능성 목표를 선택해주세요"
+
+  "sustainability_goals": "Sustainability Goals",
+  "select_sustainability_goals": "Select your sustainability goals",
+  "eco_friendly_activities": "Eco-Friendly Activities", 
+  "select_activities_enjoy": "Select activities you enjoy",
+  "preferred_transport_mode": "Preferred Transport Mode",
+
+  "reduce_carbon_footprint": "Reduce Carbon Footprint",
+  "minimize_waste": "Minimize Waste",
+  "use_renewable_energy": "Use Renewable Energy",
+  "support_local_business": "Support Local Business",
+  "eco-friendly_transportation": "Eco-Friendly Transportation",
+  "sustainable_diet": "Sustainable Diet",
+  "water_conservation": "Water Conservation",
+  "plastic-free_living": "Plastic-Free Living",
+  "energy_efficiency": "Energy Efficiency",
+  "green_exercise": "Green Exercise",
+
+  "outdoor_workouts": "Outdoor Workouts",
+  "cycling": "Cycling",
+  "walking_hiking": "Walking/Hiking",
+  "gardening": "Gardening",
+  "beach_cleanup": "Beach Cleanup",
+  "tree_planting": "Tree Planting",
+  "community_gardens": "Community Gardens",
+  "eco-tours": "Eco-Tours",
+  "nature_photography": "Nature Photography",
+  "wildlife_observation": "Wildlife Observation",
+
+  "walking": "Walking",
+  "public_transport": "Public Transport",
+  "carpooling": "Carpooling",
+  "electric_vehicle": "Electric Vehicle",
 }

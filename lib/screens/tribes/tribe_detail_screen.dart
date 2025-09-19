@@ -29,7 +29,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   final ScrollController _scrollController = ScrollController();
 
   bool _isJoining = false;
-  bool _showFloatingButton = false;
+  bool _showAppBarTitle = false;
   TribeMember? _currentUserMember;
 
   @override
@@ -48,10 +48,11 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   }
 
   void _onScroll() {
-    if (_scrollController.offset > 200 && !_showFloatingButton) {
-      setState(() => _showFloatingButton = true);
-    } else if (_scrollController.offset <= 200 && _showFloatingButton) {
-      setState(() => _showFloatingButton = false);
+    final showTitle = _scrollController.offset > 100;
+    if (showTitle != _showAppBarTitle) {
+      setState(() {
+        _showAppBarTitle = showTitle;
+      });
     }
   }
 
@@ -100,72 +101,167 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     final isMember = _currentUserMember != null;
 
     return Scaffold(
-      body: NestedScrollView(
-        controller: _scrollController,
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              elevation: 0,
-              backgroundColor: theme.scaffoldBackgroundColor,
-              foregroundColor: Colors.white,
-              flexibleSpace: FlexibleSpaceBar(
-                background: _buildTribeHeader(tribe),
+      body: Column(
+        children: [
+          // Custom App Bar with Dynamic Title
+          Container(
+            height: 100,
+            color: theme.scaffoldBackgroundColor,
+            child: SafeArea(
+              child: Stack(
+                children: [
+                  // Back button
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                      ),
+                    ),
+                  ),
+                  // Dynamic title
+                  Center(
+                    child: AnimatedOpacity(
+                      opacity: _showAppBarTitle ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Text(
+                        tribe.name,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                          color: theme.brightness == Brightness.dark ? Colors.white : Colors.black,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  // Action buttons
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.only(right: 4),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withAlpha(60),
+                              width: 1,
+                            ),
+                          ),
+                          child: IconButton(
+                            iconSize: 20,
+                            onPressed: () => _shareInvite(tribe),
+                            icon: Icon(
+                              Icons.share_rounded,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.outline.withAlpha(60),
+                              width: 1,
+                            ),
+                          ),
+                          child: IconButton(
+                            iconSize: 20,
+                            onPressed: () => _showTribeOptions(tribe),
+                            icon: Icon(
+                              Icons.more_vert_rounded,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              actions: [
-                IconButton(
-                  onPressed: () => _shareInvite(tribe),
-                  icon: const Icon(Icons.share),
+            ),
+          ),
+
+          // Scrollable Content
+          Expanded(
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                // Header
+                SliverToBoxAdapter(
+                  child: _buildTribeHeader(tribe),
                 ),
-                IconButton(
-                  onPressed: () => _showTribeOptions(tribe),
-                  icon: const Icon(Icons.more_vert),
+
+                // Tab Bar
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainer,
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.shadowColor.withAlpha(25),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
+                      indicatorPadding: const EdgeInsets.all(4),
+                      dividerColor: Colors.transparent,
+                      labelColor: theme.colorScheme.onPrimary,
+                      unselectedLabelColor: theme.colorScheme.onSurfaceVariant,
+                      labelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.1,
+                      ),
+                      unselectedLabelStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.1,
+                      ),
+                      tabs: const [
+                        Tab(text: 'Posts'),
+                        Tab(text: 'Members'),
+                        Tab(text: 'About'),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Tab Content
+                SliverFillRemaining(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildPostsTab(tribe),
+                      _buildMembersTab(tribe),
+                      _buildAboutTab(tribe),
+                    ],
+                  ),
                 ),
               ],
             ),
-          ];
-        },
-        body: Column(
-          children: [
-            // Tab Bar
-            Container(
-              decoration: BoxDecoration(
-                color: AppTheme.cardColor(context),
-                border: Border(
-                  bottom: BorderSide(
-                    color: theme.dividerColor.withValues(alpha: 0.2),
-                  ),
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: theme.primaryColor,
-                labelColor: theme.primaryColor,
-                unselectedLabelColor: theme.textTheme.bodyMedium?.color,
-                tabs: const [
-                  Tab(text: 'Posts'),
-                  Tab(text: 'Members'),
-                  Tab(text: 'About'),
-                ],
-              ),
-            ),
-
-            // Tab Content
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildPostsTab(tribe),
-                  _buildMembersTab(tribe),
-                  _buildAboutTab(tribe),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-      floatingActionButton: isMember && _showFloatingButton
+      floatingActionButton: isMember
           ? FloatingActionButton(
               onPressed: () => _createPost(tribe),
               backgroundColor: theme.primaryColor,
@@ -180,126 +276,174 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     final theme = Theme.of(context);
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
           colors: [
-            theme.primaryColor.withValues(alpha: 0.8),
-            theme.primaryColor.withValues(alpha: 0.6),
-            Colors.transparent,
+            theme.primaryColor.withAlpha(40),
+            theme.primaryColor.withAlpha(20),
+            AppTheme.cardColor(context).withAlpha(100),
           ],
         ),
-      ),
-      child: Stack(
-        children: [
-          // Cover Image
-          if (tribe.coverImage != null)
-            Positioned.fill(
-              child: CachedNetworkImage(
-                imageUrl: tribe.coverImage!,
-                fit: BoxFit.cover,
-                placeholder: (context, url) =>
-                    Container(color: theme.primaryColor.withValues(alpha: 0.2)),
-                errorWidget: (context, url, error) =>
-                    Container(color: theme.primaryColor.withValues(alpha: 0.2)),
-              ),
-            ),
-
-          // Gradient Overlay
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.3),
-                    Colors.black.withValues(alpha: 0.6),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Content
-          Positioned(
-            bottom: 24,
-            left: 16,
-            right: 16,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Category Icon
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    tribe.getCategoryIcon(),
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                // Tribe Name
-                Text(
-                  tribe.name,
-                  style: const TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                // Quick Stats
-                Row(
-                  children: [
-                    _buildStatChip(
-                      icon: Icons.people,
-                      text: '${tribe.memberCount} members',
-                    ),
-                    const SizedBox(width: 12),
-                    _buildStatChip(
-                      icon: tribe.isPrivate ? Icons.lock : Icons.public,
-                      text: tribe.getVisibilityText(),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primaryColor.withAlpha(15),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
           ),
         ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(20, 60, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Category with Google Material 3 styling
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withAlpha(100),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: theme.primaryColor.withAlpha(30),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          tribe.getCategoryIcon(),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          tribe.getCategoryName().toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.6,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Tribe Name with Material 3 typography
+                  Text(
+                    tribe.name,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.0,
+                      fontSize: 20,
+                      color: theme.brightness == Brightness.dark ? Colors.white : theme.colorScheme.onSurface,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Enhanced Stats Row with Google Material 3 style
+                  Row(
+                    children: [
+                      _buildStatChip(
+                        icon: Icons.group_rounded,
+                        text: '${tribe.memberCount}',
+                        label: 'Members',
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatChip(
+                        icon: tribe.isPrivate ? Icons.lock_rounded : Icons.public_rounded,
+                        text: tribe.getVisibilityText(),
+                        label: 'Access',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildStatChip({required IconData icon, required String text}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.white,
-            ),
+  Widget _buildStatChip({
+    required IconData icon,
+    required String text,
+    String? label,
+  }) {
+    final theme = Theme.of(context);
+
+    return Flexible(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withAlpha(180),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: theme.colorScheme.outline.withAlpha(60),
+            width: 1,
           ),
-        ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    text,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (label != null)
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w500,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        letterSpacing: 0.1,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -320,46 +464,46 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
         final posts = snapshot.data ?? [];
 
-        return CustomScrollView(
-          slivers: [
+        return Column(
+          children: [
             // Create Post Button (for members)
             if (isMember)
-              SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardColor(context),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.2),
+              Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColor(context),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                ),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                    child: Icon(
+                      Icons.add_rounded,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
                   ),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: Theme.of(
-                        context,
-                      ).primaryColor.withValues(alpha: 0.1),
-                      child: Icon(
-                        Icons.add,
-                        color: Theme.of(context).primaryColor,
-                      ),
+                  title: Text(
+                    'Share something with the tribe...',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                    title: const Text('Share something with the tribe...'),
-                    onTap: () => _createPost(tribe),
                   ),
+                  onTap: () => _createPost(tribe),
                 ),
               ),
 
             // Posts List
             if (posts.isEmpty)
-              SliverFillRemaining(child: _buildEmptyPostsState(isMember))
+              Expanded(child: _buildEmptyPostsState(isMember))
             else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildPostCard(posts[index]),
-                  childCount: posts.length,
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) => _buildPostCard(posts[index]),
                 ),
               ),
           ],
@@ -387,7 +531,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           itemCount: members.length,
           itemBuilder: (context, index) => _buildMemberCard(members[index]),
         );
@@ -398,11 +542,9 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
   Widget _buildAboutTab(Tribe tribe) {
     final theme = Theme.of(context);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
           // Description
           _buildInfoCard(
             title: 'Description',
@@ -415,10 +557,34 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
           // Category
           _buildInfoCard(
             title: 'Category',
-            icon: Icons.category,
-            child: Chip(
-              label: Text(tribe.getCategoryName()),
-              avatar: Text(tribe.getCategoryIcon()),
+            icon: Icons.category_rounded,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withAlpha(60),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tribe.getCategoryIcon(),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    tribe.getCategoryName(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -445,15 +611,30 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
             const SizedBox(height: 16),
             _buildInfoCard(
               title: 'Tags',
-              icon: Icons.tag,
+              icon: Icons.tag_rounded,
               child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 10,
+                runSpacing: 10,
                 children: tribe.tags
                     .map(
-                      (tag) => Chip(
-                        label: Text('#$tag'),
-                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      (tag) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.secondaryContainer,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: theme.colorScheme.secondary.withAlpha(60),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          '#$tag',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSecondaryContainer,
+                          ),
+                        ),
                       ),
                     )
                     .toList(),
@@ -470,8 +651,7 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
             ),
           ],
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildInfoCard({
@@ -483,30 +663,54 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.cardColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: theme.primaryColor),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withAlpha(15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          const SizedBox(height: 12),
-          child,
         ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  title,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -515,95 +719,263 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     final theme = Theme.of(context);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
-        color: AppTheme.cardColor(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Post Header
-          ListTile(
-            leading: CircleAvatar(
-              backgroundImage: post.authorPhotoURL != null
-                  ? CachedNetworkImageProvider(post.authorPhotoURL!)
-                  : null,
-              child: post.authorPhotoURL == null
-                  ? Text(post.authorName.isNotEmpty ? post.authorName[0] : 'U')
-                  : null,
-            ),
-            title: Text(
-              post.authorName,
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: Text(post.getTimeAgo()),
-            trailing: post.isAnnouncement
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Announcement',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange,
-                      ),
-                    ),
-                  )
-                : null,
-          ),
-
-          // Post Content
-          if (post.title != null) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text(
-                post.title!,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Text(post.content),
-          ),
-
-          // Post Actions
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () => _likePost(post),
-                  icon: Icon(
-                    Icons.favorite,
-                    color: post.likes.contains(_tribeService.currentUserId)
-                        ? Colors.red
-                        : theme.iconTheme.color,
-                  ),
-                ),
-                Text('${post.likes.length}'),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: () => _commentOnPost(post),
-                  icon: const Icon(Icons.comment),
-                ),
-                Text('${post.commentCount}'),
-              ],
-            ),
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withAlpha(100),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withAlpha(15),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _commentOnPost(post),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Post Header - Reddit style
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: Row(
+                  children: [
+                    // Upvote/Like section (Material 3 style)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outline.withAlpha(60),
+                          width: 1,
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _likePost(post),
+                            child: Icon(
+                              Icons.keyboard_arrow_up_rounded,
+                              color: post.likes.contains(_tribeService.currentUserId)
+                                  ? theme.primaryColor
+                                  : theme.textTheme.bodyMedium?.color?.withAlpha(150),
+                              size: 20,
+                            ),
+                          ),
+                          Text(
+                            '${post.likes.length}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: post.likes.contains(_tribeService.currentUserId)
+                                  ? theme.primaryColor
+                                  : theme.textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: theme.textTheme.bodyMedium?.color?.withAlpha(100),
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Post content area
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Author info
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 12,
+                                backgroundImage: post.authorPhotoURL != null
+                                    ? CachedNetworkImageProvider(post.authorPhotoURL!)
+                                    : null,
+                                child: post.authorPhotoURL == null
+                                    ? Text(
+                                        post.authorName.isNotEmpty ? post.authorName[0] : 'U',
+                                        style: const TextStyle(fontSize: 12),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                post.authorName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: theme.textTheme.titleMedium?.color,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '•',
+                                style: TextStyle(
+                                  color: theme.textTheme.bodySmall?.color,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                post.getTimeAgo(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: theme.textTheme.bodySmall?.color,
+                                ),
+                              ),
+                              if (post.isAnnouncement) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.orange.withAlpha(30),
+                                        Colors.orange.withAlpha(20),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.orange.withAlpha(60),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'PINNED',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.orange,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Post Title (Reddit style)
+              if (post.title != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(56, 0, 16, 8),
+                  child: Text(
+                    post.title!,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+
+              // Post Content
+              Padding(
+                padding: const EdgeInsets.fromLTRB(56, 0, 16, 16),
+                child: Text(
+                  post.content,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    height: 1.4,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+
+              // Post Actions (Reddit style)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(56, 0, 16, 12),
+                child: Row(
+                  children: [
+                    // Comments
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${post.commentCount}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Share
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.share_rounded,
+                            size: 16,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Share',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1010,3 +1382,4 @@ class _TribeDetailScreenState extends ConsumerState<TribeDetailScreen>
     }
   }
 }
+

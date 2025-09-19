@@ -13,6 +13,7 @@ import '../../widgets/common/sleep_toggle_widget.dart';
 import 'water_detail_screen.dart';
 import 'health_setup_screen.dart';
 import '../../providers/riverpod/health_data_provider.dart';
+import '../../services/health_alerts/smart_health_data_collector.dart';
 import '../../providers/riverpod/user_progress_provider.dart';
 import '../../models/health/health_data.dart';
 import '../../models/user/user_progress.dart';
@@ -122,6 +123,15 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
       });
       await prefs.setString('water_last_date', today);
       await prefs.setDouble('water_intake', 0.0);
+
+      // Refresh pulse system for daily reset
+      try {
+        final healthCollector = SmartHealthDataCollector.instance;
+        await healthCollector.refreshData();
+        debugPrint('🔄 Dashboard pulse refreshed after daily water reset');
+      } catch (e) {
+        debugPrint('⚠️ Failed to refresh dashboard pulse on daily reset: $e');
+      }
     } else {
       setState(() {
         waterIntake = prefs.getDouble('water_intake') ?? 0.0;
@@ -286,6 +296,16 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
           });
         }
       });
+
+      // Refresh dashboard pulse to reflect updated hydration status
+      try {
+        final healthCollector = SmartHealthDataCollector.instance;
+        await healthCollector.refreshData();
+        debugPrint('🔄 Dashboard pulse refreshed after water intake update');
+      } catch (e) {
+        debugPrint('⚠️ Failed to refresh dashboard pulse: $e');
+        // Continue without stopping the water addition
+      }
 
       // Check if goal was just completed
       if (!wasCompleted && waterIntake >= waterDailyLimit) {

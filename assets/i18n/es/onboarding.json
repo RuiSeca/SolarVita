@@ -208,5 +208,43 @@
   "completion_title": "¡Bienvenido a Tu\nViaje de Fitness!",
   "completion_subtitle": "Tu experiencia personalizada de fitness está lista.\n¡Comencemos a construir hábitos saludables juntos!",
   "start_journey_button": "Inicia Tu Viaje",
-  "completion_encouragement": "Todo viaje comienza con un solo paso"
+  "completion_encouragement": "Todo viaje comienza con un solo paso",
+
+  "protect_our_planet": "Proteger Nuestro Planeta",
+  "choose_sustainability_goals": "Elige tus objetivos ambientales y causa un impacto positivo en nuestro mundo",
+  "continue_to_bio": "Continuar a Bio e Intereses",
+  "select_at_least_one_goal": "Por favor, selecciona al menos un objetivo de sostenibilidad"
+
+  "sustainability_goals": "Objetivos de Sostenibilidad",
+  "select_sustainability_goals": "Selecciona tus objetivos de sostenibilidad",
+  "eco_friendly_activities": "Actividades Ecológicas",
+  "select_activities_enjoy": "Selecciona actividades que disfrutes",
+  "preferred_transport_mode": "Modo de Transporte Preferido",
+
+  "reduce_carbon_footprint": "Reducir Huella de Carbono",
+  "minimize_waste": "Minimizar Residuos",
+  "use_renewable_energy": "Usar Energía Renovable",
+  "support_local_business": "Apoyar Negocios Locales",
+  "eco-friendly_transportation": "Transporte Ecológico",
+  "sustainable_diet": "Dieta Sostenible",
+  "water_conservation": "Conservación del Agua",
+  "plastic-free_living": "Vida Libre de Plásticos",
+  "energy_efficiency": "Eficiencia Energética",
+  "green_exercise": "Ejercicio Verde",
+
+  "outdoor_workouts": "Entrenamientos al Aire Libre",
+  "cycling": "Ciclismo",
+  "walking_hiking": "Caminar/Senderismo",
+  "gardening": "Jardinería",
+  "beach_cleanup": "Limpieza de Playas",
+  "tree_planting": "Plantación de Árboles",
+  "community_gardens": "Jardines Comunitarios",
+  "eco-tours": "Eco-Tours",
+  "nature_photography": "Fotografía de la Naturaleza",
+  "wildlife_observation": "Observación de Vida Silvestre",
+
+  "walking": "Caminar",
+  "public_transport": "Transporte Público",
+  "carpooling": "Compartir Coche",
+  "electric_vehicle": "Vehículo Eléctrico"
 }

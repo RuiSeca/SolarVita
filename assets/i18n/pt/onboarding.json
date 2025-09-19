@@ -208,5 +208,43 @@
   "completion_title": "Bem-vindo à Sua\nJornada Fitness!",
   "completion_subtitle": "Sua experiência fitness personalizada está pronta.\nVamos começar a construir hábitos saudáveis juntos!",
   "start_journey_button": "Iniciar Sua Jornada",
-  "completion_encouragement": "Toda jornada começa com um único passo"
+  "completion_encouragement": "Toda jornada começa com um único passo",
+
+  "protect_our_planet": "Proteger Nosso Planeta",
+  "choose_sustainability_goals": "Escolha seus objetivos ambientais e cause um impacto positivo no nosso mundo",
+  "continue_to_bio": "Continuar para Bio e Interesses",
+  "select_at_least_one_goal": "Por favor, selecione pelo menos um objetivo de sustentabilidade",
+
+  "sustainability_goals": "Objetivos de Sustentabilidade",
+  "select_sustainability_goals": "Selecione seus objetivos de sustentabilidade",
+  "eco_friendly_activities": "Atividades Ecológicas",
+  "select_activities_enjoy": "Selecione atividades que você gosta",
+  "preferred_transport_mode": "Modo de Transporte Preferido",
+
+  "reduce_carbon_footprint": "Reduzir Pegada de Carbono",
+  "minimize_waste": "Minimizar Resíduos",
+  "use_renewable_energy": "Usar Energia Renovável",
+  "support_local_business": "Apoiar Negócios Locais",
+  "eco-friendly_transportation": "Transporte Ecológico",
+  "sustainable_diet": "Dieta Sustentável",
+  "water_conservation": "Conservação da Água",
+  "plastic-free_living": "Vida Livre de Plástico",
+  "energy_efficiency": "Eficiência Energética",
+  "green_exercise": "Exercício Verde",
+
+  "outdoor_workouts": "Exercícios ao Ar Livre",
+  "cycling": "Ciclismo",
+  "walking_hiking": "Caminhada/Trilha",
+  "gardening": "Jardinagem",
+  "beach_cleanup": "Limpeza de Praia",
+  "tree_planting": "Plantio de Árvores",
+  "community_gardens": "Hortas Comunitárias",
+  "eco-tours": "Eco-Tours",
+  "nature_photography": "Fotografia da Natureza",
+  "wildlife_observation": "Observação da Vida Selvagem",
+
+  "walking": "Caminhada",
+  "public_transport": "Transporte Público",
+  "carpooling": "Carona Compartilhada",
+  "electric_vehicle": "Veículo Elétrico"
 }

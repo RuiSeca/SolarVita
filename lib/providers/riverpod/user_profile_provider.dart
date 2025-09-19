@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../../models/user/user_profile.dart';
 import '../../services/database/user_profile_service.dart';
@@ -14,6 +15,8 @@ import 'health_data_provider.dart';
 import '../../models/user/user_progress.dart';
 import '../../models/health/health_data.dart';
 import '../../screens/onboarding/models/onboarding_models.dart' show IntentType;
+import '../../screens/onboarding/components/onboarding_base_screen.dart';
+import '../../services/dashboard/dashboard_image_service.dart';
 
 part 'user_profile_provider.g.dart';
 
@@ -68,10 +71,14 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     if (authState != null) {
       // Clear cache for new user sessions
       ref.read(userProfileServiceProvider).clearCache();
+      // Clear dashboard image cache when switching accounts
+      await DashboardImageService.clearCacheOnPreferenceChange();
       return await _loadUserProfile();
     } else {
       // Clear cache when user logs out
       ref.read(userProfileServiceProvider).clearCache();
+      // Clear dashboard image cache on logout
+      await DashboardImageService.clearCacheOnPreferenceChange();
       return null;
     }
   }
@@ -93,6 +100,9 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       );
 
       debugPrint('✅ User profile loaded successfully');
+
+      // Check for Firebase/SharedPreferences mismatch and clean up if needed
+      await _handleDataMismatch(newProfile);
 
       // Sync public profile data for new/existing profiles to ensure chat data is current
       try {
@@ -408,18 +418,22 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       availableDays: workoutDaysMap,
     );
 
-    // Create sustainability preferences with defaults
+    // Create sustainability preferences from onboarding data
+    final sustainabilityGoals = additionalData?['sustainability_goals'] as List<dynamic>? ?? [];
+    final ecoActivities = additionalData?['eco_activities'] as List<dynamic>? ?? [];
+    final transportMode = additionalData?['transport_mode'] as String? ?? 'walking';
+
     final sustainabilityPreferences = SustainabilityPreferences(
       carbonFootprintTarget: 'moderate',
-      preferredTransportMode: 'walking',
+      preferredTransportMode: transportMode,
       receiveEcoTips: true,
       ecoTipFrequency: 3,
       trackEnergyUsage: true,
       trackTransportation: true,
       trackWasteReduction: true,
       trackWaterUsage: true,
-      sustainabilityGoals: [],
-      ecoFriendlyActivities: [],
+      sustainabilityGoals: sustainabilityGoals.cast<String>(),
+      ecoFriendlyActivities: ecoActivities.cast<String>(),
       interestedCategories: [],
     );
 
@@ -460,6 +474,7 @@ class UserProfileNotifier extends _$UserProfileNotifier {
       preferredWorkoutTimeString: onboardingUserProfile.preferredWorkoutTimeString ?? currentProfile.preferredWorkoutTimeString,
       height: additionalData?['height']?.toString() ?? currentProfile.height,
       weight: additionalData?['weight']?.toString() ?? currentProfile.weight,
+      bio: additionalData?['bio']?.toString() ?? currentProfile.bio,
     );
 
     debugPrint('🎯 Completing onboarding - setting isOnboardingComplete to true');
@@ -471,6 +486,62 @@ class UserProfileNotifier extends _$UserProfileNotifier {
     await updateUserProfile(updatedProfile);
 
     debugPrint('🎯 Onboarding completion saved to Firebase successfully');
+  }
+
+  /// Detects and fixes Firebase/SharedPreferences mismatch that can cause infinite loops
+  Future<void> _handleDataMismatch(UserProfile profile) async {
+    try {
+      // Only handle data mismatch for very specific conditions:
+      // 1. Profile was created within the last 2 minutes (not 5 minutes)
+      // 2. User account is older than 1 hour (indicating they should have completed onboarding)
+      // 3. Onboarding is incomplete
+
+      final now = DateTime.now();
+      final profileCreatedVeryRecently = profile.createdAt.isAfter(now.subtract(const Duration(minutes: 2)));
+
+      // Get Firebase Auth user creation time to check account age
+      final authUser = FirebaseAuth.instance.currentUser;
+      bool isOldAccount = false;
+      if (authUser?.metadata.creationTime != null) {
+        final accountAge = now.difference(authUser!.metadata.creationTime!);
+        isOldAccount = accountAge.inHours >= 1;
+      }
+
+      // Only trigger cleanup for very specific mismatch conditions
+      if (profileCreatedVeryRecently && isOldAccount && !profile.isOnboardingComplete) {
+        debugPrint('🔍 Detected genuine Firebase/SharedPreferences mismatch');
+        debugPrint('🧹 Old account (${isOldAccount ? "yes" : "no"}) with fresh profile - cleaning up cached data');
+
+        // Clear all potentially stale SharedPreferences
+        await _clearStalePreferences();
+
+        // Clear onboarding interrupted flag
+        await OnboardingBaseScreenState.clearOnboardingInterrupted();
+
+        debugPrint('✅ Data mismatch cleanup completed');
+      } else {
+        debugPrint('🔍 No data mismatch detected - profile age: ${now.difference(profile.createdAt).inMinutes}min, account age: ${isOldAccount ? "old" : "new"}');
+      }
+    } catch (e) {
+      debugPrint('⚠️ Error during data mismatch handling: $e');
+      // Continue silently - this is a safety mechanism
+    }
+  }
+
+  /// Clears stale SharedPreferences that might cause conflicts
+  Future<void> _clearStalePreferences() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Clear specific keys that might conflict
+      await prefs.remove('onboarding_interrupted');
+      await prefs.remove('user_has_account');
+      await prefs.remove('first_launch_complete');
+
+      debugPrint('🧹 Cleared potentially stale SharedPreferences');
+    } catch (e) {
+      debugPrint('⚠️ Error clearing stale preferences: $e');
+    }
   }
 }
 

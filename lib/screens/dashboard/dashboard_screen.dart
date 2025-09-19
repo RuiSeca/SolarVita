@@ -71,7 +71,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
         if (mounted) {
           setState(() {
             _personalizedImages = [
-              'assets/images/dashboard/hiit.webp',
+              'assets/images/dashboard/hiit_fallback.webp',
               'assets/images/dashboard/abs.webp',
               'assets/images/dashboard/Fitness/Mixed/jump.webp',
             ];
@@ -130,7 +130,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
         if (mounted) {
           setState(() {
             _personalizedImages = [
-              'assets/images/dashboard/hiit.webp',
+              'assets/images/dashboard/hiit_fallback.webp',
               'assets/images/dashboard/abs.webp',
               'assets/images/dashboard/Fitness/Mixed/jump.webp',
             ];

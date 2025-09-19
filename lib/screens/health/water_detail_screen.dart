@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/rive_water_widget.dart';
 import '../../services/database/notification_service.dart';
+import '../../services/health_alerts/smart_health_data_collector.dart';
 
 class WaterDetailScreen extends StatefulWidget {
   final double currentWaterIntake;
@@ -221,6 +222,15 @@ class _WaterDetailScreenState extends State<WaterDetailScreen> {
     });
 
     widget.onWaterIntakeChanged(0.0);
+
+    // Refresh dashboard pulse to reflect reset hydration status
+    try {
+      final healthCollector = SmartHealthDataCollector.instance;
+      await healthCollector.refreshData();
+      debugPrint('🔄 Dashboard pulse refreshed after water intake reset');
+    } catch (e) {
+      debugPrint('⚠️ Failed to refresh dashboard pulse after reset: $e');
+    }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'dart:io';
 import '../../../../providers/riverpod/user_profile_provider.dart';
 import '../../../../services/database/user_profile_service.dart';
+import '../../../../services/dashboard/dashboard_image_service.dart';
 import '../../../../widgets/common/lottie_loading_widget.dart';
 import '../../../../utils/translation_helper.dart';
 
@@ -309,6 +310,12 @@ class _PersonalInfoScreenState extends ConsumerState<PersonalInfoScreen> {
         );
 
         await _userProfileService.updateUserProfile(updatedProfile);
+
+        // Clear dashboard image cache if gender changed to force immediate refresh
+        if (currentProfile.additionalData['gender'] != _gender) {
+          debugPrint('🔄 Gender changed from ${currentProfile.additionalData['gender']} to $_gender - clearing dashboard image cache');
+          await DashboardImageService.clearCacheOnPreferenceChange();
+        }
 
         if (mounted) {
           // Update the provider

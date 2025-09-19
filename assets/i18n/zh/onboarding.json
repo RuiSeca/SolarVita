@@ -208,5 +208,43 @@
   "completion_title": "歡迎展開您的\n健身旅程！",
   "completion_subtitle": "您的個人化健身體驗已準備就緒。\n讓我們一起建立健康習慣！",
   "start_journey_button": "開始您的旅程",
-  "completion_encouragement": "每段旅程都始於第一步"
+  "completion_encouragement": "每段旅程都始於第一步",
+
+  "protect_our_planet": "保護我們的地球",
+  "choose_sustainability_goals": "選擇您的環境目標，對我們的世界產生積極影響",
+  "continue_to_bio": "繼續到簡介和興趣",
+  "select_at_least_one_goal": "請至少選擇一個可持續發展目標"
+
+  "sustainability_goals": "可持續發展目標",
+  "select_sustainability_goals": "選擇您的可持續發展目標",
+  "eco_friendly_activities": "環保活動",
+  "select_activities_enjoy": "選擇您喜歡的活動",
+  "preferred_transport_mode": "偏好的交通方式",
+
+  "reduce_carbon_footprint": "減少碳足跡",
+  "minimize_waste": "減少廢物",
+  "use_renewable_energy": "使用可再生能源",
+  "support_local_business": "支持本地企業",
+  "eco-friendly_transportation": "環保交通",
+  "sustainable_diet": "可持續飲食",
+  "water_conservation": "節約用水",
+  "plastic-free_living": "無塑料生活",
+  "energy_efficiency": "能源效率",
+  "green_exercise": "綠色運動",
+
+  "outdoor_workouts": "戶外健身",
+  "cycling": "騎自行車",
+  "walking_hiking": "步行/遠足",
+  "gardening": "園藝",
+  "beach_cleanup": "海灘清潔",
+  "tree_planting": "植樹",
+  "community_gardens": "社區花園",
+  "eco-tours": "生態旅遊",
+  "nature_photography": "自然攝影",
+  "wildlife_observation": "野生動物觀察",
+
+  "walking": "步行",
+  "public_transport": "公共交通",
+  "carpooling": "拼車",
+  "electric_vehicle": "電動車"
 }

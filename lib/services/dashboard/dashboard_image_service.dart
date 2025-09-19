@@ -52,6 +52,8 @@ class DashboardImageService {
     debugPrint('Gender from field: $genderFromField');
     debugPrint('Final processed gender: $gender');
     debugPrint('Selected intents: $intents');
+    debugPrint('USER UID: ${userProfile.uid}');
+    debugPrint('ADDITIONAL DATA: ${userProfile.additionalData}');
     debugPrint('=====================================');
 
     // If no intents selected, default to fitness
@@ -224,7 +226,7 @@ class DashboardImageService {
 
     // Safety verification - ensure returned images match the expected intent
     for (final image in images) {
-      if (!_isImageValidForIntent(image, intent) && !image.contains('dashboard/abs.webp') && !image.contains('dashboard/hiit.webp')) {
+      if (!_isImageValidForIntent(image, intent) && !image.contains('dashboard/abs.webp') && !image.contains('dashboard/hiit_fallback.webp')) {
         debugPrint('🚨 CRITICAL: Invalid image $image for intent $intent!');
       }
     }
@@ -328,6 +330,8 @@ class DashboardImageService {
       'assets/images/dashboard/Fitness/Female/legpress.webp',
       'assets/images/dashboard/Fitness/Female/pillates.webp',
       'assets/images/dashboard/Fitness/Female/young-athletic-woman-exercising.webp',
+      // Fallback to Mixed folder for missing female images
+      'assets/images/dashboard/Fitness/Mixed/hiit.webp',
     ];
   }
 
@@ -580,7 +584,7 @@ class DashboardImageService {
   /// Fallback images if all else fails
   static List<String> _getDefaultImages() {
     return [
-      'assets/images/dashboard/hiit.webp',
+      'assets/images/dashboard/hiit_fallback.webp',
       'assets/images/dashboard/abs.webp',
       'assets/images/dashboard/Fitness/Mixed/hiit.webp',
     ];
@@ -602,12 +606,12 @@ class DashboardImageService {
       case IntentType.eco:
         return [
           'assets/images/dashboard/abs.webp', // Simple fitness image that exists
-          'assets/images/dashboard/hiit.webp',
+          'assets/images/dashboard/hiit_fallback.webp',
         ];
       case IntentType.fitness:
         return [
           'assets/images/dashboard/abs.webp',
-          'assets/images/dashboard/hiit.webp',
+          'assets/images/dashboard/hiit_fallback.webp',
         ];
       case IntentType.nutrition:
       case IntentType.mindfulness:
