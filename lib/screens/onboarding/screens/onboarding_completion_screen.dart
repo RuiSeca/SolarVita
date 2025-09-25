@@ -114,7 +114,7 @@ class _OnboardingCompletionScreenState extends ConsumerState<OnboardingCompletio
   }
 
   void _completeOnboarding() async {
-    _audioService.playChime(ChimeType.commitment);
+    _audioService.playContinueSound();
     HapticFeedback.heavyImpact();
 
     try {

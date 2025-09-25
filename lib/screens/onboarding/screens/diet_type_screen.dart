@@ -137,7 +137,7 @@ class _DietTypeScreenState extends OnboardingBaseScreenState<DietTypeScreen>
       _selectedDietType = dietType;
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _onRestrictionToggled(String restriction) {
@@ -149,7 +149,7 @@ class _DietTypeScreenState extends OnboardingBaseScreenState<DietTypeScreen>
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _onAllergyToggled(String allergy) {
@@ -161,11 +161,11 @@ class _DietTypeScreenState extends OnboardingBaseScreenState<DietTypeScreen>
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Create updated profile with dietary information
     final updatedProfile = widget.userProfile.copyWith(

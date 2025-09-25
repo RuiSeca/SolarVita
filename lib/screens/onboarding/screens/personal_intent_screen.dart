@@ -122,13 +122,13 @@ class _PersonalIntentScreenState extends OnboardingBaseScreenState<PersonalInten
     HapticFeedback.lightImpact();
     
     // Play selection chime
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
 
   void _continue() {
     // Play commitment chime for this important transition
-    _audioService.playChime(ChimeType.commitment);
+    _audioService.playContinueSound();
     
     final userProfile = UserProfile(
       name: '', // Will be filled in next screen

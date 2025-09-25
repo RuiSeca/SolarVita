@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../providers/riverpod/auth_provider.dart';
 import '../../../providers/riverpod/theme_provider.dart';
+import '../../onboarding/models/audio_preference.dart';
 import 'account/personal_info_screen.dart';
 import 'account/notifications_screen.dart';
 import 'account/privacy_screen.dart';
@@ -175,6 +176,13 @@ class SettingsMainScreen extends ConsumerWidget {
         ),
       },
       {
+        'icon': Icons.volume_up_rounded,
+        'title': tr(context, 'audio_experience'),
+        'subtitle': tr(context, 'choose_your_audio_preference'),
+        'onTap': () => _showAudioPreferenceDialog(context),
+        'isAudioPreference': true,
+      },
+      {
         'icon': Icons.fitness_center_rounded,
         'title': tr(context, 'workout_preferences'),
         'subtitle': tr(context, 'customize_workout_settings'),
@@ -215,6 +223,20 @@ class SettingsMainScreen extends ConsumerWidget {
       children: feedItems.asMap().entries.map((entry) {
         final index = entry.key;
         final item = entry.value;
+
+        // Special handling for audio preference item
+        if (item['isAudioPreference'] == true) {
+          return _buildAudioPreferenceTile(
+            context,
+            icon: item['icon'] as IconData,
+            title: item['title'] as String,
+            subtitle: item['subtitle'] as String,
+            onTap: item['onTap'] as VoidCallback,
+            isFirst: index == 0,
+            isLast: index == feedItems.length - 1,
+          );
+        }
+
         return _buildSettingsTile(
           context,
           icon: item['icon'] as IconData,
@@ -522,6 +544,98 @@ class SettingsMainScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildAudioPreferenceTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    return FutureBuilder<AudioPreference>(
+      future: AudioPreferences.getAudioPreference(),
+      builder: (context, snapshot) {
+        final currentPreference = snapshot.data ?? AudioPreference.full;
+        final currentIcon = switch (currentPreference) {
+          AudioPreference.full => Icons.volume_up_rounded,
+          AudioPreference.backgroundOnly => Icons.music_note_rounded,
+          AudioPreference.silent => Icons.volume_off_rounded,
+        };
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.vertical(
+              top: isFirst ? const Radius.circular(16) : Radius.zero,
+              bottom: isLast ? const Radius.circular(16) : Radius.zero,
+            ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: !isLast ? Border(
+                  bottom: BorderSide(
+                    color: AppTheme.textColor(context).withValues(alpha: 0.08),
+                    width: 0.5,
+                  ),
+                ) : null,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      currentIcon,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            letterSpacing: 0.1,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          AudioPreferences.getDisplayName(currentPreference),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                            fontSize: 14,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppTheme.textColor(context).withValues(alpha: 0.4),
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSettingsTile(
     BuildContext context, {
     required IconData icon,
@@ -824,6 +938,182 @@ class SettingsMainScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _showAudioPreferenceDialog(BuildContext context) async {
+    final currentPreference = await AudioPreferences.getAudioPreference();
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.cardColor(context),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.volume_up_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                tr(context, 'audio_experience'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr(context, 'choose_your_audio_preference'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ...AudioPreference.values.map((preference) => _buildAudioOption(
+                context,
+                preference,
+                currentPreference,
+                (newPreference) {
+                  setDialogState(() {
+                    // This will update the dialog state
+                  });
+                  _updateAudioPreference(newPreference);
+                },
+              )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                tr(context, 'close'),
+                style: TextStyle(
+                  color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAudioOption(
+    BuildContext context,
+    AudioPreference preference,
+    AudioPreference currentPreference,
+    Function(AudioPreference) onChanged,
+  ) {
+    final isSelected = preference == currentPreference;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => onChanged(preference),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary
+                  : AppTheme.textColor(context).withValues(alpha: 0.2),
+              width: isSelected ? 2 : 1,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            color: isSelected
+                ? AppColors.primary.withValues(alpha: 0.08)
+                : Colors.transparent,
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary.withValues(alpha: 0.2)
+                      : AppTheme.textColor(context).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  AudioPreferences.getEmoji(preference),
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      AudioPreferences.getDisplayName(preference),
+                      style: TextStyle(
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppTheme.textColor(context),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      AudioPreferences.getDescription(preference),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                        fontSize: 14,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateAudioPreference(AudioPreference preference) async {
+    try {
+      await AudioPreferences.setAudioPreference(preference);
+      debugPrint('🎵 Audio preference updated to: ${preference.name}');
+    } catch (e) {
+      debugPrint('❌ Error updating audio preference: $e');
+    }
   }
 
 }

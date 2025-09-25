@@ -9,6 +9,7 @@ class GlowingTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final int maxLines;
   final Color? focusColor;
+  final VoidCallback? onTap;
 
   const GlowingTextField({
     super.key,
@@ -19,6 +20,7 @@ class GlowingTextField extends StatefulWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.focusColor,
+    this.onTap,
   });
 
   @override
@@ -118,6 +120,7 @@ class _GlowingTextFieldState extends State<GlowingTextField>
                         obscureText: widget.obscureText,
                         keyboardType: widget.keyboardType,
                         maxLines: widget.maxLines,
+                        onTap: widget.onTap,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,

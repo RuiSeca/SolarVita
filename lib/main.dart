@@ -30,11 +30,17 @@ import 'screens/search/search_screen.dart';
 import 'screens/health/health_screen.dart';
 import 'screens/ai_assistant/ai_assistant_screen.dart';
 import 'screens/profile/profile_screen.dart';
+import 'screens/routine/routine_creation_screen.dart';
+import 'screens/health/meals/meal_edit_screen.dart';
+import 'screens/profile/settings/account/personal_info_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
 import 'widgets/common/bottom_nav_bar.dart';
+import 'widgets/common/fan_menu_fab.dart';
 import 'widgets/splash/video_splash_screen.dart';
+import 'widgets/search/universal_search_overlay.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
+import 'utils/translation_helper.dart';
 
 // Import Riverpod providers
 import 'providers/riverpod/theme_provider.dart';
@@ -525,9 +531,27 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
       _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
+
+  // Scroll controllers for each tab
+  late ScrollController _dashboardScrollController;
+  late ScrollController _searchScrollController;
+  late ScrollController _healthScrollController;
+  late ScrollController _profileScrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+
+    // Initialize scroll controllers
+    _dashboardScrollController = ScrollController();
+    _searchScrollController = ScrollController();
+    _healthScrollController = ScrollController();
+    _profileScrollController = ScrollController();
+  }
 
   final List<Widget> _pages = [
     const DashboardScreen(),
@@ -550,11 +574,39 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       // If tapping the same page, scroll to top
       _scrollToTop(index);
     } else {
+      // Save current tab's scroll position before switching
+      _saveCurrentScrollPosition();
+
       // Normal navigation
       setState(() {
         _selectedIndex = index;
       });
       _pageController.jumpToPage(index);
+    }
+  }
+
+  void _saveCurrentScrollPosition() {
+    final scrollController = ref.read(scrollControllerNotifierProvider.notifier);
+    final tabKey = _getTabKey(_selectedIndex);
+    if (tabKey != null) {
+      scrollController.saveScrollPosition(tabKey);
+    }
+  }
+
+  String? _getTabKey(int index) {
+    switch (index) {
+      case 0:
+        return 'dashboard';
+      case 1:
+        return 'search';
+      case 2:
+        return 'health';
+      case 3:
+        return null; // AI assistant doesn't need scroll memory
+      case 4:
+        return 'profile';
+      default:
+        return null;
     }
   }
 
@@ -581,13 +633,32 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   @override
   void dispose() {
+    _saveCurrentScrollPosition(); // Save before disposing
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
+
+    // Dispose scroll controllers
+    _dashboardScrollController.dispose();
+    _searchScrollController.dispose();
+    _healthScrollController.dispose();
+    _profileScrollController.dispose();
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // Save scroll position when app is backgrounded
+      _saveCurrentScrollPosition();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: _buildAppBar(),
       body: PageView(
         controller: _pageController,
         physics: const NeverScrollableScrollPhysics(), // Disable swipe gestures
@@ -598,10 +669,109 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
         },
         children: _pages,
       ),
+      floatingActionButton: _buildSmartFAB(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         items: _navItems,
+      ),
+    );
+  }
+
+  PreferredSizeWidget? _buildAppBar() {
+    // Hide app bar on Search tab since it has its own search functionality
+    if (_selectedIndex == 1) return null;
+
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      title: Text(_getAppBarTitle()),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.search),
+          onPressed: () => showUniversalSearch(context),
+          tooltip: tr(context, 'universal_search'),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+  }
+
+  String _getAppBarTitle() {
+    switch (_selectedIndex) {
+      case 0:
+        return tr(context, 'nav_dashboard');
+      case 1:
+        return tr(context, 'nav_search');
+      case 2:
+        return tr(context, 'nav_health');
+      case 3:
+        return tr(context, 'nav_solar_ai');
+      case 4:
+        return tr(context, 'nav_profile');
+      default:
+        return 'SolarVita';
+    }
+  }
+
+  Widget? _buildSmartFAB() {
+    // Only show the fan menu FAB on the Dashboard tab
+    if (_selectedIndex == 0) {
+      // Get the correct scroll controller from the provider
+      final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('dashboard');
+
+      return FanMenuFAB(
+        scrollController: scrollController,
+        backgroundColor: Theme.of(context).primaryColor,
+        heroTag: "dashboard_fan_fab",
+        menuItems: [
+          FanMenuItem(
+            icon: Icons.fitness_center,
+            label: tr(context, 'quick_workout'),
+            color: Theme.of(context).primaryColor,
+            onTap: _handleQuickWorkout,
+          ),
+          FanMenuItem(
+            icon: Icons.restaurant,
+            label: tr(context, 'add_food'),
+            color: Colors.green,
+            onTap: _handleAddFood,
+          ),
+          FanMenuItem(
+            icon: Icons.edit,
+            label: tr(context, 'edit_profile_info'),
+            color: Colors.blueAccent,
+            onTap: _handleEditProfile,
+          ),
+        ],
+      );
+    }
+
+    // No FAB for other tabs - keeps them clean and focused
+    return null;
+  }
+
+  void _handleQuickWorkout() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const RoutineCreationScreen(),
+      ),
+    );
+  }
+
+  void _handleAddFood() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const MealEditScreen(),
+      ),
+    );
+  }
+
+  void _handleEditProfile() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PersonalInfoScreen(),
       ),
     );
   }

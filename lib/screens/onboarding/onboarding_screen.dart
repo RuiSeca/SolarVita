@@ -5,20 +5,24 @@ import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../../providers/riverpod/auth_provider.dart';
 import 'personal_info_preferences_screen.dart';
+import 'services/onboarding_audio_service.dart';
+import 'components/onboarding_base_screen.dart';
 
 final _logger = Logger('OnboardingScreen');
 
-class OnboardingScreen extends ConsumerStatefulWidget {
+class OnboardingScreen extends OnboardingBaseScreen {
   const OnboardingScreen({super.key});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+class _OnboardingScreenState extends OnboardingBaseScreenState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   final bool _isLoading = false;
+  final OnboardingAudioService _audioService = OnboardingAudioService();
+  bool _isNavigatingProgrammatically = false;
 
   final List<OnboardingPage> _pages = [
     OnboardingPage(
@@ -47,23 +51,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Initialize audio service for sound effects
+    _audioService.initialize();
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
+    // Don't dispose audio service here - it's managed globally by OnboardingExperience
+    debugPrint('🎵 OnboardingScreen disposed - keeping audio service for other screens');
     super.dispose();
   }
 
   void _nextPage() {
     if (_currentPage < _pages.length - 1) {
+      // Play continue sound for button navigation (not swipe sound)
+      _audioService.playContinueSound();
+      _isNavigatingProgrammatically = true;
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
+      // Play continue sound for "Get Started" - final navigation action
+      _audioService.playContinueSound();
       _startPreferencesSetup();
     }
   }
 
   void _skipOnboarding() {
+    // Play button sound for skip action
+    _audioService.playButtonSound();
     _startPreferencesSetup();
   }
 
@@ -124,7 +144,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     _logger.info(
       '🎯 OnboardingScreen build() called - current page: $_currentPage',
     );
@@ -152,6 +172,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             child: PageView.builder(
               controller: _pageController,
               onPageChanged: (index) {
+                // Play swipe sound ONLY for manual swipes, not programmatic navigation
+                if (_currentPage != index && !_isNavigatingProgrammatically) {
+                  debugPrint('🎵 Manual swipe detected - playing swipe sound');
+                  _audioService.playSwipeSound();
+                }
+
+                // Reset the programmatic navigation flag
+                _isNavigatingProgrammatically = false;
+
                 setState(() {
                   _currentPage = index;
                 });

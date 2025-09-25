@@ -104,12 +104,12 @@ class _MealTimingScreenState extends OnboardingBaseScreenState<MealTimingScreen>
     if (picked != null) {
       controller.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       HapticFeedback.lightImpact();
-      _audioService.playChime(ChimeType.selection);
+      _audioService.playButtonSound();
     }
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Create updated profile with meal timing
     final updatedProfile = widget.userProfile.copyWith(
@@ -293,7 +293,7 @@ class _MealTimingScreenState extends OnboardingBaseScreenState<MealTimingScreen>
                               _enableSnacks = value;
                             });
                             HapticFeedback.lightImpact();
-                            _audioService.playChime(ChimeType.selection);
+                            _audioService.playButtonSound();
                           },
                           activeThumbColor: const Color(0xFF00FFC6),
                           activeTrackColor: const Color(0x3300FFC6),

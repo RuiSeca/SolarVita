@@ -1,21 +1,43 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import '../models/audio_preference.dart';
 
 /// Audio service for the ceremonial onboarding experience
-/// Manages the ambient soundtrack and ceremonial chimes
-class OnboardingAudioService {
+/// Manages the ambient soundtrack and sound effects
+class OnboardingAudioService with WidgetsBindingObserver {
   static final OnboardingAudioService _instance = OnboardingAudioService._internal();
   factory OnboardingAudioService() => _instance;
-  OnboardingAudioService._internal();
+  OnboardingAudioService._internal() {
+    // Register for app lifecycle changes to handle audio properly
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   late AudioPlayer _ambientPlayer;
   late AudioPlayer _chimePlayer;
-  
+  late AudioPlayer _swipePlayer;
+  late AudioPlayer _continuePlayer;
+  late AudioPlayer _buttonPlayer;
+  late AudioPlayer _textFieldPlayer;
+
   bool _isInitialized = false;
   bool _isAmbientPlaying = false;
   bool _isMuted = false;
   bool _isInitializing = false;
+  bool _soundEffectsEnabled = true;
+  AudioPreference _userPreference = AudioPreference.full;
+
+  // Debouncing for sound effects
+  DateTime? _lastSwipeSound;
+  DateTime? _lastContinueSound;
+  DateTime? _lastButtonSound;
+  DateTime? _lastTextFieldSound;
+
+  // Sound effect volumes (relative to ambient)
+  static const double _swipeVolume = 0.3;
+  static const double _continueVolume = 0.5;
+  static const double _buttonVolume = 0.4;
+  static const double _textFieldVolume = 0.6;
 
   /// Initialize the audio service
   Future<void> initialize() async {
@@ -31,9 +53,16 @@ class OnboardingAudioService {
 
     _isInitializing = true;
     try {
-      debugPrint('🎵 Initializing audio players...');
+      // Load user audio preference
+      await _loadUserPreference();
+
+      debugPrint('🎵 Initializing audio players... (User preference: ${_userPreference.name})');
       _ambientPlayer = AudioPlayer();
       _chimePlayer = AudioPlayer();
+      _swipePlayer = AudioPlayer();
+      _continuePlayer = AudioPlayer();
+      _buttonPlayer = AudioPlayer();
+      _textFieldPlayer = AudioPlayer();
 
       // Listen to player state changes for debugging
       _ambientPlayer.playerStateStream.listen((state) {
@@ -44,14 +73,18 @@ class OnboardingAudioService {
         debugPrint('🎵 Playback event: ${event.runtimeType}');
       });
 
-      debugPrint('🎵 Loading ethereal ambient track...');
+      debugPrint('🎵 Loading audio assets...');
+
       // Load the ethereal ambient track
       await _ambientPlayer.setAsset('assets/audio/ethereal_onboardscreen.mp3');
-      debugPrint('🎵 Audio asset loaded successfully');
+      await _ambientPlayer.setLoopMode(LoopMode.one);
+      debugPrint('🎵 Ambient track loaded');
 
-      // Set looping for ambient track to create continuous atmosphere
-      await _ambientPlayer.setLoopMode(LoopMode.one); // Loop the track seamlessly
-      debugPrint('🎵 Audio loop mode set to LoopMode.one');
+      // Load sound effects with graceful error handling
+      await _loadSoundEffect(_swipePlayer, 'assets/audio/swipe.mp3', 'Swipe sound');
+      await _loadSoundEffect(_continuePlayer, 'assets/audio/continue.mp3', 'Continue sound');
+      await _loadSoundEffect(_buttonPlayer, 'assets/audio/on-boarding-general-buttons.mp3', 'Button sound');
+      await _loadSoundEffect(_textFieldPlayer, 'assets/audio/text-boxes.mp3', 'Text field sound');
 
       _isInitialized = true;
       debugPrint('🎵 Onboarding audio service initialized successfully');
@@ -64,10 +97,64 @@ class OnboardingAudioService {
     }
   }
 
+  /// Load user audio preference
+  Future<void> _loadUserPreference() async {
+    try {
+      _userPreference = await AudioPreferences.getAudioPreference();
+      debugPrint('🎵 User audio preference loaded: ${_userPreference.name}');
+    } catch (e) {
+      debugPrint('🔇 Failed to load user preference, using default: $e');
+      _userPreference = AudioPreference.full;
+    }
+  }
+
+  /// Reload user audio preference and apply changes immediately
+  Future<void> reloadUserPreference() async {
+    final previousPreference = _userPreference;
+
+    // Load the new preference
+    await _loadUserPreference();
+
+    if (previousPreference != _userPreference) {
+      debugPrint('🎵 Audio preference changed from ${previousPreference.name} to ${_userPreference.name}');
+
+      // Apply changes based on the new preference
+      if (_userPreference == AudioPreference.silent) {
+        // Stop ambient audio if it's playing
+        if (_isAmbientPlaying) {
+          debugPrint('🎵 Stopping ambient audio due to silent preference');
+          await fadeOutAmbient(fadeOutDuration: const Duration(milliseconds: 500));
+        }
+      } else if (previousPreference == AudioPreference.silent &&
+                 (_userPreference == AudioPreference.full || _userPreference == AudioPreference.backgroundOnly)) {
+        // Start ambient audio if user switched from silent to any audio option
+        if (!_isAmbientPlaying && _isInitialized && !_isMuted) {
+          debugPrint('🎵 Starting ambient audio due to preference change from silent');
+          await startAmbientTrack(fadeInDuration: const Duration(milliseconds: 500));
+        }
+      }
+
+      debugPrint('🎵 Audio preference update applied successfully');
+    } else {
+      debugPrint('🎵 Audio preference unchanged: ${_userPreference.name}');
+    }
+  }
+
+  /// Load a sound effect with error handling
+  Future<void> _loadSoundEffect(AudioPlayer player, String assetPath, String name) async {
+    try {
+      await player.setAsset(assetPath);
+      debugPrint('🎵 $name loaded successfully');
+    } catch (e) {
+      debugPrint('🔇 Failed to load $name: $e');
+      // Continue without this specific sound effect
+    }
+  }
+
   /// Start the ambient soundtrack with fade-in
   Future<void> startAmbientTrack({Duration fadeInDuration = const Duration(seconds: 3)}) async {
     debugPrint('🎵 🌟 STARTING GLOBAL AMBIENT TRACK - will play continuously throughout onboarding');
-    debugPrint('🎵 startAmbientTrack called - initialized: $_isInitialized, playing: $_isAmbientPlaying, muted: $_isMuted');
+    debugPrint('🎵 startAmbientTrack called - initialized: $_isInitialized, playing: $_isAmbientPlaying, muted: $_isMuted, preference: ${_userPreference.name}');
 
     if (!_isInitialized) {
       debugPrint('🔇 Audio service not initialized');
@@ -79,6 +166,10 @@ class OnboardingAudioService {
     }
     if (_isMuted) {
       debugPrint('🔇 Audio is muted');
+      return;
+    }
+    if (_userPreference == AudioPreference.silent) {
+      debugPrint('🔇 User prefers silent experience - skipping ambient track');
       return;
     }
 
@@ -213,17 +304,123 @@ class OnboardingAudioService {
     }
   }
 
+  /// Play swipe sound effect (for PageView navigation)
+  Future<void> playSwipeSound() async {
+    if (_userPreference != AudioPreference.full) {
+      debugPrint('🔇 Swipe sound skipped - user preference: ${_userPreference.name}');
+      return;
+    }
+    debugPrint('🎵 🎯 SWIPE SOUND REQUESTED');
+    await _playSoundEffect(
+      _swipePlayer,
+      _swipeVolume,
+      'swipe',
+      _lastSwipeSound,
+      const Duration(milliseconds: 200),
+      (time) => _lastSwipeSound = time,
+    );
+  }
+
+  /// Play continue sound effect (for navigation buttons)
+  Future<void> playContinueSound() async {
+    if (_userPreference != AudioPreference.full) {
+      debugPrint('🔇 Continue sound skipped - user preference: ${_userPreference.name}');
+      return;
+    }
+    debugPrint('🎵 🎯 CONTINUE SOUND REQUESTED');
+    await _playSoundEffect(
+      _continuePlayer,
+      _continueVolume,
+      'continue',
+      _lastContinueSound,
+      const Duration(milliseconds: 300),
+      (time) => _lastContinueSound = time,
+    );
+  }
+
+  /// Play general button sound effect
+  Future<void> playButtonSound() async {
+    if (_userPreference != AudioPreference.full) {
+      debugPrint('🔇 Button sound skipped - user preference: ${_userPreference.name}');
+      return;
+    }
+    debugPrint('🎵 🎯 BUTTON SOUND REQUESTED');
+    await _playSoundEffect(
+      _buttonPlayer,
+      _buttonVolume,
+      'button',
+      _lastButtonSound,
+      const Duration(milliseconds: 150),
+      (time) => _lastButtonSound = time,
+    );
+  }
+
+  /// Play text field focus sound effect
+  Future<void> playTextFieldSound() async {
+    if (_userPreference != AudioPreference.full) {
+      debugPrint('🔇 Text field sound skipped - user preference: ${_userPreference.name}');
+      return;
+    }
+    debugPrint('🎵 🎯 TEXT FIELD SOUND REQUESTED');
+    await _playSoundEffect(
+      _textFieldPlayer,
+      _textFieldVolume,
+      'text field',
+      _lastTextFieldSound,
+      const Duration(milliseconds: 250),
+      (time) => _lastTextFieldSound = time,
+    );
+  }
+
+  /// Generic method to play sound effects with debouncing
+  Future<void> _playSoundEffect(
+    AudioPlayer player,
+    double volume,
+    String soundName,
+    DateTime? lastPlayed,
+    Duration debounceInterval,
+    Function(DateTime) updateLastPlayed,
+  ) async {
+    if (!_isInitialized || _isMuted || !_soundEffectsEnabled) {
+      return;
+    }
+
+    // Debouncing: prevent rapid-fire sounds
+    final now = DateTime.now();
+    if (lastPlayed != null && now.difference(lastPlayed) < debounceInterval) {
+      debugPrint('🎵 $soundName sound debounced');
+      return;
+    }
+
+    try {
+      // Reset to beginning and set volume
+      await player.seek(Duration.zero);
+      await player.setVolume(volume);
+      await player.play();
+      updateLastPlayed(now);
+      debugPrint('🎵 $soundName sound played');
+    } catch (e) {
+      debugPrint('🔇 Failed to play $soundName sound: $e');
+    }
+  }
+
   /// Toggle mute state
   void toggleMute() {
     _isMuted = !_isMuted;
-    
+
     if (_isMuted) {
       _ambientPlayer.setVolume(0.0);
     } else {
       _ambientPlayer.setVolume(0.4);
     }
-    
+
     debugPrint('🔇 Audio ${_isMuted ? "muted" : "unmuted"}');
+  }
+
+  /// Toggle sound effects only (keeps ambient music)
+  void toggleSoundEffects() {
+    _soundEffectsEnabled = !_soundEffectsEnabled;
+    debugPrint('🔇 Sound effects ${_soundEffectsEnabled ? "enabled" : "disabled"}');
   }
 
   /// Check if audio is currently muted
@@ -237,6 +434,37 @@ class OnboardingAudioService {
 
   /// Get total duration of the track
   Duration? get totalDuration => _ambientPlayer.duration;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+      case AppLifecycleState.hidden:
+        debugPrint('🎵 App lifecycle changed to $state - pausing ambient audio');
+        _pauseAmbientForLifecycle();
+        break;
+      case AppLifecycleState.resumed:
+        debugPrint('🎵 App resumed - checking if ambient audio should resume');
+        // Don't auto-resume - let the app decide if it wants to continue
+        break;
+    }
+  }
+
+  /// Pause ambient audio when app goes to background
+  Future<void> _pauseAmbientForLifecycle() async {
+    if (_isInitialized && _isAmbientPlaying) {
+      try {
+        await _ambientPlayer.pause();
+        debugPrint('🎵 Ambient audio paused for app lifecycle');
+      } catch (e) {
+        debugPrint('🔇 Error pausing ambient audio: $e');
+      }
+    }
+  }
 
   /// Clean up resources
   Future<void> dispose() async {
@@ -252,11 +480,21 @@ class OnboardingAudioService {
     }
 
     try {
+      // Remove lifecycle observer
+      WidgetsBinding.instance.removeObserver(this);
+
+      // Stop and dispose all players
+      await _ambientPlayer.stop();
       await _ambientPlayer.dispose();
       await _chimePlayer.dispose();
+      await _swipePlayer.dispose();
+      await _continuePlayer.dispose();
+      await _buttonPlayer.dispose();
+      await _textFieldPlayer.dispose();
+
       _isInitialized = false;
       _isAmbientPlaying = false;
-      debugPrint('🎵 Audio service disposed');
+      debugPrint('🎵 Audio service fully disposed with lifecycle observer removed');
     } catch (e) {
       debugPrint('🔇 Error disposing audio service: $e');
     }

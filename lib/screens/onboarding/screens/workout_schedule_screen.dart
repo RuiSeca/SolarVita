@@ -121,11 +121,11 @@ class _WorkoutScheduleScreenState extends OnboardingBaseScreenState<WorkoutSched
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.commitment);
+    _audioService.playContinueSound();
 
     // Create updated profile with selected workout days
     final updatedProfile = widget.userProfile.copyWith(

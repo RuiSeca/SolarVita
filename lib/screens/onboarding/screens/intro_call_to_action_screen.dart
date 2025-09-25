@@ -27,7 +27,10 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
   @override
   void initState() {
     super.initState();
-    
+
+    // Ensure audio service is initialized (it should be from OnboardingExperience)
+    _audioService.initialize();
+
     _textController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -67,12 +70,13 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
   void dispose() {
     _textController.dispose();
     _buttonController.dispose();
+    // Don't dispose audio service here - it's managed globally by OnboardingExperience
     super.dispose();
   }
 
   void _navigateToNext() {
     // Play commitment chime for this important transition
-    _audioService.playChime(ChimeType.commitment);
+    _audioService.playContinueSound();
     
     Navigator.of(context).pushReplacement(
       _createCeremonialTransition(const PersonalIntentScreen()),
@@ -80,9 +84,16 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
   }
 
   void _navigateBack() {
-    // Play progression chime
-    _audioService.playChime(ChimeType.progression);
-    
+    // Play progression chime for button navigation
+    _audioService.playContinueSound();
+
+    Navigator.of(context).pushReplacement(
+      _createCeremonialTransition(const IntroConnectionScreen()),
+    );
+  }
+
+  void _navigateBackWithoutSound() {
+    // Navigate without sound (sound already played for swipe)
     Navigator.of(context).pushReplacement(
       _createCeremonialTransition(const IntroConnectionScreen()),
     );
@@ -115,12 +126,21 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (!didPop && mounted) {
+          // Navigate back to previous screen instead of exiting
+          _navigateBack();
+        }
+      },
+      child: Scaffold(
+        body: GestureDetector(
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! > 0) {
-            // Swipe right to go back
-            _navigateBack();
+            // Swipe right to go back - play swipe sound for gesture
+            _audioService.playSwipeSound();
+            _navigateBackWithoutSound();
           }
         },
         child: Stack(
@@ -236,6 +256,7 @@ class _IntroCallToActionScreenState extends State<IntroCallToActionScreen>
           ],
         ),
       ),
+    ),
     );
   }
 }

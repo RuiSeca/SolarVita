@@ -28,7 +28,10 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
   @override
   void initState() {
     super.initState();
-    
+
+    // Ensure audio service is initialized (it should be from OnboardingExperience)
+    _audioService.initialize();
+
     _textController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -77,22 +80,37 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
   void dispose() {
     _textController.dispose();
     _iconController.dispose();
+    // Don't dispose audio service here - it's managed globally by OnboardingExperience
     super.dispose();
   }
 
   void _navigateToNext() {
-    // Play progression chime
-    _audioService.playChime(ChimeType.progression);
-    
+    // Play progression chime for button navigation
+    _audioService.playContinueSound();
+
+    Navigator.of(context).pushReplacement(
+      _createCeremonialTransition(const IntroCallToActionScreen()),
+    );
+  }
+
+  void _navigateToNextWithoutSound() {
+    // Navigate without sound (sound already played for swipe)
     Navigator.of(context).pushReplacement(
       _createCeremonialTransition(const IntroCallToActionScreen()),
     );
   }
 
   void _navigateBack() {
-    // Play progression chime
-    _audioService.playChime(ChimeType.progression);
-    
+    // Play progression chime for button navigation
+    _audioService.playContinueSound();
+
+    Navigator.of(context).pushReplacement(
+      _createCeremonialTransition(const IntroGatewayScreen()),
+    );
+  }
+
+  void _navigateBackWithoutSound() {
+    // Navigate without sound (sound already played for swipe)
     Navigator.of(context).pushReplacement(
       _createCeremonialTransition(const IntroGatewayScreen()),
     );
@@ -125,16 +143,26 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: GestureDetector(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (!didPop && mounted) {
+          // Navigate back to previous screen instead of exiting
+          _navigateBack();
+        }
+      },
+      child: Scaffold(
+        body: GestureDetector(
         onTap: _navigateToNext,
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! < 0) {
-            // Swipe left to continue
-            _navigateToNext();
+            // Swipe left to continue - play swipe sound for gesture
+            _audioService.playSwipeSound();
+            _navigateToNextWithoutSound();
           } else if (details.primaryVelocity! > 0) {
-            // Swipe right to go back
-            _navigateBack();
+            // Swipe right to go back - play swipe sound for gesture
+            _audioService.playSwipeSound();
+            _navigateBackWithoutSound();
           }
         },
         child: Stack(
@@ -318,6 +346,7 @@ class _IntroConnectionScreenState extends State<IntroConnectionScreen>
           ],
         ),
       ),
+    ),
     );
   }
 }

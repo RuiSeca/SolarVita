@@ -8,8 +8,10 @@ import '../../services/database/user_profile_service.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
 import 'screens/workout_preferences_screen.dart';
 import '../onboarding/models/onboarding_models.dart' as onboarding_models;
+import 'services/onboarding_audio_service.dart';
+import 'components/onboarding_base_screen.dart';
 
-class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
+class PersonalInfoPreferencesScreen extends OnboardingBaseScreen {
   const PersonalInfoPreferencesScreen({super.key});
 
   @override
@@ -18,10 +20,11 @@ class PersonalInfoPreferencesScreen extends ConsumerStatefulWidget {
 }
 
 class _PersonalInfoPreferencesScreenState
-    extends ConsumerState<PersonalInfoPreferencesScreen> {
+    extends OnboardingBaseScreenState<PersonalInfoPreferencesScreen> {
   final UserProfileService _userProfileService = UserProfileService();
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
+  final OnboardingAudioService _audioService = OnboardingAudioService();
   bool _isLoading = false;
 
   // Form controllers
@@ -54,6 +57,8 @@ class _PersonalInfoPreferencesScreenState
   @override
   void initState() {
     super.initState();
+    // Initialize audio service for sound effects
+    _audioService.initialize();
     _displayNameController = TextEditingController();
     _usernameController = TextEditingController();
     _phoneController = TextEditingController();
@@ -74,6 +79,9 @@ class _PersonalInfoPreferencesScreenState
   }
 
   Future<void> _pickImage() async {
+    // Play button sound for image picker action
+    _audioService.playButtonSound();
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -127,13 +135,15 @@ class _PersonalInfoPreferencesScreenState
   }
 
   void _removeProfileImage() {
+    // Play button sound for remove action
+    _audioService.playButtonSound();
     setState(() {
       _imageFile = null;
     });
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget buildScreenContent(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Personal Information'),
@@ -258,6 +268,7 @@ class _PersonalInfoPreferencesScreenState
         const SizedBox(height: 16),
         TextFormField(
           controller: _displayNameController,
+          onTap: () => _audioService.playTextFieldSound(),
           decoration: const InputDecoration(
             labelText: 'Display Name',
             hintText: 'John Doe',
@@ -281,6 +292,7 @@ class _PersonalInfoPreferencesScreenState
         const SizedBox(height: 16),
         TextFormField(
           controller: _usernameController,
+          onTap: () => _audioService.playTextFieldSound(),
           decoration: const InputDecoration(
             labelText: 'Username',
             hintText: 'yourname',
@@ -310,6 +322,7 @@ class _PersonalInfoPreferencesScreenState
         const SizedBox(height: 16),
         TextFormField(
           controller: _phoneController,
+          onTap: () => _audioService.playTextFieldSound(),
           decoration: const InputDecoration(
             labelText: 'Phone Number (Optional)',
             hintText: '+1 234 567 8900',
@@ -333,6 +346,7 @@ class _PersonalInfoPreferencesScreenState
             );
           }).toList(),
           onChanged: (value) {
+            _audioService.playButtonSound();
             setState(() {
               _gender = value!;
             });
@@ -358,6 +372,7 @@ class _PersonalInfoPreferencesScreenState
             Expanded(
               child: TextFormField(
                 controller: _ageController,
+                onTap: () => _audioService.playTextFieldSound(),
                 decoration: const InputDecoration(
                   labelText: 'Age',
                   hintText: '25',
@@ -381,6 +396,7 @@ class _PersonalInfoPreferencesScreenState
             Expanded(
               child: TextFormField(
                 controller: _heightController,
+                onTap: () => _audioService.playTextFieldSound(),
                 decoration: const InputDecoration(
                   labelText: 'Height (cm)',
                   hintText: '175',
@@ -405,6 +421,7 @@ class _PersonalInfoPreferencesScreenState
         const SizedBox(height: 16),
         TextFormField(
           controller: _weightController,
+          onTap: () => _audioService.playTextFieldSound(),
           decoration: const InputDecoration(
             labelText: 'Weight (kg)',
             hintText: '70',
@@ -449,6 +466,7 @@ class _PersonalInfoPreferencesScreenState
             return DropdownMenuItem(value: level, child: Text(level));
           }).toList(),
           onChanged: (value) {
+            _audioService.playButtonSound();
             setState(() {
               _activityLevel = value!;
             });
@@ -466,6 +484,7 @@ class _PersonalInfoPreferencesScreenState
             return DropdownMenuItem(value: frequency, child: Text(frequency));
           }).toList(),
           onChanged: (value) {
+            _audioService.playButtonSound();
             setState(() {
               _weeklyActivity = value!;
             });
@@ -479,7 +498,10 @@ class _PersonalInfoPreferencesScreenState
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _savePersonalInfo,
+        onPressed: _isLoading ? null : () {
+          _audioService.playContinueSound();
+          _savePersonalInfo();
+        },
         style: ElevatedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),

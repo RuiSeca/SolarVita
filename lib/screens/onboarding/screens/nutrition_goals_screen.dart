@@ -99,11 +99,11 @@ class _NutritionGoalsScreenState extends OnboardingBaseScreenState<NutritionGoal
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Create updated profile with nutrition goals
     final updatedProfile = widget.userProfile.copyWith(

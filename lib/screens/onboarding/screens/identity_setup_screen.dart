@@ -54,11 +54,11 @@ class _IdentitySetupScreenState extends OnboardingBaseScreenState<IdentitySetupS
       _selectedGender = gender;
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() async {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Validate username availability
     final username = _usernameController.text.trim();

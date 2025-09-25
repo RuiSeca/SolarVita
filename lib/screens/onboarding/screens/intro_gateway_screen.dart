@@ -26,6 +26,9 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
   void initState() {
     super.initState();
 
+    // Ensure audio service is initialized (it should be from OnboardingExperience)
+    _audioService.initialize();
+
     _textController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -54,13 +57,21 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
   @override
   void dispose() {
     _textController.dispose();
+    // Don't dispose audio service here - it's managed globally by OnboardingExperience
     super.dispose();
   }
 
   void _navigateToNext() {
-    // Play progression chime
-    _audioService.playChime(ChimeType.progression);
-    
+    // Play progression chime for button navigation
+    _audioService.playContinueSound();
+
+    Navigator.of(context).pushReplacement(
+      _createCeremonialTransition(const IntroConnectionScreen()),
+    );
+  }
+
+  void _navigateToNextWithoutSound() {
+    // Navigate without sound (sound already played for swipe)
     Navigator.of(context).pushReplacement(
       _createCeremonialTransition(const IntroConnectionScreen()),
     );
@@ -172,8 +183,9 @@ class _IntroGatewayScreenState extends State<IntroGatewayScreen>
         onTap: _navigateToNext,
         onHorizontalDragEnd: (details) {
           if (details.primaryVelocity! < 0) {
-            // Swipe left to continue
-            _navigateToNext();
+            // Swipe left to continue - play swipe sound for gesture
+            _audioService.playSwipeSound();
+            _navigateToNextWithoutSound();
           }
         },
         child: Stack(

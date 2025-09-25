@@ -117,11 +117,11 @@ class _WorkoutTimingScreenState extends OnboardingBaseScreenState<WorkoutTimingS
       _selectedTime = time;
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Create updated profile with workout timing
     final updatedProfile = widget.userProfile.copyWith(

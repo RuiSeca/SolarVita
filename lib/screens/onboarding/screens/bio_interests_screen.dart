@@ -60,6 +60,9 @@ class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScr
   void initState() {
     super.initState();
 
+    // Initialize audio service
+    _audioService.initialize();
+
     _textController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -92,6 +95,8 @@ class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScr
   }
 
   void _onInterestToggled(String interest) {
+    // Play button sound for interest selection
+    _audioService.playButtonSound();
     setState(() {
       if (_selectedInterests.contains(interest)) {
         _selectedInterests.remove(interest);
@@ -102,11 +107,11 @@ class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScr
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    // Play continue sound for progression
+    _audioService.playContinueSound();
 
     // Create updated profile with bio and interests
     final updatedProfile = widget.userProfile.copyWith(
@@ -253,6 +258,7 @@ class _BioInterestsScreenState extends OnboardingBaseScreenState<BioInterestsScr
                     hint: tr(context, 'bio_field_hint'),
                     controller: _bioController,
                     maxLines: 3,
+                    onTap: () => _audioService.playTextFieldSound(),
                   ),
 
                   const SizedBox(height: 50),

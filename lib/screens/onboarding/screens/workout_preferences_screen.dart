@@ -114,11 +114,11 @@ class _WorkoutPreferencesScreenState extends OnboardingBaseScreenState<WorkoutPr
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(

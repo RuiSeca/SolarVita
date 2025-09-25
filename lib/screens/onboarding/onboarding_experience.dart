@@ -33,10 +33,9 @@ class _OnboardingExperienceState extends State<OnboardingExperience> {
 
   @override
   void dispose() {
-    // Stop and dispose audio when onboarding experience ends
-    // Don't dispose here immediately - let it be handled by individual screen exits
-    // or app lifecycle changes to avoid interrupting ongoing audio initialization
-    debugPrint('🎵 Onboarding experience disposed - audio cleanup deferred');
+    // Don't dispose audio here - this widget gets disposed during navigation
+    // Audio should only be disposed when actually exiting onboarding or app lifecycle changes
+    debugPrint('🎵 Onboarding experience disposed - keeping audio service running for other screens');
     super.dispose();
   }
 

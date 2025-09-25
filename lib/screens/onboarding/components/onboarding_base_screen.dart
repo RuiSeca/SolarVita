@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../utils/translation_helper.dart';
 import '../../../providers/riverpod/auth_provider.dart';
 import '../../login/login_screen.dart';
+import '../services/onboarding_audio_service.dart';
 
 /// Base widget for all onboarding screens that provides:
 /// - Consistent back button behavior with confirmation dialog
@@ -18,6 +19,8 @@ abstract class OnboardingBaseScreen extends ConsumerStatefulWidget {
 
 abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
     extends ConsumerState<T> with WidgetsBindingObserver {
+
+  final OnboardingAudioService _audioService = OnboardingAudioService();
 
   /// Override this method to provide the actual screen content
   Widget buildScreenContent(BuildContext context);
@@ -36,6 +39,8 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // Don't dispose audio service here - it's managed globally by OnboardingExperience
+    debugPrint('🎵 OnboardingBaseScreen disposed - keeping audio service for other screens');
     super.dispose();
   }
 
@@ -47,7 +52,8 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
-      debugPrint('🔄 App lifecycle changed to: $state - Cleaning up incomplete onboarding');
+      debugPrint('🔄 App lifecycle changed to: $state - Cleaning up incomplete onboarding and stopping audio');
+      _handleAudioCleanupForLifecycle();
       _handleOnboardingExitSilent();
     }
   }
@@ -109,12 +115,7 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
             ),
             // Exit button
             TextButton(
-              onPressed: () async {
-                await _handleOnboardingExit();
-                if (context.mounted) {
-                  Navigator.of(context).pop(true);
-                }
-              },
+              onPressed: () => Navigator.of(context).pop(true),
               child: Text(
                 tr(context, 'exit_onboarding_confirm'),
                 style: const TextStyle(
@@ -130,9 +131,25 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
     ) ?? false;
   }
 
+  /// Handles audio cleanup when app lifecycle changes
+  Future<void> _handleAudioCleanupForLifecycle() async {
+    try {
+      debugPrint('🎵 Stopping ambient audio due to app lifecycle change');
+      await _audioService.fadeOutAmbient();
+      await _audioService.dispose();
+    } catch (e) {
+      debugPrint('❌ Error during audio cleanup: $e');
+    }
+  }
+
   /// Handles cleanup when user exits onboarding
   Future<void> _handleOnboardingExit() async {
     try {
+      // Stop audio first
+      debugPrint('🎵 Stopping ambient audio due to onboarding exit');
+      await _audioService.fadeOutAmbient();
+      await _audioService.dispose();
+
       // Get the current user (if any)
       final authNotifier = ref.read(authNotifierProvider.notifier);
 
@@ -144,21 +161,50 @@ abstract class OnboardingBaseScreenState<T extends OnboardingBaseScreen>
 
       debugPrint('🧹 Onboarding exit: Cleaned up incomplete account data');
 
-      // Navigate back to login screen
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
-      }
+      // Navigate back to login screen safely
+      await _navigateToLoginSafely();
     } catch (e) {
       debugPrint('❌ Error during onboarding exit cleanup: $e');
       // Still navigate back even if cleanup fails
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
+      await _navigateToLoginSafely();
+    }
+  }
+
+  /// Safely navigates to login screen handling potential navigator stack issues
+  Future<void> _navigateToLoginSafely() async {
+    if (!mounted) return;
+
+    try {
+      // Check if we can safely navigate
+      final navigator = Navigator.of(context);
+      final canPop = navigator.canPop();
+
+      debugPrint('🧭 Navigator canPop: $canPop');
+
+      if (canPop) {
+        // If we can pop, use pushAndRemoveUntil
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const LoginScreen()),
           (route) => false,
         );
+      } else {
+        // If we can't pop (empty stack), use pushReplacement or alternative
+        navigator.pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Navigation error: $e');
+      // Fallback: try to use the root navigator
+      try {
+        Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          (route) => false,
+        );
+      } catch (e2) {
+        debugPrint('❌ Root navigation also failed: $e2');
+        // Last resort: force app restart by invalidating providers
+        ref.invalidate(authNotifierProvider);
       }
     }
   }

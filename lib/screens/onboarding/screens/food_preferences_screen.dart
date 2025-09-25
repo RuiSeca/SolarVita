@@ -164,11 +164,11 @@ class _FoodPreferencesScreenState extends OnboardingBaseScreenState<FoodPreferen
       }
     });
     HapticFeedback.lightImpact();
-    _audioService.playChime(ChimeType.selection);
+    _audioService.playButtonSound();
   }
 
   void _continue() {
-    _audioService.playChime(ChimeType.progression);
+    _audioService.playContinueSound();
 
     // Create updated profile with food preferences
     final updatedProfile = widget.userProfile.copyWith(

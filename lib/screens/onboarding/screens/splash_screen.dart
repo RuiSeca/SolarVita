@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../models/audio_preference.dart';
+import 'audio_preference_screen.dart';
 import 'intro_gateway_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -67,13 +69,45 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (mounted) {
       if (firstLaunch) {
-        // First time user - go to intro ceremony
-        Navigator.of(context).pushReplacement(
-          _createCeremonialTransition(const IntroGatewayScreen()),
-        );
+        // First time user - check if audio preference has been set
+        final hasAudioPreference = await AudioPreferences.hasSetPreference();
+
+        if (!hasAudioPreference) {
+          // New user, no audio preference set - go to audio preference screen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AudioPreferenceScreen()),
+            );
+          }
+        } else {
+          // Audio preference already set - go to intro ceremony
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              _createCeremonialTransition(const IntroGatewayScreen()),
+            );
+          }
+        }
       } else {
-        // Returning user - go to main app (which will handle login)
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        // Returning user - check if they're in an onboarding context
+        // If this SplashScreen is being shown, it's likely because onboarding is incomplete
+        // Check if audio preference needs to be set
+        final hasAudioPreference = await AudioPreferences.hasSetPreference();
+
+        if (!hasAudioPreference) {
+          // Returning user but no audio preference - show audio preference screen
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const AudioPreferenceScreen()),
+            );
+          }
+        } else {
+          // Returning user with audio preference - continue to onboarding
+          if (mounted) {
+            Navigator.of(context).pushReplacement(
+              _createCeremonialTransition(const IntroGatewayScreen()),
+            );
+          }
+        }
       }
     }
   }
