@@ -71,7 +71,7 @@ class _FanMenuDemoScreenState extends State<FanMenuDemoScreen> {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
                     child: Text('${index + 1}'),
                   ),
                   title: Text('Demo Item ${index + 1}'),
@@ -119,7 +119,7 @@ class _FanMenuDemoScreenState extends State<FanMenuDemoScreen> {
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).primaryColor.withOpacity(0.1),
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
           width: 1,
         ),
       ),

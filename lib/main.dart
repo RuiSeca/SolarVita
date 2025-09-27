@@ -37,7 +37,6 @@ import 'widgets/common/lottie_loading_widget.dart';
 import 'widgets/common/bottom_nav_bar.dart';
 import 'widgets/common/fan_menu_fab.dart';
 import 'widgets/splash/video_splash_screen.dart';
-import 'widgets/search/universal_search_overlay.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
 import 'utils/translation_helper.dart';
@@ -680,40 +679,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
   }
 
   PreferredSizeWidget? _buildAppBar() {
-    // Hide app bar on Search tab since it has its own search functionality
-    if (_selectedIndex == 1) return null;
-
-    return AppBar(
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      title: Text(_getAppBarTitle()),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.search),
-          onPressed: () => showUniversalSearch(context),
-          tooltip: tr(context, 'universal_search'),
-        ),
-        const SizedBox(width: 8),
-      ],
-    );
+    // No app bars for any tabs - Profile will handle its own scroll-aware header
+    return null;
   }
 
-  String _getAppBarTitle() {
-    switch (_selectedIndex) {
-      case 0:
-        return tr(context, 'nav_dashboard');
-      case 1:
-        return tr(context, 'nav_search');
-      case 2:
-        return tr(context, 'nav_health');
-      case 3:
-        return tr(context, 'nav_solar_ai');
-      case 4:
-        return tr(context, 'nav_profile');
-      default:
-        return 'SolarVita';
-    }
-  }
 
   Widget? _buildSmartFAB() {
     // Only show the fan menu FAB on the Dashboard tab

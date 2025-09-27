@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/database/social_service.dart';
+import '../../services/community/community_challenge_service.dart';
 import '../../models/community/community_challenge.dart';
 import '../../models/social/social_post.dart' as social;
 import '../../theme/app_theme.dart';
 import '../../utils/translation_helper.dart';
 import '../../screens/social/create_post_screen.dart';
 import '../../screens/social/social_feed_screen.dart';
+import '../../screens/challenges/challenge_detail_screen.dart';
 import 'social_post_card.dart';
 import '../common/lottie_loading_widget.dart';
 import '../../screens/tribes/tribes_screen.dart';
@@ -25,6 +27,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final SocialService _socialService = SocialService();
+  final CommunityChallengeService _challengeService = CommunityChallengeService();
 
   @override
   void initState() {
@@ -312,7 +315,7 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
 
   Widget _buildChallengesTab() {
     return StreamBuilder<List<CommunityChallenge>>(
-      stream: _socialService.getActiveChallenges(),
+      stream: _challengeService.getActiveChallenges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -350,11 +353,20 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
   Widget _buildExpandedChallengeCard(CommunityChallenge challenge) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChallengeDetailScreen(challenge: challenge),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 Text('🏆', style: const TextStyle(fontSize: 24)),
@@ -386,7 +398,8 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
                 Text(_formatChallengeDate(challenge.endDate)),
               ],
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

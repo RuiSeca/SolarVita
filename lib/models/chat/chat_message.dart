@@ -11,6 +11,11 @@ enum MessageType {
   workout,
   achievement,
   system,
+  mealShare,
+  workoutShare,
+  ecoTip,
+  challengeInvite,
+  smartSuggestion,
 }
 
 enum MessageStatus {
@@ -222,9 +227,16 @@ class ChatMessage {
   bool get isWorkout => messageType == MessageType.workout;
   bool get isAchievement => messageType == MessageType.achievement;
   bool get isSystem => messageType == MessageType.system;
+  bool get isMealShare => messageType == MessageType.mealShare;
+  bool get isWorkoutShare => messageType == MessageType.workoutShare;
+  bool get isEcoTip => messageType == MessageType.ecoTip;
+  bool get isChallengeInvite => messageType == MessageType.challengeInvite;
+  bool get isSmartSuggestion => messageType == MessageType.smartSuggestion;
   bool get hasMedia => mediaUrls.isNotEmpty;
   bool get isEdited => editedAt != null;
   bool get isReply => replyToMessageId != null;
+  bool get isShareType => isMealShare || isWorkoutShare || isActivityShare;
+  bool get isAutomatedMessage => isEcoTip || isSmartSuggestion;
   
   String getTimeAgo() {
     final now = DateTime.now();

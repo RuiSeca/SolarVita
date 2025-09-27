@@ -2,12 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../theme/app_theme.dart';
 import '../../../../utils/translation_helper.dart';
+import '../../../admin/admin_panel_screen.dart';
 
-class AboutAppScreen extends ConsumerWidget {
+class AboutAppScreen extends ConsumerStatefulWidget {
   const AboutAppScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AboutAppScreen> createState() => _AboutAppScreenState();
+}
+
+class _AboutAppScreenState extends ConsumerState<AboutAppScreen> {
+  int _tapCount = 0;
+  static const int _requiredTaps = 7;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       appBar: AppBar(
@@ -64,18 +73,21 @@ class AboutAppScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Center(
-              child: Icon(
-                Icons.wb_sunny,
-                size: 48,
-                color: AppTheme.primaryColor,
+          GestureDetector(
+            onTap: _handleLogoTap,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Icon(
+                  Icons.wb_sunny,
+                  size: 48,
+                  color: AppTheme.primaryColor,
+                ),
               ),
             ),
           ),
@@ -480,5 +492,36 @@ class AboutAppScreen extends ConsumerWidget {
         backgroundColor: AppTheme.primaryColor,
       ),
     );
+  }
+
+  void _handleLogoTap() {
+    setState(() {
+      _tapCount++;
+    });
+
+    if (_tapCount >= _requiredTaps) {
+      // Reset counter
+      _tapCount = 0;
+
+      // Show admin panel
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const AdminPanelScreen(),
+        ),
+      );
+    } else {
+      // Show feedback for progress
+      final remaining = _requiredTaps - _tapCount;
+      if (remaining <= 3) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$remaining more taps for admin access'),
+            duration: const Duration(seconds: 1),
+            backgroundColor: AppTheme.primaryColor,
+          ),
+        );
+      }
+    }
   }
 }

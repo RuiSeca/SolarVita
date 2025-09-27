@@ -23,6 +23,10 @@ enum NotificationType {
   supportRequest,
   supportAccepted,
   supportRejected,
+  social,
+  challengeUpdate,
+  challengeInvite,
+  ecoTip,
 }
 
 class PushNotification {
