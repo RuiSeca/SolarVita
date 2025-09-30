@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../services/database/social_service.dart';
 import '../../services/community/community_challenge_service.dart';
 import '../../models/community/community_challenge.dart';
 import '../../models/social/social_post.dart' as social;
@@ -12,6 +11,7 @@ import '../../screens/social/social_feed_screen.dart';
 import '../../screens/challenges/challenge_detail_screen.dart';
 import 'social_post_card.dart';
 import '../common/lottie_loading_widget.dart';
+import '../common/oriented_image.dart';
 import '../../screens/tribes/tribes_screen.dart';
 
 enum SocialFeedTab { allPosts, tribes, challenges }
@@ -26,7 +26,6 @@ class SocialFeedTabs extends ConsumerStatefulWidget {
 class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final SocialService _socialService = SocialService();
   final CommunityChallengeService _challengeService = CommunityChallengeService();
 
   @override
@@ -342,19 +341,27 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
 
   Widget _buildExpandedChallenges(List<CommunityChallenge> challenges) {
     return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: challenges.length,
       itemBuilder: (context, index) {
         final challenge = challenges[index];
-        return _buildExpandedChallengeCard(challenge);
+        return _buildBeautifulChallengeCard(challenge);
       },
     );
   }
 
-  Widget _buildExpandedChallengeCard(CommunityChallenge challenge) {
+  Widget _buildBeautifulChallengeCard(CommunityChallenge challenge) {
+    final theme = Theme.of(context);
+    final totalParticipants = challenge.getTotalParticipants();
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
+          HapticFeedback.lightImpact();
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -362,44 +369,265 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
             ),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-            Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image section with overlay
+            Stack(
               children: [
-                Text('🏆', style: const TextStyle(fontSize: 24)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    challenge.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                // Challenge image or gradient background
+                SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: challenge.imageUrl != null && challenge.imageUrl!.isNotEmpty
+                      ? OrientedImage(
+                          imageUrl: challenge.imageUrl!,
+                          height: 200,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                _getChallengeGradientColor(challenge.type),
+                                _getChallengeGradientColor(challenge.type).withValues(alpha: 0.7),
+                              ],
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              challenge.icon,
+                              style: const TextStyle(fontSize: 64),
+                            ),
+                          ),
+                        ),
+                ),
+                // Category badge
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _getChallengeTypeLabel(challenge.type),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                // Status badge
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(challenge.status),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getStatusIcon(challenge.status),
+                          size: 12,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getStatusLabel(challenge.status),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(challenge.description, style: const TextStyle(fontSize: 14)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.people, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${challenge.participants.length} ${tr(context, 'participants')}',
-                ),
-                const SizedBox(width: 16),
-                Icon(Icons.calendar_today, size: 16),
-                const SizedBox(width: 4),
-                Text(_formatChallengeDate(challenge.endDate)),
-              ],
+            // Content section
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Title
+                  Text(
+                    challenge.title,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor(context),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  // Description
+                  Text(
+                    challenge.description,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      height: 1.4,
+                      color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 16),
+                  // Community Goal Progress
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.primaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.primaryColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.emoji_events, size: 16, color: theme.primaryColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              tr(context, 'community_goal'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              '${challenge.communityGoal.currentProgress}/${challenge.communityGoal.targetValue}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: challenge.communityGoalProgress / 100,
+                            backgroundColor: Colors.grey[300],
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              challenge.isCommunityGoalReached ? Colors.green : theme.primaryColor,
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${challenge.communityGoalProgress.toInt()}% towards ${challenge.communityGoal.unit} goal',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textColor(context).withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Stats row
+                  Row(
+                    children: [
+                      _buildStatChip(
+                        icon: Icons.people,
+                        label: '$totalParticipants',
+                        color: Colors.blue,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatChip(
+                        icon: _getModeIcon(challenge.mode),
+                        label: _getModeLabel(challenge.mode),
+                        color: _getModeColor(challenge.mode),
+                      ),
+                      const SizedBox(width: 8),
+                      if (challenge.prizeConfiguration.communityPrize != null)
+                        _buildStatChip(
+                          icon: Icons.card_giftcard,
+                          label: challenge.prizeConfiguration.communityPrize!,
+                          color: Colors.amber,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Progress and time info
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.schedule,
+                        size: 16,
+                        color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatChallengeDate(challenge.endDate),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textColor(context).withValues(alpha: 0.6),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Progress indicator
+                      Text(
+                        '${challenge.progressPercentage.toInt()}%',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 60,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                        child: FractionallySizedBox(
+                          alignment: Alignment.centerLeft,
+                          widthFactor: challenge.progressPercentage / 100,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.primaryColor,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -434,6 +662,134 @@ class _SocialFeedTabsState extends ConsumerState<SocialFeedTabs>
         ],
       ),
     );
+  }
+
+  Widget _buildStatChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getChallengeGradientColor(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.fitness:
+        return Colors.deepOrange;
+      case ChallengeType.nutrition:
+        return Colors.green;
+      case ChallengeType.sustainability:
+        return Colors.teal;
+      case ChallengeType.community:
+        return Colors.indigo;
+    }
+  }
+
+  String _getChallengeTypeLabel(ChallengeType type) {
+    switch (type) {
+      case ChallengeType.fitness:
+        return tr(context, 'fitness');
+      case ChallengeType.nutrition:
+        return tr(context, 'nutrition');
+      case ChallengeType.sustainability:
+        return tr(context, 'sustainability');
+      case ChallengeType.community:
+        return tr(context, 'community');
+    }
+  }
+
+  String _getModeLabel(ChallengeMode mode) {
+    switch (mode) {
+      case ChallengeMode.individual:
+        return tr(context, 'individual');
+      case ChallengeMode.team:
+        return tr(context, 'team');
+      case ChallengeMode.mixed:
+        return tr(context, 'mixed');
+    }
+  }
+
+  IconData _getModeIcon(ChallengeMode mode) {
+    switch (mode) {
+      case ChallengeMode.individual:
+        return Icons.person;
+      case ChallengeMode.team:
+        return Icons.group;
+      case ChallengeMode.mixed:
+        return Icons.diversity_1;
+    }
+  }
+
+  Color _getModeColor(ChallengeMode mode) {
+    switch (mode) {
+      case ChallengeMode.individual:
+        return Colors.blue;
+      case ChallengeMode.team:
+        return Colors.green;
+      case ChallengeMode.mixed:
+        return Colors.purple;
+    }
+  }
+
+  Color _getStatusColor(ChallengeStatus status) {
+    switch (status) {
+      case ChallengeStatus.upcoming:
+        return Colors.orange;
+      case ChallengeStatus.active:
+        return Colors.green;
+      case ChallengeStatus.completed:
+        return Colors.blue;
+      case ChallengeStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
+  IconData _getStatusIcon(ChallengeStatus status) {
+    switch (status) {
+      case ChallengeStatus.upcoming:
+        return Icons.schedule;
+      case ChallengeStatus.active:
+        return Icons.play_circle;
+      case ChallengeStatus.completed:
+        return Icons.check_circle;
+      case ChallengeStatus.cancelled:
+        return Icons.cancel;
+    }
+  }
+
+  String _getStatusLabel(ChallengeStatus status) {
+    switch (status) {
+      case ChallengeStatus.upcoming:
+        return tr(context, 'upcoming');
+      case ChallengeStatus.active:
+        return tr(context, 'active');
+      case ChallengeStatus.completed:
+        return tr(context, 'completed');
+      case ChallengeStatus.cancelled:
+        return tr(context, 'cancelled');
+    }
   }
 
   String _formatChallengeDate(DateTime endDate) {

@@ -4,6 +4,7 @@ import '../../models/community/community_challenge.dart';
 import '../../services/community/community_challenge_service.dart';
 import '../../theme/app_theme.dart';
 import 'admin_challenge_form_screen.dart';
+import '../../translation_test_widget.dart';
 
 class AdminPanelScreen extends ConsumerStatefulWidget {
   const AdminPanelScreen({super.key});
@@ -20,7 +21,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -68,6 +69,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
             Tab(text: 'Active', icon: Icon(Icons.play_circle)),
             Tab(text: 'Draft', icon: Icon(Icons.drafts)),
             Tab(text: 'Completed', icon: Icon(Icons.check_circle)),
+            Tab(text: 'Debug', icon: Icon(Icons.bug_report)),
           ],
           labelColor: theme.primaryColor,
           unselectedLabelColor: Colors.grey[600],
@@ -80,6 +82,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
           _buildChallengesList(ChallengeStatus.active),
           _buildChallengesList(ChallengeStatus.upcoming),
           _buildChallengesList(ChallengeStatus.completed),
+          _buildDebugTab(),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -416,37 +419,22 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
   }
 
   Future<void> _toggleChallengeStatus(CommunityChallenge challenge) async {
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     try {
       final newStatus = challenge.status == ChallengeStatus.active
           ? ChallengeStatus.upcoming // Changed to "Draft"
           : ChallengeStatus.active;
 
       // Create updated challenge with new status
-      final updatedChallenge = CommunityChallenge(
-        id: challenge.id,
-        title: challenge.title,
-        description: challenge.description,
-        type: challenge.type,
-        mode: challenge.mode,
+      final updatedChallenge = challenge.copyWith(
         status: newStatus,
-        startDate: challenge.startDate,
-        endDate: challenge.endDate,
-        targetValue: challenge.targetValue,
-        unit: challenge.unit,
-        icon: challenge.icon,
-        participants: challenge.participants,
-        leaderboard: challenge.leaderboard,
-        prize: challenge.prize,
-        teams: challenge.teams,
-        teamLeaderboard: challenge.teamLeaderboard,
-        maxTeamSize: challenge.maxTeamSize,
-        maxTeams: challenge.maxTeams,
       );
 
       await _challengeService.updateChallenge(challenge.id, updatedChallenge);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(
               newStatus == ChallengeStatus.active
@@ -459,7 +447,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text('Error updating challenge: $e'),
             backgroundColor: Colors.red,
@@ -482,13 +470,14 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
           ),
           TextButton(
             onPressed: () async {
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
               Navigator.pop(context);
 
               try {
                 await _challengeService.deleteChallenge(challenge.id);
 
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     const SnackBar(
                       content: Text('Challenge deleted successfully!'),
                       backgroundColor: Colors.green,
@@ -497,7 +486,7 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
                 }
               } catch (e) {
                 if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  scaffoldMessenger.showSnackBar(
                     SnackBar(
                       content: Text('Error deleting challenge: $e'),
                       backgroundColor: Colors.red,
@@ -563,5 +552,131 @@ class _AdminPanelScreenState extends ConsumerState<AdminPanelScreen>
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildDebugTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Card(
+            color: AppTheme.cardColor(context),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.translate,
+                        color: Theme.of(context).primaryColor,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Translation System Test',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Test the automatic translation system for meals and exercises. Switch languages to see content automatically translate.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const TranslationTestWidget(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.science),
+                      label: const Text('Open Translation Test'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            color: AppTheme.cardColor(context),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Translation System Status',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor(context),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildStatusRow('System Status', '✅ Operational', Colors.green),
+                  _buildStatusRow('Languages Supported', '11 Languages', Colors.blue),
+                  _buildStatusRow('Translation Service', 'Free (Development)', Colors.orange),
+                  _buildStatusRow('Offline Support', '✅ Available', Colors.green),
+                  _buildStatusRow('Auto-refresh', '✅ Weekly', Colors.green),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusRow(String label, String value, Color color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppTheme.textColor(context),
+            ),
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

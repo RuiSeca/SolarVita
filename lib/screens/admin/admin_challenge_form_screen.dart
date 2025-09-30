@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../models/community/community_challenge.dart';
 import '../../services/community/community_challenge_service.dart';
 import '../../theme/app_theme.dart';
@@ -25,9 +28,23 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
   final _iconController = TextEditingController();
   final _targetValueController = TextEditingController();
   final _unitController = TextEditingController();
-  final _prizeController = TextEditingController();
   final _maxTeamSizeController = TextEditingController();
   final _maxTeamsController = TextEditingController();
+
+  // Community Goal Controllers
+  final _communityGoalController = TextEditingController();
+  final _communityUnitController = TextEditingController();
+  final _minimumRequirementController = TextEditingController();
+
+  // Prize Controllers
+  final _communityPrizeController = TextEditingController();
+  final List<TextEditingController> _individualPrizeControllers = [];
+  final List<TextEditingController> _teamPrizeControllers = [];
+
+  File? _selectedImage;
+  String? _imageUrl;
+  final ImagePicker _imagePicker = ImagePicker();
+  bool _isUploadingImage = false;
 
   ChallengeType _selectedType = ChallengeType.sustainability;
   ChallengeMode _selectedMode = ChallengeMode.mixed;
@@ -38,6 +55,9 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
   bool _requiresPhoto = false;
   bool _allowTeams = true;
   bool _isSubmitting = false;
+  bool _communityGoalRequired = true;
+  PrizeTier _individualPrizeTier = PrizeTier.top5;
+  PrizeTier _teamPrizeTier = PrizeTier.top5;
 
   final CommunityChallengeService _challengeService = CommunityChallengeService();
 
@@ -55,11 +75,21 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     _titleController.text = widget.isDuplicate ? '${challenge.title} (Copy)' : challenge.title;
     _descriptionController.text = challenge.description;
     _iconController.text = challenge.icon;
-    _targetValueController.text = challenge.targetValue.toString();
-    _unitController.text = challenge.unit;
-    _prizeController.text = challenge.prize ?? '';
+    _targetValueController.text = '1000';  // Legacy field - not used in new model
+    _unitController.text = 'legacy';       // Legacy field - not used in new model
     _maxTeamSizeController.text = challenge.maxTeamSize?.toString() ?? '';
     _maxTeamsController.text = challenge.maxTeams?.toString() ?? '';
+
+    // Community Goal
+    _communityGoalController.text = challenge.communityGoal.targetValue.toString();
+    _communityUnitController.text = challenge.communityGoal.unit;
+    _minimumRequirementController.text = challenge.prizeConfiguration.minimumIndividualRequirement.toString();
+
+    // Prizes
+    _communityPrizeController.text = challenge.prizeConfiguration.communityPrize ?? '';
+    _individualPrizeTier = challenge.prizeConfiguration.individualPrizeTier;
+    _teamPrizeTier = challenge.prizeConfiguration.teamPrizeTier;
+    _communityGoalRequired = challenge.prizeConfiguration.communityGoalRequired;
 
     _selectedType = challenge.type;
     _selectedMode = challenge.mode;
@@ -69,6 +99,9 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
         ? DateTime.now().add(const Duration(days: 7))
         : challenge.endDate;
     _allowTeams = challenge.acceptsTeams;
+    _imageUrl = challenge.imageUrl;
+
+    _initializePrizeControllers();
   }
 
   void _setDefaults() {
@@ -76,6 +109,16 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     _targetValueController.text = '1000';
     _unitController.text = 'participants';
     _maxTeamSizeController.text = '6';
+
+    // Community Goal defaults
+    _communityGoalController.text = '1000';
+    _communityUnitController.text = 'bottles';
+    _minimumRequirementController.text = '1';
+
+    // Prize defaults
+    _communityPrizeController.text = '50 coins';
+
+    _initializePrizeControllers();
   }
 
   @override
@@ -104,12 +147,25 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
         ),
         actions: [
           TextButton(
-            onPressed: _isSubmitting ? null : _saveChallenge,
-            child: _isSubmitting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            onPressed: (_isSubmitting || _isUploadingImage) ? null : _saveChallenge,
+            child: (_isSubmitting || _isUploadingImage)
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isUploadingImage ? 'Uploading...' : 'Saving...',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   )
                 : Text(
                     'Save',
@@ -128,11 +184,17 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
           children: [
             _buildBasicInfoSection(),
             const SizedBox(height: 24),
+            _buildImageSection(),
+            const SizedBox(height: 24),
             _buildChallengeTypeSection(),
             const SizedBox(height: 24),
-            _buildTargetSection(),
+            _buildCommunityGoalSection(),
+            const SizedBox(height: 24),
+            _buildPrizeSystemSection(),
             const SizedBox(height: 24),
             _buildDateSection(),
+            const SizedBox(height: 24),
+            _buildTeamSettingsSection(),
             const SizedBox(height: 24),
             _buildTeamSettingsSection(),
             const SizedBox(height: 24),
@@ -207,6 +269,105 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     );
   }
 
+  Widget _buildImageSection() {
+    return _buildSection(
+      title: 'Challenge Image',
+      icon: Icons.image,
+      children: [
+        InkWell(
+          onTap: _pickImage,
+          child: Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey[400]!),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.grey[50],
+            ),
+            child: _selectedImage != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      _selectedImage!,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
+                    ),
+                  )
+                : _imageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          _imageUrl!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          height: double.infinity,
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildImagePlaceholder();
+                          },
+                        ),
+                      )
+                    : _buildImagePlaceholder(),
+          ),
+        ),
+        if (_selectedImage != null || _imageUrl != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              if (_selectedImage != null || _imageUrl != null)
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _selectedImage = null;
+                      _imageUrl = null;
+                    });
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label: const Text('Remove Image', style: TextStyle(color: Colors.red)),
+                ),
+              const Spacer(),
+              if (_selectedImage != null)
+                Text(
+                  'Image selected - will be uploaded on save',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Colors.green[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          Icons.add_photo_alternate_outlined,
+          size: 48,
+          color: Colors.grey[400],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Tap to add challenge image',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Recommended: 16:9 aspect ratio',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Colors.grey[500],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildChallengeTypeSection() {
     return _buildSection(
       title: 'Challenge Configuration',
@@ -274,20 +435,21 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     );
   }
 
-  Widget _buildTargetSection() {
+  Widget _buildCommunityGoalSection() {
     return _buildSection(
-      title: 'Target & Rewards',
-      icon: Icons.flag,
+      title: 'Community Goal',
+      icon: Icons.emoji_events,
       children: [
         Row(
           children: [
             Expanded(
               flex: 2,
               child: TextFormField(
-                controller: _targetValueController,
+                controller: _communityGoalController,
                 decoration: const InputDecoration(
-                  labelText: 'Target Value',
+                  labelText: 'Community Target',
                   border: OutlineInputBorder(),
+                  hintText: '1000',
                 ),
                 keyboardType: TextInputType.number,
                 validator: (value) {
@@ -304,10 +466,11 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                controller: _unitController,
+                controller: _communityUnitController,
                 decoration: const InputDecoration(
                   labelText: 'Unit',
                   border: OutlineInputBorder(),
+                  hintText: 'bottles, steps, etc.',
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -321,15 +484,184 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
         ),
         const SizedBox(height: 16),
         TextFormField(
-          controller: _prizeController,
+          controller: _minimumRequirementController,
           decoration: const InputDecoration(
-            labelText: 'Prize/Reward (Optional)',
+            labelText: 'Minimum Per Person',
             border: OutlineInputBorder(),
-            hintText: 'e.g., 100 coins, Special badge',
+            hintText: 'Minimum each participant must contribute',
           ),
+          keyboardType: TextInputType.number,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Required';
+            }
+            if (int.tryParse(value) == null || int.parse(value) < 1) {
+              return 'Must be at least 1';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Community Goal Required'),
+          subtitle: const Text('Must reach community goal for prizes'),
+          value: _communityGoalRequired,
+          onChanged: (value) {
+            setState(() => _communityGoalRequired = value);
+          },
         ),
       ],
     );
+  }
+
+  Widget _buildPrizeSystemSection() {
+    return _buildSection(
+      title: 'Prize System',
+      icon: Icons.card_giftcard,
+      children: [
+        // Community Prize
+        TextFormField(
+          controller: _communityPrizeController,
+          decoration: const InputDecoration(
+            labelText: 'Community Prize (For Everyone)',
+            border: OutlineInputBorder(),
+            hintText: 'e.g., 50 coins, Special badge',
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Individual Prize Tier
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Individual Leaderboard',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            DropdownButton<PrizeTier>(
+              value: _individualPrizeTier,
+              items: PrizeTier.values.map((tier) {
+                return DropdownMenuItem(
+                  value: tier,
+                  child: Text(_getPrizeTierLabel(tier)),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _individualPrizeTier = value!;
+                  _initializePrizeControllers();
+                });
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ..._buildIndividualPrizeFields(),
+
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 16),
+
+        // Team Prize Tier
+        if (_allowTeams) ...[
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Team Leaderboard',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              DropdownButton<PrizeTier>(
+                value: _teamPrizeTier,
+                items: PrizeTier.values.map((tier) {
+                  return DropdownMenuItem(
+                    value: tier,
+                    child: Text(_getPrizeTierLabel(tier)),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _teamPrizeTier = value!;
+                    _initializePrizeControllers();
+                  });
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ..._buildTeamPrizeFields(),
+        ],
+      ],
+    );
+  }
+
+  void _initializePrizeControllers() {
+    // Clear existing controllers
+    for (var controller in _individualPrizeControllers) {
+      controller.dispose();
+    }
+    for (var controller in _teamPrizeControllers) {
+      controller.dispose();
+    }
+
+    _individualPrizeControllers.clear();
+    _teamPrizeControllers.clear();
+
+    // Initialize individual prize controllers
+    final individualCount = _getPrizeTierCount(_individualPrizeTier);
+    for (int i = 0; i < individualCount; i++) {
+      _individualPrizeControllers.add(TextEditingController());
+    }
+
+    // Initialize team prize controllers
+    final teamCount = _getPrizeTierCount(_teamPrizeTier);
+    for (int i = 0; i < teamCount; i++) {
+      _teamPrizeControllers.add(TextEditingController());
+    }
+  }
+
+  List<Widget> _buildIndividualPrizeFields() {
+    return _individualPrizeControllers.asMap().entries.map((entry) {
+      final index = entry.key;
+      final controller = entry.value;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: '${_getPositionLabel(index + 1)} Place Prize',
+            border: const OutlineInputBorder(),
+            hintText: 'e.g., 100 coins, Gold badge',
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  List<Widget> _buildTeamPrizeFields() {
+    return _teamPrizeControllers.asMap().entries.map((entry) {
+      final index = entry.key;
+      final controller = entry.value;
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: TextFormField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: '${_getPositionLabel(index + 1)} Place Team Prize',
+            border: const OutlineInputBorder(),
+            hintText: 'e.g., 500 coins for team, Team badge',
+          ),
+        ),
+      );
+    }).toList();
   }
 
   Widget _buildDateSection() {
@@ -562,6 +894,29 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     setState(() => _isSubmitting = true);
 
     try {
+      // Upload image if selected
+      if (_selectedImage != null) {
+        _imageUrl = await _uploadImage(_selectedImage!);
+      }
+      // Create community goal
+      final communityGoal = CommunityGoal(
+        targetValue: int.parse(_communityGoalController.text),
+        unit: _communityUnitController.text,
+        currentProgress: 0,
+        isReached: false,
+      );
+
+      // Create prize configuration
+      final prizeConfiguration = PrizeConfiguration(
+        communityPrize: _communityPrizeController.text.isEmpty ? null : _communityPrizeController.text,
+        minimumIndividualRequirement: int.parse(_minimumRequirementController.text),
+        individualPrizeTier: _individualPrizeTier,
+        individualPrizes: _individualPrizeControllers.map((c) => c.text).where((text) => text.isNotEmpty).toList(),
+        teamPrizeTier: _teamPrizeTier,
+        teamPrizes: _teamPrizeControllers.map((c) => c.text).where((text) => text.isNotEmpty).toList(),
+        communityGoalRequired: _communityGoalRequired,
+      );
+
       final challenge = CommunityChallenge(
         id: widget.challenge?.id ?? '',
         title: _titleController.text,
@@ -571,16 +926,16 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
         status: _selectedStatus,
         startDate: _startDate,
         endDate: _endDate,
-        targetValue: int.parse(_targetValueController.text),
-        unit: _unitController.text,
         icon: _iconController.text,
-        prize: _prizeController.text.isEmpty ? null : _prizeController.text,
+        imageUrl: _imageUrl,
         maxTeamSize: _maxTeamSizeController.text.isEmpty
             ? null
             : int.parse(_maxTeamSizeController.text),
         maxTeams: _maxTeamsController.text.isEmpty
             ? null
             : int.parse(_maxTeamsController.text),
+        communityGoal: communityGoal,
+        prizeConfiguration: prizeConfiguration,
       );
 
       await _challengeService.createChallenge(challenge);
@@ -655,6 +1010,97 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     return '${date.day}/${date.month}/${date.year}';
   }
 
+  Future<void> _pickImage() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _selectedImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<String> _uploadImage(File imageFile) async {
+    setState(() => _isUploadingImage = true);
+
+    try {
+      final String fileName = 'challenge_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final Reference storageRef = FirebaseStorage.instance
+          .ref()
+          .child('challenges')
+          .child(fileName);
+
+      final UploadTask uploadTask = storageRef.putFile(imageFile);
+      final TaskSnapshot snapshot = await uploadTask;
+
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      throw Exception('Failed to upload image: $e');
+    } finally {
+      setState(() => _isUploadingImage = false);
+    }
+  }
+
+  String _getPrizeTierLabel(PrizeTier tier) {
+    switch (tier) {
+      case PrizeTier.top3:
+        return 'Top 3';
+      case PrizeTier.top5:
+        return 'Top 5';
+      case PrizeTier.top10:
+        return 'Top 10';
+      case PrizeTier.top15:
+        return 'Top 15';
+      case PrizeTier.top20:
+        return 'Top 20';
+    }
+  }
+
+  int _getPrizeTierCount(PrizeTier tier) {
+    switch (tier) {
+      case PrizeTier.top3:
+        return 3;
+      case PrizeTier.top5:
+        return 5;
+      case PrizeTier.top10:
+        return 10;
+      case PrizeTier.top15:
+        return 15;
+      case PrizeTier.top20:
+        return 20;
+    }
+  }
+
+  String _getPositionLabel(int position) {
+    switch (position) {
+      case 1:
+        return '1st';
+      case 2:
+        return '2nd';
+      case 3:
+        return '3rd';
+      default:
+        return '${position}th';
+    }
+  }
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -662,9 +1108,23 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
     _iconController.dispose();
     _targetValueController.dispose();
     _unitController.dispose();
-    _prizeController.dispose();
     _maxTeamSizeController.dispose();
     _maxTeamsController.dispose();
+
+    // Community Goal Controllers
+    _communityGoalController.dispose();
+    _communityUnitController.dispose();
+    _minimumRequirementController.dispose();
+
+    // Prize Controllers
+    _communityPrizeController.dispose();
+    for (var controller in _individualPrizeControllers) {
+      controller.dispose();
+    }
+    for (var controller in _teamPrizeControllers) {
+      controller.dispose();
+    }
+
     super.dispose();
   }
 }

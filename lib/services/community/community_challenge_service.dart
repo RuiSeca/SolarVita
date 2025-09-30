@@ -340,6 +340,92 @@ class CommunityChallengeService {
     }
   }
 
+  /// Get individual leaderboard for a challenge (solo + team members competing individually)
+  Future<List<IndividualParticipant>> getIndividualLeaderboard(String challengeId) async {
+    try {
+      final challengeDoc = await _firestore
+          .collection('community_challenges')
+          .doc(challengeId)
+          .get();
+
+      if (!challengeDoc.exists) return [];
+
+      final challenge = CommunityChallenge.fromFirestore(challengeDoc);
+      final participants = <IndividualParticipant>[];
+
+      // Get user profiles for display names and avatars
+      final userProfiles = await _getUserProfiles(challenge.participants);
+
+      // Add solo participants
+      for (final userId in challenge.participants) {
+        if (!challenge.isUserInTeam(userId)) {
+          final userProfile = userProfiles[userId];
+          final score = challenge.individualScores[userId] ?? 0;
+          final isEligible = challenge.participantEligibility[userId] ?? false;
+          final meetMinimumRequirement = score >= challenge.prizeConfiguration.minimumIndividualRequirement;
+
+          participants.add(IndividualParticipant(
+            userId: userId,
+            displayName: userProfile?['displayName'] ?? 'Unknown User',
+            avatarUrl: userProfile?['avatarUrl'],
+            score: score,
+            isEligible: isEligible,
+            teamName: null,
+            meetMinimumRequirement: meetMinimumRequirement,
+            lastActivity: DateTime.now(), // TODO: Get from verification data
+          ));
+        }
+      }
+
+      // Add team members competing individually
+      for (final team in challenge.teams) {
+        for (final memberId in team.memberIds) {
+          final userProfile = userProfiles[memberId];
+          final score = challenge.individualScores[memberId] ?? 0;
+          final isEligible = challenge.participantEligibility[memberId] ?? false;
+          final meetMinimumRequirement = score >= challenge.prizeConfiguration.minimumIndividualRequirement;
+
+          participants.add(IndividualParticipant(
+            userId: memberId,
+            displayName: userProfile?['displayName'] ?? 'Unknown User',
+            avatarUrl: userProfile?['avatarUrl'],
+            score: score,
+            isEligible: isEligible,
+            teamName: team.name,
+            meetMinimumRequirement: meetMinimumRequirement,
+            lastActivity: DateTime.now(), // TODO: Get from verification data
+          ));
+        }
+      }
+
+      // Sort by score descending
+      participants.sort((a, b) => b.score.compareTo(a.score));
+
+      return participants;
+    } catch (e) {
+      Logger.error('Error getting individual leaderboard: $e');
+      return [];
+    }
+  }
+
+  /// Helper method to get user profiles
+  Future<Map<String, Map<String, dynamic>>> _getUserProfiles(List<String> userIds) async {
+    final profiles = <String, Map<String, dynamic>>{};
+
+    try {
+      for (final userId in userIds) {
+        final userDoc = await _firestore.collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          profiles[userId] = userDoc.data() ?? {};
+        }
+      }
+    } catch (e) {
+      Logger.error('Error getting user profiles: $e');
+    }
+
+    return profiles;
+  }
+
   // ==================== NOTIFICATION HELPERS ====================
 
   Future<void> _notifyParticipants(String challengeId, String message) async {

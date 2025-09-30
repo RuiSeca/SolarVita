@@ -62,6 +62,12 @@ dependencies:
   # AI providers
   google_generative_ai: ^0.4.6
 
+  # Translation and local database
+  translator: ^1.0.0
+  sqflite: ^2.3.0
+  connectivity_plus: ^6.0.5
+  path: ^1.8.3
+
   # Speech-to-text
   speech_to_text: ^7.1.0
 

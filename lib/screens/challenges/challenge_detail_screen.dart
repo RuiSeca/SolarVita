@@ -39,8 +39,6 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: CustomScrollView(
@@ -72,46 +70,121 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
   Widget _buildSliverAppBar() {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: widget.challenge.imageUrl != null ? 300 : 200,
       pinned: true,
       backgroundColor: AppTheme.surfaceColor(context),
-      leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: AppTheme.textColor(context)),
-        onPressed: () => Navigator.pop(context),
+      leading: Container(
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                _getCategoryColor(widget.challenge.type),
-                _getCategoryColor(widget.challenge.type).withValues(alpha: 0.7),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  widget.challenge.icon,
-                  style: const TextStyle(fontSize: 64),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (widget.challenge.imageUrl != null)
+              Image.network(
+                widget.challenge.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => _buildFallbackHeader(),
+              )
+            else
+              _buildFallbackHeader(),
+            // Gradient overlay for better text readability
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.7),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.challenge.title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+              ),
+            ),
+            // Content overlay
+            Positioned(
+              bottom: 40,
+              left: 20,
+              right: 20,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          widget.challenge.icon,
+                          style: const TextStyle(fontSize: 32),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.challenge.title,
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              _getCategoryLabel(widget.challenge.type),
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackHeader() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            _getCategoryColor(widget.challenge.type),
+            _getCategoryColor(widget.challenge.type).withValues(alpha: 0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
     );
@@ -121,7 +194,23 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     final theme = Theme.of(context);
 
     return Container(
+      margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -129,47 +218,44 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
             widget.challenge.description,
             style: theme.textTheme.bodyLarge?.copyWith(
               color: AppTheme.textColor(context),
-              height: 1.5,
+              height: 1.6,
+              fontSize: 16,
             ),
           ),
+          const SizedBox(height: 24),
+          _buildCommunityGoalProgress(),
           const SizedBox(height: 20),
           Wrap(
             spacing: 12,
-            runSpacing: 8,
+            runSpacing: 10,
             children: [
-              _buildInfoChip(
+              _buildModernInfoChip(
                 icon: Icons.people,
-                label: '${widget.challenge.getTotalParticipants()} participants',
+                label: '${widget.challenge.getTotalParticipants()}',
+                subLabel: 'participants',
                 color: Colors.blue,
               ),
-              _buildInfoChip(
+              _buildModernInfoChip(
                 icon: Icons.timer,
-                label: '${widget.challenge.daysRemaining} days left',
+                label: '${widget.challenge.daysRemaining}',
+                subLabel: 'days left',
                 color: widget.challenge.daysRemaining > 7
                     ? Colors.green
                     : widget.challenge.daysRemaining > 3
                         ? Colors.orange
                         : Colors.red,
               ),
-              _buildInfoChip(
-                icon: Icons.flag,
-                label: 'Goal: ${widget.challenge.targetValue} ${widget.challenge.unit}',
-                color: Colors.purple,
-              ),
-              _buildInfoChip(
+              _buildModernInfoChip(
                 icon: _getModeIcon(widget.challenge.mode),
                 label: _getModeLabel(widget.challenge.mode),
+                subLabel: 'mode',
                 color: _getModeColor(widget.challenge.mode),
               ),
-              _buildInfoChip(
-                icon: Icons.category,
-                label: _getCategoryLabel(widget.challenge.type),
-                color: _getCategoryColor(widget.challenge.type),
-              ),
-              if (widget.challenge.prize != null)
-                _buildInfoChip(
+              if (widget.challenge.prizeConfiguration.communityPrize != null)
+                _buildModernInfoChip(
                   icon: Icons.card_giftcard,
-                  label: 'Prize: ${widget.challenge.prize}',
+                  label: widget.challenge.prizeConfiguration.communityPrize!,
+                  subLabel: 'community prize',
                   color: Colors.amber,
                 ),
             ],
@@ -184,24 +270,37 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: AppTheme.cardColor(context),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: TabBar(
         controller: _tabController,
         tabs: const [
           Tab(text: 'Overview'),
-          Tab(text: 'Leaderboard'),
+          Tab(text: 'Individual'),
           Tab(text: 'Teams'),
         ],
         labelColor: theme.primaryColor,
         unselectedLabelColor: Colors.grey[600],
-        indicatorColor: theme.primaryColor,
+        indicatorColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           color: theme.primaryColor.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        labelStyle: const TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 14,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.w500,
+          fontSize: 14,
         ),
       ),
     );
@@ -227,52 +326,118 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     final theme = Theme.of(context);
     final progress = widget.challenge.progressPercentage;
 
-    return Card(
-      color: AppTheme.cardColor(context),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.trending_up, color: theme.primaryColor),
-                const SizedBox(width: 8),
-                Text(
-                  'Challenge Progress',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textColor(context),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            LinearProgressIndicator(
-              value: progress / 100,
-              backgroundColor: Colors.grey[300],
-              valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${progress.toStringAsFixed(1)}% complete',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  '${widget.challenge.daysRemaining} days remaining',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.trending_up,
+                  color: theme.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Challenge Progress',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * (progress / 100),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        theme.primaryColor,
+                        theme.primaryColor.withValues(alpha: 0.8),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${progress.toStringAsFixed(1)}%',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  Text(
+                    'Complete',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${widget.challenge.daysRemaining}',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.primaryColor,
+                    ),
+                  ),
+                  Text(
+                    'Days left',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -391,7 +556,7 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
           Icon(
             Icons.check_circle_outline,
             size: 16,
-            color: Colors.green,
+            color: Theme.of(context).primaryColor,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -409,6 +574,70 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
   }
 
   Widget _buildLeaderboardTab() {
+    // This will be the Individual Leaderboard
+    return FutureBuilder<List<IndividualParticipant>>(
+      future: _challengeService.getIndividualLeaderboard(widget.challenge.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final individuals = snapshot.data ?? [];
+
+        if (individuals.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('No individual participants yet'),
+                Text('Be the first to join individually!'),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            _buildPrizeInfo(isIndividual: true),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: individuals.length,
+                itemBuilder: (context, index) {
+                  final participant = individuals[index];
+                  return _buildIndividualLeaderboardItem(participant, index + 1);
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  Widget _buildTeamsTab() {
+    if (!widget.challenge.acceptsTeams) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('Individual Challenge'),
+            Text('This challenge is for individual participation only'),
+          ],
+        ),
+      );
+    }
+
+    // This will be the Team Leaderboard
     return FutureBuilder<List<ChallengeTeam>>(
       future: _challengeService.getTeamLeaderboard(widget.challenge.id),
       builder: (context, snapshot) {
@@ -427,252 +656,35 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.leaderboard, size: 64, color: Colors.grey),
+                Icon(Icons.groups, size: 64, color: Colors.grey),
                 SizedBox(height: 16),
-                Text('No participants yet'),
-                Text('Be the first to join!'),
+                Text('No teams yet'),
+                Text('Create or join a team to get started!'),
               ],
             ),
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: teams.length,
-          itemBuilder: (context, index) {
-            final team = teams[index];
-            return _buildLeaderboardItem(team, index + 1);
-          },
+        return Column(
+          children: [
+            _buildPrizeInfo(isIndividual: false),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: teams.length,
+                itemBuilder: (context, index) {
+                  final team = teams[index];
+                  return _buildTeamLeaderboardItem(team, index + 1);
+                },
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildLeaderboardItem(ChallengeTeam team, int rank) {
-    final theme = Theme.of(context);
-    Color rankColor;
 
-    switch (rank) {
-      case 1:
-        rankColor = Colors.amber;
-        break;
-      case 2:
-        rankColor = Colors.grey;
-        break;
-      case 3:
-        rankColor = Colors.brown;
-        break;
-      default:
-        rankColor = Colors.blue;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      color: AppTheme.cardColor(context),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: rankColor.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(
-                  '#$rank',
-                  style: TextStyle(
-                    color: rankColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    team.name,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor(context),
-                    ),
-                  ),
-                  Text(
-                    '${team.memberCount} members',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Text(
-              '${team.totalScore} pts',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.primaryColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTeamsTab() {
-    if (!widget.challenge.acceptsTeams) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Individual Challenge'),
-            Text('This challenge is for individual participation only'),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: widget.challenge.teams.length,
-      itemBuilder: (context, index) {
-        final team = widget.challenge.teams[index];
-        return _buildTeamCard(team);
-      },
-    );
-  }
-
-  Widget _buildTeamCard(ChallengeTeam team) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      color: AppTheme.cardColor(context),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: theme.primaryColor.withValues(alpha: 0.2),
-                  child: Text(
-                    team.name.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      color: theme.primaryColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        team.name,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.textColor(context),
-                        ),
-                      ),
-                      if (team.description != null)
-                        Text(
-                          team.description!,
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${team.totalScore}',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.primaryColor,
-                      ),
-                    ),
-                    Text(
-                      'points',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.people, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${team.memberCount} members',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                const SizedBox(width: 16),
-                Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  'Created ${_formatDate(team.createdAt)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                const Spacer(),
-                if (!team.isFullForChallenge(widget.challenge.maxTeamSize))
-                  TextButton(
-                    onPressed: () => _joinTeam(team),
-                    child: const Text('Join'),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip({
-    required IconData icon,
-    required String label,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _joinChallenge() {
     Navigator.push(
@@ -685,18 +697,631 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     );
   }
 
-  void _joinTeam(ChallengeTeam team) {
-    // Implement team joining logic
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Joining team "${team.name}"...'),
-        backgroundColor: Colors.green,
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildCommunityGoalProgress() {
+    final theme = Theme.of(context);
+    final goal = widget.challenge.communityGoal;
+    final progress = goal.currentProgress / goal.targetValue;
+    final percentage = (progress * 100).clamp(0, 100);
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.purple.withValues(alpha: 0.1),
+            Colors.purple.withValues(alpha: 0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.purple.withValues(alpha: 0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.flag, color: Colors.purple, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Community Goal',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${percentage.toStringAsFixed(1)}%',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 6,
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Stack(
+              children: [
+                Container(
+                  width: MediaQuery.of(context).size.width * progress.clamp(0.0, 1.0),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.purple,
+                        Colors.purple.withValues(alpha: 0.8),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '${goal.currentProgress} / ${goal.targetValue} ${goal.unit}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+  Widget _buildModernInfoChip({
+    required IconData icon,
+    required String label,
+    required String subLabel,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: Theme.of(context).primaryColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textColor(context),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subLabel,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamStat(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: Colors.grey[600]),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPrizeInfo({required bool isIndividual}) {
+    final theme = Theme.of(context);
+    final prizeConfig = widget.challenge.prizeConfiguration;
+    final communityGoal = widget.challenge.communityGoal;
+
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.emoji_events, color: theme.primaryColor, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                '${isIndividual ? 'Individual' : 'Team'} Prize Tiers',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor(context),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Community goal requirement notice
+          if (prizeConfig.communityGoalRequired) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: communityGoal.isReached ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: communityGoal.isReached ? Colors.green.withValues(alpha: 0.3) : Colors.orange.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    communityGoal.isReached ? Icons.check_circle : Icons.warning,
+                    color: communityGoal.isReached ? Colors.green : Colors.orange,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      communityGoal.isReached
+                          ? 'Community goal reached! Prizes will be distributed.'
+                          : 'Community goal must be reached for prize distribution.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: communityGoal.isReached ? Colors.green[800] : Colors.orange[800],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Prize tiers
+          _buildPrizeTierDisplay(isIndividual),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrizeTierDisplay(bool isIndividual) {
+    final prizeConfig = widget.challenge.prizeConfiguration;
+    final prizes = isIndividual ? prizeConfig.individualPrizes : prizeConfig.teamPrizes;
+    final tier = isIndividual ? prizeConfig.individualPrizeTier : prizeConfig.teamPrizeTier;
+
+    if (prizes.isEmpty) {
+      return Text(
+        'No prizes configured for ${isIndividual ? 'individual' : 'team'} participants.',
+        style: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 14,
+        ),
+      );
+    }
+
+    final tierCounts = _getPrizeTierCounts(tier);
+
+    return Column(
+      children: [
+        for (int i = 0; i < prizes.length && i < tierCounts.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: _getRankColor(i + 1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      _getRankIcon(i + 1),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  '${_getRankLabel(i + 1, tierCounts[i])}: ',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    prizes[i],
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildIndividualLeaderboardItem(IndividualParticipant participant, int rank) {
+    final theme = Theme.of(context);
+    final rankColor = _getRankColor(rank);
+    final willReceivePrize = _willReceivePrize(rank, true);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: willReceivePrize
+            ? theme.primaryColor.withValues(alpha: 0.05)
+            : AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: willReceivePrize
+              ? theme.primaryColor.withValues(alpha: 0.2)
+              : theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Rank badge
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: rank <= 3 ? rankColor.withValues(alpha: 0.1) : theme.dividerColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Center(
+              child: Text(
+                _getRankIcon(rank),
+                style: TextStyle(
+                  color: rank <= 3 ? rankColor : AppTheme.textColor(context),
+                  fontWeight: FontWeight.bold,
+                  fontSize: rank <= 3 ? 16 : 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // User info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      participant.displayName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textColor(context),
+                      ),
+                    ),
+                    if (participant.teamName != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          participant.teamName!,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: theme.primaryColor,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    if (!participant.meetMinimumRequirement)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Below minimum',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    if (willReceivePrize) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Prize winner',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Score
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${participant.score}',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: rankColor,
+                ),
+              ),
+              Text(
+                'points',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTeamLeaderboardItem(ChallengeTeam team, int rank) {
+    final theme = Theme.of(context);
+    final rankColor = _getRankColor(rank);
+    final willReceivePrize = _willReceivePrize(rank, false);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: willReceivePrize
+            ? theme.primaryColor.withValues(alpha: 0.05)
+            : AppTheme.cardColor(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: willReceivePrize
+              ? theme.primaryColor.withValues(alpha: 0.2)
+              : theme.dividerColor.withValues(alpha: 0.1),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Rank badge
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [rankColor, rankColor.withValues(alpha: 0.8)],
+              ),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Center(
+              child: Text(
+                _getRankIcon(rank),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+
+          // Team info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  team.name,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textColor(context),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    _buildTeamStat(Icons.people, '${team.memberCount} members'),
+                    if (willReceivePrize) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Prize winner',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Score
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${team.totalScore}',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: rankColor,
+                ),
+              ),
+              Text(
+                'points',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<int> _getPrizeTierCounts(PrizeTier tier) {
+    switch (tier) {
+      case PrizeTier.top3:
+        return [1, 2, 3];
+      case PrizeTier.top5:
+        return [1, 2, 3, 4, 5];
+      case PrizeTier.top10:
+        return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+      case PrizeTier.top15:
+        return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+      case PrizeTier.top20:
+        return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
+    }
+  }
+
+  bool _willReceivePrize(int rank, bool isIndividual) {
+    final prizeConfig = widget.challenge.prizeConfiguration;
+    final tier = isIndividual ? prizeConfig.individualPrizeTier : prizeConfig.teamPrizeTier;
+    final maxPrizeRank = _getPrizeTierCounts(tier).length;
+
+    return rank <= maxPrizeRank &&
+           (!prizeConfig.communityGoalRequired || widget.challenge.communityGoal.isReached);
+  }
+
+  Color _getRankColor(int rank) {
+    final theme = Theme.of(context);
+    switch (rank) {
+      case 1:
+        return Colors.amber;
+      case 2:
+        return Colors.grey[600]!;
+      case 3:
+        return Colors.brown;
+      default:
+        return theme.primaryColor;
+    }
+  }
+
+  String _getRankIcon(int rank) {
+    switch (rank) {
+      case 1:
+        return '🥇';
+      case 2:
+        return '🥈';
+      case 3:
+        return '🥉';
+      default:
+        return '$rank';
+    }
+  }
+
+  String _getRankLabel(int rank, int count) {
+    switch (rank) {
+      case 1:
+        return '1st Place';
+      case 2:
+        return '2nd Place';
+      case 3:
+        return '3rd Place';
+      default:
+        return '$rank${_getOrdinalSuffix(rank)} Place';
+    }
+  }
+
+  String _getOrdinalSuffix(int number) {
+    if (number >= 11 && number <= 13) return 'th';
+    switch (number % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
   }
 
   Color _getCategoryColor(ChallengeType type) {
@@ -764,29 +1389,117 @@ class _ChallengeDetailScreenState extends ConsumerState<ChallengeDetailScreen>
     final userTeam = _challengeService.getUserTeamForChallenge(widget.challenge);
 
     if (!isParticipating) {
-      return FloatingActionButton.extended(
-        onPressed: _joinChallenge,
-        backgroundColor: theme.primaryColor,
-        icon: const Icon(Icons.add),
-        label: Text(tr(context, 'join_challenge')),
+      return Container(
+        margin: const EdgeInsets.all(16),
+        child: Material(
+          elevation: 0,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  theme.primaryColor,
+                  theme.primaryColor.withValues(alpha: 0.8),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.primaryColor.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: _joinChallenge,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Join Challenge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       );
     }
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        FloatingActionButton(
-          onPressed: () => _showVerificationOptions(userTeam?.id),
-          backgroundColor: theme.primaryColor,
-          heroTag: 'verify',
-          child: const Icon(Icons.camera_alt),
+        Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.primaryColor,
+                theme.primaryColor.withValues(alpha: 0.8),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: theme.primaryColor.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: () => _showVerificationOptions(userTeam?.id),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            heroTag: 'verify',
+            child: const Icon(Icons.camera_alt, color: Colors.white),
+          ),
         ),
-        const SizedBox(height: 8),
-        FloatingActionButton(
-          onPressed: () => _showVerificationHistory(userTeam?.id),
-          backgroundColor: theme.primaryColor.withValues(alpha: 0.8),
-          heroTag: 'history',
-          child: const Icon(Icons.history),
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                theme.primaryColor.withValues(alpha: 0.7),
+                theme.primaryColor.withValues(alpha: 0.5),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: theme.primaryColor.withValues(alpha: 0.2),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: FloatingActionButton(
+            onPressed: () => _showVerificationHistory(userTeam?.id),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            heroTag: 'history',
+            child: const Icon(Icons.history, color: Colors.white),
+          ),
         ),
       ],
     );

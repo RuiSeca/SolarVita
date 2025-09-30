@@ -374,7 +374,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen>
                         ),
                       ),
                       Text(
-                        isInTeam ? '${userTeam.totalScore}/${challenge.targetValue}' : '0/${challenge.targetValue}',
+                        isInTeam ? '${userTeam.totalScore}/${challenge.communityGoal.targetValue}' : '0/${challenge.communityGoal.targetValue}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey[600],
                         ),
@@ -384,7 +384,7 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen>
                   const SizedBox(height: 8),
                   LinearProgressIndicator(
                     value: isInTeam
-                        ? (userTeam.totalScore / challenge.targetValue).clamp(0.0, 1.0)
+                        ? (userTeam.totalScore / challenge.communityGoal.targetValue).clamp(0.0, 1.0)
                         : 0.0,
                     backgroundColor: Colors.grey[300],
                     valueColor: AlwaysStoppedAnimation<Color>(theme.primaryColor),
@@ -411,10 +411,10 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen>
                       color: Colors.blue,
                     ),
                   const Spacer(),
-                  if (challenge.prize != null)
+                  if (challenge.prizeConfiguration.communityPrize != null)
                     _buildInfoChip(
                       icon: Icons.card_giftcard,
-                      label: challenge.prize!,
+                      label: challenge.prizeConfiguration.communityPrize!,
                       color: Colors.amber,
                     ),
                 ],
@@ -518,10 +518,10 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen>
                     color: _getModeColor(challenge.mode),
                   ),
                   const Spacer(),
-                  if (challenge.prize != null)
+                  if (challenge.prizeConfiguration.communityPrize != null)
                     _buildInfoChip(
                       icon: Icons.card_giftcard,
-                      label: challenge.prize!,
+                      label: challenge.prizeConfiguration.communityPrize!,
                       color: Colors.amber,
                     ),
                 ],

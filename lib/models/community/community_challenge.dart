@@ -20,6 +20,219 @@ enum ChallengeStatus {
   cancelled
 }
 
+enum PrizeTier {
+  top3,
+  top5,
+  top10,
+  top15,
+  top20
+}
+
+class CommunityGoal {
+  final int targetValue;
+  final String unit;
+  final int currentProgress;
+  final bool isReached;
+
+  const CommunityGoal({
+    required this.targetValue,
+    required this.unit,
+    required this.currentProgress,
+    required this.isReached,
+  });
+
+  factory CommunityGoal.fromFirestore(Map<String, dynamic> data) {
+    return CommunityGoal(
+      targetValue: data['targetValue'] ?? 0,
+      unit: data['unit'] ?? '',
+      currentProgress: data['currentProgress'] ?? 0,
+      isReached: data['isReached'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'targetValue': targetValue,
+      'unit': unit,
+      'currentProgress': currentProgress,
+      'isReached': isReached,
+    };
+  }
+
+  double get progressPercentage {
+    if (targetValue == 0) return 0.0;
+    return (currentProgress / targetValue * 100).clamp(0.0, 100.0);
+  }
+
+  CommunityGoal copyWith({
+    int? targetValue,
+    String? unit,
+    int? currentProgress,
+    bool? isReached,
+  }) {
+    return CommunityGoal(
+      targetValue: targetValue ?? this.targetValue,
+      unit: unit ?? this.unit,
+      currentProgress: currentProgress ?? this.currentProgress,
+      isReached: isReached ?? this.isReached,
+    );
+  }
+}
+
+class IndividualParticipant {
+  final String userId;
+  final String displayName;
+  final String? avatarUrl;
+  final int score;
+  final bool isEligible;
+  final String? teamName;
+  final bool meetMinimumRequirement;
+  final DateTime lastActivity;
+
+  const IndividualParticipant({
+    required this.userId,
+    required this.displayName,
+    this.avatarUrl,
+    required this.score,
+    required this.isEligible,
+    this.teamName,
+    required this.meetMinimumRequirement,
+    required this.lastActivity,
+  });
+
+  factory IndividualParticipant.fromFirestore(Map<String, dynamic> data) {
+    return IndividualParticipant(
+      userId: data['userId'] ?? '',
+      displayName: data['displayName'] ?? 'Unknown User',
+      avatarUrl: data['avatarUrl'],
+      score: data['score'] ?? 0,
+      isEligible: data['isEligible'] ?? false,
+      teamName: data['teamName'],
+      meetMinimumRequirement: data['meetMinimumRequirement'] ?? false,
+      lastActivity: (data['lastActivity'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'userId': userId,
+      'displayName': displayName,
+      'avatarUrl': avatarUrl,
+      'score': score,
+      'isEligible': isEligible,
+      'teamName': teamName,
+      'meetMinimumRequirement': meetMinimumRequirement,
+      'lastActivity': Timestamp.fromDate(lastActivity),
+    };
+  }
+
+  IndividualParticipant copyWith({
+    String? userId,
+    String? displayName,
+    String? avatarUrl,
+    int? score,
+    bool? isEligible,
+    String? teamName,
+    bool? meetMinimumRequirement,
+    DateTime? lastActivity,
+  }) {
+    return IndividualParticipant(
+      userId: userId ?? this.userId,
+      displayName: displayName ?? this.displayName,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      score: score ?? this.score,
+      isEligible: isEligible ?? this.isEligible,
+      teamName: teamName ?? this.teamName,
+      meetMinimumRequirement: meetMinimumRequirement ?? this.meetMinimumRequirement,
+      lastActivity: lastActivity ?? this.lastActivity,
+    );
+  }
+}
+
+class PrizeConfiguration {
+  final String? communityPrize;
+  final int minimumIndividualRequirement;
+  final PrizeTier individualPrizeTier;
+  final List<String> individualPrizes;
+  final PrizeTier teamPrizeTier;
+  final List<String> teamPrizes;
+  final bool communityGoalRequired;
+
+  const PrizeConfiguration({
+    this.communityPrize,
+    this.minimumIndividualRequirement = 1,
+    this.individualPrizeTier = PrizeTier.top5,
+    this.individualPrizes = const [],
+    this.teamPrizeTier = PrizeTier.top5,
+    this.teamPrizes = const [],
+    this.communityGoalRequired = true,
+  });
+
+  factory PrizeConfiguration.fromFirestore(Map<String, dynamic> data) {
+    return PrizeConfiguration(
+      communityPrize: data['communityPrize'],
+      minimumIndividualRequirement: data['minimumIndividualRequirement'] ?? 1,
+      individualPrizeTier: PrizeTier.values[(data['individualPrizeTier'] as int?) ?? 1],
+      individualPrizes: List<String>.from(data['individualPrizes'] ?? []),
+      teamPrizeTier: PrizeTier.values[(data['teamPrizeTier'] as int?) ?? 1],
+      teamPrizes: List<String>.from(data['teamPrizes'] ?? []),
+      communityGoalRequired: data['communityGoalRequired'] ?? true,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'communityPrize': communityPrize,
+      'minimumIndividualRequirement': minimumIndividualRequirement,
+      'individualPrizeTier': individualPrizeTier.index,
+      'individualPrizes': individualPrizes,
+      'teamPrizeTier': teamPrizeTier.index,
+      'teamPrizes': teamPrizes,
+      'communityGoalRequired': communityGoalRequired,
+    };
+  }
+
+  int get individualPrizeCount {
+    switch (individualPrizeTier) {
+      case PrizeTier.top3: return 3;
+      case PrizeTier.top5: return 5;
+      case PrizeTier.top10: return 10;
+      case PrizeTier.top15: return 15;
+      case PrizeTier.top20: return 20;
+    }
+  }
+
+  int get teamPrizeCount {
+    switch (teamPrizeTier) {
+      case PrizeTier.top3: return 3;
+      case PrizeTier.top5: return 5;
+      case PrizeTier.top10: return 10;
+      case PrizeTier.top15: return 15;
+      case PrizeTier.top20: return 20;
+    }
+  }
+
+  PrizeConfiguration copyWith({
+    String? communityPrize,
+    int? minimumIndividualRequirement,
+    PrizeTier? individualPrizeTier,
+    List<String>? individualPrizes,
+    PrizeTier? teamPrizeTier,
+    List<String>? teamPrizes,
+    bool? communityGoalRequired,
+  }) {
+    return PrizeConfiguration(
+      communityPrize: communityPrize ?? this.communityPrize,
+      minimumIndividualRequirement: minimumIndividualRequirement ?? this.minimumIndividualRequirement,
+      individualPrizeTier: individualPrizeTier ?? this.individualPrizeTier,
+      individualPrizes: individualPrizes ?? this.individualPrizes,
+      teamPrizeTier: teamPrizeTier ?? this.teamPrizeTier,
+      teamPrizes: teamPrizes ?? this.teamPrizes,
+      communityGoalRequired: communityGoalRequired ?? this.communityGoalRequired,
+    );
+  }
+}
+
 class ChallengeTeam {
   final String id;
   final String name;
@@ -110,16 +323,20 @@ class CommunityChallenge {
   final ChallengeStatus status;
   final DateTime startDate;
   final DateTime endDate;
-  final int targetValue;
-  final String unit;
   final String icon;
+  final String? imageUrl;
   final List<String> participants;
   final Map<String, int> leaderboard;
-  final String? prize;
   final List<ChallengeTeam> teams;
   final Map<String, int> teamLeaderboard;
   final int? maxTeamSize;
   final int? maxTeams;
+
+  // Enhanced Goal & Prize System
+  final CommunityGoal communityGoal;
+  final PrizeConfiguration prizeConfiguration;
+  final Map<String, int> individualScores;
+  final Map<String, bool> participantEligibility;
 
   CommunityChallenge({
     required this.id,
@@ -130,16 +347,18 @@ class CommunityChallenge {
     required this.status,
     required this.startDate,
     required this.endDate,
-    required this.targetValue,
-    required this.unit,
     required this.icon,
+    this.imageUrl,
     this.participants = const [],
     this.leaderboard = const {},
-    this.prize,
     this.teams = const [],
     this.teamLeaderboard = const {},
     this.maxTeamSize,
     this.maxTeams,
+    required this.communityGoal,
+    required this.prizeConfiguration,
+    this.individualScores = const {},
+    this.participantEligibility = const {},
   });
 
   factory CommunityChallenge.fromFirestore(DocumentSnapshot doc) {
@@ -153,17 +372,19 @@ class CommunityChallenge {
       status: ChallengeStatus.values[(data['status'] is int ? data['status'] : int.tryParse(data['status']?.toString() ?? '0')) ?? 0],
       startDate: (data['startDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       endDate: (data['endDate'] as Timestamp?)?.toDate() ?? DateTime.now().add(const Duration(days: 7)),
-      targetValue: data['targetValue'] ?? 0,
-      unit: data['unit'] ?? '',
       icon: data['icon'] ?? '🎯',
+      imageUrl: data['imageUrl'],
       participants: List<String>.from(data['participants'] ?? []),
       leaderboard: Map<String, int>.from(data['leaderboard'] ?? {}),
-      prize: data['prize'],
       teams: (data['teams'] as List<dynamic>?)?.map((teamData) =>
         ChallengeTeam.fromFirestore(Map<String, dynamic>.from(teamData))).toList() ?? [],
       teamLeaderboard: Map<String, int>.from(data['teamLeaderboard'] ?? {}),
       maxTeamSize: data['maxTeamSize'],
       maxTeams: data['maxTeams'],
+      communityGoal: CommunityGoal.fromFirestore(data['communityGoal'] ?? {}),
+      prizeConfiguration: PrizeConfiguration.fromFirestore(data['prizeConfiguration'] ?? {}),
+      individualScores: Map<String, int>.from(data['individualScores'] ?? {}),
+      participantEligibility: Map<String, bool>.from(data['participantEligibility'] ?? {}),
     );
   }
 
@@ -176,16 +397,18 @@ class CommunityChallenge {
       'status': status.index,
       'startDate': Timestamp.fromDate(startDate),
       'endDate': Timestamp.fromDate(endDate),
-      'targetValue': targetValue,
-      'unit': unit,
       'icon': icon,
+      'imageUrl': imageUrl,
       'participants': participants,
       'leaderboard': leaderboard,
-      'prize': prize,
       'teams': teams.map((team) => team.toFirestore()).toList(),
       'teamLeaderboard': teamLeaderboard,
       'maxTeamSize': maxTeamSize,
       'maxTeams': maxTeams,
+      'communityGoal': communityGoal.toFirestore(),
+      'prizeConfiguration': prizeConfiguration.toFirestore(),
+      'individualScores': individualScores,
+      'participantEligibility': participantEligibility,
     };
   }
 
@@ -246,5 +469,163 @@ class CommunityChallenge {
     if (isIndividualOnly) return participants.length;
     int teamParticipants = teams.fold(0, (total, team) => total + team.memberCount);
     return participants.length + teamParticipants;
+  }
+
+  // Enhanced Community Goal & Prize System Methods
+
+  /// Returns current community goal progress as percentage
+  double get communityGoalProgress => communityGoal.progressPercentage;
+
+  /// Checks if community goal has been reached
+  bool get isCommunityGoalReached => communityGoal.isReached;
+
+  /// Gets individual score for a specific user
+  int getIndividualScore(String userId) => individualScores[userId] ?? 0;
+
+  /// Checks if a user meets the minimum individual requirement
+  bool doesUserMeetMinimum(String userId) {
+    final score = getIndividualScore(userId);
+    return score >= prizeConfiguration.minimumIndividualRequirement;
+  }
+
+  /// Checks if a user is eligible for community prize
+  bool isUserEligibleForCommunityPrize(String userId) {
+    return participantEligibility[userId] ?? false;
+  }
+
+  /// Gets count of eligible participants for community prize
+  int get eligibleParticipantsCount {
+    return participantEligibility.values.where((eligible) => eligible).length;
+  }
+
+  /// Checks if all participants meet minimum requirements
+  bool get allParticipantsMeetMinimum {
+    final totalParticipants = getTotalParticipants();
+    return eligibleParticipantsCount == totalParticipants && totalParticipants > 0;
+  }
+
+  /// Determines if community prizes should be awarded
+  bool get shouldAwardCommunityPrizes {
+    if (!prizeConfiguration.communityGoalRequired) return true;
+    return isCommunityGoalReached && allParticipantsMeetMinimum;
+  }
+
+  /// Gets top individual performers (for individual leaderboard)
+  List<MapEntry<String, int>> getTopIndividualPerformers() {
+    final allIndividualScores = <String, int>{};
+
+    // Add solo participants
+    for (String userId in participants) {
+      if (!isUserInTeam(userId)) {
+        allIndividualScores[userId] = getIndividualScore(userId);
+      }
+    }
+
+    // Add team members (their individual contributions)
+    for (ChallengeTeam team in teams) {
+      for (String userId in team.memberIds) {
+        allIndividualScores[userId] = getIndividualScore(userId);
+      }
+    }
+
+    var sortedEntries = allIndividualScores.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final prizeCount = prizeConfiguration.individualPrizeCount;
+    return sortedEntries.take(prizeCount).toList();
+  }
+
+  /// Gets top team performers (for team leaderboard)
+  List<MapEntry<String, int>> getTopTeamPerformers() {
+    var sortedEntries = teamLeaderboard.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final prizeCount = prizeConfiguration.teamPrizeCount;
+    return sortedEntries.take(prizeCount).toList();
+  }
+
+  /// Gets individual leaderboard position for a user (1-indexed, 0 if not found)
+  int getIndividualLeaderboardPosition(String userId) {
+    final topPerformers = getTopIndividualPerformers();
+    for (int i = 0; i < topPerformers.length; i++) {
+      if (topPerformers[i].key == userId) {
+        return i + 1; // 1-indexed
+      }
+    }
+    return 0; // Not in leaderboard
+  }
+
+  /// Gets team leaderboard position for a team (1-indexed, 0 if not found)
+  int getTeamLeaderboardPosition(String teamId) {
+    final topTeams = getTopTeamPerformers();
+    for (int i = 0; i < topTeams.length; i++) {
+      if (topTeams[i].key == teamId) {
+        return i + 1; // 1-indexed
+      }
+    }
+    return 0; // Not in leaderboard
+  }
+
+  /// Gets prize for individual leaderboard position (1-indexed)
+  String? getIndividualPrize(int position) {
+    if (position < 1 || position > prizeConfiguration.individualPrizes.length) {
+      return null;
+    }
+    return prizeConfiguration.individualPrizes[position - 1];
+  }
+
+  /// Gets prize for team leaderboard position (1-indexed)
+  String? getTeamPrize(int position) {
+    if (position < 1 || position > prizeConfiguration.teamPrizes.length) {
+      return null;
+    }
+    return prizeConfiguration.teamPrizes[position - 1];
+  }
+
+  /// Creates a copy of the challenge with updated values
+  CommunityChallenge copyWith({
+    String? id,
+    String? title,
+    String? description,
+    ChallengeType? type,
+    ChallengeMode? mode,
+    ChallengeStatus? status,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? icon,
+    String? imageUrl,
+    List<String>? participants,
+    Map<String, int>? leaderboard,
+    List<ChallengeTeam>? teams,
+    Map<String, int>? teamLeaderboard,
+    int? maxTeamSize,
+    int? maxTeams,
+    CommunityGoal? communityGoal,
+    PrizeConfiguration? prizeConfiguration,
+    Map<String, int>? individualScores,
+    Map<String, bool>? participantEligibility,
+  }) {
+    return CommunityChallenge(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      mode: mode ?? this.mode,
+      status: status ?? this.status,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      icon: icon ?? this.icon,
+      imageUrl: imageUrl ?? this.imageUrl,
+      participants: participants ?? this.participants,
+      leaderboard: leaderboard ?? this.leaderboard,
+      teams: teams ?? this.teams,
+      teamLeaderboard: teamLeaderboard ?? this.teamLeaderboard,
+      maxTeamSize: maxTeamSize ?? this.maxTeamSize,
+      maxTeams: maxTeams ?? this.maxTeams,
+      communityGoal: communityGoal ?? this.communityGoal,
+      prizeConfiguration: prizeConfiguration ?? this.prizeConfiguration,
+      individualScores: individualScores ?? this.individualScores,
+      participantEligibility: participantEligibility ?? this.participantEligibility,
+    );
   }
 }

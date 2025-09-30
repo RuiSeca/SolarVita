@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/meal/recipe_service.dart';
+import '../../services/api/unified_api_service.dart';
+import '../riverpod/language_provider.dart';
 
 part 'meal_provider.g.dart';
 
@@ -23,11 +25,32 @@ class _MealProviderLogging {
   
 }
 
-// Service provider
+// Service providers
 @riverpod
 MealDBService mealService(Ref ref) {
   return MealDBService();
 }
+
+// Manual provider for UnifiedApiService (not using @riverpod to avoid build_runner dependency)
+final unifiedApiServiceProvider = Provider<UnifiedApiService>((ref) {
+  return UnifiedApiService(useProductionTranslation: false);
+});
+
+// Language-aware meal providers that automatically update when language changes
+final mealsByCategoryLanguageAwareProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, category) async {
+  final unifiedService = ref.read(unifiedApiServiceProvider);
+  final currentLanguage = ref.watch(currentLanguageProvider); // Watch for language changes!
+
+  return await unifiedService.getMealsByCategory(category, language: currentLanguage.code);
+});
+
+final searchMealsLanguageAwareProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, query) async {
+  final unifiedService = ref.read(unifiedApiServiceProvider);
+  final currentLanguage = ref.watch(currentLanguageProvider); // Watch for language changes!
+
+  if (query.isEmpty) return [];
+  return await unifiedService.searchMeals(query, language: currentLanguage.code);
+});
 
 // Meal state class to hold the complete state with pagination
 class MealState {
@@ -123,8 +146,9 @@ class MealNotifier extends _$MealNotifier {
       ];
       for (String category in popularCategories) {
         try {
-          final mealService = ref.read(mealServiceProvider);
-          final meals = await mealService.getMealsByCategory(category);
+          final unifiedService = ref.read(unifiedApiServiceProvider);
+          final currentLanguage = ref.read(currentLanguageProvider);
+          final meals = await unifiedService.getMealsByCategory(category, language: currentLanguage.code);
           final cacheKey = 'category_$category';
           _cache[cacheKey] = CacheEntry(meals, DateTime.now()); // Cache ALL meals from each category
           _updateRecentKeys(cacheKey);
@@ -167,21 +191,23 @@ class MealNotifier extends _$MealNotifier {
     }
 
     try {
-      final mealService = ref.read(mealServiceProvider);
+      final unifiedService = ref.read(unifiedApiServiceProvider);
+      final currentLanguage = ref.read(currentLanguageProvider);
       final currentPage = loadMore ? state.currentPage + 1 : 0;
-      
+
       List<Map<String, dynamic>> newMeals;
 
       if (normalizedCategoryForComparison == 'all') {
         // For 'all' category, we'll need to implement a different approach
         // For now, fallback to original method for 'all'
+        final mealService = ref.read(mealServiceProvider);
         newMeals = await mealService.getAllMeals();
       } else {
-        // Use paginated method for specific categories with proper case
-        // Optimized initial limit for faster loading
+        // Use unified service with automatic translation
         final pageLimit = currentPage == 0 ? 8 : 8; // First page loads 8 meals for better UX
-        newMeals = await mealService.getMealsByCategoryPaginated(
+        newMeals = await unifiedService.getMealsByCategory(
           apiCategory, // Use original case for API
+          language: currentLanguage.code,
           page: currentPage,
           limit: pageLimit,
         );
@@ -192,7 +218,7 @@ class MealNotifier extends _$MealNotifier {
       final hasMoreData = newMeals.length >= expectedLimit;
 
       final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
-      final updatedMeals = [...currentMeals, ...newMeals];
+      final updatedMeals = <Map<String, dynamic>>[...currentMeals, ...newMeals];
 
       state = state.copyWith(
         currentCategory: normalizedCategoryForComparison,
@@ -276,14 +302,14 @@ class MealNotifier extends _$MealNotifier {
     }
 
     try {
-      final mealService = ref.read(mealServiceProvider);
+      final unifiedService = ref.read(unifiedApiServiceProvider);
+      final currentLanguage = ref.read(currentLanguageProvider);
       final currentPage = loadMore ? state.currentPage + 1 : 0;
-      
-      // Use paginated search method
-      final newMeals = await mealService.searchMealsPaginated(
+
+      // Use unified service search with automatic translation
+      final newMeals = await unifiedService.searchMeals(
         normalizedQuery,
-        page: currentPage,
-        limit: 8,
+        language: currentLanguage.code,
       );
 
       // Check if we got fewer meals than requested (indicating no more data)
@@ -291,7 +317,7 @@ class MealNotifier extends _$MealNotifier {
       final hasMoreData = newMeals.length >= 8 && newMeals.isNotEmpty;
 
       final currentMeals = loadMore ? (state.meals ?? []) : <Map<String, dynamic>>[];
-      final updatedMeals = [...currentMeals, ...newMeals];
+      final updatedMeals = <Map<String, dynamic>>[...currentMeals, ...newMeals];
 
       if (updatedMeals.isEmpty && !loadMore) {
         state = state.copyWith(

@@ -27,5 +27,20 @@
   "verification_submitted_successfully": "Verification submitted successfully!",
   "error_submitting_verification": "Error submitting verification",
   "team_participation": "Team Participation",
-  "individual_participation": "Individual Participation"
+  "individual_participation": "Individual Participation",
+  "fitness": "Fitness",
+  "nutrition": "Nutrition",
+  "sustainability": "Sustainability",
+  "community": "Community",
+  "individual": "Individual",
+  "team": "Team",
+  "mixed": "Mixed",
+  "upcoming": "Upcoming",
+  "active": "Active",
+  "completed": "Completed",
+  "cancelled": "Cancelled",
+  "ended": "Ended",
+  "days_left": "{days} days left",
+  "hours_left": "{hours} hours left",
+  "ending_soon": "Ending soon"
 }

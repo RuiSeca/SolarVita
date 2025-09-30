@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../providers/riverpod/eco_provider.dart';
 import '../../../utils/translation_helper.dart';
+import '../../eco/enhanced_eco_dashboard_screen.dart';
 import 'futuristic_eco_grid.dart';
 
 /// Real eco impact widget for the profile screen
@@ -15,33 +16,61 @@ class EcoImpactWidget extends ConsumerWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EnhancedEcoDashboardScreen(),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    tr(context, 'eco_impact_dashboard'),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.green,
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Text(
-                tr(context, 'eco_impact'),
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+                tr(context, 'track_your_environmental_impact'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.grey,
                 ),
               ),
-              Icon(
-                Icons.touch_app_outlined,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+              const SizedBox(height: 12),
+              ecoMetricsAsync.when(
+                loading: () => _buildLoadingState(context),
+                error: (error, stackTrace) => _buildErrorState(context, error),
+                data: (ecoMetrics) => FuturisticEcoGrid(ecoMetrics: ecoMetrics),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          ecoMetricsAsync.when(
-            loading: () => _buildLoadingState(context),
-            error: (error, stackTrace) => _buildErrorState(context, error),
-            data: (ecoMetrics) => FuturisticEcoGrid(ecoMetrics: ecoMetrics),
-          ),
-        ],
+        ),
       ),
     );
   }

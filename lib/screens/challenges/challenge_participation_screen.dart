@@ -147,7 +147,7 @@ class _ChallengeParticipationScreenState
                 const SizedBox(width: 8),
                 _buildInfoChip(
                   icon: Icons.flag,
-                  label: '${widget.challenge.targetValue} ${widget.challenge.unit}',
+                  label: '${widget.challenge.communityGoal.targetValue} ${widget.challenge.communityGoal.unit}',
                   color: Colors.purple,
                 ),
               ],

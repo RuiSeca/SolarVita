@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../dashboard/eco_tips/eco_tips_screen.dart';
-import '../eco/enhanced_eco_dashboard_screen.dart';
 import 'package:solar_vitas/theme/app_theme.dart';
 import 'package:solar_vitas/utils/translation_helper.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
@@ -472,11 +471,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
 
                 const SizedBox(height: 24),
 
-                // Eco Impact Dashboard Card
-                _buildEcoDashboardCard(),
-
-                const SizedBox(height: 24),
-
                 // Social Feed Section with Tabs - Glassmorphism Design
                 Container(
                   padding: const EdgeInsets.all(20),
@@ -791,85 +785,4 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
     );
   }
 
-  Widget _buildEcoDashboardCard() {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.green.withValues(alpha: 0.1),
-            Colors.teal.withValues(alpha: 0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.green.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.eco,
-              color: Colors.green,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(context, 'eco_impact_dashboard'),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
-                ),
-                Text(
-                  tr(context, 'track_your_environmental_impact'),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const EnhancedEcoDashboardScreen(),
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.arrow_forward_ios,
-                color: Colors.green,
-                size: 16,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
