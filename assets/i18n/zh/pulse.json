@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "呼吸练习功能即将推出！",
   "mood_options": {
     "energetic": "精力充沛",
-    "calm": "平静", 
+    "calm": "平静",
     "focused": "专注",
     "motivated": "有动力",
-    "creative": "有创造力",
-    "passionate": "热情"
+    "happy": "快乐",
+    "peaceful": "平和"
   },
   "air_quality_levels": {
     "good": "良好",

@@ -25,6 +25,7 @@ import '../../services/avatars/avatar_interaction_manager.dart';
 import '../../services/avatars/smart_avatar_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/riverpod/user_profile_provider.dart';
+import '../../services/health_alerts/pulse_color_manager.dart';
 
 class AIAssistantScreen extends ConsumerStatefulWidget {
   const AIAssistantScreen({super.key});
@@ -47,6 +48,10 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   late final NutritionixService _nutritionixService;
   late AnimationController _sendButtonController;
   late Animation<double> _sendButtonAnimation;
+  late AnimationController _storeIconGlowController;
+
+  // Pulse color integration
+  Color _currentPulseColor = const Color(0xFF4CAF50); // Default green
 
   // Speech recognition
   final SpeechToText _speechToText = SpeechToText();
@@ -78,6 +83,15 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     _sendButtonAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _sendButtonController, curve: Curves.easeOutBack),
     );
+
+    // Initialize store icon glow animation - ultra slow and subtle for AI personality
+    _storeIconGlowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5), // Very slow for whisper-soft effect
+    )..repeat(reverse: true);
+
+    // Listen to pulse color changes
+    _setupPulseColorListener();
 
     // Listen to text changes
     _messageController.addListener(() {
@@ -197,10 +211,17 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     _scrollController.dispose();
     _focusNode.dispose();
     _sendButtonController.dispose();
-    
+    _storeIconGlowController.dispose();
+
     // Avatar controllers are managed by SmartAvatarManager, not disposed here
     _universalController = null;
     _lastInitializedAvatarId = null;
+
+    try {
+      PulseColorManager.instance.removeListener(_onPulseColorChanged);
+    } catch (e) {
+      _logger.e('Error removing pulse color listener: $e');
+    }
 
     // Enhanced cleanup for speech recognition (especially for Huawei devices)
     try {
@@ -216,6 +237,32 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     }
 
     super.dispose();
+  }
+
+  void _setupPulseColorListener() {
+    try {
+      final pulseManager = PulseColorManager.instance;
+      pulseManager.addListener(_onPulseColorChanged);
+      // Set initial color
+      _currentPulseColor = pulseManager.currentColor;
+    } catch (e) {
+      _logger.e('Failed to setup pulse color listener: $e');
+      // Fallback to default green
+      _currentPulseColor = const Color(0xFF4CAF50);
+    }
+  }
+
+  void _onPulseColorChanged() {
+    try {
+      final newColor = PulseColorManager.instance.currentColor;
+      if (mounted && newColor != _currentPulseColor) {
+        setState(() {
+          _currentPulseColor = newColor;
+        });
+      }
+    } catch (e) {
+      _logger.e('Error updating store icon color: $e');
+    }
   }
 
   void _handleSubmitted(String text) async {
@@ -641,10 +688,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
   }
 
   Widget _buildHeaderAvatar(String equippedAvatarId) {
-    // Ensure we have a valid equipped avatar ID to prevent mummy fallback
-    if (equippedAvatarId.isEmpty) {
-      return _buildLoadingAvatar();
-    }
+    // Directly show equipped avatar - no loading fallback
     return _buildHeaderAvatarForType(equippedAvatarId);
   }
 
@@ -658,12 +702,12 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
     if (avatarId == 'quantum_coach') {
       _logger.i('🌌 Building interactive header for quantum coach (universal Stage 0)');
     }
-    
+
     if (_universalController == null) {
       _logger.i('🎯 No universal controller, building static header for: $avatarId');
       return _buildStaticHeaderAvatar(avatarId);
     }
-    
+
     _logger.i('🎯 Building interactive header for: $avatarId');
     return ValueListenableBuilder<bool>(
       valueListenable: _universalController!.showLargeAvatar,
@@ -675,29 +719,92 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
             _logger.i('🎯 Universal controller type: ${_universalController?.avatarTypeString}');
             _universalController!.handleInteraction(AvatarInteractionType.singleTap);
           },
-          child: Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.purple.withValues(alpha: 0.3),
-                width: 2,
-              ),
-            ),
-            child: showLargeAvatar 
-              ? null // Empty ring when avatar is teleported away
-              : ClipOval(
-                  child: AvatarDisplay(
-                    key: _headerAvatarKey,
-                    avatarId: avatarId, // Use actual equipped avatar ID
-                    width: 50,
-                    height: 50,
-                    initialStage: AnimationStage.idle,
-                    fit: BoxFit.cover,
-                    preferEquipped: true, // Always show equipped avatar in AI screen
+          child: AnimatedBuilder(
+            animation: _storeIconGlowController,
+            builder: (context, child) {
+              final animValue = _storeIconGlowController.value;
+              final theme = Theme.of(context);
+              final isDarkMode = theme.brightness == Brightness.dark;
+
+              // Multiple flowing particles/liquid spots for beautiful effect
+              final particle1X = -0.8 + (animValue * 1.6);
+              final particle1Y = -0.6 + (animValue * 0.5);
+              final particle2X = 0.8 - (animValue * 1.6);
+              final particle2Y = 0.6 - (animValue * 0.5);
+
+              return Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                ),
+                child: ClipOval(
+                  child: Stack(
+                    children: [
+                      // Beautiful flowing particle/liquid background - Particle 1
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              center: Alignment(particle1X * 0.5, particle1Y * 0.5),
+                              radius: 0.6 + (animValue * 0.15),
+                              colors: [
+                                _currentPulseColor.withValues(alpha: isDarkMode ? 0.25 + (animValue * 0.1) : 0.2 + (animValue * 0.08)),
+                                _currentPulseColor.withValues(alpha: isDarkMode ? 0.12 : 0.1),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.5, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Beautiful flowing particle/liquid background - Particle 2
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              center: Alignment(particle2X * 0.4, particle2Y * 0.4),
+                              radius: 0.5 + ((1 - animValue) * 0.12),
+                              colors: [
+                                _currentPulseColor.withValues(alpha: isDarkMode ? 0.2 + ((1 - animValue) * 0.08) : 0.15 + ((1 - animValue) * 0.06)),
+                                _currentPulseColor.withValues(alpha: isDarkMode ? 0.1 : 0.08),
+                                Colors.transparent,
+                              ],
+                              stops: const [0.0, 0.5, 1.0],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Border and avatar on top
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.purple.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: showLargeAvatar
+                          ? null // Empty ring when avatar is teleported away
+                          : ClipOval(
+                              child: AvatarDisplay(
+                                key: _headerAvatarKey,
+                                avatarId: avatarId, // Use actual equipped avatar ID
+                                width: 50,
+                                height: 50,
+                                initialStage: AnimationStage.idle,
+                                fit: BoxFit.cover,
+                                preferEquipped: true, // Always show equipped avatar in AI screen
+                              ),
+                            ),
+                      ),
+                    ],
                   ),
                 ),
+              );
+            },
           ),
         );
       },
@@ -708,27 +815,90 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
 
 
   Widget _buildStaticHeaderAvatar(String avatarId) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.purple.withValues(alpha: 0.3),
-          width: 2,
-        ),
-      ),
-      child: ClipOval(
-        child: AvatarDisplay(
-          key: _headerAvatarKey,
-          avatarId: avatarId,
+    return AnimatedBuilder(
+      animation: _storeIconGlowController,
+      builder: (context, child) {
+        final animValue = _storeIconGlowController.value;
+        final theme = Theme.of(context);
+        final isDarkMode = theme.brightness == Brightness.dark;
+
+        // Multiple flowing particles/liquid spots for beautiful effect
+        final particle1X = -0.8 + (animValue * 1.6);
+        final particle1Y = -0.6 + (animValue * 0.5);
+        final particle2X = 0.8 - (animValue * 1.6);
+        final particle2Y = 0.6 - (animValue * 0.5);
+
+        return Container(
           width: 50,
           height: 50,
-          initialStage: AnimationStage.idle,
-          fit: BoxFit.cover,
-          preferEquipped: true, // Always show equipped avatar in AI screen
-        ),
-      ),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+          ),
+          child: ClipOval(
+            child: Stack(
+              children: [
+                // Beautiful flowing particle/liquid background - Particle 1
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        center: Alignment(particle1X * 0.5, particle1Y * 0.5),
+                        radius: 0.6 + (animValue * 0.15),
+                        colors: [
+                          _currentPulseColor.withValues(alpha: isDarkMode ? 0.25 + (animValue * 0.1) : 0.2 + (animValue * 0.08)),
+                          _currentPulseColor.withValues(alpha: isDarkMode ? 0.12 : 0.1),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                // Beautiful flowing particle/liquid background - Particle 2
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        center: Alignment(particle2X * 0.4, particle2Y * 0.4),
+                        radius: 0.5 + ((1 - animValue) * 0.12),
+                        colors: [
+                          _currentPulseColor.withValues(alpha: isDarkMode ? 0.2 + ((1 - animValue) * 0.08) : 0.15 + ((1 - animValue) * 0.06)),
+                          _currentPulseColor.withValues(alpha: isDarkMode ? 0.1 : 0.08),
+                          Colors.transparent,
+                        ],
+                        stops: const [0.0, 0.5, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                // Border and avatar on top
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.purple.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: AvatarDisplay(
+                      key: _headerAvatarKey,
+                      avatarId: avatarId,
+                      width: 50,
+                      height: 50,
+                      initialStage: AnimationStage.idle,
+                      fit: BoxFit.cover,
+                      preferEquipped: true, // Always show equipped avatar in AI screen
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "Функция дыхательных упражнений скоро появится!",
   "mood_options": {
     "energetic": "Энергичный",
-    "calm": "Спокойный", 
+    "calm": "Спокойный",
     "focused": "Сосредоточенный",
     "motivated": "Мотивированный",
-    "creative": "Творческий",
-    "passionate": "Страстный"
+    "happy": "Счастливый",
+    "peaceful": "Умиротворенный"
   },
   "air_quality_levels": {
     "good": "Хорошо",

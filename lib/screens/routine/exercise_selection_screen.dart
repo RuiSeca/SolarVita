@@ -48,9 +48,7 @@ class _ExerciseSelectionScreenState
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadExercises();
-    });
+    // No need to manually load exercises - language-aware provider handles this automatically
   }
 
   @override
@@ -153,7 +151,7 @@ class _ExerciseSelectionScreenState
                         _selectedMuscleGroup = muscleGroup;
                         _selectedExercises.clear();
                       });
-                      _loadExercises();
+                      // No need to manually load exercises - language-aware provider handles this automatically
                     },
                     selectedColor: AppTheme.primaryColor.withAlpha(51),
                     checkmarkColor: AppTheme.primaryColor,
@@ -183,37 +181,34 @@ class _ExerciseSelectionScreenState
   Widget _buildExerciseList() {
     return Consumer(
       builder: (context, ref, child) {
-        final exerciseState = ref.watch(exerciseNotifierProvider);
+        // Watch language changes to automatically refresh exercises
+        ref.watch(languageChangeExerciseRefreshProvider);
 
-        if (exerciseState.isLoading) {
-          return const Center(child: LottieLoadingWidget());
-        }
+        // Use language-aware exercise provider
+        final exerciseAsyncValue = ref.watch(exercisesByTargetLanguageAwareProvider(_selectedMuscleGroup));
 
-        if (exerciseState.hasError) {
-          return _buildErrorState(
-            exerciseState.errorMessage ?? 'Unknown error',
-          );
-        }
+        return exerciseAsyncValue.when(
+          data: (exercises) {
+            if (exercises.isEmpty) {
+              return _buildEmptyState();
+            }
 
-        if (!exerciseState.hasData ||
-            exerciseState.exercises?.isEmpty == true) {
-          return _buildEmptyState();
-        }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: exercises.length,
+              itemBuilder: (context, index) {
+                final exercise = exercises[index];
+                final isSelected = _selectedExercises.contains(exercise.title);
 
-        final exercises = exerciseState.exercises!;
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: exercises.length,
-          itemBuilder: (context, index) {
-            final exercise = exercises[index];
-            final isSelected = _selectedExercises.contains(exercise.title);
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildExerciseCard(exercise, isSelected),
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildExerciseCard(exercise, isSelected),
+                );
+              },
             );
           },
+          loading: () => const Center(child: LottieLoadingWidget()),
+          error: (error, stackTrace) => _buildErrorState(error.toString()),
         );
       },
     );
@@ -382,7 +377,10 @@ class _ExerciseSelectionScreenState
           ),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => _loadExercises(),
+            onPressed: () {
+              // Invalidate the provider to trigger a refresh
+              ref.invalidate(exercisesByTargetLanguageAwareProvider(_selectedMuscleGroup));
+            },
             child: Text(tr(context, 'retry')),
           ),
         ],
@@ -423,10 +421,6 @@ class _ExerciseSelectionScreenState
     );
   }
 
-  void _loadExercises() async {
-    final provider = ref.read(exerciseNotifierProvider.notifier);
-    await provider.loadExercisesByTarget(_selectedMuscleGroup);
-  }
 
   void _addSelectedExercises() async {
     if (_selectedExercises.isEmpty) return;
@@ -434,12 +428,13 @@ class _ExerciseSelectionScreenState
     setState(() => _isLoading = true);
 
     try {
-      final exerciseState = ref.read(exerciseNotifierProvider);
-      if (!exerciseState.hasData) {
+      // Get exercises from the language-aware provider
+      final exerciseAsyncValue = ref.read(exercisesByTargetLanguageAwareProvider(_selectedMuscleGroup));
+      final allExercises = exerciseAsyncValue.valueOrNull;
+
+      if (allExercises == null || allExercises.isEmpty) {
         throw Exception('No exercises loaded');
       }
-
-      final allExercises = exerciseState.exercises!;
       final exercisesToAdd = allExercises
           .where((exercise) => _selectedExercises.contains(exercise.title))
           .toList();

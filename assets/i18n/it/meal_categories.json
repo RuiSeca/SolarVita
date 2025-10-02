@@ -1,0 +1,17 @@
+{
+  "all": "Tutti",
+  "beef": "Manzo",
+  "chicken": "Pollo",
+  "dessert": "Dolce",
+  "lamb": "Agnello",
+  "miscellaneous": "Vari",
+  "pasta": "Pasta",
+  "pork": "Maiale",
+  "seafood": "Frutti di Mare",
+  "side": "Contorno",
+  "starter": "Antipasto",
+  "vegan": "Vegano",
+  "vegetarian": "Vegetariano",
+  "breakfast": "Colazione",
+  "goat": "Capra"
+}

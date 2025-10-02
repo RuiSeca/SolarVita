@@ -189,29 +189,66 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
   Widget _buildColorSelector() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentColor = _colorManager?.currentColor ?? Colors.green.shade400;
-    
+    final glassBase = isDark ? Colors.white : Colors.black;
+
     return Container(
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: isDark 
-          ? Colors.white.withValues(alpha: 0.9)
-          : Colors.black.withValues(alpha: 0.8),
+        // Premium glassy transparent background - NO colored glow
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            // Pure glass effect
+            glassBase.withValues(alpha: isDark ? 0.2 : 0.06),
+            glassBase.withValues(alpha: isDark ? 0.08 : 0.03),
+            glassBase.withValues(alpha: isDark ? 0.15 : 0.08),
+            glassBase.withValues(alpha: isDark ? 0.25 : 0.12),
+          ],
+          stops: const [0.0, 0.3, 0.7, 1.0],
+        ),
+        border: Border.all(
+          color: glassBase.withValues(alpha: isDark ? 0.3 : 0.1),
+          width: 1.5,
+        ),
         boxShadow: [
+          // Main shadow only - NO colored glow
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.3),
+            blurRadius: 20,
+            offset: Offset(0, isDark ? 6 : 8),
+          ),
+          // Inner glow
+          if (isDark) BoxShadow(
+            color: glassBase.withValues(alpha: 0.15),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, -3),
           ),
         ],
       ),
-      child: FloatingActionButton.small(
-        onPressed: _showMoodSelector,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        child: Icon(
-          Icons.palette,
-          color: isDark ? currentColor : Colors.white,
-          size: 20,
+      child: Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          // Subtle inner highlight
+          gradient: RadialGradient(
+            colors: [
+              glassBase.withValues(alpha: isDark ? 0.25 : 0.08),
+              Colors.transparent,
+            ],
+            stops: const [0.0, 0.85],
+          ),
+        ),
+        child: FloatingActionButton.small(
+          onPressed: _showMoodSelector,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: Icon(
+            Icons.palette,
+            color: currentColor, // Icon color changes with mood
+            size: 20,
+          ),
         ),
       ),
     );
@@ -269,21 +306,63 @@ class _WellnessBreathingPulseState extends State<WellnessBreathingPulse>
                       width: 50,
                       height: 50,
                       decoration: BoxDecoration(
-                        color: mood['color'],
+                        // Premium glassy transparent background
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            // Glass effect with subtle color blend
+                            Colors.white.withValues(alpha: 0.2),
+                            Colors.white.withValues(alpha: 0.08),
+                            mood['color'].withValues(alpha: 0.6),
+                            mood['color'].withValues(alpha: 0.8),
+                          ],
+                          stops: const [0.0, 0.3, 0.7, 1.0],
+                        ),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1.5,
+                        ),
                         boxShadow: [
+                          // Main shadow
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 4,
-                            offset: Offset(0, 2),
+                            color: Colors.black.withValues(alpha: 0.4),
+                            blurRadius: 20,
+                            offset: Offset(0, 8),
+                          ),
+                          // Inner glow
+                          BoxShadow(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, -3),
+                          ),
+                          // Colored glow
+                          BoxShadow(
+                            color: mood['color'].withValues(alpha: 0.2),
+                            blurRadius: 28,
+                            offset: const Offset(0, 10),
+                            spreadRadius: -6,
                           ),
                         ],
                       ),
-                      child: Icon(
-                        mood['icon'],
-                        color: Colors.white,
-                        size: 24,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          // Subtle inner highlight
+                          gradient: RadialGradient(
+                            colors: [
+                              Colors.white.withValues(alpha: 0.25),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.85],
+                          ),
+                        ),
+                        child: Icon(
+                          mood['icon'],
+                          color: Colors.white.withValues(alpha: 0.9),
+                          size: 24,
+                        ),
                       ),
                     ),
                     SizedBox(height: 8),

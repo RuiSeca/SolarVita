@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
+import '../../services/health_alerts/pulse_color_manager.dart';
 
 /// A fan-style expandable FAB that opens like a Chinese fan with multiple action options
 class FanMenuFAB extends StatefulWidget {
@@ -26,6 +27,7 @@ class _FanMenuFABState extends State<FanMenuFAB>
   late AnimationController _visibilityController;
   late AnimationController _fanController;
   late AnimationController _scaleController;
+  late AnimationController _glowAnimationController;
 
   late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
@@ -41,6 +43,9 @@ class _FanMenuFABState extends State<FanMenuFAB>
   // Long press and drag state
   bool _isLongPressing = false;
   FanMenuItem? _hoveredItem;
+
+  // Pulse color integration
+  Color _currentPulseColor = const Color(0xFF4CAF50); // Default green
 
   @override
   void initState() {
@@ -60,6 +65,11 @@ class _FanMenuFABState extends State<FanMenuFAB>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
+
+    _glowAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4), // Slower than weekly routine for subtlety
+    )..repeat(reverse: true);
 
     _fadeAnimation = Tween<double>(
       begin: 1.0,
@@ -102,14 +112,50 @@ class _FanMenuFABState extends State<FanMenuFAB>
     ));
 
     widget.scrollController.addListener(_onScroll);
+
+    // Listen to pulse color changes
+    _setupPulseColorListener();
+  }
+
+  void _setupPulseColorListener() {
+    try {
+      final pulseManager = PulseColorManager.instance;
+      pulseManager.addListener(_onPulseColorChanged);
+      // Set initial color
+      _currentPulseColor = pulseManager.currentColor;
+    } catch (e) {
+      debugPrint('Failed to setup pulse color listener: $e');
+      // Fallback to default green
+      _currentPulseColor = const Color(0xFF4CAF50);
+    }
+  }
+
+  void _onPulseColorChanged() {
+    try {
+      final newColor = PulseColorManager.instance.currentColor;
+      if (mounted && newColor != _currentPulseColor) {
+        setState(() {
+          _currentPulseColor = newColor;
+        });
+        debugPrint('Fan menu FAB color updated to: $newColor');
+      }
+    } catch (e) {
+      debugPrint('Error updating FAB color: $e');
+    }
   }
 
   @override
   void dispose() {
     widget.scrollController.removeListener(_onScroll);
+    try {
+      PulseColorManager.instance.removeListener(_onPulseColorChanged);
+    } catch (e) {
+      debugPrint('Error removing pulse color listener: $e');
+    }
     _visibilityController.dispose();
     _fanController.dispose();
     _scaleController.dispose();
+    _glowAnimationController.dispose();
     super.dispose();
   }
 
@@ -474,7 +520,8 @@ class _FanMenuFABState extends State<FanMenuFAB>
 
   Widget _buildMainFAB() {
     final theme = Theme.of(context);
-    final backgroundColor = widget.backgroundColor ?? theme.primaryColor;
+    // Use pulse color instead of static theme color
+    final backgroundColor = widget.backgroundColor ?? _currentPulseColor;
     final isDarkMode = theme.brightness == Brightness.dark;
 
     // Theme-adaptive colors
@@ -482,74 +529,114 @@ class _FanMenuFABState extends State<FanMenuFAB>
     final iconColor = isDarkMode ? Colors.white : Colors.black;
     final shadowColor = isDarkMode ? Colors.black : Colors.grey.shade400;
 
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        // Theme-adaptive glass morphism for main FAB
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            // Glass effect with subtle color blend
-            glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
-            glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
-            backgroundColor.withValues(alpha: isDarkMode ? 0.4 : 0.6),
-            backgroundColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
-          ],
-          stops: const [0.0, 0.3, 0.7, 1.0],
-        ),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
-          width: 1.5,
-        ),
-        boxShadow: [
-          // Main shadow - adaptive to theme
-          BoxShadow(
-            color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
-            blurRadius: 20,
-            offset: Offset(0, isDarkMode ? 6 : 8),
-          ),
-          // Inner glow - more prominent in dark mode
-          if (isDarkMode) BoxShadow(
-            color: glassBase.withValues(alpha: 0.15),
-            blurRadius: 8,
-            offset: const Offset(0, -3),
-          ),
-          // Colored glow
-          BoxShadow(
-            color: backgroundColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
-            blurRadius: 28,
-            offset: const Offset(0, 10),
-            spreadRadius: -6,
-          ),
-        ],
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          // Subtle inner highlight
-          gradient: RadialGradient(
-            colors: [
-              glassBase.withValues(alpha: isDarkMode ? 0.25 : 0.08),
-              Colors.transparent,
+    return AnimatedBuilder(
+      animation: _glowAnimationController,
+      builder: (context, child) {
+        // Animated gradient positions for subtle flowing liquid/steam effect
+        final animValue = _glowAnimationController.value;
+        final beginX = -1.5 + (animValue * 2.0);
+        final beginY = -1.0 + (animValue * 0.8);
+
+        return ClipOval(
+          child: Stack(
+            children: [
+              // Animated flowing steam/liquid layer - MORE SUBTLE than weekly routine
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: Alignment(
+                        beginX * 0.3, // Reduced movement range for subtlety
+                        beginY * 0.25,
+                      ),
+                      radius: 0.6 + (animValue * 0.15), // Smaller, softer radius
+                      colors: [
+                        // Much softer opacity for premium glassy effect
+                        backgroundColor.withValues(alpha: isDarkMode ? 0.15 + (animValue * 0.08) : 0.12 + (animValue * 0.06)),
+                        backgroundColor.withValues(alpha: isDarkMode ? 0.08 + (animValue * 0.05) : 0.06 + (animValue * 0.04)),
+                        backgroundColor.withValues(alpha: isDarkMode ? 0.04 : 0.03),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.4, 0.7, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+              // Main FAB with glass morphism
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  // Theme-adaptive glass morphism for main FAB
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      // Glass effect with subtle color blend
+                      glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
+                      glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+                      backgroundColor.withValues(alpha: isDarkMode ? 0.4 : 0.6),
+                      backgroundColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
+                    ],
+                    stops: const [0.0, 0.3, 0.7, 1.0],
+                  ),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    // Main shadow - adaptive to theme
+                    BoxShadow(
+                      color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
+                      blurRadius: 20,
+                      offset: Offset(0, isDarkMode ? 6 : 8),
+                    ),
+                    // Inner glow - more prominent in dark mode
+                    if (isDarkMode) BoxShadow(
+                      color: glassBase.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, -3),
+                    ),
+                    // Colored glow - now using pulse color
+                    BoxShadow(
+                      color: backgroundColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
+                      blurRadius: 28,
+                      offset: const Offset(0, 10),
+                      spreadRadius: -6,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    // Subtle inner highlight
+                    gradient: RadialGradient(
+                      colors: [
+                        glassBase.withValues(alpha: isDarkMode ? 0.25 : 0.08),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.85],
+                    ),
+                  ),
+                  child: Center(
+                    child: AnimatedRotation(
+                      turns: _isExpanded ? 0.125 : 0, // 45 degree rotation when expanded
+                      duration: const Duration(milliseconds: 300),
+                      child: Icon(
+                        _isExpanded ? Icons.close : Icons.add,
+                        color: iconColor.withValues(alpha: 0.9),
+                        size: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
-            stops: const [0.0, 0.85],
           ),
-        ),
-        child: Center(
-          child: AnimatedRotation(
-            turns: _isExpanded ? 0.125 : 0, // 45 degree rotation when expanded
-            duration: const Duration(milliseconds: 300),
-            child: Icon(
-              _isExpanded ? Icons.close : Icons.add,
-              color: iconColor.withValues(alpha: 0.9),
-              size: 24,
-            ),
-          ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

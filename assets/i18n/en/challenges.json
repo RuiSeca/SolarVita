@@ -42,5 +42,6 @@
   "ended": "Ended",
   "days_left": "{days} days left",
   "hours_left": "{hours} hours left",
-  "ending_soon": "Ending soon"
+  "ending_soon": "Ending soon",
+  "community_goal": "Community Goal"
 }

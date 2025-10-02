@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
 import '../../services/exercises/exercise_service.dart';
 import '../../services/exercises/optimized_exercise_service.dart';
+import '../../services/api/unified_api_service.dart';
 import '../../screens/search/workout_detail/models/workout_item.dart';
+import '../riverpod/language_provider.dart';
 
 part 'exercise_provider.g.dart';
 
@@ -15,6 +17,27 @@ final log = Logger('ExerciseProvider');
 OptimizedExerciseService exerciseService(Ref ref) {
   return OptimizedExerciseService();
 }
+
+// UnifiedApiService provider for exercise translations
+final unifiedApiServiceProvider = Provider<UnifiedApiService>((ref) {
+  return UnifiedApiService(useProductionTranslation: false, ref: ref);
+});
+
+// Language-aware exercise provider that automatically updates when language changes
+final exercisesByTargetLanguageAwareProvider = FutureProvider.family<List<WorkoutItem>, String>((ref, target) async {
+  final unifiedService = ref.read(unifiedApiServiceProvider);
+  final currentLanguage = ref.watch(currentLanguageProvider); // Watch for language changes!
+
+  return await unifiedService.getExercisesByTarget(target, language: currentLanguage.code);
+});
+
+// Language change detector - triggers exercise refresh when language changes
+final languageChangeExerciseRefreshProvider = Provider<String>((ref) {
+  final currentLanguage = ref.watch(currentLanguageProvider);
+
+  // This provider rebuilds when language changes, triggering refresh in screens that watch it
+  return currentLanguage.code;
+});
 
 // Note: Analytics are accessed directly from the service in widgets
 
@@ -113,9 +136,11 @@ class ExerciseNotifier extends _$ExerciseNotifier {
     _totalRequestCount++;
     
     try {
-      final exerciseService = ref.read(exerciseServiceProvider);
-      final exercises = await exerciseService.getExercisesByTarget(
+      final unifiedService = ref.read(unifiedApiServiceProvider);
+      final currentLanguage = ref.read(currentLanguageProvider);
+      final exercises = await unifiedService.getExercisesByTarget(
         normalizedTarget,
+        language: currentLanguage.code,
       );
 
       final loadTime = DateTime.now().difference(startTime);

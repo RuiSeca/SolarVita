@@ -7,8 +7,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/app_theme.dart';
 import '../../../utils/translation_helper.dart';
+import '../../../utils/category_translation_helper.dart';
 import '../../../services/meal/recipe_service.dart';
 import '../../../providers/riverpod/meal_provider.dart';
+import '../../../providers/riverpod/translation_progress_provider.dart';
+import '../../../widgets/common/translation_loading_overlay.dart';
 import 'meal_detail_screen.dart';
 import 'package:logger/logger.dart';
 import '../../../widgets/common/lottie_loading_widget.dart';
@@ -302,15 +305,110 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch for language changes and trigger meal refresh
+    ref.listen<String>(languageChangeMealRefreshProvider, (previous, current) {
+      if (previous != null && previous != current) {
+        // Language changed, refresh current data
+        final mealState = ref.read(mealNotifierProvider);
+        if (mealState.meals != null && mealState.meals!.isNotEmpty) {
+          final notifier = ref.read(mealNotifierProvider.notifier);
+
+          // Refresh the current data
+          if (mealState.currentCategory != null) {
+            notifier.loadMealsByCategory(mealState.currentCategory!);
+          } else if (mealState.currentQuery != null && mealState.currentQuery!.isNotEmpty) {
+            notifier.searchMeals(mealState.currentQuery!);
+          }
+        }
+      }
+    });
+
+    final translationProgress = ref.watch(translationProgressProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
-      body: SafeArea(
-        child: Column(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                _buildHeader(),
+                _buildSearchBar(),
+                _buildCategorySelector(),
+                _buildMealGrid(),
+              ],
+            ),
+          ),
+          // Translation loading overlay
+          TranslationLoadingOverlay(
+            language: translationProgress.language,
+            category: translationProgress.category,
+            totalItems: translationProgress.totalItems,
+            translatedItems: translationProgress.translatedItems,
+            isVisible: translationProgress.isActive,
+            onCancel: () {
+              ref.read(translationProgressProvider.notifier).resetProgress();
+            },
+          ),
+          // Error notification overlay
+          if (translationProgress.hasError)
+            _buildErrorNotification(translationProgress.errorMessage!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorNotification(String errorMessage) {
+    return Positioned(
+      top: 16,
+      left: 16,
+      right: 16,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.orange.withAlpha(230),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(51),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
           children: [
-            _buildHeader(),
-            _buildSearchBar(),
-            _buildCategorySelector(),
-            _buildMealGrid(),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                errorMessage,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                ref.read(translationProgressProvider.notifier).resetProgress();
+              },
+              icon: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 20,
+              ),
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+              ),
+              padding: EdgeInsets.zero,
+            ),
           ],
         ),
       ),
@@ -442,7 +540,7 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
                   const SizedBox(height: 6),
                   Flexible(
                     child: Text(
-                      category['strCategory']!,
+                      CategoryTranslationHelper.translateCategory(context, category['strCategory']!),
                       style: TextStyle(
                         color: AppTheme.textColor(context),
                         fontSize: 11,
@@ -790,15 +888,30 @@ class _MealSearchScreenState extends ConsumerState<MealSearchScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    meal['titleKey'] ?? meal['strMeal'] ?? tr(context, 'unknown_meal'),
-                    style: TextStyle(
-                      color: AppTheme.textColor(context),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          meal['titleKey'] ?? meal['strMeal'] ?? tr(context, 'unknown_meal'),
+                          style: TextStyle(
+                            color: AppTheme.textColor(context),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (meal['isTranslated'] == true)
+                        const Padding(
+                          padding: EdgeInsets.only(left: 4),
+                          child: Icon(
+                            Icons.translate,
+                            size: 16,
+                            color: Colors.green,
+                          ),
+                        ),
+                    ],
                   ),
                   const Spacer(),
                   Row(

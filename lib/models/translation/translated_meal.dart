@@ -8,6 +8,8 @@ class TranslatedMeal {
   final List<String> translatedInstructions;
   final List<String> originalIngredients;
   final List<String> translatedIngredients;
+  final List<String>? originalMeasures;
+  final List<String>? translatedMeasures;
   final String? originalCategory;
   final String? translatedCategory;
   final String? originalArea;
@@ -33,6 +35,8 @@ class TranslatedMeal {
     required this.translatedInstructions,
     required this.originalIngredients,
     required this.translatedIngredients,
+    this.originalMeasures,
+    this.translatedMeasures,
     this.originalCategory,
     this.translatedCategory,
     this.originalArea,
@@ -60,6 +64,8 @@ class TranslatedMeal {
       'translatedInstructions': translatedInstructions.join('|||'),
       'originalIngredients': originalIngredients.join('|||'),
       'translatedIngredients': translatedIngredients.join('|||'),
+      'originalMeasures': originalMeasures?.join('|||'),
+      'translatedMeasures': translatedMeasures?.join('|||'),
       'originalCategory': originalCategory,
       'translatedCategory': translatedCategory,
       'originalArea': originalArea,
@@ -100,6 +106,8 @@ class TranslatedMeal {
       translatedInstructions: (map['translatedInstructions'] as String? ?? '').split('|||'),
       originalIngredients: (map['originalIngredients'] as String? ?? '').split('|||'),
       translatedIngredients: (map['translatedIngredients'] as String? ?? '').split('|||'),
+      originalMeasures: (map['originalMeasures'] as String?)?.split('|||'),
+      translatedMeasures: (map['translatedMeasures'] as String?)?.split('|||'),
       originalCategory: map['originalCategory'] as String?,
       translatedCategory: map['translatedCategory'] as String?,
       originalArea: map['originalArea'] as String?,
@@ -127,6 +135,8 @@ class TranslatedMeal {
     List<String>? translatedInstructions,
     List<String>? originalIngredients,
     List<String>? translatedIngredients,
+    List<String>? originalMeasures,
+    List<String>? translatedMeasures,
     String? originalCategory,
     String? translatedCategory,
     String? originalArea,
@@ -152,6 +162,8 @@ class TranslatedMeal {
       translatedInstructions: translatedInstructions ?? this.translatedInstructions,
       originalIngredients: originalIngredients ?? this.originalIngredients,
       translatedIngredients: translatedIngredients ?? this.translatedIngredients,
+      originalMeasures: originalMeasures ?? this.originalMeasures,
+      translatedMeasures: translatedMeasures ?? this.translatedMeasures,
       originalCategory: originalCategory ?? this.originalCategory,
       translatedCategory: translatedCategory ?? this.translatedCategory,
       originalArea: originalArea ?? this.originalArea,

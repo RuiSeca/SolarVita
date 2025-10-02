@@ -9,7 +9,7 @@ final log = Logger('TranslationDatabaseService');
 
 class TranslationDatabaseService {
   static const String _databaseName = 'translations.db';
-  static const int _databaseVersion = 1;
+  static const int _databaseVersion = 2;
 
   static const String _mealsTable = 'translated_meals';
   static const String _exercisesTable = 'translated_exercises';
@@ -51,6 +51,8 @@ class TranslationDatabaseService {
         translatedInstructions TEXT NOT NULL,
         originalIngredients TEXT NOT NULL,
         translatedIngredients TEXT NOT NULL,
+        originalMeasures TEXT,
+        translatedMeasures TEXT,
         originalCategory TEXT,
         translatedCategory TEXT,
         originalArea TEXT,
@@ -121,7 +123,14 @@ class TranslationDatabaseService {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     log.info('⬆️ Upgrading translation database from $oldVersion to $newVersion');
-    // Handle database upgrades here when needed
+
+    if (oldVersion < 2) {
+      // Add measures columns to translated_meals table
+      log.info('📝 Adding measures columns to translated_meals table');
+      await db.execute('ALTER TABLE $_mealsTable ADD COLUMN originalMeasures TEXT');
+      await db.execute('ALTER TABLE $_mealsTable ADD COLUMN translatedMeasures TEXT');
+      log.info('✅ Database upgrade to version 2 completed');
+    }
   }
 
   // MEAL OPERATIONS
@@ -411,6 +420,30 @@ class TranslationDatabaseService {
       };
     } catch (e) {
       log.severe('❌ Failed to get translation counts', e);
+      return {'meals': 0, 'exercises': 0, 'total': 0};
+    }
+  }
+
+  Future<Map<String, int>> getTranslationCountsForLanguage(String languageCode) async {
+    final db = await database;
+    try {
+      final mealCount = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM $_mealsTable WHERE targetLanguage = ?',
+        [languageCode],
+      )) ?? 0;
+
+      final exerciseCount = Sqflite.firstIntValue(await db.rawQuery(
+        'SELECT COUNT(*) FROM $_exercisesTable WHERE targetLanguage = ?',
+        [languageCode],
+      )) ?? 0;
+
+      return {
+        'meals': mealCount,
+        'exercises': exerciseCount,
+        'total': mealCount + exerciseCount,
+      };
+    } catch (e) {
+      log.severe('❌ Failed to get translation counts for $languageCode', e);
       return {'meals': 0, 'exercises': 0, 'total': 0};
     }
   }

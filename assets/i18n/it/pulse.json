@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "La funzione di esercizi respiratori arriva presto!",
   "mood_options": {
     "energetic": "Energico",
-    "calm": "Calmo", 
+    "calm": "Calmo",
     "focused": "Concentrato",
     "motivated": "Motivato",
-    "creative": "Creativo",
-    "passionate": "Appassionato"
+    "happy": "Felice",
+    "peaceful": "Pacifico"
   },
   "air_quality_levels": {
     "good": "Buono",

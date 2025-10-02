@@ -1,0 +1,17 @@
+{
+  "all": "Todos",
+  "beef": "Carne de Res",
+  "chicken": "Pollo",
+  "dessert": "Postre",
+  "lamb": "Cordero",
+  "miscellaneous": "Varios",
+  "pasta": "Pasta",
+  "pork": "Cerdo",
+  "seafood": "Mariscos",
+  "side": "Acompañamiento",
+  "starter": "Entrada",
+  "vegan": "Vegano",
+  "vegetarian": "Vegetariano",
+  "breakfast": "Desayuno",
+  "goat": "Cabra"
+}

@@ -13,6 +13,7 @@ import '../../widgets/common/lottie_loading_widget.dart';
 import '../../widgets/common/oriented_image.dart';
 import '../routine/routine_main_screen.dart';
 import '../../providers/riverpod/scroll_controller_provider.dart';
+import '../../services/health_alerts/pulse_color_manager.dart';
 
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -22,7 +23,7 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerProviderStateMixin {
   bool _isSearching = false;
   String _searchQuery = '';
   bool _isLoadingExercises = false;
@@ -31,15 +32,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   // Flag to prevent automatic navigation during first build
   bool _isFirstBuild = true;
-  
+
   // Scroll controller for header synchronization
   ScrollController? _scrollController;
   bool _showFloatingButton = false;
+
+  // Animation controller for ethereal glow effect
+  late AnimationController _glowAnimationController;
+
+  // Pulse color integration
+  Color _currentPulseColor = const Color(0xFF4CAF50); // Default green
 
   @override
   void dispose() {
     // Cancel any ongoing loading operations when the screen is disposed
     _timeoutTimer?.cancel();
+    _glowAnimationController.dispose();
+    try {
+      PulseColorManager.instance.removeListener(_onPulseColorChanged);
+    } catch (e) {
+      debugPrint('Error removing pulse color listener: $e');
+    }
     // Don't dispose the controller - it's managed by the provider
     super.dispose();
   }
@@ -55,20 +68,55 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.initState();
     _isFirstBuild = true;
 
+    // Initialize animation controller for ethereal glow
+    _glowAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    // Listen to pulse color changes
+    _setupPulseColorListener();
+
     // Use a post-frame callback to reset the flag after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         // Get the scroll controller from the provider
         _scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('search');
-        
+
         // Setup scroll listener for floating button
         _scrollController?.addListener(_onScroll);
-        
+
         setState(() {
           _isFirstBuild = false;
         });
       }
     });
+  }
+
+  void _setupPulseColorListener() {
+    try {
+      final pulseManager = PulseColorManager.instance;
+      pulseManager.addListener(_onPulseColorChanged);
+      // Set initial color
+      _currentPulseColor = pulseManager.currentColor;
+    } catch (e) {
+      debugPrint('Failed to setup pulse color listener: $e');
+      // Fallback to default green
+      _currentPulseColor = const Color(0xFF4CAF50);
+    }
+  }
+
+  void _onPulseColorChanged() {
+    try {
+      final newColor = PulseColorManager.instance.currentColor;
+      if (mounted && newColor != _currentPulseColor) {
+        setState(() {
+          _currentPulseColor = newColor;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating routine button color: $e');
+    }
   }
 
   void _onScroll() {
@@ -377,13 +425,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 automaticallyImplyLeading: false,
                 flexibleSpace: FlexibleSpaceBar(
                   background: SafeArea(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildAppBar(context),
-                        if (_isSearching) _buildSearchBar() else _buildTitle(context),
-                        _buildRoutineButton(),
-                      ],
+                    child: SingleChildScrollView(
+                      physics: const NeverScrollableScrollPhysics(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildAppBar(context),
+                          if (_isSearching) _buildSearchBar() else _buildTitle(context),
+                          _buildRoutineButton(),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -586,22 +638,138 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildRoutineButton() {
+    final theme = Theme.of(context);
+    // Use pulse color instead of static theme color
+    final backgroundColor = _currentPulseColor;
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    // Theme-adaptive colors from fan menu FAB
+    final glassBase = isDarkMode ? Colors.white : Colors.black;
+    final iconColor = isDarkMode ? Colors.white : Colors.black;
+    final shadowColor = isDarkMode ? Colors.black : Colors.grey.shade400;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _navigateToRoutines(),
-          icon: const Icon(Icons.schedule),
-          label: Text(tr(context, 'weekly_routines')),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 2,
+        child: GestureDetector(
+          onTap: () => _navigateToRoutines(),
+          child: AnimatedBuilder(
+            animation: _glowAnimationController,
+            builder: (context, child) {
+              // Animated gradient positions for flowing liquid/steam effect
+              final animValue = _glowAnimationController.value;
+              final beginX = -1.5 + (animValue * 2.0);
+              final beginY = -1.0 + (animValue * 0.8);
+
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    // Animated flowing green steam/liquid layer behind the button
+                    Positioned.fill(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: RadialGradient(
+                            center: Alignment(
+                              beginX * 0.4,
+                              beginY * 0.35,
+                            ),
+                            radius: 0.8 + (animValue * 0.2),
+                            colors: [
+                              backgroundColor.withValues(alpha: isDarkMode ? 0.3 + (animValue * 0.15) : 0.25 + (animValue * 0.1)),
+                              backgroundColor.withValues(alpha: isDarkMode ? 0.15 + (animValue * 0.1) : 0.12 + (animValue * 0.08)),
+                              backgroundColor.withValues(alpha: isDarkMode ? 0.08 : 0.06),
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 0.4, 0.7, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Main button with glass morphism
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                      decoration: BoxDecoration(
+                        // Theme-adaptive glass morphism
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            // Glass effect with subtle color blend
+                            glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
+                            glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+                            backgroundColor.withValues(alpha: isDarkMode ? 0.4 : 0.6),
+                            backgroundColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
+                          ],
+                          stops: const [0.0, 0.3, 0.7, 1.0],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          // Main shadow - adaptive to theme
+                          BoxShadow(
+                            color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
+                            blurRadius: 20,
+                            offset: Offset(0, isDarkMode ? 6 : 8),
+                          ),
+                          // Inner glow - more prominent in dark mode
+                          if (isDarkMode) BoxShadow(
+                            color: glassBase.withValues(alpha: 0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, -3),
+                          ),
+                          // Animated ethereal green glow
+                          BoxShadow(
+                            color: backgroundColor.withValues(
+                              alpha: isDarkMode
+                                ? 0.15 + (animValue * 0.25)
+                                : 0.1 + (animValue * 0.2),
+                            ),
+                            blurRadius: 20 + (animValue * 15),
+                            offset: const Offset(0, 8),
+                            spreadRadius: -4 + (animValue * 2),
+                          ),
+                          // Secondary animated glow for depth
+                          BoxShadow(
+                            color: backgroundColor.withValues(
+                              alpha: isDarkMode
+                                ? 0.1 + (animValue * 0.15)
+                                : 0.08 + (animValue * 0.12),
+                            ),
+                            blurRadius: 35 + (animValue * 20),
+                            offset: const Offset(0, 12),
+                            spreadRadius: -8,
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            color: iconColor.withValues(alpha: 0.9),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            tr(context, 'weekly_routines'),
+                            style: TextStyle(
+                              color: iconColor.withValues(alpha: 0.9),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -622,6 +790,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
 
   Widget _buildFloatingRoutineButton() {
+    final theme = Theme.of(context);
+    // Use pulse color instead of static theme color
+    final backgroundColor = _currentPulseColor;
+    final isDarkMode = theme.brightness == Brightness.dark;
+
+    // Theme-adaptive colors from fan menu FAB
+    final glassBase = isDarkMode ? Colors.white : Colors.black;
+    final iconColor = isDarkMode ? Colors.white : Colors.black;
+    final shadowColor = isDarkMode ? Colors.black : Colors.grey.shade400;
+
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -630,54 +808,130 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
         opacity: _showFloatingButton ? 1.0 : 0.0,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryColor.withValues(alpha: 0.9),
-                AppTheme.primaryColor.withValues(alpha: 0.8),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withValues(alpha: 0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
+        child: AnimatedBuilder(
+          animation: _glowAnimationController,
+          builder: (context, child) {
+            // Animated gradient positions for subtle flowing liquid/steam effect
+            final animValue = _glowAnimationController.value;
+            final beginX = -1.5 + (animValue * 2.0);
+            final beginY = -1.0 + (animValue * 0.8);
+
+            return ClipRRect(
               borderRadius: BorderRadius.circular(28),
-              onTap: _navigateToRoutines,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.schedule,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      tr(context, 'routines'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
+              child: Stack(
+                children: [
+                  // Animated flowing steam/liquid layer - MORE SUBTLE than weekly routine
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(
+                            beginX * 0.3, // Reduced movement range for subtlety
+                            beginY * 0.25,
+                          ),
+                          radius: 0.6 + (animValue * 0.15), // Smaller, softer radius
+                          colors: [
+                            // Much softer opacity for premium glassy effect
+                            backgroundColor.withValues(alpha: isDarkMode ? 0.15 + (animValue * 0.08) : 0.12 + (animValue * 0.06)),
+                            backgroundColor.withValues(alpha: isDarkMode ? 0.08 + (animValue * 0.05) : 0.06 + (animValue * 0.04)),
+                            backgroundColor.withValues(alpha: isDarkMode ? 0.04 : 0.03),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.4, 0.7, 1.0],
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  // Main button with glass morphism
+                  Container(
+                    decoration: BoxDecoration(
+                      // Theme-adaptive glass morphism for floating button
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          // Glass effect with subtle color blend
+                          glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
+                          glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+                          backgroundColor.withValues(alpha: isDarkMode ? 0.4 : 0.6),
+                          backgroundColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
+                        ],
+                        stops: const [0.0, 0.3, 0.7, 1.0],
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        // Main shadow - adaptive to theme
+                        BoxShadow(
+                          color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
+                          blurRadius: 20,
+                          offset: Offset(0, isDarkMode ? 6 : 8),
+                        ),
+                        // Inner glow - more prominent in dark mode
+                        if (isDarkMode) BoxShadow(
+                          color: glassBase.withValues(alpha: 0.15),
+                          blurRadius: 8,
+                          offset: const Offset(0, -3),
+                        ),
+                        // Colored glow
+                        BoxShadow(
+                          color: backgroundColor.withValues(alpha: isDarkMode ? 0.2 : 0.15),
+                          blurRadius: 28,
+                          offset: const Offset(0, 10),
+                          spreadRadius: -6,
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(28),
+                        // Subtle inner highlight
+                        gradient: RadialGradient(
+                          colors: [
+                            glassBase.withValues(alpha: isDarkMode ? 0.25 : 0.08),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.85],
+                        ),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(28),
+                          onTap: _navigateToRoutines,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  color: iconColor.withValues(alpha: 0.9),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  tr(context, 'routines'),
+                                  style: TextStyle(
+                                    color: iconColor.withValues(alpha: 0.9),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

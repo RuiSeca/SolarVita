@@ -9,5 +9,8 @@
     "select_date_range": "Selecionar Período",
     "switch_light_dark_mode": "Alternar Modo Claro/Escuro",
     "try_different_category": "Tente uma categoria diferente",
-    "get_help_contact_support": "Obter ajuda e contatar suporte"
+    "get_help_contact_support": "Obter ajuda e contatar suporte",
+    "downloading_translations": "Baixando Traduções",
+    "cancel": "Cancelar",
+    "meals": "Refeições"
 }

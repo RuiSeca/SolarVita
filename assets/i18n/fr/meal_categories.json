@@ -1,0 +1,17 @@
+{
+  "all": "Tous",
+  "beef": "Bœuf",
+  "chicken": "Poulet",
+  "dessert": "Dessert",
+  "lamb": "Agneau",
+  "miscellaneous": "Divers",
+  "pasta": "Pâtes",
+  "pork": "Porc",
+  "seafood": "Fruits de Mer",
+  "side": "Accompagnement",
+  "starter": "Entrée",
+  "vegan": "Végétalien",
+  "vegetarian": "Végétarien",
+  "breakfast": "Petit-déjeuner",
+  "goat": "Chèvre"
+}

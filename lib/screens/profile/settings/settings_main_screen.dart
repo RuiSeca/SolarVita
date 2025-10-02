@@ -12,6 +12,7 @@ import 'preferences/dietary_preferences_screen.dart';
 import 'preferences/sustainability_goals_screen.dart';
 import 'preferences/personal_intent_preferences_screen.dart';
 import 'app/language_screen.dart';
+import 'app/translation_settings_screen.dart';
 import 'app/help_support_screen.dart';
 import 'feed/feed_layout_screen.dart';
 import 'data_storage/data_sync_screen.dart';
@@ -146,6 +147,16 @@ class SettingsMainScreen extends ConsumerWidget {
           onTap: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const LanguageScreen()),
+          ),
+        ),
+        _buildSettingsTile(
+          context,
+          icon: Icons.translate_rounded,
+          title: tr(context, 'translation_settings'),
+          subtitle: tr(context, 'download_when_switching_languages'),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const TranslationSettingsScreen()),
           ),
           isLast: true,
         ),

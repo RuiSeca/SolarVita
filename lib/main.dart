@@ -692,7 +692,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
 
       return FanMenuFAB(
         scrollController: scrollController,
-        backgroundColor: Theme.of(context).primaryColor,
+        // Let the FAB use its pulse color integration instead of forcing primaryColor
         heroTag: "dashboard_fan_fab",
         menuItems: [
           FanMenuItem(

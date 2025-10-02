@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "Recurso de exercícios respiratórios em breve!",
   "mood_options": {
     "energetic": "Energético",
-    "calm": "Calmo", 
+    "calm": "Calmo",
     "focused": "Focado",
     "motivated": "Motivado",
-    "creative": "Criativo",
-    "passionate": "Apaixonado"
+    "happy": "Feliz",
+    "peaceful": "Pacífico"
   },
   "air_quality_levels": {
     "good": "Bom",

@@ -465,7 +465,7 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      if (_shouldShowGrams(widget.measures[index])) ...[
+                      if (index < widget.measures.length && _shouldShowGrams(widget.measures[index])) ...[
                         const SizedBox(height: 2),
                         Text(
                           '(~${_getIngredientGrams(index)}g)',
@@ -487,6 +487,11 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
   }
 
   String _adjustMeasure(String measure) {
+    // Safety check for null or empty measures
+    if (measure.isEmpty) {
+      return '1 serving';
+    }
+
     final regex = RegExp(r'(\d+(?:\.\d+)?)\s*(.+)');
     final match = regex.firstMatch(measure);
 
@@ -1161,8 +1166,13 @@ class _MealDetailScreenState extends State<MealDetailScreen> {
 
   // Get measure adjusted for per-serving vs per-meal display
   String _getAdjustedMeasure(int index) {
+    // Safety check: ensure index is within bounds
+    if (index >= widget.measures.length) {
+      return '1 serving'; // Default fallback
+    }
+
     final originalMeasure = _adjustMeasure(widget.measures[index]);
-    
+
     // Adjust measures for per serving display
     final servings = int.parse(widget.nutritionFacts['servings']?.toString() ?? '1');
     return _adjustMeasureForServings(originalMeasure, servings);

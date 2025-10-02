@@ -24,6 +24,7 @@ class AppLocalizations {
     'meal_page',
     'meal_details',
     'meal_search',
+    'meal_categories',
     'exercise_history',
     'exercise_detail_history_screen',
     'log_exercise_screen',

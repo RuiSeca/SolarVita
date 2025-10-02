@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "호흡 운동 기능이 곧 출시됩니다!",
   "mood_options": {
     "energetic": "활기찬",
-    "calm": "평온한", 
+    "calm": "평온한",
     "focused": "집중된",
     "motivated": "동기부여된",
-    "creative": "창의적인",
-    "passionate": "열정적인"
+    "happy": "행복한",
+    "peaceful": "평화로운"
   },
   "air_quality_levels": {
     "good": "좋음",

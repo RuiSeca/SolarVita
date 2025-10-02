@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "呼吸エクササイズ機能は近日公開予定！",
   "mood_options": {
     "energetic": "エネルギッシュ",
-    "calm": "穏やか", 
+    "calm": "穏やか",
     "focused": "集中",
     "motivated": "やる気",
-    "creative": "クリエイティブ",
-    "passionate": "情熱的"
+    "happy": "幸せ",
+    "peaceful": "平和"
   },
   "air_quality_levels": {
     "good": "良好",

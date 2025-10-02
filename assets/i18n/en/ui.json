@@ -43,5 +43,8 @@
     "edit_profile_info": "Edit Profile",
     "quick_actions": "Quick Actions",
     "tap_to_expand": "Tap to expand options",
-    "long_press_hint": "Long press for drag selection"
+    "long_press_hint": "Long press for drag selection",
+    "downloading_translations": "Downloading Translations",
+    "cancel": "Cancel",
+    "meals": "Meals"
 }

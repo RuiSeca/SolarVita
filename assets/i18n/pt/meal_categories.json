@@ -1,0 +1,17 @@
+{
+  "all": "Todos",
+  "beef": "Carne de Vaca",
+  "chicken": "Frango",
+  "dessert": "Sobremesa",
+  "lamb": "Cordeiro",
+  "miscellaneous": "Diversos",
+  "pasta": "Massa",
+  "pork": "Porco",
+  "seafood": "Frutos do Mar",
+  "side": "Acompanhamento",
+  "starter": "Entrada",
+  "vegan": "Vegano",
+  "vegetarian": "Vegetariano",
+  "breakfast": "Pequeno-almoço",
+  "goat": "Cabra"
+}

@@ -33,7 +33,7 @@ MealDBService mealService(Ref ref) {
 
 // Manual provider for UnifiedApiService (not using @riverpod to avoid build_runner dependency)
 final unifiedApiServiceProvider = Provider<UnifiedApiService>((ref) {
-  return UnifiedApiService(useProductionTranslation: false);
+  return UnifiedApiService(useProductionTranslation: false, ref: ref);
 });
 
 // Language-aware meal providers that automatically update when language changes
@@ -50,6 +50,14 @@ final searchMealsLanguageAwareProvider = FutureProvider.family<List<Map<String, 
 
   if (query.isEmpty) return [];
   return await unifiedService.searchMeals(query, language: currentLanguage.code);
+});
+
+// Language change detector - triggers meal refresh when language changes
+final languageChangeMealRefreshProvider = Provider<String>((ref) {
+  final currentLanguage = ref.watch(currentLanguageProvider);
+
+  // This provider rebuilds when language changes, triggering refresh in screens that watch it
+  return currentLanguage.code;
 });
 
 // Meal state class to hold the complete state with pagination

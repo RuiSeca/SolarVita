@@ -39,12 +39,14 @@ class ApiTranslationService {
       final originalName = mealData['titleKey']?.toString() ?? '';
       final originalInstructions = List<String>.from(mealData['instructions'] ?? []);
       final originalIngredients = List<String>.from(mealData['ingredients'] ?? []);
+      final originalMeasures = List<String>.from(mealData['measures'] ?? []);
       final originalCategory = mealData['category']?.toString();
       final originalArea = mealData['area']?.toString();
 
       // Filter out empty strings
       final validInstructions = originalInstructions.where((s) => s.trim().isNotEmpty).toList();
       final validIngredients = originalIngredients.where((s) => s.trim().isNotEmpty).toList();
+      final validMeasures = originalMeasures.where((s) => s.trim().isNotEmpty).toList();
 
       // Translate all text fields
       final translatedName = await _translationService.translate(originalName, targetLanguage);
@@ -57,6 +59,11 @@ class ApiTranslationService {
       // Translate ingredients in batch
       final translatedIngredients = validIngredients.isNotEmpty
           ? await _translationService.translateBatch(validIngredients, targetLanguage)
+          : <String>[];
+
+      // Translate measures in batch (measurements like "1 cup", "2 tablespoons", etc.)
+      final translatedMeasures = validMeasures.isNotEmpty
+          ? await _translationService.translateBatch(validMeasures, targetLanguage)
           : <String>[];
 
       // Translate category and area
@@ -80,6 +87,8 @@ class ApiTranslationService {
         translatedInstructions: translatedInstructions,
         originalIngredients: originalIngredients,
         translatedIngredients: translatedIngredients,
+        originalMeasures: originalMeasures,
+        translatedMeasures: translatedMeasures,
         originalCategory: originalCategory,
         translatedCategory: translatedCategory,
         originalArea: originalArea,

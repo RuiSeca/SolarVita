@@ -63,11 +63,11 @@
   "breathing_exercise_coming": "सांस लेने के व्यायाम की सुविधा जल्द आ रही है!",
   "mood_options": {
     "energetic": "ऊर्जावान",
-    "calm": "शांत", 
+    "calm": "शांत",
     "focused": "केंद्रित",
     "motivated": "प्रेरित",
-    "creative": "रचनात्मक",
-    "passionate": "भावुक"
+    "happy": "खुश",
+    "peaceful": "शांतिपूर्ण"
   },
   "air_quality_levels": {
     "good": "अच्छा",
