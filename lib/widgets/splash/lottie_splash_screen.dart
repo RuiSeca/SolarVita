@@ -72,14 +72,14 @@ class _LottieSplashScreenState extends State<LottieSplashScreen>
               ),
             ),
 
-          // Lottie animation - cover entire screen
+          // Lottie animation - fit to screen without cropping
           if (_isLottieLoaded)
             FadeTransition(
               opacity: _fadeAnimation,
-              child: SizedBox.expand(
+              child: Center(
                 child: Lottie.asset(
                   'assets/videos/animation.json',
-                  fit: BoxFit.cover, // Cover entire screen
+                  fit: BoxFit.contain, // Fit entire animation without cropping
                   repeat: false, // Play once
                   onLoaded: (composition) {
                     if (mounted) {
