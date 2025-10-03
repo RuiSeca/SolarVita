@@ -59,6 +59,11 @@ dependencies:
   sign_in_with_apple: ^6.1.2
   crypto: ^3.0.3
 
+  # Chat Encryption
+  encrypt: ^5.0.3
+  flutter_secure_storage: ^9.0.0
+  pointycastle: ^3.7.3
+
   # AI providers
   google_generative_ai: ^0.4.6
 
@@ -92,6 +97,13 @@ dependency_overrides:
   speech_to_text: 7.1.0
   # Optional override for intl if needed to force consistency
   intl: ^0.20.2
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logo.png"
+  adaptive_icon_background: "#161f25"
+  adaptive_icon_foreground: "assets/images/logo.png"
 
 flutter:
   uses-material-design: true

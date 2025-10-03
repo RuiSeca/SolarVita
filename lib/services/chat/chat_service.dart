@@ -5,14 +5,27 @@ import '../../models/chat/chat_message.dart';
 import '../../models/chat/chat_conversation.dart';
 import '../../models/social/social_activity.dart';
 import '../database/firebase_push_notification_service.dart';
+import 'chat_encryption_service.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebasePushNotificationService _notificationService =
       FirebasePushNotificationService();
+  final ChatEncryptionService _encryptionService = ChatEncryptionService();
 
   String? get currentUserId => _auth.currentUser?.uid;
+
+  /// Initialize encryption for current user (call once during user registration/login)
+  Future<void> initializeEncryption() async {
+    try {
+      await _encryptionService.initializeUserKeys();
+      debugPrint('✅ Chat encryption initialized');
+    } catch (e) {
+      debugPrint('❌ Failed to initialize chat encryption: $e');
+      // Don't throw - allow chat to work without encryption for now
+    }
+  }
 
   // Get or create conversation between two users
   Future<String> getOrCreateConversation(String otherUserId) async {
@@ -53,16 +66,83 @@ class ChatService {
         }
       }
 
-      // Create new conversation with participant info
-      await conversationRef.set({
-        'participantIds': participants,
-        'lastMessage': '',
-        'lastMessageTime': FieldValue.serverTimestamp(),
-        'unreadCounts': {participants[0]: 0, participants[1]: 0},
-        'participantNames': participantNames,
-        'participantPhotos': participantPhotos,
-      });
+      // Generate and store conversation encryption key
+      try {
+        debugPrint('🔐 Setting up encryption for conversation...');
+        final conversationKey = _encryptionService.generateConversationKey();
+        debugPrint('✅ Conversation key generated');
+
+        // Encrypt key for both participants
+        debugPrint('🔑 Fetching public keys for participants...');
+        final currentUserPublicKey = await _encryptionService.fetchUserPublicKey(currentUserId!);
+        debugPrint('✅ Current user public key fetched');
+
+        final otherUserPublicKey = await _encryptionService.fetchUserPublicKey(otherUserId);
+        debugPrint('✅ Other user public key fetched');
+
+        final encryptedKeyForCurrentUser = await _encryptionService.encryptKeyForUser(
+          conversationKey,
+          currentUserPublicKey,
+        );
+        final encryptedKeyForOtherUser = await _encryptionService.encryptKeyForUser(
+          conversationKey,
+          otherUserPublicKey,
+        );
+        debugPrint('✅ Conversation keys encrypted for both users');
+
+        // Store conversation key locally
+        await _encryptionService.storeConversationKey(conversationId, conversationKey);
+        debugPrint('✅ Conversation key stored locally');
+
+        // Create new conversation with encryption keys
+        await conversationRef.set({
+          'participantIds': participants,
+          'lastMessage': '[Encrypted]',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'unreadCounts': {participants[0]: 0, participants[1]: 0},
+          'participantNames': participantNames,
+          'participantPhotos': participantPhotos,
+          'encryptedKeys': {
+            currentUserId!: encryptedKeyForCurrentUser,
+            otherUserId: encryptedKeyForOtherUser,
+          },
+        });
+
+        debugPrint('✅ Conversation encryption keys generated and stored');
+      } catch (e, stackTrace) {
+        debugPrint('❌ Failed to set up encryption for conversation: $e');
+        debugPrint('Stack trace: $stackTrace');
+        // Fallback: create conversation without encryption
+        await conversationRef.set({
+          'participantIds': participants,
+          'lastMessage': '',
+          'lastMessageTime': FieldValue.serverTimestamp(),
+          'unreadCounts': {participants[0]: 0, participants[1]: 0},
+          'participantNames': participantNames,
+          'participantPhotos': participantPhotos,
+        });
+      }
     } else {
+      // Conversation exists - retrieve encryption key
+      try {
+        final data = conversationDoc.data()!;
+        final encryptedKeys = data['encryptedKeys'] as Map<String, dynamic>?;
+
+        if (encryptedKeys != null && encryptedKeys.containsKey(currentUserId)) {
+          // Decrypt and store conversation key locally
+          final encryptedKeyForCurrentUser = encryptedKeys[currentUserId!] as String;
+          final conversationKey = await _encryptionService.decryptConversationKey(
+            encryptedKeyForCurrentUser,
+          );
+          await _encryptionService.storeConversationKey(conversationId, conversationKey);
+          debugPrint('✅ Conversation encryption key retrieved and stored');
+        } else {
+          debugPrint('⚠️ No encryption keys found for existing conversation');
+        }
+      } catch (e) {
+        debugPrint('⚠️ Failed to retrieve conversation encryption key: $e');
+      }
+
       // Update participant info if conversation exists but names/photos are missing
       final data = conversationDoc.data()!;
       final participantNames = Map<String, String>.from(
@@ -120,6 +200,25 @@ class ChatService {
 
     final batch = _firestore.batch();
 
+    // Try to encrypt message
+    String? encryptedContent;
+    String? iv;
+    String? signature;
+
+    try {
+      final encryptedMessage = await _encryptionService.encryptMessage(
+        content,
+        conversationId,
+      );
+      encryptedContent = encryptedMessage.encryptedContent;
+      iv = encryptedMessage.iv;
+      signature = encryptedMessage.signature;
+      debugPrint('✅ Message encrypted successfully');
+    } catch (e) {
+      debugPrint('⚠️ Failed to encrypt message: $e');
+      // Continue without encryption
+    }
+
     // Add message to messages collection
     final messageRef = _firestore.collection('messages').doc();
     final message = ChatMessage(
@@ -133,6 +232,9 @@ class ChatService {
           'Current User', // Gets actual name from UserProfile in notification
       messageType: messageType,
       metadata: metadata,
+      encryptedContent: encryptedContent,
+      iv: iv,
+      signature: signature,
     );
 
     batch.set(messageRef, message.toFirestore());
@@ -142,7 +244,7 @@ class ChatService {
         .collection('conversations')
         .doc(conversationId);
     batch.update(conversationRef, {
-      'lastMessage': content,
+      'lastMessage': encryptedContent != null ? '[Encrypted]' : content,
       'lastMessageTime': FieldValue.serverTimestamp(),
       'unreadCounts.$receiverId': FieldValue.increment(1),
     });
@@ -216,9 +318,34 @@ class ChatService {
         .limit(100)
         .snapshots()
         .asyncMap((snapshot) async {
-          final messages = snapshot.docs
-              .map((doc) => ChatMessage.fromFirestore(doc))
-              .toList();
+          final messages = <ChatMessage>[];
+
+          // Decrypt and process each message
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            String? decryptedContent;
+
+            // Try to decrypt if message is encrypted
+            if (data['encryptedContent'] != null) {
+              try {
+                final encryptedMessage = EncryptedMessage(
+                  encryptedContent: data['encryptedContent'] as String,
+                  iv: data['iv'] as String,
+                  signature: data['signature'] as String,
+                );
+
+                decryptedContent = await _encryptionService.decryptMessage(
+                  encryptedMessage,
+                  conversationId,
+                );
+              } catch (e) {
+                debugPrint('⚠️ Failed to decrypt message ${doc.id}: $e');
+                decryptedContent = '[Decryption Failed]';
+              }
+            }
+
+            messages.add(ChatMessage.fromFirestore(doc, decryptedContent));
+          }
 
           // Automatically mark messages as read when they're loaded (only for received messages)
           await _autoMarkNewMessagesAsRead(conversationId, messages);
@@ -240,9 +367,34 @@ class ChatService {
         .limit(100)
         .snapshots()
         .asyncMap((snapshot) async {
-          final messages = snapshot.docs
-              .map((doc) => ChatMessage.fromFirestore(doc))
-              .toList();
+          final messages = <ChatMessage>[];
+
+          // Decrypt and process each message
+          for (final doc in snapshot.docs) {
+            final data = doc.data();
+            String? decryptedContent;
+
+            // Try to decrypt if message is encrypted
+            if (data['encryptedContent'] != null) {
+              try {
+                final encryptedMessage = EncryptedMessage(
+                  encryptedContent: data['encryptedContent'] as String,
+                  iv: data['iv'] as String,
+                  signature: data['signature'] as String,
+                );
+
+                decryptedContent = await _encryptionService.decryptMessage(
+                  encryptedMessage,
+                  conversationId,
+                );
+              } catch (e) {
+                debugPrint('⚠️ Failed to decrypt message ${doc.id}: $e');
+                decryptedContent = '[Decryption Failed]';
+              }
+            }
+
+            messages.add(ChatMessage.fromFirestore(doc, decryptedContent));
+          }
 
           // Auto-mark received messages as read
           await _autoMarkNewMessagesAsRead(conversationId, messages);

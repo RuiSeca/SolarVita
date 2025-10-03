@@ -75,9 +75,20 @@
 	<!-- Background App Refresh and Notifications -->
 	<key>UIBackgroundModes</key>
 	<array>
+		<string>audio</string>
 		<string>background-processing</string>
 		<string>background-fetch</string>
 		<string>remote-notification</string>
+	</array>
+
+	<!-- Audio Session Configuration for video playback during calls -->
+	<key>UIRequiresPersistentWiFi</key>
+	<false/>
+	<key>AVAudioSessionCategory</key>
+	<string>AVAudioSessionCategoryPlayback</string>
+	<key>AVAudioSessionCategoryOptions</key>
+	<array>
+		<string>AVAudioSessionCategoryOptionMixWithOthers</string>
 	</array>
 	
 	<!-- Google Sign-In Configuration -->

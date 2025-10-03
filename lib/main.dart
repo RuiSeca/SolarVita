@@ -36,7 +36,7 @@ import 'screens/profile/settings/account/personal_info_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
 import 'widgets/common/bottom_nav_bar.dart';
 import 'widgets/common/fan_menu_fab.dart';
-import 'widgets/splash/video_splash_screen.dart';
+import 'widgets/splash/lottie_splash_screen.dart';
 import 'theme/app_theme.dart';
 import 'i18n/app_localizations.dart';
 import 'utils/translation_helper.dart';
@@ -307,9 +307,9 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
               debugPrint('🌍 Splash locale resolution: Falling back to English');
               return const Locale('en');
             },
-            home: VideoSplashScreen(
-              onVideoEnd: () {
-                debugPrint('🎬 Video ended - initStatus: ${initState.status}');
+            home: LottieSplashScreen(
+              onAnimationEnd: () {
+                debugPrint('🎬 Animation ended - initStatus: ${initState.status}');
                 // Only allow transition if initialization is complete
                 if (initState.status == InitializationStatus.completed) {
                   debugPrint('🎬 Completing splash screen');
@@ -318,7 +318,6 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
                   debugPrint('🎬 Waiting for initialization to complete...');
                 }
               },
-              duration: const Duration(seconds: 4), // Extended to ensure smooth init
             ),
           );
         },

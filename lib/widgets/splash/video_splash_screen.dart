@@ -47,16 +47,19 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
   Future<void> _initializeVideo() async {
     try {
       _controller = VideoPlayerController.asset('assets/videos/splash_screen.mp4');
-      
+
+      // Set volume to max to ensure video plays with sound
+      _controller.setVolume(1.0);
+
       await _controller.initialize();
-      
+
       if (mounted) {
         setState(() {
           _isVideoInitialized = true;
         });
-        
+
         _fadeController.forward();
-        
+
         _controller.addListener(() {
           if (_controller.value.position >= _controller.value.duration &&
               !_hasVideoEnded) {
@@ -64,17 +67,12 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
             _onVideoCompleted();
           }
         });
-        
+
+        // Play video regardless of device audio mode
         await _controller.play();
-        
-        if (widget.duration != null) {
-          Future.delayed(widget.duration!, () {
-            if (mounted && !_hasVideoEnded) {
-              _hasVideoEnded = true;
-              _onVideoCompleted();
-            }
-          });
-        }
+
+        // Remove duration override - let video play to completion
+        // Video will end naturally when position >= duration
       }
     } catch (e) {
       debugPrint('Error initializing splash video: $e');
@@ -127,7 +125,8 @@ class _VideoSplashScreenState extends State<VideoSplashScreen>
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
             ),
-          
+
+
           Positioned(
             bottom: 50,
             right: 20,

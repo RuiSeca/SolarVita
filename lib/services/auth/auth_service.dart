@@ -10,6 +10,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:crypto/crypto.dart';
 import 'package:logging/logging.dart';
+import '../chat/chat_service.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -18,6 +19,7 @@ class AuthService {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Logger _logger = Logger('AuthService');
+  final ChatService _chatService = ChatService();
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email', 'profile'],
     signInOption: SignInOption.standard,
@@ -51,6 +53,14 @@ class AuthService {
         await result.user!.reload();
       }
 
+      // Initialize chat encryption for new user
+      try {
+        await _chatService.initializeEncryption();
+        _logger.info('✅ Chat encryption initialized for new user');
+      } catch (e) {
+        _logger.warning('⚠️ Failed to initialize chat encryption: $e');
+      }
+
       return result;
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
@@ -75,6 +85,14 @@ class AuthService {
       final result = await _auth
           .signInWithEmailAndPassword(email: email, password: password)
           .timeout(_signInTimeout);
+
+      // Initialize chat encryption for returning user (if not already done)
+      try {
+        await _chatService.initializeEncryption();
+        _logger.info('✅ Chat encryption initialized');
+      } catch (e) {
+        _logger.warning('⚠️ Failed to initialize chat encryption: $e');
+      }
 
       return result;
     } on FirebaseAuthException catch (e) {
@@ -123,6 +141,14 @@ class AuthService {
             onTimeout: () => throw TimeoutException(
                 'Firebase credential sign in timed out', _signInTimeout),
           );
+
+      // Initialize chat encryption
+      try {
+        await _chatService.initializeEncryption();
+        _logger.info('✅ Chat encryption initialized for Google user');
+      } catch (e) {
+        _logger.warning('⚠️ Failed to initialize chat encryption: $e');
+      }
 
       return result;
     } on FirebaseAuthException catch (e) {
@@ -201,14 +227,22 @@ class AuthService {
           );
 
       // Update display name if provided and not already set
-      if (result.user != null && 
-          result.user!.displayName == null && 
+      if (result.user != null &&
+          result.user!.displayName == null &&
           appleCredential.givenName != null) {
         final displayName = '${appleCredential.givenName ?? ''} ${appleCredential.familyName ?? ''}'.trim();
         if (displayName.isNotEmpty) {
           await result.user!.updateDisplayName(displayName);
           await result.user!.reload();
         }
+      }
+
+      // Initialize chat encryption
+      try {
+        await _chatService.initializeEncryption();
+        _logger.info('✅ Chat encryption initialized for Apple user');
+      } catch (e) {
+        _logger.warning('⚠️ Failed to initialize chat encryption: $e');
       }
 
       return result;

@@ -31,7 +31,7 @@ class ChatMessage {
   final String senderId;
   final String receiverId;
   final String conversationId;
-  final String content;
+  final String content; // Decrypted content (local only, not sent to Firestore)
   final DateTime timestamp;
   final bool isRead;
   final MessageType messageType;
@@ -44,6 +44,11 @@ class ChatMessage {
   final String senderName;
   final String? senderAvatarUrl;
   final Map<String, dynamic>? metadata; // For activity shares, image data, etc.
+
+  // Encryption fields (stored in Firestore)
+  final String? encryptedContent; // Base64 encrypted content
+  final String? iv; // Initialization vector for AES
+  final String? signature; // HMAC signature for integrity
 
   const ChatMessage({
     required this.messageId,
@@ -63,18 +68,22 @@ class ChatMessage {
     this.readBy = const [],
     this.senderAvatarUrl,
     this.metadata,
+    this.encryptedContent,
+    this.iv,
+    this.signature,
   });
 
-  // Create from Firestore document
-  factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
+  // Create from Firestore document (with encrypted content)
+  factory ChatMessage.fromFirestore(DocumentSnapshot doc, [String? decryptedContent]) {
     final data = doc.data() as Map<String, dynamic>;
-    
+
     return ChatMessage(
       messageId: doc.id,
       senderId: data['senderId'] ?? '',
       receiverId: data['receiverId'] ?? '',
       conversationId: data['conversationId'] ?? '',
-      content: data['content'] ?? '',
+      // Use decrypted content if provided, otherwise use encrypted placeholder
+      content: decryptedContent ?? data['content'] ?? '[Encrypted]',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       senderName: data['senderName'] ?? '',
       isRead: data['isRead'] ?? false,
@@ -93,6 +102,10 @@ class ChatMessage {
       readBy: List<String>.from(data['readBy'] ?? []),
       senderAvatarUrl: data['senderAvatarUrl'],
       metadata: data['metadata'],
+      // Encryption fields
+      encryptedContent: data['encryptedContent'],
+      iv: data['iv'],
+      signature: data['signature'],
     );
   }
 
@@ -104,7 +117,7 @@ class ChatMessage {
       receiverId: data['receiverId'] ?? '',
       conversationId: data['conversationId'] ?? '',
       content: data['content'] ?? '',
-      timestamp: data['timestamp'] is String 
+      timestamp: data['timestamp'] is String
           ? DateTime.parse(data['timestamp'])
           : (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
       senderName: data['senderName'] ?? '',
@@ -117,8 +130,8 @@ class ChatMessage {
         (s) => s.name == data['status'],
         orElse: () => MessageStatus.sent,
       ),
-      editedAt: data['editedAt'] != null 
-          ? (data['editedAt'] is String 
+      editedAt: data['editedAt'] != null
+          ? (data['editedAt'] is String
               ? DateTime.parse(data['editedAt'])
               : (data['editedAt'] as Timestamp?)?.toDate())
           : null,
@@ -128,6 +141,9 @@ class ChatMessage {
       readBy: List<String>.from(data['readBy'] ?? []),
       senderAvatarUrl: data['senderAvatarUrl'],
       metadata: data['metadata'],
+      encryptedContent: data['encryptedContent'],
+      iv: data['iv'],
+      signature: data['signature'],
     );
   }
 
@@ -137,7 +153,12 @@ class ChatMessage {
       'senderId': senderId,
       'receiverId': receiverId,
       'conversationId': conversationId,
-      'content': content,
+      // Store encrypted content if available, otherwise plain content (for backward compatibility)
+      if (encryptedContent != null) 'encryptedContent': encryptedContent,
+      if (iv != null) 'iv': iv,
+      if (signature != null) 'signature': signature,
+      // Keep content field for backward compatibility with unencrypted messages
+      if (encryptedContent == null) 'content': content,
       'timestamp': Timestamp.fromDate(timestamp),
       'senderName': senderName,
       'isRead': isRead,
@@ -173,6 +194,9 @@ class ChatMessage {
       'readBy': readBy,
       'senderAvatarUrl': senderAvatarUrl,
       'metadata': metadata,
+      'encryptedContent': encryptedContent,
+      'iv': iv,
+      'signature': signature,
     };
   }
 
@@ -195,6 +219,9 @@ class ChatMessage {
     List<String>? readBy,
     String? senderAvatarUrl,
     Map<String, dynamic>? metadata,
+    String? encryptedContent,
+    String? iv,
+    String? signature,
   }) {
     return ChatMessage(
       messageId: messageId ?? this.messageId,
@@ -214,6 +241,9 @@ class ChatMessage {
       readBy: readBy ?? this.readBy,
       senderAvatarUrl: senderAvatarUrl ?? this.senderAvatarUrl,
       metadata: metadata ?? this.metadata,
+      encryptedContent: encryptedContent ?? this.encryptedContent,
+      iv: iv ?? this.iv,
+      signature: signature ?? this.signature,
     );
   }
 
