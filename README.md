@@ -797,7 +797,7 @@ Full-Stack Mobile Developer | Flutter Specialist
 - 📧 **Email**: ruiviegas.seca@gmail.com
 - 💼 **LinkedIn**: [linkedin.com/in/rui-seca](https://linkedin.com/in/rui-seca/)
 - 🌐 **Portfolio**: [portfolio-show-case.netlify.app](https://portfolio-show-case.netlify.app/)
-- 💻 **GitHub**: [github.com/yourusername](https://github.com/RuiSeca)
+- 💻 **GitHub**: [https://github.com/RuiSeca](https://github.com/RuiSeca)
 
 ---
 
