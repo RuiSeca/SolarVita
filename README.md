@@ -11,6 +11,7 @@
 SolarVita is a production-grade Flutter application that uniquely combines **personal fitness tracking** with **environmental sustainability**. Built with Flutter 3.6+ and a comprehensive Firebase backend, the app motivates users to maintain healthy lifestyles while being mindful of their carbon footprint and environmental impact.
 
 ### Core Philosophy
+
 - **Fitness + Sustainability**: Track workouts, nutrition, and eco-friendly activities in one platform
 - **AI-Powered Coaching**: Personalized guidance using Google Gemini 1.5 for workouts, meals, and eco tips
 - **Community-Driven**: Social features including tribes, challenges, and real-time chat for motivation
@@ -22,6 +23,7 @@ SolarVita is a production-grade Flutter application that uniquely combines **per
 ## ✨ Key Features
 
 ### 🤖 AI-Powered Personal Coaching
+
 - **Google Gemini 1.5 Integration** for intelligent, context-aware responses
 - **AI Avatar Store** with customizable personalities and coin-based economy
 - Personalized workout recommendations based on fitness level and goals
@@ -32,6 +34,7 @@ SolarVita is a production-grade Flutter application that uniquely combines **per
 - Response caching for optimized performance
 
 ### 🏋️ Comprehensive Fitness Tracking
+
 - **50+ exercise routines** with animated GIF demonstrations
 - Real-time workout logging with sets, reps, weights, and duration
 - Personal records (PRs) tracking and progress analytics
@@ -41,6 +44,7 @@ SolarVita is a production-grade Flutter application that uniquely combines **per
 - Workout history with detailed metrics and charts
 
 ### 🥗 Advanced Nutrition Management
+
 - **Nutritionix API integration** for comprehensive food database (680k+ foods)
 - AI-powered food recognition via camera (Google Vision)
 - Weekly meal planning (breakfast, lunch, dinner, snacks)
@@ -50,6 +54,7 @@ SolarVita is a production-grade Flutter application that uniquely combines **per
 - Barcode scanning for packaged foods
 
 ### 🌍 Sustainability & Environmental Impact
+
 - **Carbon footprint tracking** with CO2 savings metrics
 - Eco-friendly activity logging (cycling, carpooling, public transport)
 - Sustainability score (0-100 rating) based on user actions
@@ -66,16 +71,20 @@ SolarVita is a production-grade Flutter application that uniquely combines **per
 ### 👥 Social & Community Features
 
 #### Bidirectional Supporter System
+
 SolarVita features a sophisticated **bidirectional supporter system**:
+
 ```
 🤝 Supporters (Mutual Support) ↔ 👤 Supporting (One-way Support)
 ```
+
 - **Mutual Supporters**: Users who have accepted support relationships
 - **Supporting**: One-way support relationships (like Twitter/Instagram following)
 - Independent control for each user
 - Real-time updates when relationships change
 
 #### Real-Time Chat System
+
 - **Private messaging** between supporters with Firebase Realtime Database
 - Instant message delivery and read receipts
 - Conversation history and search
@@ -84,6 +93,7 @@ SolarVita features a sophisticated **bidirectional supporter system**:
 - Privacy controls and blocking capabilities
 
 #### Enhanced Supporter Profiles
+
 - Comprehensive profile views with privacy controls
 - **Granular data sharing**:
   - Weekly progress summaries
@@ -94,6 +104,7 @@ SolarVita features a sophisticated **bidirectional supporter system**:
 - Progress comparison features
 
 #### Tribes Community System
+
 - **Interest-based community groups** for specialized discussions
 - Tribe creation and moderation tools
 - Tribe-specific posts and content
@@ -102,6 +113,7 @@ SolarVita features a sophisticated **bidirectional supporter system**:
 - Categories: Fitness focus, sustainability goals, dietary preferences
 
 #### Community Challenges
+
 - **Public participation** for motivation and competition
 - Progress tracking with real-time leaderboards
 - Challenge types: Fitness goals, sustainability targets
@@ -109,6 +121,7 @@ SolarVita features a sophisticated **bidirectional supporter system**:
 - Participant counts and rankings
 
 ### 🎨 User Experience Excellence
+
 - **Lottie-based animated splash screen** that plays even during phone calls
 - **Dynamic theming**: Light and dark mode support with Material Design 3
 - **11-language localization**: EN, ES, PT, FR, IT, DE, ZH, JA, RU, HI, KO
@@ -122,6 +135,7 @@ SolarVita features a sophisticated **bidirectional supporter system**:
 ## 🏗️ Technical Architecture
 
 ### Tech Stack
+
 ```
 Frontend:
 ├── Flutter 3.6+ (Dart SDK 3.0+)
@@ -154,6 +168,7 @@ Security & Payments:
 ```
 
 ### State Management Architecture
+
 - **Provider**: Global state for authentication, user profiles, themes, and language
 - **Riverpod**: Complex state management for:
   - Exercise tracking and logging
@@ -165,6 +180,7 @@ Security & Payments:
 - **Offline Cache Manager**: User data caching for account switching and offline support
 
 ### Performance Optimizations
+
 - **Response caching** for AI interactions to reduce API calls
 - **Lazy loading** for exercise library and media content
 - **Image optimization** with `cached_network_image`
@@ -175,6 +191,7 @@ Security & Payments:
 - **Background sync** for automatic data synchronization
 
 ### Project Structure
+
 ```
 lib/
 ├── main.dart                 # App entry point with dependency injection
@@ -244,6 +261,7 @@ lib/
 ## 🔒 Privacy & Security Features
 
 ### Privacy-Tiered Social System
+
 ```
 🔒 Supporters Only (Default) → 🌍 Community → 🌐 Public
 ```
@@ -251,6 +269,7 @@ lib/
 ### Granular Privacy Controls
 
 #### Social Privacy
+
 - **Default post visibility**: Supporters-only (most private)
 - **Profile discovery settings**: Show/hide in search
 - **Selective data sharing toggles**:
@@ -261,6 +280,7 @@ lib/
   - Challenge participation
 
 #### App Privacy Settings
+
 - **Data collection controls**: Usage analytics, crash reporting
 - **Location tracking**: Optional for location-based features
 - **Marketing preferences**: Email communications
@@ -268,6 +288,7 @@ lib/
 - **GDPR compliance**: Data export and deletion rights
 
 ### Security Features
+
 - Firebase Authentication with multiple OAuth providers
 - Secure data storage with Firestore security rules
 - Chat message encryption with `encrypt` package
@@ -281,6 +302,7 @@ lib/
 ## 📱 Main Navigation
 
 ### 5-Tab Bottom Navigation
+
 ```
 🏠 Dashboard  → Personal fitness hub and community feed
 🔍 Search     → Exercise discovery with filtering
@@ -292,6 +314,7 @@ lib/
 ### Feature Highlights by Tab
 
 #### 🏠 Dashboard
+
 - Profile header with quick actions
 - Support requests notification
 - Personal statistics (ModernStatsRow)
@@ -302,6 +325,7 @@ lib/
 - Active challenges with leaderboards
 
 #### 🔍 Search
+
 - Exercise database with muscle group filtering
 - Activity categories: Strength, Cardio, HIIT, Yoga, Calisthenics
 - Equipment filtering: Bodyweight, Dumbbells, Barbells, etc.
@@ -309,19 +333,23 @@ lib/
 - Animated GIF demonstrations
 
 #### 💚 Health
+
 **Nutrition Tracking:**
+
 - Weekly meal planning interface
 - AI food recognition
 - Nutritionix database integration
 - Calorie and macro analytics
 
 **Fitness Tracking:**
+
 - Exercise logging with detailed metrics
 - Personal records (PRs) tracking
 - Progress charts and analytics
 - Workout history
 
 #### 🤖 Solar AI
+
 - Google Gemini 1.5 chat interface
 - AI Avatar Store with customization
 - Coin-based economy system
@@ -330,6 +358,7 @@ lib/
 - Personalized responses using profile data
 
 #### 👤 Profile
+
 - Personal achievements showcase
 - Quick actions: Add Supporter, View Lists
 - Comprehensive settings:
@@ -448,6 +477,7 @@ user_avatars/                   # Owned avatars per user
 ## 🎯 Core User Flows
 
 ### New User Onboarding
+
 1. **Animated splash screen** (Lottie animation)
 2. Sign up with Google/Facebook/Email/Apple
 3. Audio preference selection
@@ -460,6 +490,7 @@ user_avatars/                   # Owned avatars per user
 10. Friend discovery and tribe joining
 
 ### Daily Engagement Loop
+
 1. Launch app → Animated splash screen
 2. Dashboard: Check supporter activities and challenges
 3. Log meals with AI food recognition
@@ -470,6 +501,7 @@ user_avatars/                   # Owned avatars per user
 8. Share achievements with supporters
 
 ### Sustainability Integration
+
 1. Track eco-friendly activities (cycling, public transport)
 2. View CO2 savings and sustainability score
 3. Receive eco tips from AI assistant
@@ -478,6 +510,7 @@ user_avatars/                   # Owned avatars per user
 6. Unlock sustainability achievements
 
 ### Social Interaction Flow
+
 1. Discover users through search or suggestions
 2. Send support requests
 3. View enhanced supporter profiles with shared data
@@ -491,6 +524,7 @@ user_avatars/                   # Owned avatars per user
 ## 🛠️ Development Setup
 
 ### Prerequisites
+
 ```bash
 Flutter SDK 3.6.0 or higher
 Dart SDK 3.0.0 or higher
@@ -500,6 +534,7 @@ Git
 ```
 
 ### Installation
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/solarvita.git
@@ -523,7 +558,9 @@ flutter build ios --release        # iOS (requires Apple Developer account)
 ```
 
 ### Environment Variables
+
 Create `.env` file in project root:
+
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 NUTRITIONIX_APP_ID=your_nutritionix_app_id
@@ -531,7 +568,9 @@ NUTRITIONIX_APP_KEY=your_nutritionix_app_key
 ```
 
 ### App Icons Configuration
+
 Icons are automatically generated using `flutter_launcher_icons`:
+
 ```yaml
 # pubspec.yaml
 flutter_launcher_icons:
@@ -545,6 +584,7 @@ flutter_launcher_icons:
 Run `dart run flutter_launcher_icons` to generate all icon sizes.
 
 ### Splash Screen
+
 - **Native splash**: Dark background (#161f25) with logo
 - **Lottie animated splash**: Plays on app launch (works during phone calls)
 - Location: `assets/videos/animation.json`
@@ -554,6 +594,7 @@ Run `dart run flutter_launcher_icons` to generate all icon sizes.
 ## 🌍 Internationalization
 
 ### Supported Languages (11 Total)
+
 - 🇬🇧 **English (EN)** - Base language
 - 🇪🇸 **Spanish (ES)**
 - 🇵🇹 **Portuguese (PT)**
@@ -567,6 +608,7 @@ Run `dart run flutter_launcher_icons` to generate all icon sizes.
 - 🇰🇷 **Korean (KO)**
 
 ### Translation Structure
+
 ```
 assets/i18n/
 ├── en/ (English - base language)
@@ -583,6 +625,7 @@ assets/i18n/
 ```
 
 Each language folder contains categorized JSON files:
+
 - `onboarding.json` - Onboarding flow
 - `dashboard.json` - Home screen
 - `health.json` - Nutrition & fitness
@@ -591,6 +634,7 @@ Each language folder contains categorized JSON files:
 - `common.json` - Shared strings
 
 ### Firebase Translation Service
+
 - Dynamic translations stored in Firestore
 - Fallback to local JSON files
 - Real-time translation updates
@@ -603,6 +647,7 @@ Each language folder contains categorized JSON files:
 This project showcases expertise in:
 
 ### Mobile Development
+
 - **Cross-platform Flutter development** with complex UI/UX
 - **Advanced state management** (Provider + Riverpod patterns)
 - **Firebase full-stack integration** with 8+ services
@@ -611,6 +656,7 @@ This project showcases expertise in:
 - **Platform-specific features** (iOS/Android native integration)
 
 ### API Integration
+
 - **RESTful API consumption** with error handling
 - **Multi-API orchestration** (Gemini, Nutritionix, Vision)
 - **Rate limiting** and caching strategies
@@ -619,6 +665,7 @@ This project showcases expertise in:
 - **Payment processing** (Google Pay, Apple Pay, In-App Purchases)
 
 ### AI & Machine Learning
+
 - **Large Language Model integration** (Google Gemini 1.5)
 - **Computer Vision API usage** (food recognition)
 - **Context-aware AI responses** using user profile data
@@ -627,6 +674,7 @@ This project showcases expertise in:
 - **Personalization algorithms**
 
 ### Software Engineering
+
 - **Scalable architecture design** with clean separation of concerns
 - **SOLID principles** and design patterns
 - **Comprehensive error handling** and logging
@@ -636,6 +684,7 @@ This project showcases expertise in:
 - **Version control** with Git
 
 ### Backend & Database
+
 - **NoSQL database design** (Firestore schema architecture)
 - **Real-time database** implementation (Firebase Realtime DB)
 - **Cloud Functions** for serverless backend logic
@@ -644,6 +693,7 @@ This project showcases expertise in:
 - **Query optimization** and indexing
 
 ### User Experience
+
 - **11-language internationalization** with cultural adaptation
 - **Dynamic theming** (light/dark modes with Material Design 3)
 - **Responsive design** across screen sizes
@@ -653,6 +703,7 @@ This project showcases expertise in:
 - **Intuitive navigation** patterns
 
 ### DevOps & Tools
+
 - **CI/CD pipelines** preparation
 - **Environment configuration** management
 - **Asset optimization** (images, animations)
@@ -665,6 +716,7 @@ This project showcases expertise in:
 ## 🔄 Future Roadmap
 
 ### Planned Features (Q2-Q4 2025)
+
 - ✅ **Wearable integration**: Apple Watch, Fitbit, Samsung Health
 - ✅ **Video workouts**: Guided exercise sessions with instructors
 - ✅ **Advanced analytics**: Detailed progress tracking dashboard
@@ -678,6 +730,7 @@ This project showcases expertise in:
 - ✅ **Social stories**: Instagram-style fitness stories (24h expiry)
 
 ### Technical Improvements
+
 - ✅ **Complete offline support**: Expanded offline capabilities for all features
 - ⚙️ **Advanced push notifications**: Intelligent workout and meal reminders (partially implemented)
 - ✅ **Background sync**: Automatic data synchronization improvements
@@ -693,6 +746,7 @@ This project showcases expertise in:
 ## 🏆 Project Achievements
 
 ### Technical Milestones
+
 - ✅ **650+ commits** with clean Git history
 - ✅ **50,000+ lines** of production Dart code
 - ✅ **11 languages** fully localized
@@ -705,6 +759,7 @@ This project showcases expertise in:
 - ✅ **Comprehensive settings** with 50+ configuration options
 
 ### Features Implemented
+
 - ✅ Multi-platform authentication (5 providers)
 - ✅ AI-powered coaching with context awareness
 - ✅ Food recognition and nutrition tracking
@@ -727,6 +782,7 @@ This project is developed as a portfolio piece demonstrating modern mobile app d
 ## 🤝 Contributing
 
 This is a personal portfolio project. However, feedback and suggestions are welcome via:
+
 - GitHub Issues for bug reports
 - Pull Requests for improvements (subject to review)
 - Email for collaboration inquiries
@@ -741,13 +797,14 @@ Full-Stack Mobile Developer | Flutter Specialist
 - 📧 **Email**: ruiviegas.seca@gmail.com
 - 💼 **LinkedIn**: [linkedin.com/in/rui-seca](https://linkedin.com/in/rui-seca/)
 - 🌐 **Portfolio**: [portfolio-show-case.netlify.app](https://portfolio-show-case.netlify.app/)
-- 💻 **GitHub**: [github.com/yourusername](https://github.com/yourusername)
+- 💻 **GitHub**: [github.com/yourusername](https://github.com/RuiSeca)
 
 ---
 
 ## 🙏 Acknowledgments
 
 ### Technologies & Services
+
 - **Flutter Team** - Amazing cross-platform framework
 - **Firebase** - Comprehensive backend platform
 - **Google AI** - Gemini API for intelligent coaching
@@ -755,6 +812,7 @@ Full-Stack Mobile Developer | Flutter Specialist
 - **LottieFiles** - Beautiful animations
 
 ### Inspiration
+
 This app was built to demonstrate that technology can empower individuals to improve both personal health and environmental sustainability simultaneously.
 
 ---
