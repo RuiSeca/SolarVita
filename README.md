@@ -810,6 +810,7 @@ Full-Stack Mobile Developer | Flutter Specialist
 - **Google AI** - Gemini API for intelligent coaching
 - **Nutritionix** - Extensive nutrition database
 - **LottieFiles** - Beautiful animations
+- **RiveFiles** - Beautiful motion animations for avatars
 
 ### Inspiration
 
