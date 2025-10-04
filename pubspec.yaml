@@ -224,6 +224,9 @@ flutter:
     - assets/images/eco_tips/energy/
     - assets/images/eco_tips/water/
     - assets/images/eco_tips/transport/
+    - assets/images/eco_tips/food/
+    - assets/images/eco_tips/fitness/
+    - assets/images/eco_tips/awareness/
     - assets/images/eco_tips/sustainable_products/
 
     # Health Section
