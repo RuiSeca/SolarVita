@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://cloudconvert.com/
+HostUrl=https://eu-central.storage.cloudconvert.com/tasks/123993c7-baf4-4505-a93c-3b3e737b1c18/deforestation.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20251004%2Ffra%2Fs3%2Faws4_request&X-Amz-Date=20251004T002057Z&X-Amz-Expires=86400&X-Amz-Signature=aea825023851a192cd7d5dbcdacf09ef90507b0dcfdacf8c0155ea9e60dcfd35&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22deforestation.webp%22&response-content-type=image%2Fwebp&x-id=GetObject

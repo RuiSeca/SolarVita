@@ -127,5 +127,22 @@
     "activity_stats": "Estadísticas de Actividad",
     "posts": "Publicaciones",
     "interest_already_exists": "El interés ya existe",
-    "tap_to_create_routine": "Toca para crear tu primera rutina"
+    "tap_to_create_routine": "Toca para crear tu primera rutina",
+    "todays_meals": "Comidas de Hoy",
+    "no_meals_planned_today": "No hay comidas planificadas para hoy",
+    "tap_to_add_meals": "Toca para planificar tus comidas",
+    "breakfast": "Desayuno",
+    "lunch": "Almuerzo",
+    "dinner": "Cena",
+    "snacks": "Snacks",
+    "Active User": "Usuario Activo",
+    "eco_impact": "Centro de Impacto Ecológico",
+    "future_earth_today": "Construyendo la Tierra del mañana, hoy",
+    "bottles_saved": "Botellas Ahorradas",
+    "carbon_saved": "Carbono Ahorrado",
+    "eco_streak": "Racha Ecológica",
+    "days": "días",
+    "pts": "pts",
+    "loading": "Cargando",
+    "error_loading_eco_data": "Error al cargar datos ecológicos"
 }

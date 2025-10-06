@@ -74,8 +74,8 @@ void _setupNotificationNavigation(
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Show video splash immediately while everything else loads in background
-  runApp(ProviderScope(child: const SolarVitaApp()));
+  // Start Flutter rendering immediately to show Lottie splash ASAP
+  runApp(const ProviderScope(child: SolarVitaApp()));
 
   // Initialize logging first
   Logger.root.level = Level.ALL;
@@ -327,7 +327,7 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           home: const Scaffold(
-            backgroundColor: Colors.black, // Match splash screen
+            backgroundColor: Color(0xFF0d1117), // Match splash screen
             body: SizedBox.shrink(), // Invisible loading
           ),
         ),
@@ -399,7 +399,7 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         home: const Scaffold(
-          backgroundColor: Colors.black, // Match splash screen
+          backgroundColor: Color(0xFF0d1117), // Match splash screen
           body: SizedBox.shrink(), // Invisible loading
         ),
       ),
@@ -409,7 +409,7 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         home: const Scaffold(
-          backgroundColor: Colors.black, // Match splash screen
+          backgroundColor: Color(0xFF0d1117), // Match splash screen
           body: SizedBox.shrink(), // Invisible error state
         ),
       ),

@@ -14,110 +14,40 @@ class LottieSplashScreen extends StatefulWidget {
   State<LottieSplashScreen> createState() => _LottieSplashScreenState();
 }
 
-class _LottieSplashScreenState extends State<LottieSplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+class _LottieSplashScreenState extends State<LottieSplashScreen> {
   bool _hasAnimationEnded = false;
-  bool _isLottieLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeIn,
-    ));
-  }
 
   void _onAnimationComplete() {
     if (!_hasAnimationEnded && mounted) {
       _hasAnimationEnded = true;
-      _fadeController.reverse().then((_) {
-        if (mounted && widget.onAnimationEnd != null) {
-          widget.onAnimationEnd!();
-        }
-      });
+      if (widget.onAnimationEnd != null) {
+        widget.onAnimationEnd!();
+      }
     }
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF161f25), // Your splash background color
+      backgroundColor: const Color(0xFF0d1117), // Your splash background color
       body: Stack(
         children: [
-          // Show logo immediately while Lottie loads
-          if (!_isLottieLoaded)
-            Center(
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 150,
-                height: 150,
-              ),
+          // Lottie animation - always visible, starts immediately
+          Center(
+            child: Lottie.asset(
+              'assets/videos/animation.json',
+              fit: BoxFit.contain, // Fit entire animation without cropping
+              repeat: false, // Play once
+              onLoaded: (composition) {
+                if (mounted) {
+                  // Schedule completion callback after animation duration
+                  Future.delayed(composition.duration, () {
+                    _onAnimationComplete();
+                  });
+                }
+              },
             ),
-
-          // Lottie animation - fit to screen without cropping
-          if (_isLottieLoaded)
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Center(
-                child: Lottie.asset(
-                  'assets/videos/animation.json',
-                  fit: BoxFit.contain, // Fit entire animation without cropping
-                  repeat: false, // Play once
-                  onLoaded: (composition) {
-                    if (mounted) {
-                      setState(() {
-                        _isLottieLoaded = true;
-                      });
-                      _fadeController.forward();
-
-                      // Schedule completion callback after animation duration
-                      Future.delayed(composition.duration, () {
-                        _onAnimationComplete();
-                      });
-                    }
-                  },
-                ),
-              ),
-            )
-          else
-            // Invisible Lottie to start loading immediately
-            Opacity(
-              opacity: 0.0,
-              child: Lottie.asset(
-                'assets/videos/animation.json',
-                onLoaded: (composition) {
-                  if (mounted) {
-                    setState(() {
-                      _isLottieLoaded = true;
-                    });
-                    _fadeController.forward();
-
-                    // Schedule completion callback after animation duration
-                    Future.delayed(composition.duration, () {
-                      _onAnimationComplete();
-                    });
-                  }
-                },
-              ),
-            ),
+          ),
 
           // Skip button
           Positioned(

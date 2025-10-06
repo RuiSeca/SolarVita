@@ -29,11 +29,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
   String _quickSectionTitle = 'Quick Exercise Routines';
   bool _isLoadingImages = true;
 
+  // Pulse color integration for categories
+  Color _currentPulseColor = const Color(0xFF4CAF50);
+  late AnimationController _pulseReflectionController;
+
   @override
   void initState() {
     super.initState();
     _initializeHealthSystem();
     _loadPersonalizedContent();
+    _setupPulseColorListener();
+
+    // Animation controller for pulse reflection - sync with breathing pulse (4 seconds)
+    _pulseReflectionController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulseReflectionController.dispose();
+    try {
+      PulseColorManager.instance.removeListener(_onPulseColorChanged);
+    } catch (e) {
+      debugPrint('Error removing pulse color listener: $e');
+    }
+    super.dispose();
+  }
+
+  void _setupPulseColorListener() {
+    try {
+      final pulseManager = PulseColorManager.instance;
+      pulseManager.addListener(_onPulseColorChanged);
+      _currentPulseColor = pulseManager.currentColor;
+    } catch (e) {
+      debugPrint('Failed to setup pulse color listener: $e');
+      _currentPulseColor = const Color(0xFF4CAF50);
+    }
+  }
+
+  void _onPulseColorChanged() {
+    try {
+      final newColor = PulseColorManager.instance.currentColor;
+      if (mounted && newColor != _currentPulseColor) {
+        setState(() {
+          _currentPulseColor = newColor;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error updating pulse color: $e');
+    }
   }
 
   Future<void> _initializeHealthSystem() async {
@@ -444,19 +490,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
                     _buildCategoryIcon(
                       Icons.fitness_center,
                       tr(context, 'gym'),
+                      0, // Position index for wave effect
                     ),
                     _buildCategoryIcon(
                       Icons.directions_run,
                       tr(context, 'hiit'),
+                      1,
                     ),
-                    _buildCategoryIcon(Icons.forest, tr(context, 'mindful')),
+                    _buildCategoryIcon(
+                      Icons.forest,
+                      tr(context, 'mindful'),
+                      2, // Center - maximum reflection
+                    ),
                     _buildCategoryIcon(
                       Icons.sports_volleyball,
                       tr(context, 'toned'),
+                      3,
                     ),
                     _buildCategoryIcon(
                       Icons.local_drink_outlined,
                       tr(context, 'supplements'),
+                      4,
                     ),
                   ],
                 ),
@@ -760,17 +814,135 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> with TickerPr
     );
   }
 
-  Widget _buildCategoryIcon(IconData icon, String label) {
+  Widget _buildCategoryIcon(IconData icon, String label, int positionIndex) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+    final glassBase = isDarkMode ? Colors.white : Colors.black;
+    final iconColor = isDarkMode ? Colors.white : Colors.black;
+    final shadowColor = isDarkMode ? Colors.black : Colors.grey.shade400;
+
     return Column(
       children: [
-        Container(
-          width: 48,
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.grey[900],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: Colors.white, size: 24),
+        AnimatedBuilder(
+          animation: _pulseReflectionController,
+          builder: (context, child) {
+            final animValue = _pulseReflectionController.value;
+
+            // Calculate distance from center (index 2)
+            final distanceFromCenter = (positionIndex - 2).abs();
+
+            // Match the breathing pulse pattern - normal (same as pulse)
+            // Reflection appears on INHALE (pulse expands), disappears on EXHALE
+            double breathingValue;
+            if (animValue <= 0.4) {
+              // Inhale - reflection appears
+              breathingValue = Curves.easeInOut.transform(animValue / 0.4);
+            } else if (animValue <= 0.6) {
+              // Hold - maximum reflection
+              breathingValue = 1.0;
+            } else {
+              // Exhale - reflection disappears
+              double exhaleProgress = (animValue - 0.6) / 0.4;
+              breathingValue = 1.0 - Curves.easeInOut.transform(exhaleProgress);
+            }
+
+            // Intensity based on distance from center - stronger falloff
+            // Center (index 2, distance 0) = 1.0 (100%)
+            // Adjacent (index 1 or 3, distance 1) = 0.5 (50%)
+            // Edges (index 0 or 4, distance 2) = 0.2 (20%)
+            final intensityMultiplier = distanceFromCenter == 0
+                ? 1.0
+                : distanceFromCenter == 1
+                    ? 0.5
+                    : 0.2;
+
+            // Final reflection intensity with breathing wave effect
+            final reflectionIntensity = breathingValue * intensityMultiplier;
+
+            return Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
+                    glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
+                    blurRadius: 20,
+                    offset: Offset(0, isDarkMode ? 6 : 8),
+                  ),
+                  if (isDarkMode)
+                    BoxShadow(
+                      color: glassBase.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, -3),
+                    ),
+                  // Pulse color reflection glow - very subtle, only on exhale
+                  BoxShadow(
+                    color: _currentPulseColor.withValues(
+                      alpha: (reflectionIntensity * 0.08) * (isDarkMode ? 1.0 : 0.5),
+                    ),
+                    blurRadius: 8 + (reflectionIntensity * 6),
+                    offset: const Offset(0, 3),
+                    spreadRadius: -3,
+                  ),
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Pulse reflection shimmer overlay - subtle hint from bottom on exhale
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 24, // Only affect bottom quarter of icon
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(12),
+                        bottomRight: Radius.circular(12),
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              // Very subtle reflection at bottom edge only
+                              _currentPulseColor.withValues(
+                                alpha: (reflectionIntensity * 0.12) * (isDarkMode ? 1.0 : 0.5),
+                              ),
+                              // Quick fade to transparent
+                              Colors.transparent,
+                            ],
+                            stops: const [0.0, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Icon
+                  Center(
+                    child: Icon(
+                      icon,
+                      color: iconColor.withValues(alpha: 0.9),
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
         const SizedBox(height: 8),
         Text(

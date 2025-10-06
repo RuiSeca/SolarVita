@@ -234,24 +234,28 @@ class ModernProfileHeader extends ConsumerWidget {
                                     size: 16,
                                   ),
                                   const SizedBox(width: 4),
-                                  Consumer(
-                                    builder: (context, ref, child) {
-                                      final progressAsync = ref.watch(userProgressNotifierProvider);
-                                      return Text(
-                                        progressAsync.when(
-                                          data: (progress) => '${tr(context, 'level_number').replaceAll('{level}', progress.currentLevel.toString())} ${progress.levelTitle(context)}',
-                                          loading: () => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Loading...',
-                                          error: (_, __) => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Error',
-                                        ),
-                                        style: TextStyle(
-                                          color: AppTheme.textColor(
-                                            context,
-                                          ).withValues(alpha: 0.7),
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      );
-                                    },
+                                  Flexible(
+                                    child: Consumer(
+                                      builder: (context, ref, child) {
+                                        final progressAsync = ref.watch(userProgressNotifierProvider);
+                                        return Text(
+                                          progressAsync.when(
+                                            data: (progress) => '${tr(context, 'level_number').replaceAll('{level}', progress.currentLevel.toString())} ${progress.levelTitle(context)}',
+                                            loading: () => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Loading...',
+                                            error: (_, __) => '${tr(context, 'level_number').replaceAll('{level}', ref.watch(currentLevelProvider).toString())} Error',
+                                          ),
+                                          style: TextStyle(
+                                            color: AppTheme.textColor(
+                                              context,
+                                            ).withValues(alpha: 0.7),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        );
+                                      },
+                                    ),
                                   ),
                                 ],
                               ),

@@ -104,6 +104,8 @@ flutter_launcher_icons:
   image_path: "assets/images/logo.png"
   adaptive_icon_background: "#161f25"
   adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_padding: 0
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

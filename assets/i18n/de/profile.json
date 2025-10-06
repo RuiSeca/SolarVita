@@ -127,5 +127,22 @@
     "activity_stats": "Aktivitätsstatistiken",
     "posts": "Beiträge",
     "interest_already_exists": "Interesse bereits vorhanden",
-    "tap_to_create_routine": "Tippen Sie, um Ihre erste Routine zu erstellen"
+    "tap_to_create_routine": "Tippen Sie, um Ihre erste Routine zu erstellen",
+    "todays_meals": "Heutige Mahlzeiten",
+    "no_meals_planned_today": "Keine Mahlzeiten für heute geplant",
+    "tap_to_add_meals": "Tippen Sie, um Ihre Mahlzeiten zu planen",
+    "breakfast": "Frühstück",
+    "lunch": "Mittagessen",
+    "dinner": "Abendessen",
+    "snacks": "Snacks",
+    "Active User": "Aktiver Benutzer",
+    "eco_impact": "Öko-Wirkungszentrum",
+    "future_earth_today": "Die Erde von morgen, heute aufbauen",
+    "bottles_saved": "Flaschen Gespart",
+    "carbon_saved": "Kohlenstoff Gespart",
+    "eco_streak": "Öko-Serie",
+    "days": "Tage",
+    "pts": "Pkt",
+    "loading": "Wird geladen",
+    "error_loading_eco_data": "Fehler beim Laden der Öko-Daten"
 }

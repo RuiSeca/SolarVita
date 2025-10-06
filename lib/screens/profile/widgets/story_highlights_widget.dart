@@ -43,29 +43,37 @@ class StoryHighlightsWidget extends ConsumerWidget {
               // Section Header
               Row(
                 children: [
-                  Text(
-                    tr(context, 'story_highlights'),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor(context),
+                  Flexible(
+                    child: Text(
+                      tr(context, 'story_highlights'),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textColor(context),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                   const Spacer(),
                   if (isOwnProfile)
-                    TextButton.icon(
-                      onPressed: () => _showCreateHighlightDialog(context, ref),
-                      icon: Icon(
-                        Icons.add_circle_outline,
-                        size: 20,
-                        color: AppTheme.primaryColor,
-                      ),
-                      label: Text(
-                        tr(context, 'add_highlight'),
-                        style: TextStyle(
+                    Flexible(
+                      child: TextButton.icon(
+                        onPressed: () => _showCreateHighlightDialog(context, ref),
+                        icon: Icon(
+                          Icons.add_circle_outline,
+                          size: 20,
                           color: AppTheme.primaryColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                        ),
+                        label: Text(
+                          tr(context, 'add_highlight'),
+                          style: TextStyle(
+                            color: AppTheme.primaryColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
                         ),
                       ),
                     ),
@@ -140,14 +148,19 @@ class StoryHighlightsWidget extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              tr(context, 'new'),
-              style: TextStyle(
-                fontSize: 12,
-                color: AppTheme.textColor(context).withValues(alpha: 0.8),
-                fontWeight: FontWeight.w500,
+            SizedBox(
+              width: 90,
+              child: Text(
+                tr(context, 'new'),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textColor(context).withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -207,9 +220,9 @@ class StoryHighlightsWidget extends ConsumerWidget {
             ),
             const SizedBox(height: 6),
             SizedBox(
-              width: 80,
+              width: 90,
               child: Text(
-                highlight.customTitle?.isNotEmpty == true 
+                highlight.customTitle?.isNotEmpty == true
                     ? highlight.customTitle!
                     : tr(context, highlight.category.translationKey),
                 style: TextStyle(
@@ -218,7 +231,7 @@ class StoryHighlightsWidget extends ConsumerWidget {
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
+                maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
