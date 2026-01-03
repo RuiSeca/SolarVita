@@ -1,97 +1,6 @@
 workflows:
-  ios-workflow:
-    name: iOS Debug Simulator
-    max_build_duration: 120
-    instance_type: mac_mini_m1
-    environment:
-      groups:
-        - env_files
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-    scripts:
-      - name: Load Firebase configuration
-        script: |
-          #!/usr/bin/env sh
-          set -e
-          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
-
-      - name: Get Flutter dependencies
-        script: flutter packages get
-
-      - name: Build iOS Debug for Simulator
-        script: |
-          flutter build ios --debug --simulator \
-            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
-            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
-            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
-            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
-            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
-            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
-
-    artifacts:
-      - build/ios/**/*.app
-      - flutter_drive.log
-
-  ios-device-workflow:
-    name: iOS Debug Build (Simple)
-    max_build_duration: 120
-    instance_type: mac_mini_m1
-    environment:
-      groups:
-        - env_files
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-    scripts:
-      - name: Load Firebase configuration
-        script: |
-          #!/usr/bin/env sh
-          set -e
-          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
-
-      - name: Get Flutter dependencies
-        script: flutter packages get
-
-      - name: Clean and reinstall iOS dependencies
-        script: |
-          # Clean pods and reinstall to ensure compatibility
-          cd ios
-          rm -rf Pods Podfile.lock
-          pod install --repo-update
-          cd ..
-
-      - name: Build iOS Debug (Unsigned)
-        script: |
-          flutter build ios --debug --no-codesign \
-            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
-            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
-            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
-            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
-            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
-            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
-
-      - name: Create unsigned IPA for TestApp.io
-        script: |
-          # Create IPA structure
-          mkdir -p Payload
-          cp -r build/ios/Debug-iphoneos/Runner.app Payload/
-          zip -r build/ios/Runner-unsigned.ipa Payload/
-          
-          # Also create a zip with the .app for manual signing
-          cd build/ios/Debug-iphoneos
-          zip -r ../Runner.app.zip Runner.app/
-          cd ../../..
-
-    artifacts:
-      - build/ios/Runner-unsigned.ipa
-      - build/ios/Runner.app.zip
-      - flutter_drive.log
-
-  android-workflow:
-    name: Android Debug APK
+  android-debug-workflow:
+    name: Android Debug Build
     max_build_duration: 120
     instance_type: linux_x2
     environment:
@@ -112,6 +21,7 @@ workflows:
 
       - name: Build Android Debug APK
         script: |
+          set -e
           flutter build apk --debug \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
@@ -146,8 +56,34 @@ workflows:
       - name: Get Flutter dependencies
         script: flutter packages get
 
-      - name: Build iOS Debug (Unsigned)
+      # ✅ Fix for: google_maps_flutter_ios requires iOS 14+
+      - name: Force iOS deployment target to 14.0
         script: |
+          set -e
+
+          # Ensure Podfile has platform :ios, '14.0'
+          if grep -q "^platform :ios" ios/Podfile; then
+            sed -i '' "s/^platform :ios.*/platform :ios, '14.0'/" ios/Podfile
+          else
+            echo "platform :ios, '14.0'" | cat - ios/Podfile > ios/Podfile.tmp
+            mv ios/Podfile.tmp ios/Podfile
+          fi
+
+          # Ensure Xcode project uses iOS 14.0 too
+          sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
+
+      - name: Install CocoaPods (clean)
+        script: |
+          set -e
+          cd ios
+          rm -rf Pods Podfile.lock
+          pod repo update
+          pod install
+          cd ..
+
+      - name: Build iOS Debug (no signing)
+        script: |
+          set -e
           flutter build ios --debug --no-codesign \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
@@ -158,6 +94,7 @@ workflows:
 
       - name: Build Android Debug APK
         script: |
+          set -e
           flutter build apk --debug \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
@@ -167,6 +104,7 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
-      - build/ios/Runner.app/**
       - build/**/outputs/**/*.apk
+      - build/ios/iphoneos/*.app
+      - build/ios/ipa/*.ipa
       - flutter_drive.log
