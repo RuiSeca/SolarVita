@@ -1,6 +1,6 @@
 workflows:
-  dual-platform-workflow:
-    name: iOS + Android Debug Build (No Signing)
+  ios-unsigned-ipa:
+    name: iOS Unsigned IPA (Device) + Android Debug
     max_build_duration: 120
     instance_type: mac_mini_m1
 
@@ -28,8 +28,7 @@ workflows:
       - name: Force iOS deployment target to 14.0
         script: |
           set -e
-
-          # Ensure Podfile has platform :ios, '14.0'
+          # Podfile platform
           if grep -q "^platform :ios" ios/Podfile; then
             sed -i '' "s/^platform :ios.*/platform :ios, '14.0'/" ios/Podfile
           else
@@ -37,7 +36,7 @@ workflows:
             mv ios/Podfile.tmp ios/Podfile
           fi
 
-          # Ensure Xcode project deployment target is 14.0 everywhere
+          # Xcode project deployment target
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install CocoaPods (clean)
@@ -49,16 +48,57 @@ workflows:
           pod install
           cd ..
 
-      - name: Build iOS Debug (no signing)
+      - name: Build iOS unsigned .ipa (device) via xcodebuild archive
         script: |
           set -e
-          flutter build ios --debug --no-codesign \
+
+          # Ensure Flutter iOS build files are generated
+          flutter build ios --config-only \
             --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
             --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
             --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
             --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
             --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+
+          cd ios
+
+          # Clean old outputs
+          rm -rf build
+          mkdir -p build
+
+          # Archive for device WITHOUT signing
+          xcodebuild \
+            -workspace Runner.xcworkspace \
+            -scheme Runner \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/Runner.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            PROVISIONING_PROFILE_SPECIFIER="" \
+            PROVISIONING_PROFILE="" \
+            COMPILER_INDEX_STORE_ENABLE=NO
+
+          # Extract the .app from the archive
+          APP_PATH="build/Runner.xcarchive/Products/Applications/Runner.app"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "Runner.app not found at $APP_PATH"
+            find build/Runner.xcarchive -maxdepth 4 -type d -name "*.app" -print
+            exit 1
+          fi
+
+          # Package into an unsigned IPA: Payload/Runner.app
+          rm -rf build/Payload
+          mkdir -p build/Payload
+          cp -R "$APP_PATH" build/Payload/
+
+          cd build
+          /usr/bin/zip -r -y "Runner-unsigned.ipa" Payload
+          cd ../..
 
       - name: Build Android Debug APK
         script: |
@@ -72,11 +112,13 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
+      # iOS unsigned IPA (device)
+      - ios/build/Runner-unsigned.ipa
+      # Optional: archive for debugging
+      - ios/build/Runner.xcarchive/**
+
       # Android artifact
       - build/**/outputs/**/*.apk
-
-      # iOS unsigned build output (an .app bundle)
-      - build/ios/iphoneos/*.app
 
       # Logs (optional)
       - flutter_drive.log
