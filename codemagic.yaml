@@ -20,6 +20,19 @@ workflows:
           echo "$ANDROID_FIREBASE_SECRET" > "$CM_BUILD_DIR/android/app/google-services.json"
           echo "$IOS_FIREBASE_SECRET" > "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist"
 
+      - name: Create .env for build (required by pubspec assets)
+        script: |
+          set -e
+          # Populate from environment vars so asset bundling succeeds
+          cat > "$CM_BUILD_DIR/.env" << EOF
+          MEALDB_API_KEY=${MEALDB_API_KEY}
+          GEMINI_API_KEY=${GEMINI_API_KEY}
+          GOOGLE_VISION_API_KEY=${GOOGLE_VISION_API_KEY}
+          NUTRITIONIX_APP_KEY=${NUTRITIONIX_APP_KEY}
+          NUTRITIONIX_APP_ID=${NUTRITIONIX_APP_ID}
+          RAPID_API_KEY=${RAPID_API_KEY}
+          EOF
+
       - name: Get Flutter dependencies
         script: |
           set -e
@@ -28,16 +41,12 @@ workflows:
       - name: Force iOS deployment target to 14.0
         script: |
           set -e
-
-          # Ensure Podfile has platform :ios, '14.0'
           if grep -q "^platform :ios" ios/Podfile; then
             sed -i '' "s/^platform :ios.*/platform :ios, '14.0'/" ios/Podfile
           else
             echo "platform :ios, '14.0'" | cat - ios/Podfile > ios/Podfile.tmp
             mv ios/Podfile.tmp ios/Podfile
           fi
-
-          # Ensure Xcode project deployment target is 14.0 everywhere
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install CocoaPods (clean)
@@ -52,8 +61,6 @@ workflows:
       - name: Build iOS unsigned .ipa (device) via xcodebuild archive
         script: |
           set -e
-
-          # Avoid Flutter device build/signing checks
           flutter precache --ios
           flutter pub get
 
@@ -61,7 +68,6 @@ workflows:
           rm -rf build
           mkdir -p build
 
-          # Archive for device WITHOUT signing
           xcodebuild \
             -workspace Runner.xcworkspace \
             -scheme Runner \
@@ -79,16 +85,13 @@ workflows:
             PROVISIONING_PROFILE="" \
             COMPILER_INDEX_STORE_ENABLE=NO
 
-          # Extract the .app from the archive
           APP_PATH="build/Runner.xcarchive/Products/Applications/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
-            echo "Searching for any .app inside archive..."
             find build/Runner.xcarchive -maxdepth 8 -type d -name "*.app" -print
             exit 1
           fi
 
-          # Package into an unsigned IPA: Payload/Runner.app
           rm -rf build/Payload
           mkdir -p build/Payload
           cp -R "$APP_PATH" build/Payload/
@@ -109,13 +112,8 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
-      # iOS unsigned IPA + archive (for debugging)
       - ios/build/Runner-unsigned.ipa
       - ios/build/Runner.xcarchive/**
-
-      # Android
       - build/**/outputs/**/*.apk
-
-      # Logs
       - flutter_drive.log
       - /tmp/xcodebuild_logs/*.log
