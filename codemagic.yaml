@@ -28,7 +28,8 @@ workflows:
       - name: Force iOS deployment target to 14.0
         script: |
           set -e
-          # Podfile platform
+
+          # Ensure Podfile has platform :ios, '14.0'
           if grep -q "^platform :ios" ios/Podfile; then
             sed -i '' "s/^platform :ios.*/platform :ios, '14.0'/" ios/Podfile
           else
@@ -36,7 +37,7 @@ workflows:
             mv ios/Podfile.tmp ios/Podfile
           fi
 
-          # Xcode project deployment target
+          # Ensure Xcode project deployment target is 14.0 everywhere
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install CocoaPods (clean)
@@ -52,18 +53,11 @@ workflows:
         script: |
           set -e
 
-          # Ensure Flutter iOS build files are generated
-          flutter build ios --config-only \
-            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
-            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
-            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
-            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
-            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
-            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
+          # Avoid Flutter device build/signing checks
+          flutter precache --ios
+          flutter pub get
 
           cd ios
-
-          # Clean old outputs
           rm -rf build
           mkdir -p build
 
@@ -75,8 +69,10 @@ workflows:
             -sdk iphoneos \
             -archivePath build/Runner.xcarchive \
             archive \
+            CODE_SIGN_STYLE=Manual \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_ENTITLEMENTS="" \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
             PROVISIONING_PROFILE_SPECIFIER="" \
@@ -87,7 +83,8 @@ workflows:
           APP_PATH="build/Runner.xcarchive/Products/Applications/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
-            find build/Runner.xcarchive -maxdepth 4 -type d -name "*.app" -print
+            echo "Searching for any .app inside archive..."
+            find build/Runner.xcarchive -maxdepth 8 -type d -name "*.app" -print
             exit 1
           fi
 
@@ -112,14 +109,13 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
-      # iOS unsigned IPA (device)
+      # iOS unsigned IPA + archive (for debugging)
       - ios/build/Runner-unsigned.ipa
-      # Optional: archive for debugging
       - ios/build/Runner.xcarchive/**
 
-      # Android artifact
+      # Android
       - build/**/outputs/**/*.apk
 
-      # Logs (optional)
+      # Logs
       - flutter_drive.log
       - /tmp/xcodebuild_logs/*.log
