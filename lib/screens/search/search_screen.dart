@@ -23,7 +23,7 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerProviderStateMixin {
+class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProviderStateMixin {
   bool _isSearching = false;
   String _searchQuery = '';
   bool _isLoadingExercises = false;
@@ -40,6 +40,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
   // Animation controller for ethereal glow effect
   late AnimationController _glowAnimationController;
 
+  // Animation controllers for search morph transition
+  late AnimationController _colorFadeController;
+  late AnimationController _searchMorphController;
+
+  // Focus node for search text field
+  final FocusNode _searchFocusNode = FocusNode();
+  final TextEditingController _searchTextController = TextEditingController();
+
   // Pulse color integration
   Color _currentPulseColor = const Color(0xFF4CAF50); // Default green
 
@@ -48,6 +56,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
     // Cancel any ongoing loading operations when the screen is disposed
     _timeoutTimer?.cancel();
     _glowAnimationController.dispose();
+    _colorFadeController.dispose();
+    _searchMorphController.dispose();
+    _searchFocusNode.dispose();
+    _searchTextController.dispose();
     try {
       PulseColorManager.instance.removeListener(_onPulseColorChanged);
     } catch (e) {
@@ -74,8 +86,27 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
+    // Initialize animation controller for color fade (2 seconds)
+    _colorFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    );
+
+    // Initialize animation controller for search morph transition (300ms, starts after color fade)
+    _searchMorphController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
     // Listen to pulse color changes
     _setupPulseColorListener();
+
+    // Listen to search text changes
+    _searchTextController.addListener(() {
+      setState(() {
+        _searchQuery = _searchTextController.text;
+      });
+    });
 
     // Use a post-frame callback to reset the flag after initial build
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -432,8 +463,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           _buildAppBar(context),
-                          if (_isSearching) _buildSearchBar() else _buildTitle(context),
-                          _buildRoutineButton(),
+                          _buildRoutineButtonOrSearchBar(),
                         ],
                       ),
                     ),
@@ -564,29 +594,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
       padding: const EdgeInsets.all(16.0),
       child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(2),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.eco,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                tr(context, 'app_name'),
-                style: TextStyle(
-                  color: AppTheme.textColor(context),
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            tr(context, 'fitness_routines'),
+            style: TextStyle(
+              color: AppTheme.textColor(context),
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -597,7 +611,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
-                if (!_isSearching) _searchQuery = '';
+                if (_isSearching) {
+                  // Start color fade first (2s), then morph (300ms)
+                  _colorFadeController.forward().then((_) {
+                    if (mounted && _isSearching) {
+                      _searchMorphController.forward();
+                      Future.delayed(const Duration(milliseconds: 150), () {
+                        if (mounted && _isSearching) {
+                          _searchFocusNode.requestFocus();
+                        }
+                      });
+                    }
+                  });
+                } else {
+                  // Reverse morph first, then color fade
+                  _searchMorphController.reverse().then((_) {
+                    if (mounted && !_isSearching) {
+                      _colorFadeController.reverse();
+                    }
+                  });
+                  _searchQuery = '';
+                  _searchTextController.clear();
+                  _searchFocusNode.unfocus();
+                }
               });
             },
             padding: EdgeInsets.zero,
@@ -607,87 +643,64 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: TextField(
-        onChanged: (value) => setState(() => _searchQuery = value),
-        decoration: InputDecoration(
-          hintText: tr(context, 'search_workout'),
-          prefixIcon: const Icon(Icons.search),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTitle(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      child: Text(
-        tr(context, 'fitness_routines'),
-        style: TextStyle(
-          color: AppTheme.textColor(context),
-          fontSize: 24,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRoutineButton() {
+  Widget _buildRoutineButtonOrSearchBar() {
     final theme = Theme.of(context);
-    // Use pulse color instead of static theme color
     final backgroundColor = _currentPulseColor;
     final isDarkMode = theme.brightness == Brightness.dark;
-
-    // Theme-adaptive colors from fan menu FAB
     final glassBase = isDarkMode ? Colors.white : Colors.black;
     final iconColor = isDarkMode ? Colors.white : Colors.black;
-    final shadowColor = isDarkMode ? Colors.black : Colors.grey.shade400;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: SizedBox(
         width: double.infinity,
-        child: GestureDetector(
-          onTap: () => _navigateToRoutines(),
-          child: AnimatedBuilder(
-            animation: _glowAnimationController,
-            builder: (context, child) {
-              // Animated gradient positions for flowing liquid/steam effect
-              final animValue = _glowAnimationController.value;
-              final beginX = -1.5 + (animValue * 2.0);
-              final beginY = -1.0 + (animValue * 0.8);
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_glowAnimationController, _colorFadeController, _searchMorphController]),
+          builder: (context, child) {
+            final animValue = _glowAnimationController.value;
+            final colorFadeValue = _colorFadeController.value;
 
-              return ClipRRect(
+            // Animated gradient positions for flowing liquid/steam effect
+            final beginX = -1.5 + (animValue * 2.0);
+            final beginY = -1.0 + (animValue * 0.8);
+
+            // Fade out the glow during color fade (2s)
+            final glowOpacity = 1.0 - colorFadeValue;
+
+            return GestureDetector(
+              onTap: _isSearching ? null : () => _navigateToRoutines(),
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    // Animated flowing green steam/liquid layer behind the button
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: RadialGradient(
-                            center: Alignment(
-                              beginX * 0.4,
-                              beginY * 0.35,
+                    // Animated flowing green steam/liquid layer - fades out during color fade
+                    if (glowOpacity > 0.01)
+                      Positioned.fill(
+                        child: Opacity(
+                          opacity: glowOpacity,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                center: Alignment(
+                                  beginX * 0.4,
+                                  beginY * 0.35,
+                                ),
+                                radius: 0.8 + (animValue * 0.2),
+                                colors: [
+                                  backgroundColor.withValues(
+                                      alpha: isDarkMode ? 0.3 + (animValue * 0.15) : 0.25 + (animValue * 0.1)),
+                                  backgroundColor.withValues(
+                                      alpha: isDarkMode ? 0.15 + (animValue * 0.1) : 0.12 + (animValue * 0.08)),
+                                  backgroundColor.withValues(alpha: isDarkMode ? 0.08 : 0.06),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0.0, 0.4, 0.7, 1.0],
+                              ),
                             ),
-                            radius: 0.8 + (animValue * 0.2),
-                            colors: [
-                              backgroundColor.withValues(alpha: isDarkMode ? 0.3 + (animValue * 0.15) : 0.25 + (animValue * 0.1)),
-                              backgroundColor.withValues(alpha: isDarkMode ? 0.15 + (animValue * 0.1) : 0.12 + (animValue * 0.08)),
-                              backgroundColor.withValues(alpha: isDarkMode ? 0.08 : 0.06),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.0, 0.4, 0.7, 1.0],
                           ),
                         ),
                       ),
-                    ),
-                    // Main button with glass morphism
+                    // Main button/text field with glass morphism
                     Container(
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
                       decoration: BoxDecoration(
@@ -695,86 +708,130 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with SingleTickerPr
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [
-                            // Glass effect with subtle color blend
-                            glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
-                            glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
-                            backgroundColor.withValues(alpha: isDarkMode ? 0.4 : 0.6),
-                            backgroundColor.withValues(alpha: isDarkMode ? 0.6 : 0.8),
-                          ],
-                          stops: const [0.0, 0.3, 0.7, 1.0],
+                          colors: _isSearching
+                              ? [
+                                  glassBase.withValues(alpha: isDarkMode ? 0.15 : 0.04),
+                                  glassBase.withValues(alpha: isDarkMode ? 0.06 : 0.02),
+                                ]
+                              : [
+                                  glassBase.withValues(alpha: isDarkMode ? 0.2 : 0.06),
+                                  glassBase.withValues(alpha: isDarkMode ? 0.08 : 0.03),
+                                  backgroundColor.withValues(alpha: (isDarkMode ? 0.4 : 0.6) * glowOpacity),
+                                  backgroundColor.withValues(alpha: (isDarkMode ? 0.6 : 0.8) * glowOpacity),
+                                ],
+                          stops: _isSearching ? null : const [0.0, 0.3, 0.7, 1.0],
                         ),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
+                          // Pulse color border when in search mode
+                          color: _isSearching
+                              ? backgroundColor.withValues(
+                                  alpha: (isDarkMode ? 0.4 : 0.3) * (1.0 - colorFadeValue + (animValue * 0.2)),
+                                )
+                              : glassBase.withValues(alpha: isDarkMode ? 0.3 : 0.1),
                           width: 1.5,
                         ),
                         boxShadow: [
-                          // Main shadow - adaptive to theme
                           BoxShadow(
-                            color: shadowColor.withValues(alpha: isDarkMode ? 0.8 : 0.4),
+                            color: (isDarkMode ? Colors.black : Colors.grey.shade400)
+                                .withValues(alpha: isDarkMode ? 0.8 : 0.4),
                             blurRadius: 20,
                             offset: Offset(0, isDarkMode ? 6 : 8),
                           ),
-                          // Inner glow - more prominent in dark mode
-                          if (isDarkMode) BoxShadow(
-                            color: glassBase.withValues(alpha: 0.15),
-                            blurRadius: 8,
-                            offset: const Offset(0, -3),
-                          ),
-                          // Animated ethereal green glow
-                          BoxShadow(
-                            color: backgroundColor.withValues(
-                              alpha: isDarkMode
-                                ? 0.15 + (animValue * 0.25)
-                                : 0.1 + (animValue * 0.2),
+                          if (isDarkMode)
+                            BoxShadow(
+                              color: glassBase.withValues(alpha: 0.15),
+                              blurRadius: 8,
+                              offset: const Offset(0, -3),
                             ),
-                            blurRadius: 20 + (animValue * 15),
-                            offset: const Offset(0, 8),
-                            spreadRadius: -4 + (animValue * 2),
-                          ),
-                          // Secondary animated glow for depth
-                          BoxShadow(
-                            color: backgroundColor.withValues(
-                              alpha: isDarkMode
-                                ? 0.1 + (animValue * 0.15)
-                                : 0.08 + (animValue * 0.12),
+                          // Color glow - fades out during color fade, but stays for search field
+                          if (glowOpacity > 0.01 || _isSearching)
+                            BoxShadow(
+                              color: backgroundColor.withValues(
+                                alpha: _isSearching
+                                    ? (isDarkMode ? 0.15 + (animValue * 0.15) : 0.1 + (animValue * 0.1))
+                                    : (isDarkMode ? 0.15 + (animValue * 0.25) : 0.1 + (animValue * 0.2)) *
+                                        glowOpacity,
+                              ),
+                              blurRadius: _isSearching
+                                  ? 15 + (animValue * 10)
+                                  : (20 + (animValue * 15)) * glowOpacity,
+                              offset: const Offset(0, 8),
+                              spreadRadius: _isSearching ? -2 : (-4 + (animValue * 2)) * glowOpacity,
                             ),
-                            blurRadius: 35 + (animValue * 20),
-                            offset: const Offset(0, 12),
-                            spreadRadius: -8,
-                          ),
                         ],
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.schedule,
-                            color: iconColor.withValues(alpha: 0.9),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            tr(context, 'weekly_routines'),
-                            style: TextStyle(
-                              color: iconColor.withValues(alpha: 0.9),
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                      child: _isSearching
+                          ? Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: _searchTextController,
+                                    focusNode: _searchFocusNode,
+                                    style: TextStyle(
+                                      color: iconColor.withValues(alpha: 0.9),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: tr(context, 'search_workout'),
+                                      hintStyle: TextStyle(
+                                        color: iconColor.withValues(alpha: 0.5),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                ),
+                                if (_searchQuery.isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _searchTextController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                    child: Icon(
+                                      Icons.close,
+                                      color: iconColor.withValues(alpha: 0.7),
+                                      size: 20,
+                                    ),
+                                  ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.schedule,
+                                  color: iconColor.withValues(alpha: 0.9),
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  tr(context, 'weekly_routines'),
+                                  style: TextStyle(
+                                    color: iconColor.withValues(alpha: 0.9),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
+
 
   void _navigateToRoutines() {
     Navigator.push(

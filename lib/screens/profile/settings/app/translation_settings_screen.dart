@@ -126,15 +126,19 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
       final unifiedService = ref.read(unifiedApiServiceProvider);
       final progressNotifier = ref.read(translationProgressProvider.notifier);
 
-      // Initialize progress
+      // Initialize progress with separate meal and exercise counts
       final categories = ['Chicken', 'Beef', 'Pasta', 'Vegetarian', 'Seafood'];
       final exerciseTargets = ['pectorals', 'biceps', 'abs', 'quads'];
-      final totalItems = categories.length + exerciseTargets.length;
+      final totalMeals = categories.length;
+      final totalExercises = exerciseTargets.length;
+      final totalItems = totalMeals + totalExercises;
 
       progressNotifier.startProgress(
         language: languageCode,
         category: 'Downloading',
         totalItems: totalItems,
+        totalMeals: totalMeals,
+        totalExercises: totalExercises,
       );
 
       // Show loading dialog
@@ -160,6 +164,7 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
                     if (progress.isActive) {
                       return Column(
                         children: [
+                          // Overall progress
                           LinearProgressIndicator(
                             value: progress.progress,
                             backgroundColor: AppTheme.textColor(context).withAlpha(51),
@@ -173,6 +178,111 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
                               fontSize: 12,
                             ),
                           ),
+                          const SizedBox(height: 16),
+                          // Separate progress for meals and exercises
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.restaurant,
+                                          size: 14,
+                                          color: progress.currentPhase == 'meals'
+                                              ? AppTheme.primaryColor
+                                              : AppTheme.textColor(context).withAlpha(128),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          tr(context, 'meals'),
+                                          style: TextStyle(
+                                            color: progress.currentPhase == 'meals'
+                                                ? AppTheme.primaryColor
+                                                : AppTheme.textColor(context).withAlpha(128),
+                                            fontSize: 11,
+                                            fontWeight: progress.currentPhase == 'meals'
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    LinearProgressIndicator(
+                                      value: progress.mealProgress,
+                                      backgroundColor: AppTheme.textColor(context).withAlpha(26),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        progress.currentPhase == 'meals'
+                                            ? AppTheme.primaryColor
+                                            : AppTheme.primaryColor.withAlpha(128),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${progress.completedMeals}/${progress.totalMeals}',
+                                      style: TextStyle(
+                                        color: AppTheme.textColor(context).withAlpha(128),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.fitness_center,
+                                          size: 14,
+                                          color: progress.currentPhase == 'exercises'
+                                              ? AppTheme.primaryColor
+                                              : AppTheme.textColor(context).withAlpha(128),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          tr(context, 'exercises'),
+                                          style: TextStyle(
+                                            color: progress.currentPhase == 'exercises'
+                                                ? AppTheme.primaryColor
+                                                : AppTheme.textColor(context).withAlpha(128),
+                                            fontSize: 11,
+                                            fontWeight: progress.currentPhase == 'exercises'
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    LinearProgressIndicator(
+                                      value: progress.exerciseProgress,
+                                      backgroundColor: AppTheme.textColor(context).withAlpha(26),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        progress.currentPhase == 'exercises'
+                                            ? AppTheme.primaryColor
+                                            : AppTheme.primaryColor.withAlpha(128),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${progress.completedExercises}/${progress.totalExercises}',
+                                      style: TextStyle(
+                                        color: AppTheme.textColor(context).withAlpha(128),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ],
                       );
                     }
@@ -185,21 +295,22 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
         );
       }
 
-      int completedItems = 0;
+      int completedMeals = 0;
+      int completedExercises = 0;
 
       // Download meal categories
       for (final category in categories) {
         try {
           await unifiedService.getMealsByCategory(category, language: languageCode, page: 0, limit: 8);
-          completedItems++;
-          progressNotifier.updateProgress(completedItems);
+          completedMeals++;
+          progressNotifier.updateMealProgress(completedMeals);
 
           // Small delay to show progress
           await Future.delayed(const Duration(milliseconds: 200));
         } catch (e) {
           // Continue with other categories if one fails
-          completedItems++;
-          progressNotifier.updateProgress(completedItems);
+          completedMeals++;
+          progressNotifier.updateMealProgress(completedMeals);
         }
       }
 
@@ -207,15 +318,15 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
       for (final target in exerciseTargets) {
         try {
           await unifiedService.getExercisesByTarget(target, language: languageCode);
-          completedItems++;
-          progressNotifier.updateProgress(completedItems);
+          completedExercises++;
+          progressNotifier.updateExerciseProgress(completedExercises);
 
           // Small delay to show progress
           await Future.delayed(const Duration(milliseconds: 200));
         } catch (e) {
           // Continue with other targets if one fails
-          completedItems++;
-          progressNotifier.updateProgress(completedItems);
+          completedExercises++;
+          progressNotifier.updateExerciseProgress(completedExercises);
         }
       }
 
