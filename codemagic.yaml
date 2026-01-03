@@ -1,43 +1,9 @@
 workflows:
-  android-debug-workflow:
-    name: Android Debug Build
-    max_build_duration: 120
-    instance_type: linux_x2
-    environment:
-      groups:
-        - env_files
-      flutter: stable
-      java: 17
-    scripts:
-      - name: Load Firebase configuration
-        script: |
-          #!/usr/bin/env sh
-          set -e
-          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
-
-      - name: Get Flutter dependencies
-        script: flutter packages get
-
-      - name: Build Android Debug APK
-        script: |
-          set -e
-          flutter build apk --debug \
-            --dart-define=MEALDB_API_KEY=$MEALDB_API_KEY \
-            --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY \
-            --dart-define=GOOGLE_VISION_API_KEY=$GOOGLE_VISION_API_KEY \
-            --dart-define=NUTRITIONIX_APP_KEY=$NUTRITIONIX_APP_KEY \
-            --dart-define=NUTRITIONIX_APP_ID=$NUTRITIONIX_APP_ID \
-            --dart-define=RAPID_API_KEY=$RAPID_API_KEY
-
-    artifacts:
-      - build/**/outputs/**/*.apk
-      - flutter_drive.log
-
   dual-platform-workflow:
     name: iOS + Android Debug Build (No Signing)
     max_build_duration: 120
     instance_type: mac_mini_m1
+
     environment:
       groups:
         - env_files
@@ -45,18 +11,20 @@ workflows:
       xcode: latest
       cocoapods: default
       java: 17
+
     scripts:
       - name: Load Firebase configuration
         script: |
           #!/usr/bin/env sh
           set -e
-          echo $ANDROID_FIREBASE_SECRET > $CM_BUILD_DIR/android/app/google-services.json
-          echo $IOS_FIREBASE_SECRET > $CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist
+          echo "$ANDROID_FIREBASE_SECRET" > "$CM_BUILD_DIR/android/app/google-services.json"
+          echo "$IOS_FIREBASE_SECRET" > "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist"
 
       - name: Get Flutter dependencies
-        script: flutter packages get
+        script: |
+          set -e
+          flutter pub get
 
-      # ✅ Fix for: google_maps_flutter_ios requires iOS 14+
       - name: Force iOS deployment target to 14.0
         script: |
           set -e
@@ -69,7 +37,7 @@ workflows:
             mv ios/Podfile.tmp ios/Podfile
           fi
 
-          # Ensure Xcode project uses iOS 14.0 too
+          # Ensure Xcode project deployment target is 14.0 everywhere
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
 
       - name: Install CocoaPods (clean)
@@ -104,7 +72,12 @@ workflows:
             --dart-define=RAPID_API_KEY=$RAPID_API_KEY
 
     artifacts:
+      # Android artifact
       - build/**/outputs/**/*.apk
+
+      # iOS unsigned build output (an .app bundle)
       - build/ios/iphoneos/*.app
-      - build/ios/ipa/*.ipa
+
+      # Logs (optional)
       - flutter_drive.log
+      - /tmp/xcodebuild_logs/*.log
