@@ -51,6 +51,8 @@ import 'providers/riverpod/splash_provider.dart';
 import 'providers/riverpod/initialization_provider.dart';
 import 'models/user/user_profile.dart';
 
+import 'firebase_options.dart';
+
 // Global flag to track Firebase initialization
 bool isFirebaseAvailable = false;
 
@@ -60,7 +62,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 // Background message handler (must be top-level function)
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  // Use options for consistency
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   // Handle background message processing if needed
 }
 
@@ -71,17 +76,22 @@ void _setupNotificationNavigation(
   // For now, we'll just set up the basic structure
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Start Flutter rendering immediately to show Lottie splash ASAP
-  runApp(const ProviderScope(child: SolarVitaApp()));
 
   // Initialize logging first
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
     debugPrint('${record.level.name}: ${record.time}: ${record.message}');
   });
+
+  // Load environment variables early (optional for CI/CD)
+  // If .env is missing, you already handle it gracefully
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('.env file not found, using system environment variables.');
+  }
 
   // Initialize user cache manager for proper account switching
   try {
@@ -91,9 +101,20 @@ void main() async {
     debugPrint('User cache manager initialization failed: $e\n$st');
   }
 
+  // ✅ Firebase MUST be initialized BEFORE runApp to prevent [core/no-app]
   try {
-    // Initialize Firebase using our comprehensive initialization service
+    // If your FirebaseInitializationService already does this internally,
+    // it’s still safe to do it here (Firebase.initializeApp is idempotent
+    // as long as options match).
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Now run your comprehensive service init (if it does extra setup)
     await FirebaseInitializationService.initialize();
+
+    // Register background message handler
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Try to sign in user anonymously for avatar system access (optional)
     try {
@@ -101,11 +122,7 @@ void main() async {
       debugPrint('Firebase user initialized: ${user?.uid}');
     } catch (e) {
       debugPrint('Anonymous sign-in failed (continuing without it): $e');
-      // Continue without anonymous auth - regular auth will work fine
     }
-
-    // Register background message handler
-    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     // Initialize Firebase Push Notification Service
     try {
@@ -120,6 +137,7 @@ void main() async {
 
     isFirebaseAvailable = true;
   } catch (e, st) {
+    isFirebaseAvailable = false;
     debugPrint('Firebase initialization error: $e\n$st');
     // Continue without Firebase for testing environments
   }
@@ -130,7 +148,6 @@ void main() async {
     debugPrint('Avatar configuration system initialized successfully');
   } catch (e, st) {
     debugPrint('Avatar configuration initialization failed: $e\n$st');
-    // Continue without avatar system in case of errors
   }
 
   // Initialize Firebase Translation Service if Firebase is available
@@ -141,7 +158,6 @@ void main() async {
       debugPrint('Firebase Translation Service initialized successfully');
     } catch (e, st) {
       debugPrint('Firebase Translation Service initialization failed: $e\n$st');
-      // Continue without Firebase translations - static translations will still work
     }
   }
 
@@ -172,7 +188,7 @@ void main() async {
     try {
       final firebasePushNotificationService = FirebasePushNotificationService();
       await firebasePushNotificationService.initialize();
-      debugPrint('Firebase push notification service initialized successfully');
+      debugPrint('Firebase push notification service init failed:');
     } catch (e, st) {
       debugPrint('Firebase push notification service init failed: $e\n$st');
     }
@@ -202,13 +218,6 @@ void main() async {
     }
   }
 
-  // Load environment variables (optional for CI/CD)
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint('.env file not found, using system environment variables.');
-  }
-
   // Initialize story service cleanup if Firebase is available
   if (isFirebaseAvailable) {
     try {
@@ -220,7 +229,8 @@ void main() async {
     }
   }
 
-  // Google Maps service removed - no longer needed
+  // ✅ Now safe to start Flutter rendering
+  runApp(const ProviderScope(child: SolarVitaApp()));
 }
 
 class SolarVitaApp extends ConsumerStatefulWidget {
@@ -230,7 +240,8 @@ class SolarVitaApp extends ConsumerStatefulWidget {
   ConsumerState<SolarVitaApp> createState() => _SolarVitaAppState();
 }
 
-class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBindingObserver {
+class _SolarVitaAppState extends ConsumerState<SolarVitaApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -247,7 +258,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
 
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.detached) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
       // Stop audio when app is backgrounded or closed
       try {
         final audioService = OnboardingAudioService();
@@ -259,16 +271,16 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     // Watch the initialization state
     final initState = ref.watch(initializationNotifierProvider);
     final showSplash = ref.watch(splashNotifierProvider);
-    
+
     // Always show video splash immediately, regardless of initialization status
     if (showSplash || initState.status == InitializationStatus.initializing) {
-      debugPrint('🎬 Showing splash screen - showSplash: $showSplash, initStatus: ${initState.status}');
+      debugPrint(
+          '🎬 Showing splash screen - showSplash: $showSplash, initStatus: ${initState.status}');
 
       // Get locale and supported languages for splash screen localization
       final localeAsync = ref.watch(languageNotifierProvider);
@@ -282,9 +294,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             locale: locale,
-            supportedLocales: supportedLanguages
-                .map((lang) => Locale(lang.code))
-                .toList(),
+            supportedLocales:
+                supportedLanguages.map((lang) => Locale(lang.code)).toList(),
             localizationsDelegates: const [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
@@ -297,19 +308,22 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
                 final languageCode = systemLocale.languageCode;
                 for (final supportedLocale in supportedLocales) {
                   if (supportedLocale.languageCode == languageCode) {
-                    debugPrint('🌍 Splash locale resolution: Using $languageCode (system locale match)');
+                    debugPrint(
+                        '🌍 Splash locale resolution: Using $languageCode (system locale match)');
                     return supportedLocale;
                   }
                 }
               }
 
               // Fallback to English
-              debugPrint('🌍 Splash locale resolution: Falling back to English');
+              debugPrint(
+                  '🌍 Splash locale resolution: Falling back to English');
               return const Locale('en');
             },
             home: LottieSplashScreen(
               onAnimationEnd: () {
-                debugPrint('🎬 Animation ended - initStatus: ${initState.status}');
+                debugPrint(
+                    '🎬 Animation ended - initStatus: ${initState.status}');
                 // Only allow transition if initialization is complete
                 if (initState.status == InitializationStatus.completed) {
                   debugPrint('🎬 Completing splash screen');
@@ -353,7 +367,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
     final userProfileAsync = ref.watch(userProfileNotifierProvider);
     final authState = ref.watch(auth.authStateChangesProvider);
 
-    debugPrint('🏠 Provider states - auth: ${authState.toString()}, profile: ${userProfileAsync.toString()}');
+    debugPrint(
+        '🏠 Provider states - auth: ${authState.toString()}, profile: ${userProfileAsync.toString()}');
 
     return localeAsync.when(
       data: (locale) {
@@ -365,9 +380,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           locale: locale,
-          supportedLocales: supportedLanguages
-              .map((lang) => Locale(lang.code))
-              .toList(),
+          supportedLocales:
+              supportedLanguages.map((lang) => Locale(lang.code)).toList(),
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -380,7 +394,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
               final languageCode = systemLocale.languageCode;
               for (final supportedLocale in supportedLocales) {
                 if (supportedLocale.languageCode == languageCode) {
-                  debugPrint('🌍 Locale resolution: Using $languageCode (system locale match)');
+                  debugPrint(
+                      '🌍 Locale resolution: Using $languageCode (system locale match)');
                   return supportedLocale;
                 }
               }
@@ -459,10 +474,12 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
           return const LoginScreen();
         }
 
-        debugPrint('🏠 UserProfile async state: ${userProfileAsync.toString()}');
+        debugPrint(
+            '🏠 UserProfile async state: ${userProfileAsync.toString()}');
         return userProfileAsync.when(
           data: (userProfile) {
-            debugPrint('🏠 Profile data: ${userProfile?.email ?? 'null'}, onboardingComplete: ${userProfile?.isOnboardingComplete}');
+            debugPrint(
+                '🏠 Profile data: ${userProfile?.email ?? 'null'}, onboardingComplete: ${userProfile?.isOnboardingComplete}');
             if (userProfile == null) {
               debugPrint('🏠 → Showing loading (null profile)');
               return const Scaffold(
@@ -471,13 +488,15 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
             }
 
             if (!userProfile.isOnboardingComplete) {
-              debugPrint('🏠 → Showing OnboardingExperience (incomplete onboarding)');
+              debugPrint(
+                  '🏠 → Showing OnboardingExperience (incomplete onboarding)');
               // Clear any interrupted flag since we're starting fresh onboarding
               OnboardingBaseScreenState.clearOnboardingInterrupted();
               return const OnboardingExperience();
             }
 
-            debugPrint('🏠 → Showing MainNavigationScreen (onboarding complete)');
+            debugPrint(
+                '🏠 → Showing MainNavigationScreen (onboarding complete)');
             return const MainNavigationScreen();
           },
           loading: () {
@@ -515,7 +534,8 @@ class _SolarVitaAppState extends ConsumerState<SolarVitaApp> with WidgetsBinding
       },
       error: (error, stack) {
         debugPrint('🏠 → Showing auth error: $error');
-        return Scaffold(body: Center(child: Text('Authentication error: $error')));
+        return Scaffold(
+            body: Center(child: Text('Authentication error: $error')));
       },
     );
   }
@@ -529,7 +549,8 @@ class MainNavigationScreen extends ConsumerStatefulWidget {
       _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> with WidgetsBindingObserver {
+class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
 
@@ -584,7 +605,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
   }
 
   void _saveCurrentScrollPosition() {
-    final scrollController = ref.read(scrollControllerNotifierProvider.notifier);
+    final scrollController =
+        ref.read(scrollControllerNotifierProvider.notifier);
     final tabKey = _getTabKey(_selectedIndex);
     if (tabKey != null) {
       scrollController.saveScrollPosition(tabKey);
@@ -609,7 +631,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
   }
 
   void _scrollToTop(int pageIndex) {
-    final scrollController = ref.read(scrollControllerNotifierProvider.notifier);
+    final scrollController =
+        ref.read(scrollControllerNotifierProvider.notifier);
     switch (pageIndex) {
       case 0:
         scrollController.scrollToTop('dashboard');
@@ -647,7 +670,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       // Save scroll position when app is backgrounded
       _saveCurrentScrollPosition();
     }
@@ -682,12 +706,13 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> wit
     return null;
   }
 
-
   Widget? _buildSmartFAB() {
     // Only show the fan menu FAB on the Dashboard tab
     if (_selectedIndex == 0) {
       // Get the correct scroll controller from the provider
-      final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('dashboard');
+      final scrollController = ref
+          .read(scrollControllerNotifierProvider.notifier)
+          .getController('dashboard');
 
       return FanMenuFAB(
         scrollController: scrollController,
