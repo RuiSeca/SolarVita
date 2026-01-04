@@ -4,36 +4,53 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+
 	<key>CFBundleDisplayName</key>
 	<string>Solar Vitas</string>
+	<!-- If you want the app name to be "SolarVita" on iPhone home screen, change to:
+	<string>SolarVita</string>
+	-->
+
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+
 	<key>CFBundleName</key>
 	<string>solar_vitas</string>
+
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
+
 	<key>CFBundleSignature</key>
 	<string>????</string>
+
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
+
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -41,37 +58,51 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	
+
 	<!-- Health Kit Permissions -->
 	<key>NSHealthShareUsageDescription</key>
 	<string>SolarVita needs access to your health data to track your fitness goals and provide personalized insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>SolarVita needs to update your health data to log workouts and activities.</string>
-	
+
 	<!-- Camera Permission for food recognition -->
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs camera access to identify food items and provide nutritional information.</string>
-	
+
 	<!-- Photo Library Permission -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to analyze food images for nutritional information.</string>
-	
+
+	<!-- Recommended: if you ever save/export images to Photos -->
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>SolarVita may save images you export from the app.</string>
+
+	<!-- ✅ REQUIRED for Solar AI tab (voice input) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>SolarVita uses the microphone for voice input in Solar AI.</string>
+
+	<!-- ✅ REQUIRED for Solar AI tab (speech-to-text) -->
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>SolarVita uses speech recognition to convert your voice into text for Solar AI.</string>
+
 	<!-- Motion & Fitness Permission -->
 	<key>NSMotionUsageDescription</key>
 	<string>This app uses motion data to track your physical activity and provide personalized fitness insights.</string>
-	
+
 	<!-- Location Permission (if needed for outdoor activities) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app uses location data to track outdoor workouts and provide location-based fitness features.</string>
-	
-	<!-- Notifications Permission -->
+
+	<!-- Notifications Permission (not required by iOS, but harmless) -->
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>This app sends notifications to remind you about your health goals and achievements.</string>
-	
+
 	<!-- Background App Refresh and Notifications -->
 	<key>UIBackgroundModes</key>
 	<array>
@@ -81,20 +112,22 @@
 		<string>remote-notification</string>
 	</array>
 
-	<!-- Audio Session Configuration for video playback during calls -->
+	<!-- Audio Session Configuration -->
 	<key>UIRequiresPersistentWiFi</key>
 	<false/>
+
 	<key>AVAudioSessionCategory</key>
 	<string>AVAudioSessionCategoryPlayback</string>
+
 	<key>AVAudioSessionCategoryOptions</key>
 	<array>
 		<string>AVAudioSessionCategoryOptionMixWithOthers</string>
 	</array>
-	
+
 	<!-- Google Sign-In Configuration -->
 	<key>GIDClientID</key>
 	<string>311138668281-jnp6g3751c6c4vfvk85maln5fm5hvvqs.apps.googleusercontent.com</string>
-	
+
 	<!-- Firebase required -->
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -107,16 +140,12 @@
 			</array>
 		</dict>
 	</array>
-	
-	<!-- Google Maps API Key - Commented out since using lightweight fitness tracker
-	<key>GOOGLE_MAPS_API_KEY</key>
-	<string>$(GOOGLE_MAPS_API_KEY)</string>
-	-->
-	
+
 	<!-- Apple Pay Configuration for Testing -->
 	<key>com.apple.developer.in-app-payments</key>
 	<array>
 		<string>merchant.com.solarVita.test</string>
 	</array>
+
 </dict>
 </plist>
