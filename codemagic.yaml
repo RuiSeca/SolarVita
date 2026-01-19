@@ -13,16 +13,24 @@ workflows:
       java: 17
 
     scripts:
-      - name: Load Firebase configuration
+      - name: Load Firebase configuration (SAFE for raw JSON/plist)
         script: |
           #!/usr/bin/env sh
           set -e
-          echo "$ANDROID_FIREBASE_SECRET" > "$CM_BUILD_DIR/android/app/google-services.json"
-          echo "$IOS_FIREBASE_SECRET" > "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist"
+
+          echo "Writing Firebase files..."
+
+          # IMPORTANT: Use printf, NOT echo (prevents malformed JSON/plist)
+          printf '%s' "$ANDROID_FIREBASE_SECRET" > "$CM_BUILD_DIR/android/app/google-services.json"
+          printf '%s' "$IOS_FIREBASE_SECRET" > "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist"
+
+          echo "Firebase files written."
 
       - name: Create .env for Flutter assets
         script: |
           set -e
+
+          echo "Writing .env file..."
           cat > "$CM_BUILD_DIR/.env" << EOF
           MOCK_DATA_ENABLED=${MOCK_DATA_ENABLED}
           HEALTH_DATA_UPDATE_INTERVAL_MINUTES=${HEALTH_DATA_UPDATE_INTERVAL_MINUTES}
@@ -35,6 +43,7 @@ workflows:
           NUTRITIONIX_APP_ID=${NUTRITIONIX_APP_ID}
           RAPID_API_KEY=${RAPID_API_KEY}
           EOF
+          echo ".env written."
 
       - name: Get Flutter dependencies
         script: |
@@ -44,6 +53,8 @@ workflows:
       - name: Force iOS deployment target to 14.0
         script: |
           set -e
+
+          echo "Forcing iOS deployment target to 14.0..."
 
           # Podfile platform
           if grep -q "^platform :ios" ios/Podfile; then
@@ -55,6 +66,8 @@ workflows:
 
           # Xcode project deployment target
           sed -i '' "s/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 14.0;/g" ios/Runner.xcodeproj/project.pbxproj
+
+          echo "Deployment target updated."
 
       - name: Install CocoaPods (clean)
         script: |
@@ -69,7 +82,7 @@ workflows:
         script: |
           set -e
 
-          # Avoid Flutter device build/signing checks
+          echo "Preparing Flutter iOS build..."
           flutter precache --ios
           flutter pub get
 
@@ -77,7 +90,7 @@ workflows:
           rm -rf build
           mkdir -p build
 
-          # Archive for device WITHOUT signing
+          echo "Archiving WITHOUT signing..."
           xcodebuild \
             -workspace Runner.xcworkspace \
             -scheme Runner \
@@ -95,7 +108,7 @@ workflows:
             PROVISIONING_PROFILE="" \
             COMPILER_INDEX_STORE_ENABLE=NO
 
-          # Extract the .app from the archive
+          echo "Extracting Runner.app..."
           APP_PATH="build/Runner.xcarchive/Products/Applications/Runner.app"
           if [ ! -d "$APP_PATH" ]; then
             echo "Runner.app not found at $APP_PATH"
@@ -104,7 +117,7 @@ workflows:
             exit 1
           fi
 
-          # Package into an unsigned IPA: Payload/Runner.app
+          echo "Packaging unsigned IPA..."
           rm -rf build/Payload
           mkdir -p build/Payload
           cp -R "$APP_PATH" build/Payload/
@@ -113,9 +126,12 @@ workflows:
           /usr/bin/zip -r -y "Runner-unsigned.ipa" Payload
           cd ../..
 
+          echo "Unsigned IPA created at ios/build/Runner-unsigned.ipa"
+
       - name: Build Android Debug APK
         script: |
           set -e
+
           flutter build apk --debug \
             --dart-define=MOCK_DATA_ENABLED=$MOCK_DATA_ENABLED \
             --dart-define=HEALTH_DATA_UPDATE_INTERVAL_MINUTES=$HEALTH_DATA_UPDATE_INTERVAL_MINUTES \
