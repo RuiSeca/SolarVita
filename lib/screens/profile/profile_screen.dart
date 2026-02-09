@@ -24,39 +24,18 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen>
-    with TickerProviderStateMixin {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final SocialService _socialService = SocialService();
   Stream<List<SupporterRequest>>? _supporterRequestsStream;
-
-  // Scroll-aware header visibility
-  bool _isHeaderVisible = false;
-  late AnimationController _headerAnimationController;
-  late Animation<double> _headerAnimation;
 
   @override
   void initState() {
     super.initState();
     _initializeCachedStream();
 
-    // Initialize scroll-aware header animation
-    _headerAnimationController = AnimationController(
-      duration: const Duration(milliseconds: 200),
-      vsync: this,
-    );
-
-    _headerAnimation = CurvedAnimation(
-      parent: _headerAnimationController,
-      curve: Curves.easeInOut,
-    );
-
-    // Setup scroll listener for header visibility
+    // Delay data sync by 1 second to let UI load first
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('profile');
-        scrollController.addListener(_onScroll);
-
-        // Delay data sync by 1 second to let UI load first
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             _syncCurrentDataToFirebase();
@@ -71,37 +50,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     _supporterRequestsStream = _socialService.getPendingSupporterRequests();
   }
 
-  void _onScroll() {
-    final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('profile');
 
-    if (!scrollController.hasClients) return;
-
-    const threshold = 100.0; // Show header after scrolling 100px
-    final shouldShowHeader = scrollController.offset > threshold;
-
-    if (shouldShowHeader != _isHeaderVisible) {
-      setState(() {
-        _isHeaderVisible = shouldShowHeader;
-      });
-
-      if (_isHeaderVisible) {
-        _headerAnimationController.forward();
-      } else {
-        _headerAnimationController.reverse();
-      }
-    }
-  }
 
   @override
   void dispose() {
-    // Remove scroll listener and dispose animation controller
-    try {
-      final scrollController = ref.read(scrollControllerNotifierProvider.notifier).getController('profile');
-      scrollController.removeListener(_onScroll);
-    } catch (e) {
-      // Ignore disposal errors
-    }
-    _headerAnimationController.dispose();
     super.dispose();
   }
 
@@ -174,6 +126,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
+        bottom: false, // Allow content to flow behind nav bar
         child: Stack(
           children: [
             userProfileAsync.when(
@@ -238,48 +191,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                   ],
                 ),
-              ),
-            ),
-
-            // SCROLL-AWARE FLOATING HEADER
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AnimatedBuilder(
-                animation: _headerAnimation,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, -60 * (1 - _headerAnimation.value)),
-                    child: Container(
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).scaffoldBackgroundColor.withValues(alpha: 0.95),
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
-                            width: 0.5,
-                          ),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.05),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Text(
-                          tr(context, 'nav_profile'),
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
               ),
             ),
 

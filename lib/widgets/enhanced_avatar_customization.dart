@@ -1048,9 +1048,14 @@ class _EnhancedAvatarCustomizationState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppTheme.isDarkMode(context)
-              ? Colors.purple.shade300
-              : Colors.purple,
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppTheme.isDarkMode(context)
+                  ? Colors.purple.shade300
+                  : Colors.purple;
+              }
+              return null;
+            }),
           ),
         ],
       ),

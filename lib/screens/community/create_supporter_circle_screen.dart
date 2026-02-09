@@ -368,7 +368,12 @@ class _CreateSupporterCircleScreenState extends ConsumerState<CreateSupporterCir
       subtitle: Text(subtitle),
       value: value,
       onChanged: onChanged,
-      activeThumbColor: Theme.of(context).primaryColor,
+      thumbColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return Theme.of(context).primaryColor;
+        }
+        return null;
+      }),
     );
   }
 

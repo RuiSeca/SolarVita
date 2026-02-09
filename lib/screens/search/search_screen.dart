@@ -860,7 +860,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> with TickerProvider
     return AnimatedPositioned(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      bottom: _showFloatingButton ? 24 : -80,
+      bottom: _showFloatingButton ? 110 : -80,
       right: 16,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),

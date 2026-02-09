@@ -303,27 +303,26 @@ class _DietaryPreferencesScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              RadioGroup<String>(
-                groupValue: _selectedDietType,
-                onChanged: (value) {
-                  setState(() {
-                    _selectedDietType = value!;
-                  });
-                },
-                child: Column(
-                  children: _dietTypeOptions.map((type) {
-                    return RadioListTile<String>(
-                      value: type,
-                      title: Text(
-                        tr(context, type),
-                        style: TextStyle(
-                          color: AppTheme.textColor(context),
-                          fontWeight: FontWeight.w500,
-                        ),
+              Column(
+                children: _dietTypeOptions.map((type) {
+                  return RadioListTile<String>(
+                    value: type,
+                    groupValue: _selectedDietType,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDietType = value!;
+                      });
+                    },
+                    title: Text(
+                      tr(context, type),
+                      style: TextStyle(
+                        color: AppTheme.textColor(context),
+                        fontWeight: FontWeight.w500,
                       ),
-                    );
-                  }).toList(),
-                ),
+                    ),
+                    activeColor: AppColors.primary,
+                  );
+                }).toList(),
               ),
             ],
           ),
@@ -769,7 +768,6 @@ class _DietaryPreferencesScreenState
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

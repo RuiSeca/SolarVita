@@ -260,8 +260,18 @@ class _CacheManagementScreenState extends ConsumerState<CacheManagementScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppTheme.primaryColor,
-            activeTrackColor: AppTheme.primaryColor.withAlpha(128),
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppTheme.primaryColor;
+              }
+              return null;
+            }),
+            trackColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return AppTheme.primaryColor.withAlpha(128);
+              }
+              return null;
+            }),
           ),
         ],
       ),

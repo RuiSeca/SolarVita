@@ -34,7 +34,8 @@ import 'screens/routine/routine_creation_screen.dart';
 import 'screens/health/meals/meal_edit_screen.dart';
 import 'screens/profile/settings/account/personal_info_screen.dart';
 import 'widgets/common/lottie_loading_widget.dart';
-import 'widgets/common/bottom_nav_bar.dart';
+import 'widgets/common/lottie_loading_widget.dart';
+import 'widgets/common/futuristic_nav_bar.dart';
 import 'widgets/common/fan_menu_fab.dart';
 import 'widgets/splash/lottie_splash_screen.dart';
 import 'theme/app_theme.dart';
@@ -575,18 +576,12 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   final List<Widget> _pages = [
     const DashboardScreen(),
     const SearchScreen(),
-    const HealthScreen(),
     const AIAssistantScreen(),
+    const HealthScreen(),
     const ProfileScreen(),
   ];
 
-  final List<NavItem> _navItems = const [
-    NavItem(icon: Icons.dashboard, labelKey: 'nav_dashboard'),
-    NavItem(icon: Icons.search, labelKey: 'nav_search'),
-    NavItem(icon: Icons.health_and_safety, labelKey: 'nav_health'),
-    NavItem(icon: Icons.assistant, labelKey: 'nav_solar_ai'),
-    NavItem(icon: Icons.person, labelKey: 'nav_profile'),
-  ];
+
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) {
@@ -620,9 +615,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       case 1:
         return 'search';
       case 2:
-        return 'health';
+        return null; // AI assistant (PULSE) doesn't need scroll memory
       case 3:
-        return null; // AI assistant doesn't need scroll memory
+        return 'health';
       case 4:
         return 'profile';
       default:
@@ -641,10 +636,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
         scrollController.scrollToTop('search');
         break;
       case 2:
-        scrollController.scrollToTop('health');
+        // Skip AI assistant - no scroll-to-top functionality
         break;
       case 3:
-        // Skip AI assistant - no scroll-to-top functionality
+        scrollController.scrollToTop('health');
         break;
       case 4:
         scrollController.scrollToTop('profile');
@@ -680,6 +675,7 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true, // Allow body content to flow behind the custom nav bar
       appBar: _buildAppBar(),
       body: PageView(
         controller: _pageController,
@@ -693,10 +689,9 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen>
       ),
       floatingActionButton: _buildSmartFAB(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: CustomBottomNavBar(
+      bottomNavigationBar: FuturisticNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: _navItems,
       ),
     );
   }

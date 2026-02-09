@@ -617,6 +617,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
     return Scaffold(
       backgroundColor: AppTheme.surfaceColor(context),
       body: SafeArea(
+        bottom: false, // Allow content to flow behind nav bar
         child: RefreshIndicator(
           onRefresh: () async {
             final notifier = ref.read(healthDataNotifierProvider.notifier);
@@ -657,6 +658,7 @@ class _HealthScreenState extends ConsumerState<HealthScreen>
                   _buildMealsSection(context),
                   const SizedBox(height: 24),
                   _buildStatsGrid(context, healthDataAsync),
+                  const SizedBox(height: 100), // Add bottom padding for nav bar
                 ],
               ),
             ),

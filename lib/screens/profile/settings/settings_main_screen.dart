@@ -133,7 +133,12 @@ class SettingsMainScreen extends ConsumerWidget {
                 onChanged: (value) => themeNotifier.setThemeMode(
                   value ? ThemeMode.dark : ThemeMode.light,
                 ),
-                activeThumbColor: AppColors.primary,
+                thumbColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.primary;
+                  }
+                  return null;
+                }),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             );

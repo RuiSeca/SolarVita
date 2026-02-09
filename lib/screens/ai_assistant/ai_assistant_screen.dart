@@ -537,6 +537,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
       child: Scaffold(
         backgroundColor: AppTheme.surfaceColor(context),
         body: SafeArea(
+          bottom: false, // Allow content to flow behind nav bar
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SizedBox(
@@ -550,6 +551,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
                       ), // Show buttons until user interacts
                     if (_userHasInteracted) Expanded(child: _buildChatArea()),
                     _buildMessageInput(),
+                    const SizedBox(height: 85), // Add bottom padding for nav bar
                   ],
                 ),
               );
@@ -1081,6 +1083,7 @@ class _AIAssistantScreenState extends ConsumerState<AIAssistantScreen>
         ),
       ),
       child: SafeArea(
+        bottom: false, // Prevent double padding with bottom spacer
         child: Padding(
           padding: EdgeInsets.only(
             top: 12,

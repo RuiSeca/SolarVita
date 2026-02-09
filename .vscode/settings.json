@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/Projects/SolarVita/solar_vitas/linux"
+  "cmake.sourceDirectory": "C:/Projects/SolarVita/solar_vitas/linux",
+  "java.configuration.updateBuildConfiguration": "interactive"
 }

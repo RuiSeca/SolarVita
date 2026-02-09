@@ -6,8 +6,17 @@ buildscript {
     }
 
     dependencies {
+        classpath "com.android.tools.build:gradle:8.6.0"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "com.google.gms:google-services:4.4.0"
+    }
+}
+
+// Configure Java toolchain for all projects
+subprojects {
+    tasks.withType(JavaCompile).configureEach {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 

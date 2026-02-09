@@ -907,7 +907,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           Switch(
             value: value,
             onChanged: enabled ? onChanged : null,
-            activeThumbColor: AppColors.primary,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],
@@ -979,7 +978,6 @@ class _PrivacyScreenState extends ConsumerState<PrivacyScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.primary,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
         ],

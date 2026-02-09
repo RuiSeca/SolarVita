@@ -239,21 +239,19 @@ class _WorkoutPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        RadioGroup<String>(
-          groupValue: _fitnessLevel,
-          onChanged: (value) {
-            setState(() {
-              _fitnessLevel = value!;
-            });
-          },
-          child: Column(
-            children: _fitnessLevelOptions.map((level) {
-              return RadioListTile<String>(
-                title: Text(level.capitalize()),
-                value: level,
-              );
-            }).toList(),
-          ),
+        Column(
+          children: _fitnessLevelOptions.map((level) {
+            return RadioListTile<String>(
+              title: Text(level.capitalize()),
+              value: level,
+              groupValue: _fitnessLevel,
+              onChanged: (value) {
+                setState(() {
+                  _fitnessLevel = value!;
+                });
+              },
+            );
+          }).toList(),
         ),
       ],
     );
@@ -331,21 +329,19 @@ class _WorkoutPreferencesScreenState
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        RadioGroup<String>(
-          groupValue: _preferredTime,
-          onChanged: (value) {
-            setState(() {
-              _preferredTime = value!;
-            });
-          },
-          child: Column(
-            children: _timeOptions.map((time) {
-              return RadioListTile<String>(
-                title: Text(time.capitalize()),
-                value: time,
-              );
-            }).toList(),
-          ),
+        Column(
+          children: _timeOptions.map((time) {
+            return RadioListTile<String>(
+              title: Text(time.capitalize()),
+              value: time,
+              groupValue: _preferredTime,
+              onChanged: (value) {
+                setState(() {
+                  _preferredTime = value!;
+                });
+              },
+            );
+          }).toList(),
         ),
       ],
     );

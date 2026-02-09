@@ -593,7 +593,12 @@ class _TranslationSettingsScreenState extends ConsumerState<TranslationSettingsS
           setState(() => _autoDownload = value);
           await _saveAutoDownloadPreference(value);
         },
-        activeThumbColor: AppTheme.primaryColor,
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppTheme.primaryColor;
+          }
+          return null;
+        }),
       ),
     );
   }

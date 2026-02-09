@@ -377,7 +377,7 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
           children: [
             Expanded(
               child: DropdownButtonFormField<ChallengeType>(
-                initialValue: _selectedType,
+                value: _selectedType,
                 decoration: const InputDecoration(
                   labelText: 'Category',
                   border: OutlineInputBorder(),
@@ -396,7 +396,7 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
             const SizedBox(width: 16),
             Expanded(
               child: DropdownButtonFormField<ChallengeMode>(
-                initialValue: _selectedMode,
+                value: _selectedMode,
                 decoration: const InputDecoration(
                   labelText: 'Participation Mode',
                   border: OutlineInputBorder(),
@@ -416,7 +416,7 @@ class _AdminChallengeFormScreenState extends ConsumerState<AdminChallengeFormScr
         ),
         const SizedBox(height: 16),
         DropdownButtonFormField<ChallengeStatus>(
-          initialValue: _selectedStatus,
+          value: _selectedStatus,
           decoration: const InputDecoration(
             labelText: 'Status',
             border: OutlineInputBorder(),

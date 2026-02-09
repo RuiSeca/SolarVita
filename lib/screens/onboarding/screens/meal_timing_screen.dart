@@ -295,10 +295,6 @@ class _MealTimingScreenState extends OnboardingBaseScreenState<MealTimingScreen>
                             HapticFeedback.lightImpact();
                             _audioService.playButtonSound();
                           },
-                          activeThumbColor: const Color(0xFF00FFC6),
-                          activeTrackColor: const Color(0x3300FFC6),
-                          inactiveThumbColor: Colors.white54,
-                          inactiveTrackColor: const Color(0x33FFFFFF),
                         ),
                       ],
                     ),

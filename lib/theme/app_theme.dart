@@ -18,6 +18,15 @@ class AppColors {
   static const beige = Color(0xFFF5F5DC); // Gold color added
   static const cream = Color(0xFFFFFDD0);
 
+  // PULSE Mascot & Futuristic Nav Colors
+  static const pulseGradientStart = Color(0xFF4CAF50); // Green
+  static const pulseGradientEnd = Color(0xFFFF9800);   // Orange
+  static const pulseEyeGlow = Color(0xFF00FF00);       // Bright green glow
+  static const navIconInactive = Color(0xFF9E9E9E);    // Gray
+  static const navIconActive = Color(0xFF4CAF50);      // Green
+  static const navBackground = Color(0xFFFAFAFA);      // Light gray/white
+  static const pulseMascotBg = Color(0xFF1A1A1A);      // Dark background for mascot
+
   // Navigation and Dark UI colors
   static const darkSurface = Color(0xFF121212);
   static const navigationBackgroundDark = Color(0xFF121212);

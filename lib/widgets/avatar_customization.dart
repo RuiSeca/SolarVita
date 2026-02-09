@@ -282,7 +282,12 @@ class _AvatarCustomizationState extends ConsumerState<AvatarCustomization> {
       return SwitchListTile(
         title: Text(input.name),
         value: _customizationToggles[input.name] ?? input.value,
-        activeThumbColor: color,
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return color;
+          }
+          return null;
+        }),
         onChanged: (value) {
           setState(() {
             _customizationToggles[input.name] = value;
